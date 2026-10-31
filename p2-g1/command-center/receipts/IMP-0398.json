@@ -1,0 +1,863 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1022,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/router-corpus.schema.json",
+      "role": "supporting",
+      "sha256": "7b3cb988e897243cc80dd67d4651a173055503396afc2c5c45c5879b12fde452"
+    },
+    {
+      "bytes": 5074,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/corpus.payload.schema.json",
+      "role": "supporting",
+      "sha256": "9d79a110cfb230bbe3d5ea0122c3cd984c6a056c3939a4d85df5b2ab40af8ca2"
+    },
+    {
+      "bytes": 2907,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/fixtures/capability-index.json",
+      "role": "supporting",
+      "sha256": "b3754b3448ba7b00d7b79d48d2557d5161107f55072cbf75ee49536ab53c72ac"
+    },
+    {
+      "bytes": 10407,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/corpus.py",
+      "role": "supporting",
+      "sha256": "cb81f2d424d1259b2f5fb9658164f3912f8e56742f7cbee0e87413bffd5275aa"
+    },
+    {
+      "bytes": 3197,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/baseline.py",
+      "role": "supporting",
+      "sha256": "00604f73f2c1d11d770c52cf08eca7cc851a27faa94ef479d86a86fb9dc7a9c5"
+    },
+    {
+      "bytes": 3864,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/kappa.py",
+      "role": "supporting",
+      "sha256": "0efd1f66bd5c0b0212ce75d3c1cef5f1522edba5a66bc8b27b024721321deb57"
+    },
+    {
+      "bytes": 2371,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/schema_util.py",
+      "role": "supporting",
+      "sha256": "2208d16f87714f32a792e455b8b3c03e85fb458ff1d9d3f5e5f22e67349b72ab"
+    },
+    {
+      "bytes": 4845,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/probe1_schema.py",
+      "role": "supporting",
+      "sha256": "b0146733b7692f8cc121ceac6b53c88ac1cf29101934c4ffa82b28e0631affba"
+    },
+    {
+      "bytes": 3848,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0398/probe2_baseline_defeat.py",
+      "role": "supporting",
+      "sha256": "99259dd2a86434a48071423760abf62054954d75f6d10979a309634d66a26005"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/IMP-0398/fixtures/capability-index.json",
+      "consumer": "command-center/p2-wave/probes/IMP-0398/baseline.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "baseline.score_corpus(queries, usage_count_top3)",
+        "exit_code": 0,
+        "fingerprint": "consumer:baseline.score_corpus",
+        "method": "command",
+        "raw_output": "score=0.0 hits=0",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/receipts/IMP-0398.json:report.corpus_stats",
+      "claim": "Corpus size n=42 with n_negative=12 (fraction=0.2857 >= 0.25).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c 'import sys;sys.path.insert(0,\"command-center/p2-wave/probes/IMP-0398\");import corpus as C;s=C.stats(C.build_queries());print(s)'",
+          "exit_code": 0,
+          "fingerprint": "corpus.stats:build_queries",
+          "method": "test-run",
+          "raw_output": "{\"n\": 42, \"n_negative\": 12, \"n_positive\": 30, \"negative_fraction\": 0.2857142857142857}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c 'count polarity NEGATIVE in report.queries'",
+          "exit_code": 0,
+          "fingerprint": "report.queries:polarity-count",
+          "method": "static-analysis",
+          "raw_output": "live_n=42 live_n_negative=12",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/receipts/IMP-0398.json:report.baseline.score",
+      "claim": "Always-top-3 on usage_count top3=['skill.web.search', 'skill.file.read', 'command.shell.exec'] scores exact_set_match=0.0000 (hits=0/42) below floor 0.25.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0398/baseline.py",
+          "exit_code": 0,
+          "fingerprint": "baseline.score_corpus:always-top-3",
+          "method": "test-run",
+          "raw_output": "{\"n_exact_hits\": 0, \"score\": 0.0, \"top3\": [\"skill.web.search\", \"skill.file.read\", \"command.shell.exec\"]}",
+          "role": "source"
+        },
+        {
+          "command": "independent exact-set recount vs usage_count top-3",
+          "exit_code": 0,
+          "fingerprint": "recount_exact_hits:frozenset",
+          "method": "command",
+          "raw_output": "independent_hits=0 score_hits=0",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/receipts/IMP-0398.json:report.baseline.easy_mutant_score",
+      "claim": "Easy mutant (positives expect top-3) scores 0.7143 >= floor, so the floor is not vacuous.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "baseline.easy_mutant then score_corpus",
+          "exit_code": 0,
+          "fingerprint": "baseline.easy_mutant:score",
+          "method": "test-run",
+          "raw_output": "{\"easy_mutant_score\": 0.7142857142857143, \"floor\": 0.25}",
+          "role": "source"
+        },
+        {
+          "command": "compare easy_mutant_score to declared_floor",
+          "exit_code": 0,
+          "fingerprint": "floor-vacuity:easy>=floor",
+          "method": "static-analysis",
+          "raw_output": "easy=0.7142857142857143 floor=0.25 not_vacuous=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/receipts/IMP-0398.json:report.kappa",
+      "claim": "Blind keyword relabel of 5 rows (seed=398) has Cohen's kappa=1.0000 >= 0.7.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "kappa.relabel_and_kappa(queries, seed=398, fraction=0.10)",
+          "exit_code": 0,
+          "fingerprint": "kappa.relabel_and_kappa:seed398",
+          "method": "test-run",
+          "raw_output": "{\"n_relabeled\": 5, \"sample_ids\": [\"q-020\", \"q-017\", \"q-002\", \"q-023\", \"q-006\"], \"value\": 1.0}",
+          "role": "source"
+        },
+        {
+          "command": "count agree flags on kappa.rows",
+          "exit_code": 0,
+          "fingerprint": "kappa.rows:agree-count",
+          "method": "static-analysis",
+          "raw_output": "n_agree=5 n_relabeled=5",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "adv_rebuild_circle": false,
+    "cloud_ok": false,
+    "completion_sentinel": "SENTINEL:IMP-0398:ROUTER-CORPUS-BASELINE-DEFEATING",
+    "garbage_rejected": 3,
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0398/probe1_schema.py",
+        "id": "probe1",
+        "role": "corpus-schema"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0398/probe2_baseline_defeat.py",
+        "id": "probe2",
+        "role": "baseline-defeat"
+      }
+    ]
+  },
+  "manifest_registration": {
+    "entry_id": "IMP-0398",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0398/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "garbage_rejected=3",
+      "description": "Catalog shim (disk-resolved $ref onto receipt_core) must reject {}, unrelated blobs, and passing_tests spam.",
+      "fired_on_bad_state": true,
+      "good_state_output": "envelope_errors=[]",
+      "id": "NC-garbage",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "payload schema rejected 0% negatives",
+      "description": "Flipping every NEGATIVE row to POSITIVE and declaring negative_fraction=0 must be rejected by the probe-local payload schema (the generated catalog shim cannot express this).",
+      "fired_on_bad_state": true,
+      "good_state_output": "payload schema accepted live report",
+      "id": "NC-zero-negative",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "easy_mutant_score=0.7142857142857143",
+      "description": "A too-easy corpus (every POSITIVE expects usage_count top-3) must score at or above the declared floor, proving the floor is not vacuous.",
+      "fired_on_bad_state": true,
+      "good_state_output": "live_score=0.0",
+      "id": "NC-easy-mutant",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "xai"
+  },
+  "report": {
+    "baseline": {
+      "declared_floor": 0.25,
+      "defeated": true,
+      "easy_mutant_score": 0.7142857142857143,
+      "independent_hit_recount": 0,
+      "label_frequency_top3": [
+        "skill.router.index-build",
+        "skill.privacy.scrub",
+        "skill.blob.provenance"
+      ],
+      "mean_jaccard": 0.023809523809523808,
+      "n_exact_hits": 0,
+      "score": 0.0,
+      "score_metric": "exact_set_match_accuracy",
+      "stub": "always-top-3",
+      "top3": [
+        "skill.web.search",
+        "skill.file.read",
+        "command.shell.exec"
+      ],
+      "why_exact_match": "Subset-recall would mark every NEGATIVE as a hit because empty set is a subset of top-3. Exact-set-match makes returning popular ids on a no-fit query a miss."
+    },
+    "control_ids": [
+      "NC-garbage",
+      "NC-zero-negative",
+      "NC-easy-mutant"
+    ],
+    "corpus_stats": {
+      "n": 42,
+      "n_negative": 12,
+      "n_positive": 30,
+      "negative_fraction": 0.2857142857142857
+    },
+    "inputs_observed": {
+      "capability_index_fixture": "command-center/p2-wave/probes/IMP-0398/fixtures/capability-index.json",
+      "capability_index_live": false,
+      "imp_0396_receipt": false,
+      "note": "Live capability-index.json, IMP-0396 receipt, and redacted transcripts were absent. Popularity is fixture usage_count standing in for a redacted transcript census. NEGATIVE rows encode the IMP-0396 no-fit path as an empty expected set.",
+      "transcripts_glob": "~/.claude/projects/**/transcripts",
+      "transcripts_present": false
+    },
+    "kappa": {
+      "method": "Second annotator is keyword_label() on query text only; expected_capability_ids is unread.",
+      "n_relabeled": 5,
+      "pass": true,
+      "rows": [
+        {
+          "agree": true,
+          "blind": "skill.mutation.harness",
+          "gold": "skill.mutation.harness",
+          "id": "q-020"
+        },
+        {
+          "agree": true,
+          "blind": "skill.schema.author",
+          "gold": "skill.schema.author",
+          "id": "q-017"
+        },
+        {
+          "agree": true,
+          "blind": "skill.router.index-build",
+          "gold": "skill.router.index-build",
+          "id": "q-002"
+        },
+        {
+          "agree": true,
+          "blind": "skill.cache.invalidate",
+          "gold": "skill.cache.invalidate",
+          "id": "q-023"
+        },
+        {
+          "agree": true,
+          "blind": "skill.privacy.scrub",
+          "gold": "skill.privacy.scrub",
+          "id": "q-006"
+        }
+      ],
+      "sample_ids": [
+        "q-020",
+        "q-017",
+        "q-002",
+        "q-023",
+        "q-006"
+      ],
+      "seed": 398,
+      "threshold": 0.7,
+      "value": 1.0
+    },
+    "kind": "router-corpus",
+    "observations": [
+      {
+        "anchor": "command-center/receipts/IMP-0398.json:report.queries",
+        "measured": 42,
+        "method": "count-queries",
+        "name": "corpus_n"
+      },
+      {
+        "anchor": "command-center/receipts/IMP-0398.json:report.corpus_stats",
+        "measured": 0.2857142857142857,
+        "method": "n_negative/n",
+        "name": "negative_fraction"
+      },
+      {
+        "anchor": "command-center/receipts/IMP-0398.json:report.baseline.score",
+        "measured": 0.0,
+        "method": "baseline.score_corpus",
+        "name": "always_top3_exact_set_match"
+      },
+      {
+        "anchor": "command-center/receipts/IMP-0398.json:report.baseline.easy_mutant_score",
+        "measured": 0.7142857142857143,
+        "method": "baseline.easy_mutant+score_corpus",
+        "name": "easy_mutant_exact_set_match"
+      },
+      {
+        "anchor": "command-center/receipts/IMP-0398.json:report.kappa",
+        "measured": 1.0,
+        "method": "kappa.relabel_and_kappa seed=398 fraction=0.10",
+        "name": "blind_kappa"
+      }
+    ],
+    "popularity": {
+      "capabilities": [
+        {
+          "capability_id": "skill.web.search",
+          "kind": "skill",
+          "name": "web-search",
+          "usage_count": 12040
+        },
+        {
+          "capability_id": "skill.file.read",
+          "kind": "skill",
+          "name": "file-read",
+          "usage_count": 11810
+        },
+        {
+          "capability_id": "command.shell.exec",
+          "kind": "command",
+          "name": "shell-exec",
+          "usage_count": 11002
+        },
+        {
+          "capability_id": "skill.router.index-build",
+          "kind": "skill",
+          "name": "index-build",
+          "usage_count": 37
+        },
+        {
+          "capability_id": "skill.privacy.scrub",
+          "kind": "skill",
+          "name": "privacy-scrub",
+          "usage_count": 29
+        },
+        {
+          "capability_id": "skill.council.four-voice",
+          "kind": "skill",
+          "name": "council",
+          "usage_count": 22
+        },
+        {
+          "capability_id": "skill.blob.provenance",
+          "kind": "skill",
+          "name": "blob-provenance",
+          "usage_count": 18
+        },
+        {
+          "capability_id": "skill.schema.author",
+          "kind": "skill",
+          "name": "schema-author",
+          "usage_count": 15
+        },
+        {
+          "capability_id": "skill.mutation.harness",
+          "kind": "skill",
+          "name": "mutation-harness",
+          "usage_count": 12
+        },
+        {
+          "capability_id": "skill.cache.invalidate",
+          "kind": "skill",
+          "name": "cache-invalidate",
+          "usage_count": 11
+        },
+        {
+          "capability_id": "skill.override.ban-pin",
+          "kind": "skill",
+          "name": "override-ban-pin",
+          "usage_count": 9
+        },
+        {
+          "capability_id": "skill.nofit.terminal",
+          "kind": "skill",
+          "name": "nofit-terminal",
+          "usage_count": 8
+        }
+      ],
+      "independent_of_gold_labels": true,
+      "index_path": "command-center/p2-wave/probes/IMP-0398/fixtures/capability-index.json",
+      "source": "fixture usage_count (synthetic redacted-transcript census)",
+      "top3": [
+        "skill.web.search",
+        "skill.file.read",
+        "command.shell.exec"
+      ]
+    },
+    "queries": [
+      {
+        "expected_capability_ids": [
+          "skill.router.index-build"
+        ],
+        "id": "q-001",
+        "polarity": "POSITIVE",
+        "query": "Build capability-index.json from six roots and survive a NUL-named file in a root.",
+        "rationale": "Exact IMP-0385 crawler job: six-root enumeration plus NUL survival."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.router.index-build"
+        ],
+        "id": "q-002",
+        "polarity": "POSITIVE",
+        "query": "Re-run index_build so per-root counts match an independent census to zero.",
+        "rationale": "Index rebuild with census parity is the index-build capability, not a web search."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.router.index-build"
+        ],
+        "id": "q-003",
+        "polarity": "POSITIVE",
+        "query": "Enumerate ~/.claude/skills and repo workflows/ into a single capability-index.json from six roots.",
+        "rationale": "Named six-root crawl; popular file.read/shell.exec do not produce the index."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.router.index-build"
+        ],
+        "id": "q-004",
+        "polarity": "POSITIVE",
+        "query": "Seed a capability root with a NUL-named file and assert the crawler does not abort.",
+        "rationale": "NUL-named file is the index-build regression, not generic shell.exec."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.router.index-build"
+        ],
+        "id": "q-005",
+        "polarity": "POSITIVE",
+        "query": "Does the crawler writing capability-index.json from six roots survive a root containing NUL-named files?",
+        "rationale": "Question restates the index-build contract; expected set is that one skill."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.privacy.scrub"
+        ],
+        "id": "q-006",
+        "polarity": "POSITIVE",
+        "query": "Scrub a planted secret-shaped token and an absolute user path from router telemetry.",
+        "rationale": "Privacy-scrub negative control: planted secret and path must be absent after scrub."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.privacy.scrub"
+        ],
+        "id": "q-007",
+        "polarity": "POSITIVE",
+        "query": "Run the telemetry scrub so a planted secret-shaped token never appears in the emitted JSON.",
+        "rationale": "Scrubber, not web search; expected set is privacy.scrub only."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.privacy.scrub"
+        ],
+        "id": "q-008",
+        "polarity": "POSITIVE",
+        "query": "Remove every absolute user path from a telemetry record before it leaves the estate.",
+        "rationale": "Absolute user path scrub is the privacy capability."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.privacy.scrub"
+        ],
+        "id": "q-009",
+        "polarity": "POSITIVE",
+        "query": "Assert privacy-scrub drops both a secret-shaped token and a home-directory path.",
+        "rationale": "Paired planted controls named in IMP-0397 tests_required."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.council.four-voice"
+        ],
+        "id": "q-010",
+        "polarity": "POSITIVE",
+        "query": "Invoke the four-voice council skill: Architect, Skeptic, Pragmatist, Critic as static prompt sections.",
+        "rationale": "Named four roles; not a shell or file-read task."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.council.four-voice"
+        ],
+        "id": "q-011",
+        "polarity": "POSITIVE",
+        "query": "Draft a review using the four-voice council without compiling CouncilSpec policy.",
+        "rationale": "Council prompt skill, explicitly not an executable policy compiler."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.council.four-voice"
+        ],
+        "id": "q-012",
+        "polarity": "POSITIVE",
+        "query": "List the four-voice council roles Architect, Skeptic, Pragmatist, Critic for a design review.",
+        "rationale": "Role list is the council skill's identity."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.blob.provenance"
+        ],
+        "id": "q-013",
+        "polarity": "POSITIVE",
+        "query": "Read stored git blob bytes without using git archive on Windows.",
+        "rationale": "Provenance helper forbids git archive; popular shell.exec would pick the wrong recipe."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.blob.provenance"
+        ],
+        "id": "q-014",
+        "polarity": "POSITIVE",
+        "query": "Compare git cat-file, git show, and git archive on the same blob and keep the non-archive routes.",
+        "rationale": "Three-route blob comparison is the provenance capability."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.blob.provenance"
+        ],
+        "id": "q-015",
+        "polarity": "POSITIVE",
+        "query": "Replace every Windows git archive prescription with the stored git blob bytes helper.",
+        "rationale": "Census-and-fix of archive recipes is blob provenance, not web.search."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.schema.author"
+        ],
+        "id": "q-016",
+        "polarity": "POSITIVE",
+        "query": "Author a JSON schema that rejects a receipt missing its sentinel.",
+        "rationale": "Schema-authoring task; always-top-3 popular tools do not write the schema."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.schema.author"
+        ],
+        "id": "q-017",
+        "polarity": "POSITIVE",
+        "query": "Add a negative fixture proving a receipt without a sentinel is INVALID under the JSON schema that rejects a receipt missing its sentinel.",
+        "rationale": "Negative fixture for sentinel absence is schema.author."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.schema.author"
+        ],
+        "id": "q-018",
+        "polarity": "POSITIVE",
+        "query": "Tighten additionalProperties so a JSON schema that rejects a receipt missing its sentinel also rejects unknown keys.",
+        "rationale": "Contract strictness work belongs to schema.author."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.mutation.harness"
+        ],
+        "id": "q-019",
+        "polarity": "POSITIVE",
+        "query": "Corrupt one router description and assert the regression suite goes red.",
+        "rationale": "Mutation harness: one description corruption must be observed as redness."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.mutation.harness"
+        ],
+        "id": "q-020",
+        "polarity": "POSITIVE",
+        "query": "Delete one trigger row in the mutation harness and require the suite to fail closed.",
+        "rationale": "Trigger-row deletion is a named mutation, not a popular generic tool."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.mutation.harness"
+        ],
+        "id": "q-021",
+        "polarity": "POSITIVE",
+        "query": "Unpin the embedding model via the mutation harness and check the regression suite goes red.",
+        "rationale": "Fourth mutation class; expected set is the harness only."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.cache.invalidate"
+        ],
+        "id": "q-022",
+        "polarity": "POSITIVE",
+        "query": "Edit a capability description and prove the next router call sees the change, not a stale cache.",
+        "rationale": "Cache invalidation on content hash plus mtime."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.cache.invalidate"
+        ],
+        "id": "q-023",
+        "polarity": "POSITIVE",
+        "query": "Recover from a truncated cache file using content hash plus mtime rather than serving an empty index as OK.",
+        "rationale": "Corrupted-cache recovery is cache.invalidate, not file.read alone."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.override.ban-pin"
+        ],
+        "id": "q-024",
+        "polarity": "POSITIVE",
+        "query": "Ban a capability that scores 0.99 and show the owner ban still excludes it.",
+        "rationale": "Ban-beats-score; popularity of the banned cap must not leak it back."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.override.ban-pin"
+        ],
+        "id": "q-025",
+        "polarity": "POSITIVE",
+        "query": "Pin a capability always-on and prove the budget ceiling does not drop it.",
+        "rationale": "Pin-survives-budget is the override layer."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.nofit.terminal"
+        ],
+        "id": "q-026",
+        "polarity": "POSITIVE",
+        "query": "Return typed NO-CAPABILITY-FITS with closest rejected candidates instead of injecting a weak match.",
+        "rationale": "No-fit terminal verdict; empty selection is explicit, not a popular tool dump."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.nofit.terminal"
+        ],
+        "id": "q-027",
+        "polarity": "POSITIVE",
+        "query": "For a labelled no-fit query, emit NO-CAPABILITY-FITS rather than injecting a weak match from the index.",
+        "rationale": "IMP-0396 no-fit path encoded as a positive expected capability (the no-fit emitter)."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.web.search"
+        ],
+        "id": "q-028",
+        "polarity": "POSITIVE",
+        "query": "Search the public web for the current Python jsonschema version.",
+        "rationale": "Web search intent; always-top-3 returns two extra popular ids, so exact match fails."
+      },
+      {
+        "expected_capability_ids": [
+          "skill.file.read"
+        ],
+        "id": "q-029",
+        "polarity": "POSITIVE",
+        "query": "Read the file capability-index.json from disk.",
+        "rationale": "Singleton file.read; stub returns the whole popular triple."
+      },
+      {
+        "expected_capability_ids": [
+          "command.shell.exec"
+        ],
+        "id": "q-030",
+        "polarity": "POSITIVE",
+        "query": "Run a shell command to list ~/.claude/skills.",
+        "rationale": "Singleton shell.exec listing; not the six-root index builder."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-031",
+        "polarity": "NEGATIVE",
+        "query": "What will the weather be on Mars next Tuesday?",
+        "rationale": "No indexed capability forecasts planetary weather; expected set empty."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-032",
+        "polarity": "NEGATIVE",
+        "query": "Write a sourdough starter schedule for a home kitchen.",
+        "rationale": "Cooking schedule is outside the capability index."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-033",
+        "polarity": "NEGATIVE",
+        "query": "File my 1994 US federal tax return as if paper forms were still required.",
+        "rationale": "Historical tax filing is not a router capability."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-034",
+        "polarity": "NEGATIVE",
+        "query": "Recommend a pediatric dentist in Reykjavik.",
+        "rationale": "Local medical referral is not in the indexed repertoire."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-035",
+        "polarity": "NEGATIVE",
+        "query": "Tune a piano to A440 in a concert hall.",
+        "rationale": "Instrument tuning is not a capability in this index."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-036",
+        "polarity": "NEGATIVE",
+        "query": "Diagnose a rash on a golden retriever from a photo.",
+        "rationale": "Veterinary diagnosis is outside the estate."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-037",
+        "polarity": "NEGATIVE",
+        "query": "Plan a wedding seating chart for 180 guests.",
+        "rationale": "Event seating is not an indexed skill, command, or workflow."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-038",
+        "polarity": "NEGATIVE",
+        "query": "Translate this restaurant menu into conversational Klingon.",
+        "rationale": "Constructed-language menu translation is not indexed."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-039",
+        "polarity": "NEGATIVE",
+        "query": "What time does the ferry leave Nantucket in 2003?",
+        "rationale": "Historical ferry timetable is not a live capability."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-040",
+        "polarity": "NEGATIVE",
+        "query": "Calculate the batting average of a fictional baseball player.",
+        "rationale": "Fictional sports stats are not a repertoire item."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-041",
+        "polarity": "NEGATIVE",
+        "query": "How do I darn a wool sock with a wooden mushroom?",
+        "rationale": "Textile repair is not in capability-index.json."
+      },
+      {
+        "expected_capability_ids": [],
+        "id": "q-042",
+        "polarity": "NEGATIVE",
+        "query": "Name three edible mosses on the Isle of Skye in winter.",
+        "rationale": "Foraging advice is a no-fit; expected set must stay empty."
+      }
+    ],
+    "question": "Build the labelled router regression corpus: query, expected capability set, and rationale - with at least 25 percent NEGATIVE queries whose expected set is empty. Exact target: a corpus that cannot be satisfied by a router that always returns the top-3 most popular capabilities.",
+    "title": "Router regression corpus with mandatory negative queries"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live capability-index.json and redacted transcripts were absent.",
+      "settling_experiment": "Re-derive usage_count from a real transcript census and re-score always-top-3 on the same labels.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "command-center/schema/router-corpus.schema.json is a generated shim and does not constrain negative_fraction; that rule lives in the probe-local payload schema.",
+      "settling_experiment": "Mutate negatives to 0% and confirm the catalog shim still accepts the envelope while the payload schema rejects it.",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "max 2 attempts; if the baseline still scores well after 2, redesign the corpus rather than re-tune"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Second annotator is keyword_label() on query text only; expected_capability_ids is unread.",
+    "reviewer_id": "IMP-0398-keyword-blind-relabel",
+    "vendor": "local",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0398:ROUTER-CORPUS-BASELINE-DEFEATING",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0398]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0398/probe1_schema.py",
+      "id": "T1-corpus-schema",
+      "name": "Live artifact validates; garbage rejected; negatives >= 25%",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0398/probe2_baseline_defeat.py",
+      "id": "T2-baseline-defeat",
+      "name": "Always-top-3 stub scores below the declared floor",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:34:06Z",
+    "started_at": "2026-08-24T18:33:00Z"
+  },
+  "unit_id": "IMP-0398"
+}

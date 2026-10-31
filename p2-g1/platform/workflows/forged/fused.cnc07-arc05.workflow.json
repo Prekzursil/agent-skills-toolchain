@@ -1,0 +1,1295 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "fused.bp-cnc-07-probe-wins-split-verdict-resolver.bp-arc-05.vendor.29bae2598ce6",
+  "name": "Fused (best-of-breed): Probe-Wins Split-Verdict Resolver + Vendor-Neutral Workflow Spec Emission",
+  "description": "Forged by workflow-forge with strategy 'best-of-breed' from bp-cnc-07-probe-wins-split-verdict-resolver (base) and bp-arc-05.vendor-neutral-workflow-spec-emission (donor). Grafted 1 of 10 donor top-level stages. This document is NOT accepted for being larger: see x_extensions.foundry.certification for the measured axis deltas that justify it, per spec _USER-PROMPTS.md:11282.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence",
+    "collective-intelligence-and-meta-workflows"
+  ],
+  "tags": [
+    "split-verdict",
+    "probe-independence",
+    "no-majority-vote",
+    "both-states-control",
+    "bp-cnc-07"
+  ],
+  "flagship": false,
+  "params": {
+    "fact": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The FACTUAL claim the lanes disagree about. Judgement disagreements (taste, priority) are out of scope - votes and councils are appropriate there."
+    },
+    "verdicts": {
+      "type": "array",
+      "min_items": 2,
+      "max_items": 64,
+      "description": "One entry per agent. A verdict whose probe block is absent is discarded, not counted.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "agent": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "enum",
+            "enum": [
+              "CONFIRMED",
+              "REFUTED",
+              "PARTIAL",
+              "NOT_CHECKED"
+            ]
+          },
+          "probe_tool": {
+            "type": "string"
+          },
+          "probe_command": {
+            "type": "string"
+          },
+          "probe_field": {
+            "type": "string"
+          },
+          "probe_shell": {
+            "type": "enum",
+            "enum": [
+              "powershell",
+              "git-bash",
+              "wsl",
+              "cmd",
+              "python",
+              "none"
+            ]
+          },
+          "probe_output": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "allow_third_probe": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether a mechanically different third probe may be RUN to break a genuine tie. If false, a degenerate matrix resolves UNRESOLVED."
+    },
+    "both_states_control_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Require a both-states control on the disputed detector: it must FIRE on a known-broken state and stay SILENT on a known-good one"
+    },
+    "source_workflow_path": {
+      "type": "path",
+      "required": true,
+      "description": "The workflow to promote into a portable spec"
+    },
+    "provider_matrix": {
+      "type": "object",
+      "required": true,
+      "description": "stage id -> vendor -> invocation. A missing cell means UNSUPPORTED, not 'the default'.",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "max_depth": {
+      "type": "integer",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 1,
+      "description": "The machine-readable form of the one-level-nesting rule. Fixed at 1 by design."
+    },
+    "max_threads": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "maximum": 128,
+      "description": "REQUIRED WITH NO DEFAULT ON PURPOSE. The spec layer carries a live conflict: lifecycle.yaml says max_threads=4 while the owner's standing preference is to fan out large. Rather than silently inherit either value this blueprint refuses to run until the owner states one."
+    },
+    "worker_model_floor": {
+      "type": "enum",
+      "required": true,
+      "enum": [
+        "sonnet",
+        "opus"
+      ],
+      "description": "The second live conflict, also deliberately undefaulted: agent-roles/core.yaml routes worker=sonnet while the standing preference is Opus for all substantive subagents. The owner picks; the spec records the pick."
+    }
+  },
+  "roles": {
+    "probe-extractor": {
+      "description": "Extracts each verdict's probe fingerprint (tool, command, field, shell) and discards any verdict that declares none",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/resolve/**)"
+      ],
+      "write_paths": [
+        "command-center/resolve/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "independence-analyst": {
+      "description": "Builds the independence matrix - which probes share a mechanism - and collapses duplicates to a single signal",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/resolve/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "tiebreak-prober": {
+      "description": "Runs a mechanically DIFFERENT third probe when the surviving verdicts are still split; re-running a tagged probe does not count and must never be reported as a confirmation",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "voting",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/resolve/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "resolver": {
+      "description": "States the resolution and NAMES THE DEFECT in the losing probe; may not resolve by vote under any circumstances",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/resolve/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - receives an UNRESOLVED verdict together with the request for a new instrument",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    },
+    "translator": {
+      "description": "Extracts the stage sequence, invariants and limits, and maps each stage per vendor",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/spec/**)"
+      ],
+      "write_paths": [
+        "command-center/spec/**"
+      ]
+    },
+    "portability_critic": {
+      "description": "Lists what is genuinely vendor-locked instead of pretending it is portable",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep"
+      ],
+      "speaking_rights": "always"
+    },
+    "roundtrip_validator": {
+      "description": "Mechanically compares the emitted topology to the source topology",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python"
+      ]
+    },
+    "d1.owner": {
+      "description": "Resolves the two recorded spec-layer conflicts; the spec cannot invent an answer",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/resolve/**)",
+      "Write(command-center/spec/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/resolve/**",
+      "command-center/spec/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/lib",
+      "platform/schema",
+      "platform/workflows/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == tiebreak_prober",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "the tiebreak probe is a real measurement and a botched one produces a confident wrong resolution"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "unprobed-verdicts-discarded": {
+      "predicate": "custom-expression",
+      "expression": "verdicts_counted_without_probe == 0 AND probe_fingerprints_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "never-resolved-by-majority": {
+      "predicate": "custom-expression",
+      "expression": "resolved_by_majority == false AND winning_probe_named == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "control-fires-in-both-states": {
+      "predicate": "custom-expression",
+      "expression": "control_fired_on_broken_state == true AND control_silent_on_good_state == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "handoff-fields-exact": {
+      "predicate": "custom-expression",
+      "expression": "handoff_required_fields_match == true AND max_depth == 1",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unsupported-declared": {
+      "predicate": "custom-expression",
+      "expression": "silently_dropped_stages == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "roundtrip-equal": {
+      "predicate": "custom-expression",
+      "expression": "roundtrip_topology_equal == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "conflicts-resolved": {
+      "predicate": "custom-expression",
+      "expression": "max_threads_declared == true AND worker_model_floor_declared == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "extract-probes",
+      "title": "S0 EXTRACT each verdict's probe fingerprint - a verdict with no probe is DISCARDED, not counted",
+      "kind": "task",
+      "role": "probe-extractor",
+      "checkpoint": true,
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "WCNC-0701",
+        "title": "Extract probe fingerprints and discard every verdict that declares no producing measurement",
+        "phase": "2B",
+        "question_or_target": "For each verdict, record the probe fingerprint (tool, command, data field, shell). Discard - do not count - any verdict with no declared probe.",
+        "inputs": [
+          "params.verdicts",
+          "params.fact"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "probe-extractor",
+          "basis": "the discard rule is the first place a wrong resolution is prevented"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/resolve/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/resolve/bp-cnc-07/probe-fingerprints.json",
+        "output_schema": "command-center/schema/reprobe-record.schema.json",
+        "evidence_requirement": "each surviving verdict carries all four fingerprint fields; each discarded verdict is listed WITH the reason, so the discard is auditable rather than a silent drop",
+        "tests_required": [
+          "a verdict with no probe block must be DISCARDED and listed, never counted as a signal",
+          "an empty probe_command must count as no probe - a fingerprint of four empty strings trivially differs from any non-empty verifier and would defeat the whole independence check",
+          "both-states control: feed one verdict with a probe (expect retained) and one without (expect discarded)"
+        ],
+        "reviewer_requirement": "the independence analyst confirms no discarded verdict influenced the matrix",
+        "completion_sentinel": "SUCCESS:WCNC-0701 emitted when probe-fingerprints.json exists, parses, and every verdict is either fingerprinted or listed as discarded with a reason; otherwise FAILED:WCNC-0701 <reason>",
+        "retry_policy": "no retry - a missing probe cannot be recovered by asking again; the agent must re-run with a probe field in its contract",
+        "failure_classification": [
+          "probe-undeclared",
+          "empty-probe-fingerprint",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/resolve/bp-cnc-07/probe-fingerprints.json",
+          "schema_ref": "command-center/schema/reprobe-record.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0701",
+          "consumers": [
+            "discard-gate",
+            "independence-matrix"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "discard-gate",
+      "title": "S0b An undeclared source is ZERO signals, not one",
+      "kind": "gate",
+      "depends_on": [
+        "extract-probes"
+      ],
+      "gate_ref": "unprobed-verdicts-discarded"
+    },
+    {
+      "id": "independence-matrix",
+      "title": "S1-S2 BUILD the independence matrix and COLLAPSE duplicate-mechanism verdicts to one signal",
+      "kind": "task",
+      "role": "independence-analyst",
+      "depends_on": [
+        "discard-gate"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0702",
+        "title": "Build the pairwise independence matrix and collapse shared-mechanism verdicts",
+        "phase": "2B",
+        "question_or_target": "For every pair of surviving verdicts, decide whether their probes are mechanically independent (different shell, different data field, different measurement). Collapse each duplicate-mechanism group to ONE signal.",
+        "inputs": [
+          "command-center/resolve/bp-cnc-07/probe-fingerprints.json"
+        ],
+        "dependencies": [
+          "WCNC-0701"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "independence-analyst",
+          "basis": "this is the step that turns six agreeing agents back into one signal"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/resolve/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/resolve/bp-cnc-07/independence-matrix.json",
+        "output_schema": "command-center/schema/agreement-statistic.schema.json",
+        "evidence_requirement": "every INDEPENDENT verdict names the mechanism that makes it independent; a pair with no named difference is CORRELATED by default (adverse inference), never independent by assumption",
+        "tests_required": [
+          "six agents using the SAME probe must collapse to one signal and be flagged as such",
+          "two verdicts differing only in agent name must be CORRELATED",
+          "both-states control: build the matrix on 6 identical probes (expect 1 signal) and on 6 mechanically different probes (expect 6 signals) - a matrix that reports the same count in both states measures nothing"
+        ],
+        "reviewer_requirement": "the resolver confirms the collapse count before any resolution is stated",
+        "completion_sentinel": "SUCCESS:WCNC-0702 emitted when independence-matrix.json exists, parses, and every pair carries an independence verdict with a named mechanism or CORRELATED; otherwise FAILED:WCNC-0702 <reason>",
+        "retry_policy": "two strikes then pivot: mark the pair CORRELATED (the conservative direction) rather than asserting an independence that was not established",
+        "failure_classification": [
+          "matrix-degenerate",
+          "detector-failure",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/resolve/bp-cnc-07/independence-matrix.json",
+          "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0702",
+          "consumers": [
+            "third-probe",
+            "both-states-control",
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "third-probe",
+      "title": "S3 CONDITIONAL - still split? RUN a mechanically different third probe (re-running a tagged probe does NOT count)",
+      "kind": "task",
+      "role": "tiebreak-prober",
+      "depends_on": [
+        "independence-matrix"
+      ],
+      "when": "still_split == true AND allow_third_probe == true",
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "WCNC-0703",
+        "title": "Run a mechanically different third probe to break a genuine split",
+        "phase": "2B",
+        "question_or_target": "Design and run a probe that differs from BOTH sides by shell, data field or measurement, and report its raw output.",
+        "inputs": [
+          "command-center/resolve/bp-cnc-07/independence-matrix.json",
+          "params.fact"
+        ],
+        "dependencies": [
+          "WCNC-0702"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "tiebreak-prober",
+          "basis": "max effort: a botched tiebreak produces a confident wrong resolution, which is worse than UNRESOLVED"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/resolve/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/resolve/bp-cnc-07/third-probe.json",
+        "output_schema": "command-center/schema/reprobe-record.schema.json",
+        "evidence_requirement": "the third probe states explicitly HOW it differs from both existing probes (which shell, which field, which measurement) and carries its exact command plus raw output; a probe that matches either side's fingerprint is rejected as a re-run",
+        "tests_required": [
+          "a third probe with the same fingerprint as an existing one must be REJECTED as a re-run, not accepted as a new signal",
+          "the third probe must state its difference axis explicitly",
+          "both-states control: submit a duplicate-fingerprint probe (expect rejected) and a genuinely different one (expect accepted)"
+        ],
+        "reviewer_requirement": "the resolver checks the third probe's fingerprint against both sides before using it",
+        "completion_sentinel": "SUCCESS:WCNC-0703 emitted when third-probe.json exists, parses, and its fingerprint differs from every prior probe on at least one axis; otherwise FAILED:WCNC-0703 <reason>",
+        "retry_policy": "two strikes then pivot: resolve UNRESOLVED and request a new instrument rather than re-running a probe that already failed",
+        "failure_classification": [
+          "probe-is-a-rerun",
+          "no-independent-instrument",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/resolve/bp-cnc-07/third-probe.json",
+          "schema_ref": "command-center/schema/reprobe-record.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0703",
+          "consumers": [
+            "both-states-control",
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "both-states-control",
+      "title": "S3b CONDITIONAL both-states control on the disputed detector - it must FIRE on broken and stay SILENT on good",
+      "kind": "task",
+      "role": "tiebreak-prober",
+      "depends_on": [
+        "third-probe"
+      ],
+      "when": "both_states_control_required == true",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WCNC-0704",
+        "title": "Run a both-states control on the disputed detector",
+        "phase": "2B",
+        "question_or_target": "Run the disputed detector against a KNOWN-BROKEN state and a KNOWN-GOOD state, and report whether it fires on the first and stays silent on the second.",
+        "inputs": [
+          "command-center/resolve/bp-cnc-07/independence-matrix.json",
+          "command-center/resolve/bp-cnc-07/third-probe.json"
+        ],
+        "dependencies": [
+          "WCNC-0702"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "tiebreak-prober",
+          "basis": "a probe silent in both states measures nothing; establishing that is the cheapest way to break a tie honestly"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/resolve/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/resolve/bp-cnc-07/both-states-control.json",
+        "output_schema": "command-center/schema/audit-detector-control.schema.json",
+        "evidence_requirement": "the control records both runs with their raw outputs and the constructed broken state; a detector that fires in BOTH states or is silent in BOTH is declared broken and its verdicts are discarded",
+        "tests_required": [
+          "a detector silent in both states must be declared BROKEN and its verdicts discarded",
+          "a detector firing in both states must be declared BROKEN",
+          "a detector firing only on the broken state must be declared SOUND"
+        ],
+        "reviewer_requirement": "one independent reader re-runs the broken-state arm and confirms the detector fires",
+        "completion_sentinel": "SUCCESS:WCNC-0704 emitted when both-states-control.json exists, parses, and records both arms with their outputs; otherwise FAILED:WCNC-0704 <reason>",
+        "retry_policy": "no retry on a broken detector - the finding IS that the detector is broken; escalate rather than re-measuring with the same instrument",
+        "failure_classification": [
+          "detector-failure",
+          "control-invalid",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/resolve/bp-cnc-07/both-states-control.json",
+          "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0704",
+          "consumers": [
+            "control-gate",
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control-gate",
+      "title": "S3c A control that does not discriminate the two states cannot break a tie",
+      "kind": "gate",
+      "depends_on": [
+        "both-states-control"
+      ],
+      "when": "both_states_control_required == true",
+      "gate_ref": "control-fires-in-both-states"
+    },
+    {
+      "id": "resolve",
+      "title": "S4 RESOLVE and NAME THE DEFECT in the losing probe - or return UNRESOLVED. Never a vote.",
+      "kind": "task",
+      "role": "resolver",
+      "depends_on": [
+        "control-gate"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0705",
+        "title": "State the resolution, the winning probe, and the specific defect in each losing probe",
+        "phase": "2B",
+        "question_or_target": "State the resolved verdict, name the winning probe, and name the SPECIFIC defect in each losing probe. If no probe is independent, return UNRESOLVED with an explicit request for a new instrument.",
+        "inputs": [
+          "command-center/resolve/bp-cnc-07/independence-matrix.json",
+          "command-center/resolve/bp-cnc-07/third-probe.json",
+          "command-center/resolve/bp-cnc-07/both-states-control.json"
+        ],
+        "dependencies": [
+          "WCNC-0702"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "resolver",
+          "basis": "max effort: naming the defect is what stops the same broken probe being re-used next session"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/resolve/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/resolve/bp-cnc-07/resolution.json",
+        "output_schema": "command-center/schema/adjudication-record.schema.json",
+        "evidence_requirement": "the resolution names the winning probe and, for each losing probe, the specific defect (wrong shell, wrong data field, stale cache, broken matcher); resolved_by_majority is recorded as false and the independence matrix is attached",
+        "tests_required": [
+          "4 refute / 2 confirm where the 2 share a broken probe must resolve to REFUTED and NAME the shared defect - this is the measured historical case and the primary benchmark",
+          "6 agreeing agents using the SAME probe must be reported as ONE signal, not six",
+          "a resolution reached by counting must FAIL the never-resolved-by-majority gate",
+          "both-states control: attempt a majority-based resolution and confirm the gate FAILS; attempt a probe-based one and confirm it PASSES"
+        ],
+        "reviewer_requirement": "one independent reader confirms the named defect actually explains the losing verdict, rather than being a plausible-sounding label",
+        "completion_sentinel": "SUCCESS:WCNC-0705 emitted when resolution.json exists, parses, names a winning probe with each losing probe's defect, and resolved_by_majority == false; UNRESOLVED is also a SUCCESS terminal state when it names the instrument needed",
+        "retry_policy": "no retry - a second attempt at a resolution with the same evidence is the same resolution; escalate to the owner with UNRESOLVED",
+        "failure_classification": [
+          "resolved-by-majority",
+          "defect-unnamed",
+          "no-independent-instrument"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/resolve/bp-cnc-07/resolution.json",
+          "schema_ref": "command-center/schema/adjudication-record.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0705",
+          "consumers": [
+            "majority-gate",
+            "owner",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "majority-gate",
+      "title": "S4b Majority is NEVER the tiebreak - assert it was not used",
+      "kind": "gate",
+      "depends_on": [
+        "resolve"
+      ],
+      "gate_ref": "never-resolved-by-majority"
+    },
+    {
+      "id": "d1.s5-owner-conflicts",
+      "title": "S5 OWNER resolves the two recorded spec-layer conflicts",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "majority-gate"
+      ],
+      "prompt": "Two spec-layer conflicts must be resolved before this spec is authoritative: lifecycle max_threads=4 versus the standing fan-out-large preference, and roles.worker=sonnet versus the Opus-for-substantive-subagents preference. State which wins for each.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "keep-lifecycle-values",
+        "keep-standing-preferences",
+        "set-explicit-values"
+      ],
+      "decision_artifact": {
+        "path": "command-center/spec/arc05-owner-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "the emitted spec"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "one-independent-probe-won",
+      "expression": "winning_probe_named == true AND resolved_by_majority == false",
+      "applies_to": "workflow",
+      "minimum_conditions": "verdicts_counted_without_probe == 0 AND independent_signals >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "unresolved-no-independent-instrument",
+      "expression": "independent_signals == 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "detector-proved-broken",
+      "expression": "disputed_detector_sound == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "roundtrip-validates",
+      "expression": "roundtrip_topology_equal == true AND silently_dropped_stages == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "stages_extracted >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-cross-vendor-equivalent",
+      "expression": "vendor_locked_features >= 1 AND declared_vendor_locked == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 15,
+    "jitter": true,
+    "retry_on": [
+      "digest-loss",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "spec-underspecified"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "probe-undeclared",
+      "resolved-by-majority",
+      "no-independent-instrument",
+      "detector-failure"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-07"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-07",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/arc05.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/arc05",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-07-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/resolve/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "min": 0.1,
+      "expected": 0.7,
+      "max": 2.5
+    },
+    "wallclock_seconds": {
+      "min": 180,
+      "expected": 1200,
+      "max": 5400
+    },
+    "tokens": {
+      "min": 20000,
+      "expected": 110000,
+      "max": 400000
+    },
+    "tool_calls": {
+      "expected": 25,
+      "max": 100
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/resolve/bp-cnc-07/**; the third probe is a READ measurement, and a probe that would mutate state is out of contract",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-07.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "bp-cnc-07-probe-wins-split-verdict-resolver",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner, program design corpus"
+      },
+      {
+        "source": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner / program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "bp-cnc-07-probe-wins-split-verdict-resolver@1.0.0",
+      "bp-arc-05.vendor-neutral-workflow-spec-emission@1.0.0"
+    ]
+  },
+  "outputs": {
+    "resolution": {
+      "path": "command-center/resolve/bp-cnc-07/resolution.json",
+      "schema_ref": "command-center/schema/adjudication-record.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate",
+        "bp-cnc-04-full-text-adversarial-sibling-review"
+      ]
+    },
+    "independence_matrix": {
+      "path": "command-center/resolve/bp-cnc-07/independence-matrix.json",
+      "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "resolve",
+        "owner"
+      ]
+    },
+    "spec": {
+      "path": "command-center/spec/arc05-provider-map.json",
+      "schema_ref": "command-center/schema/parity-matrix.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "the dispatch rail",
+        "the owner"
+      ]
+    },
+    "portability_report": {
+      "path": "command-center/spec/arc05-portability.json",
+      "schema_ref": "command-center/schema/vendor-capability.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "the owner"
+      ]
+    },
+    "roundtrip": {
+      "path": "command-center/spec/arc05-roundtrip.json",
+      "schema_ref": "command-center/schema/determinism-report.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "the round-trip gate"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 22,
+    "design_card": "BP-CNC-07",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1136",
+    "acquisition_route": "BUILD-NEW",
+    "state_v": [
+      "NEW"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "probe-fingerprint extraction with a hard discard of unprobed verdicts, a pairwise independence matrix that collapses shared-mechanism verdicts to one signal, two CONDITIONAL stages (a mechanically different third probe and a both-states detector control) fired by when-expressions, and a terminal gate that forbids majority resolution outright",
+    "not_a_duplicate_because": "BP-CNC-03 measures DISPERSION and never inspects a probe; this reads the probes and never computes a dispersion number. BP-CNC-04 attacks premises many lanes SHARE; this arbitrates BETWEEN agents on ONE fact. It is the only blueprint in this range whose gate asserts a negative about the resolution METHOD (resolved_by_majority == false) rather than about an artifact.",
+    "contraindications": [
+      "disagreements of JUDGEMENT (taste, priority) - votes and councils are appropriate there, and this workflow would misapply an evidence standard to a preference",
+      "a single verdict - there is nothing to resolve"
+    ],
+    "empty_fingerprint_note": "The empty-probe case is called out as its own failure class on purpose. A measured defect in a sibling gate was that an absent source normalised to four empty strings, which any non-empty verifier trivially differs from - so the same-probe-rerun check could never fire and a CONFIRMED verdict with no declared source passed as corroborated. Here an empty probe_command counts as NO probe and the verdict is discarded, and empty-probe-fingerprint is an enumerated failure class.",
+    "worked_examples": [
+      {
+        "name": "the measured 4-vs-2 case - two agents share a broken Git-Bash probe",
+        "params": {
+          "fact": "the mon dispatcher is not on PATH",
+          "verdicts": [
+            {
+              "agent": "a1",
+              "verdict": "REFUTED",
+              "probe_tool": "Get-Command",
+              "probe_command": "Get-Command mon",
+              "probe_field": "Source",
+              "probe_shell": "powershell",
+              "probe_output": "mon.cmd resolved"
+            },
+            {
+              "agent": "a2",
+              "verdict": "REFUTED",
+              "probe_tool": "where.exe",
+              "probe_command": "where.exe mon",
+              "probe_field": "stdout",
+              "probe_shell": "cmd",
+              "probe_output": "C:/.../mon.cmd"
+            },
+            {
+              "agent": "a3",
+              "verdict": "REFUTED",
+              "probe_tool": "python",
+              "probe_command": "python -c shutil.which('mon')",
+              "probe_field": "return",
+              "probe_shell": "python",
+              "probe_output": "mon.cmd path"
+            },
+            {
+              "agent": "a4",
+              "verdict": "REFUTED",
+              "probe_tool": "registry",
+              "probe_command": "read PATH from HKCU Environment",
+              "probe_field": "PATH",
+              "probe_shell": "powershell",
+              "probe_output": "dir containing mon.cmd present"
+            },
+            {
+              "agent": "a5",
+              "verdict": "CONFIRMED",
+              "probe_tool": "which",
+              "probe_command": "which mon",
+              "probe_field": "stdout",
+              "probe_shell": "git-bash",
+              "probe_output": "not found"
+            },
+            {
+              "agent": "a6",
+              "verdict": "CONFIRMED",
+              "probe_tool": "which",
+              "probe_command": "which mon",
+              "probe_field": "stdout",
+              "probe_shell": "git-bash",
+              "probe_output": "not found"
+            }
+          ],
+          "allow_third_probe": true,
+          "both_states_control_required": true
+        },
+        "expected_artifacts": [
+          "command-center/resolve/bp-cnc-07/probe-fingerprints.json",
+          "command-center/resolve/bp-cnc-07/independence-matrix.json",
+          "command-center/resolve/bp-cnc-07/both-states-control.json",
+          "command-center/resolve/bp-cnc-07/resolution.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0705 with resolution REFUTED",
+        "walkthrough": "S0 fingerprints all six; none is discarded. S0b passes. S1-S2 finds a5 and a6 share an identical fingerprint (which / git-bash / stdout) and collapses them to ONE signal, so the tally is four independent REFUTE signals against one CONFIRM signal - not 4 versus 2. Since one side now has zero independent support for its position after the collapse, still_split is false and S3 does not fire. S3b runs the both-states control on the disputed detector: `which` in Git Bash is fed a known-present .cmd shim and stays SILENT (does not find it), proving the detector cannot see .cmd shims at all - so it is BROKEN for this question, not merely disagreeing. S4 resolves REFUTED, names Get-Command as the winning probe, and names the defect precisely: Git-Bash `which` ignores .cmd shims. resolved_by_majority is false - and note the resolution would be identical if the vote had been 2 refute versus 4 confirm, because the vote is never read.",
+        "expected_gate_outcomes": {
+          "unprobed-verdicts-discarded": "PASS - 0 counted without a probe",
+          "control-fires-in-both-states": "PASS - the detector's failure to fire on a known-present shim is itself the discriminating result recorded by the control",
+          "never-resolved-by-majority": "PASS - resolved_by_majority == false, winning probe named"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - six agents, one probe, and an unprobed verdict",
+        "params": {
+          "fact": "the substrate resolves 269 distinct schema paths",
+          "verdicts": [
+            {
+              "agent": "b1",
+              "verdict": "CONFIRMED",
+              "probe_tool": "grep",
+              "probe_command": "grep -c output_schema catalog",
+              "probe_field": "count",
+              "probe_shell": "git-bash",
+              "probe_output": "269"
+            },
+            {
+              "agent": "b2",
+              "verdict": "CONFIRMED",
+              "probe_tool": "grep",
+              "probe_command": "grep -c output_schema catalog",
+              "probe_field": "count",
+              "probe_shell": "git-bash",
+              "probe_output": "269"
+            },
+            {
+              "agent": "b3",
+              "verdict": "CONFIRMED",
+              "probe_tool": "grep",
+              "probe_command": "grep -c output_schema catalog",
+              "probe_field": "count",
+              "probe_shell": "git-bash",
+              "probe_output": "269"
+            },
+            {
+              "agent": "b4",
+              "verdict": "CONFIRMED",
+              "probe_tool": "",
+              "probe_command": "",
+              "probe_field": "",
+              "probe_shell": "none",
+              "probe_output": ""
+            }
+          ],
+          "allow_third_probe": true,
+          "both_states_control_required": true
+        },
+        "expected_artifacts": [
+          "command-center/resolve/bp-cnc-07/independence-matrix.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0705 with resolution UNRESOLVED pending a new instrument",
+        "walkthrough": "b4 declares no probe at all and is DISCARDED with the reason recorded - four empty strings are not a fingerprint. b1, b2 and b3 share one identical fingerprint and collapse to ONE signal. independent_signals == 1 and it comes from a grep -c whose exit code is 1 on zero matches - a known unreliable counter. S3 runs a mechanically different third probe (the resolver audit, python, distinct-path set membership) which returns 234. The resolution is that the 269 figure came from one signal counted four times, and the register records the defect: a line-count over decorated values is not a distinct-path count. Had this been decided by vote it would have shipped 269 with four confirmations behind it.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "4 refute / 2 confirm where the 2 share a broken probe - must resolve to REFUTED and name the shared defect (the measured historical case)",
+      "6 agree using the SAME probe - must be flagged as one signal, not six"
+    ],
+    "unverified": "UNVERIFIED as built: fan-out-contract B4 is prose and the existing claim gate checks a single claim's probe pair rather than a multi-agent split. Settling experiment = replay the recorded 4-versus-2 case and require the correct resolution. Confidence that the failure mode is real: almost-certain (90-99%, it is measured); that the resolver fixes it given probe recording: corpus band very-likely (80-90%).",
+    "dependency_note": "This blueprint depends on a PROMPT CONTRACT: the fan-out that produced the verdicts must have required a probe field. Without it every verdict is discarded at S0 and the workflow correctly returns nothing - which is the honest outcome, not a bug.",
+    "council_presets_referenced": [
+      "platform/council/presets/C-D42-evidence-clerk-10.councilspec.json",
+      "platform/council/protocols/p15-claim-by-claim-adjudication.councilspec.json"
+    ],
+    "foundry": {
+      "tool": "workflow-forge",
+      "version": "1.0.0",
+      "spec_anchor": "_USER-PROMPTS.md:10843-10854",
+      "decomposition": {
+        "strategy": "best-of-breed",
+        "base": {
+          "id": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "version": "1.0.0"
+        },
+        "donor": {
+          "id": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "version": "1.0.0"
+        },
+        "donor_prefix": "d1.",
+        "stage_origin": {
+          "extract-probes": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "discard-gate": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "independence-matrix": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "third-probe": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "both-states-control": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "control-gate": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "resolve": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "majority-gate": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "d1.s5-owner-conflicts": "bp-arc-05.vendor-neutral-workflow-spec-emission"
+        },
+        "donated_stage_ids": [
+          "s5-owner-conflicts"
+        ],
+        "donated_original_to_fused": {
+          "s5-owner-conflicts": "d1.s5-owner-conflicts"
+        },
+        "not_donated_stage_ids": [
+          "s0-extract",
+          "s1-gate",
+          "s1-map",
+          "s2-gate",
+          "s2-limits",
+          "s3-critique",
+          "s4-gate",
+          "s4-roundtrip",
+          "s5-gate"
+        ],
+        "role_map": {
+          "translator": "translator",
+          "portability_critic": "portability_critic",
+          "roundtrip_validator": "roundtrip_validator",
+          "owner": "d1.owner"
+        },
+        "gate_map": {
+          "handoff-fields-exact": "handoff-fields-exact",
+          "unsupported-declared": "unsupported-declared",
+          "roundtrip-equal": "roundtrip-equal",
+          "conflicts-resolved": "conflicts-resolved"
+        },
+        "subworkflow_map": {},
+        "param_origin": {
+          "fact": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "verdicts": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "allow_third_probe": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "both_states_control_required": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "source_workflow_path": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "provider_matrix": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "max_depth": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "max_threads": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "worker_model_floor": "bp-arc-05.vendor-neutral-workflow-spec-emission"
+        },
+        "policy_block_origin": {
+          "retry_policy": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "failure_policy": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "resume": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "replay": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "cache": "bp-arc-05.vendor-neutral-workflow-spec-emission",
+          "dry_run": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "estimate": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "portability": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "model_routing": "bp-cnc-07-probe-wins-split-verdict-resolver",
+          "tool_policy": "merged(bp-cnc-07-probe-wins-split-verdict-resolver+bp-arc-05.vendor-neutral-workflow-spec-emission)"
+        },
+        "artifact_path_rewrites": {},
+        "dependency_rewires": [
+          {
+            "stage": "d1.s5-owner-conflicts",
+            "dropped_reference": "s4-gate",
+            "rewired_to": "majority-gate",
+            "reason": "referenced a source stage that was not donated"
+          }
+        ],
+        "synthesized_edges": [],
+        "conflicts": [
+          {
+            "namespace": "roles",
+            "id": "owner",
+            "resolution": "donor kept as d1.owner"
+          }
+        ]
+      },
+      "certification": {
+        "verdict": "CERTIFIED",
+        "reasons": [
+          "improved coverage +0.1048, recovery +0.0833 over the best source, with no axis regression; cost delta stage_count -1 (recorded, never a reason to accept)"
+        ],
+        "axis_improvements_over_best_source": {
+          "coverage": 0.1048,
+          "recovery": 0.0833
+        },
+        "axis_regressions_against_best_source": {},
+        "cost_delta_vs_largest_source": {
+          "stage_count": -1,
+          "timeout_budget_seconds": 3300,
+          "human_checkpoints": 0,
+          "max_fanout_concurrency": 0
+        },
+        "cases": [
+          "c1-wide-fanout-build",
+          "c2-long-resumable-program",
+          "c3-adversarial-review",
+          "c4-untrusted-input-handling",
+          "c5-irreversible-ship",
+          "c6-repair-until-green"
+        ],
+        "acceptance_bar": "_USER-PROMPTS.md:11282",
+        "stage_count_is_not_an_axis": true,
+        "grafted_stages": [
+          "d1.s5-owner-conflicts"
+        ],
+        "gratuitous_stages_measured_by_ablation": []
+      }
+    }
+  }
+}

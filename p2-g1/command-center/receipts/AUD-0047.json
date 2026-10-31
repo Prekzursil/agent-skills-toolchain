@@ -1,0 +1,142 @@
+{
+  "artifacts": [
+    {
+      "bytes": 32617,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/audit/AUD-0047-workflow-path-filter-audit.json",
+      "role": "primary",
+      "sha256": "f8b754e65896e86868688ce8f1f902e6214f129cefa2bef6ba02f667b61396e6"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0047/SUBAGENT-RETURN.json",
+      "claim": "Both named probes re-ran live this run and exited 0.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+          "exit_code": 0,
+          "fingerprint": "163776596b38bdc14f6e59c3724f36eb",
+          "method": "command",
+          "raw_output": "{\"aud41_live_yaml_present_count\": 0, \"aud41_workflow_count\": 7, \"control_paths_ignore_miss_reported\": true, \"fixture_miss_count\": 2, \"live_miss_count\": 0, \"live_with_path_filter\": 0, \"live_workflow_count\": 0, \"live_workflows_dir_exists\": false, \"misses\": [{\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml\", \"workflow_id\": \"fixture-control-miss\"}, {\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml\", \"workflow_id\": \"fixture-control-narrow\"}], \"pass\": true, \"probe\": \"probe1-filter-eval\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe1 path-filter evaluator reported the paths-ignore control miss",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+          "exit_code": 0,
+          "fingerprint": "88086a98c5a1f723bffbe91558c4aa63",
+          "method": "command",
+          "raw_output": "{\"aud41_quality_run_id\": 31525279780, \"aud41_recorded_run_count\": 4, \"control_app_only_ran_miss_fixture\": true, \"control_secret_only_skipped_miss_fixture\": true, \"live_search\": {\"gh_present\": true, \"gh_run_list_attempted\": true, \"gh_run_list_rc\": 1, \"gh_run_list_unavailable_reason\": \"failed to determine base repo: failed to run git: fatal: not a git repository (or any of the parent directories): .git\", \"git_present\": true, \"git_repo\": false}, \"live_with_path_filter\": 0, \"live_workflow_count\": 0, \"live_workflows_dir_exists\": false, \"matcher_agrees_with_ledger\": true, \"note\": \"Fixture ledger is the both-states receipt for the evaluator. AUD-0041 recorded Actions API runs are the live-estate receipt that quality.yml executed. Live .github/workflows present=False files=0 with_path_filter=0. This tree is not a git checkout; gh is on PATH; run-list attempt recorded under live_search.\", \"pass\": true, \"probe\": \"probe2-run-history\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0047/UNIT-ARTIFACT-MANIFEST.json",
+      "claim": "UNIT-ARTIFACT-MANIFEST.json carries a sha256 row matching the live artifact (CRLF normalized).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "compare UNIT-ARTIFACT-MANIFEST.json row sha256 for AUD-0047 against live artifact",
+          "fingerprint": "2d65a09baaa931d6fe6f8fa9f1700c65",
+          "method": "byte-compare",
+          "raw_output": "manifest sha256 == live artifact sha256 (f8b754e65896e868...)",
+          "role": "source"
+        },
+        {
+          "command": "recompute sha256 of command-center/audit/AUD-0047-workflow-path-filter-audit.json after CRLF->LF normalization",
+          "fingerprint": "0907833a780d4df86203867f3afcaba5",
+          "method": "byte-compare",
+          "raw_output": "recomputed digest equals manifest row (f8b754e65896e868...)",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/AUD-0047/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+      "artifact_path": "command-center/receipts/AUD-0047.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -I command-center/receipt_validate.py command-center/receipts/AUD-0047.json",
+        "raw_output": "ACCEPT:AUD-0047 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+        "exit_code": 0,
+        "fingerprint": "w4s4-admit:AUD-0047:rc0"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "t1-probe1_filter_eval",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0047-probe1 path-filter evaluator reported the paths-ignore control miss"
+    },
+    {
+      "id": "t2-probe2_run_history",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CTRL-AUD-0047-paths-ignore-miss-fixtures",
+      "kind": "known-broken-fixture",
+      "description": "Catalog control: a protected file deliberately excluded by a paths-ignore entry must be reported as a MISS. Fixture ledger records the app-only commit running the gate and the secret-only commit being skipped; evaluator agreed with the ledger on both.",
+      "bad_state_output": "secret-only commit skipped the gate it claims to protect (control_secret_only_skipped_miss_fixture=true)",
+      "good_state_output": "app-only commit ran the gate (control_app_only_ran_miss_fixture=true)",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Live gh run-list from this working tree is unavailable (no .git; gh_run_list_rc=1), so the live-estate run-history rests on AUD-0041 recorded Actions runs plus the on-disk .github/workflows scan.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run gh run list from the canonical ~/source checkout and diff the with_path_filter set against the recorded ledger."
+    }
+  ],
+  "min_bytes_threshold": 2048,
+  "notes": "resume-verify: the prior attempt artifact/probes/manifest re-verified live this run; no rebuild.; shard4-w4 resume 2026-10-26: receipt completed for the current receipt.schema.json - downstream_consumers/tests/negative_controls/residual_unknowns added; every row cites executions already recorded in this receipt's evidence block, the downstream-consumer row records a live receipt_validate.py admission run (ACCEPT captured); w3s4 independent reviewer closure preserved verbatim; the null failure placeholder (schema types failure as object) was dropped, zero information lost.; shard4-w4 fix cycle 1 2026-10-26: a sibling wave landed .github/workflows/command-center-eol.yml mid-program; its protected set was declared in fixtures/live_gates.json from the workflow's own paths list, and the evaluator's dotfile handling was repaired (lstrip(\"./\") character-set strip corrupted literal dotfile self-matches in github_glob_match and would_run - both fixed + regression assertion in probe1). Artifact bytes unchanged (sha f8b754e6... still matches manifest and closure); probes re-ran exit 0.",
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "claude-opus-5-5",
+    "role": "builder-shard4-w2",
+    "vendor": "anthropic"
+  },
+  "retry": {
+    "attempts": [],
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent reviewer closure (wave-3 shard-4, fresh context, did not build). Verified: artifact at catalog output_path exists/non-empty/parses and is not self-declared BLOCKED/FAILED; both named probes re-run LIVE by the reviewer via the g1 shim and exited 0; artifact sha256 recomputed (CRLF->LF) and matched against probes/AUD-0047/UNIT-ARTIFACT-MANIFEST.json primary row and the receipt artifacts row; receipt schema_errors=[] under the program's receipt_schema_gate. Disclosed, not gating per operative program practice: (1) strict class-profile layer (generic_report report{kind,observations,control_ids}) unmet by this receipt, a delta shared by 451 prior SUCCESS receipts and sibling wave-3 closures; (2) 12-condition predicate c6/c7/c8/c12 unsatisfied as built (evidence method duplication, no tests/controls/downstream keys), identical to sibling closures IMP-0442/IMP-0467.",
+    "reviewer_id": "AUD-0047-indep-reviewer-w3s4",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:AUD-0047 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "spec_anchor": "catalog:AUD-0047",
+  "state": "SUCCESS",
+  "timestamps": {
+    "ended_at": "2026-10-26T04:02:20Z",
+    "started_at": "2026-10-25T16:52:59Z"
+  },
+  "unit_id": "AUD-0047"
+}

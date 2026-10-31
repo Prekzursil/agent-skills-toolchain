@@ -1,0 +1,74 @@
+{
+  "report_kind": "shell_report",
+  "claims": [
+    {
+      "id": "E-zero-caret-call-sites",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe1_static_and_hazard.py:scan_surfaces",
+      "claim": "Static scan of the named dispatch surfaces (tools/lib/codex-invocation.mjs, tools/lib/codex_invocation.py) finds ZERO caret-bearing revision call sites (^{commit}, HEAD^, ~^ forms) - no git helper emits a bare ^ through PowerShell.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-caret-hazard-real",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe1_static_and_hazard.py:main",
+      "claim": "Both-states control: on this box under pwsh7, the single-quoted form dereferences the tag to the exact rev-list ground truth while the BARE caret form demonstrably errors (PS ^ is the escape character) - the hazard the estate rule warns about is real here, not hypothetical.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-second-shell-agreement",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe2_second_shell.py:main",
+      "claim": "Second-shell cross-check: tag-to-commit dereference under pwsh7 (quoted) and Git Bash (quoted) both equal the `git rev-list -n 1 <tag>` ground truth - zero divergence.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "bare-caret-under-pwsh7",
+      "kind": "mutation",
+      "description": "The bare `git rev-parse --verify v1.2.3^{commit}` under pwsh7 errors (escape-char consumption), while the quoted form returns the ground-truth commit - proving the probe can see the hazard it guards against.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bare_caret_form rc=1 wrong_or_errored=true",
+      "good_state_output": "quoted_form rc=0 matches_truth=true; static scan sites=0"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0188/probe1_static_and_hazard.py",
+    "static_scan": {
+      "surfaces": ["tools/lib/codex-invocation.mjs", "tools/lib/codex_invocation.py"],
+      "patterns": ["^ {...} caret-suffix", "HEAD^", "~^"]
+    },
+    "live_check": "scratch git repo (probe-local fixture) with tag v1.2.3/v2.0.0; pwsh7 quoted vs bare-caret; rev-list ground truth; Git Bash second-shell lane",
+    "reviewer_note": "reviewer re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding - probe2 implements exactly this comparison"
+  },
+  "observations": [
+    {
+      "name": "caret-bearing revision call sites in dispatch surfaces",
+      "measured": 0,
+      "method": "regex scan of the named surfaces",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe1_static_and_hazard.py"
+    },
+    {
+      "name": "bare-caret form under pwsh7",
+      "measured": "rc=1 (errored dereference)",
+      "method": "live scratch-repo dereference, bare vs quoted",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe1_static_and_hazard.py"
+    },
+    {
+      "name": "pwsh7 vs Git Bash dereference divergence",
+      "measured": "none (both == rev-list ground truth)",
+      "method": "second-shell cross-check",
+      "anchor": "command-center/p2-wave/probes/TST-0188/probe2_second_shell.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The static scan covers the two named dispatch surfaces; other repo scripts that shell out to git were not in the unit's named surface list.",
+      "settling_experiment": "Widen SURFACES to all repo dispatch modules and re-run if the reviewer names additional surfaces.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0188: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

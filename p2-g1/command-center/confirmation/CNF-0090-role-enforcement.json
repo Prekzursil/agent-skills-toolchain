@@ -1,0 +1,809 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0090",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0090 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both configurations ran and their per-participant action logs are attached and measurably different. Any other terminal state is FAILED:CNF-0090 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0090 question_or_target role-enforcement",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "role-enforcement-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/council-audit.schema.json",
+      "bytes": 1086,
+      "sha256": "f9c68bc076970590c6395f0e71fc80e601d482d8a7c86af554d71b5b5e3dae40",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0090/runtime.py",
+      "bytes": 5717,
+      "sha256": "56a2ff7d3ab92e2e131fdb90a969639c4e7ac87b4fd241e7450acc21e72145c4",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0090/scenario.py",
+      "bytes": 11971,
+      "sha256": "48952c065dc2347b1dae879a486f8a0dcb00a8519c3b5dcf9a5d7a880dc8017c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+      "bytes": 3668,
+      "sha256": "355928f0d1180e7d16a231f318df71384285db6eedb0c82229e543515589d4ed",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0090/probe2_replacement_inherits_role.py",
+      "bytes": 2916,
+      "sha256": "85e2026ec65211a0421ef7f6516bce136ef2a93fee96984877d56546379f146c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The same scripted council with mandates enforced versus stripped produces different per-participant action logs: speaking, vote, and veto rights change accepted counts.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+          "raw_output": "live action-log divergence + runtime vote block",
+          "fingerprint": "9c1ee041b75fba6308663c0d4b8a754ea0b0d13dc6cd7ee429c4f23c2628bfc4",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python3 -c \"import json; json.load(open('command-center/confirmation/CNF-0090-role-enforcement.json'))\"",
+          "raw_output": "artifact re-read; configurations and fingerprints attached",
+          "fingerprint": "fbf38937ea821c8ee77a17987e56dfe0c02d9c0a8d0a88e8b3f538d4a636c5b6",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A mid-run replacement inherits the seat role mandate and does not inherit the predecessor's stated position.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0090/probe2_replacement_inherits_role.py:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe2_replacement_inherits_role.py",
+          "raw_output": "replacement inherits voter role; position cleared",
+          "fingerprint": "b316cca154b32eeefd90b6acf168c34b04687ce97830f27fa0955ebe0e712714",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0090/emit_audit.py",
+          "raw_output": "council-audit schema via disk RefResolver",
+          "fingerprint": "885318e130371da5ac1627ff67e10db016b2911b26b4b20b4c02d2f80f17a140",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "action-log-divergence",
+      "name": "Enforced vs stripped per-participant action logs differ",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+      "result": "PASS",
+      "output_tail": "delta_votes=3 delta_vetoes=4 delta_speaks=1"
+    },
+    {
+      "id": "vote-blocked-at-runtime",
+      "name": "Occupant without vote rights is blocked at the runtime, not instructed",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+      "result": "PASS",
+      "output_tail": "{'seq': 6, 'config': 'enforced-mandates', 'occupant_id': 'alice-proposer', 'seat_id': 'seat-proposer', 'role_id': 'proposer', 'action': 'vote', 'accepted': False, 'reason': 'vote-rights-denied', 'payload': 'YES-FROM-PROPOSER', 'enforced_at': 'runtime'}"
+    },
+    {
+      "id": "replacement-inherits-role-not-position",
+      "name": "Replacement inherits the seat mandate and not the predecessor position",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe2_replacement_inherits_role.py",
+      "result": "PASS",
+      "output_tail": "inherited_position=None replacement_ballot='REJECT-WIDGET-X' predecessor='APPROVE-WIDGET-X'"
+    },
+    {
+      "id": "use-vs-mention",
+      "name": "Speaking that mentions a vote is not classified as a vote",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+      "result": "PASS",
+      "output_tail": "{'seq': 3, 'config': 'enforced-mandates', 'occupant_id': 'cara-critic', 'seat_id': 'seat-critic', 'role_id': 'critic', 'action': 'speak', 'accepted': True, 'reason': 'speaking-granted', 'payload': 'risks remain; the voter should vote no', 'enforced_at': 'runtime'}"
+    },
+    {
+      "id": "stripped-role-collapse-control",
+      "name": "Stripped configuration accepts the forbidden actions the enforced run blocks",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py",
+      "result": "PASS",
+      "output_tail": "stripped control must actually collapse, or the detector is inert"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "stripped-stripped-role-collapse",
+      "kind": "known-broken-fixture",
+      "description": "Two mandate-stripped runs of the same script must share a fingerprint; that is the role-collapse detector firing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"collapse_detected\": true, \"fingerprint\": \"alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:1|alice-proposer:vote:1|bob-voter:vote:1|cara-critic:vote:1|drew-chair:vote:1|erin-observer:vote:1|alice-proposer:veto:1|bob-voter:veto:1|cara-critic:veto:1|drew-chair:veto:1|erin-observer:veto:1\", \"same_fingerprint\": true}",
+      "good_state_output": "{\"accepted_counts\": {\"enforced\": {\"speak\": 4, \"veto\": 1, \"vote\": 2}, \"stripped\": {\"speak\": 5, \"veto\": 5, \"vote\": 5}}, \"delta_accepted_speaks\": 1, \"delta_accepted_vetoes\": 4, \"delta_accepted_votes\": 3, \"enforced_fingerprint\": \"alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:0|alice-proposer:vote:0|bob-voter:vote:1|cara-critic:vote:0|drew-chair:vote:1|erin-observer:vote:0|alice-proposer:veto:0|bob-voter:veto:0|cara-critic:veto:0|drew-chair:veto:1|erin-observer:veto:0\", \"measurably_different\": true, \"metric\": \"per-occupant action:accepted fingerprint plus accepted speak/vote/veto counts\", \"stripped_fingerprint\": \"alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:1|alice-proposer:vote:1|bob-voter:vote:1|cara-critic:vote:1|drew-chair:vote:1|erin-observer:vote:1|alice-proposer:veto:1|bob-voter:veto:1|cara-critic:veto:1|drew-chair:veto:1|erin-observer:veto:1\"}"
+    },
+    {
+      "id": "stripped-vote-leak",
+      "kind": "known-broken-fixture",
+      "description": "With mandates stripped, occupants without vote rights cast counted ballots. The enforced run refuses those votes at the runtime call site.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"proposer_accepted\": true, \"vote_leaked\": true}",
+      "good_state_output": "vote-rights-denied at runtime for proposer"
+    },
+    {
+      "id": "planted-position-inheritance",
+      "kind": "mutation",
+      "description": "A replace that only swaps occupant_id and keeps position is the position-inheritance failure. The live replace clears position and ballots.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"inherited_position\": \"APPROVE-WIDGET-X\", \"position_inherited\": true, \"predecessor_position\": \"APPROVE-WIDGET-X\"}",
+      "good_state_output": "{\"inherited_position\": null, \"replacement_ballot\": \"REJECT-WIDGET-X\"}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0090-probe1-action-log-divergence",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Mechanical reviewer A re-runs both configurations and checks fingerprint divergence plus runtime vote refusal. Reviewer B is probe2 and does not read this verdict."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0090/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0090"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema.Draft7Validator council-audit.schema.json with disk RefResolver (no network)",
+      "artifact_path": "command-center/confirmation/CNF-0090-role-enforcement.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0090/emit_audit.py",
+        "raw_output": "schema-valid; garbage objects rejected",
+        "fingerprint": "885318e130371da5ac1627ff67e10db016b2911b26b4b20b4c02d2f80f17a140",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:12Z",
+    "ended_at": "2026-08-25T00:59:12Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "tools/council production package is absent on this worktree; confirmation used probes/CNF-0090/runtime.py.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When tools/council lands, re-run probe1 and probe2 against that runtime and record whether action-log divergence and replacement still hold."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "council-audit",
+    "observations": [
+      {
+        "name": "action-log-divergence",
+        "measured": true,
+        "method": "per-occupant action:accepted fingerprint",
+        "anchor": "command-center/p2-wave/probes/CNF-0090/runtime.py:169"
+      },
+      {
+        "name": "delta-accepted-votes",
+        "measured": 3,
+        "method": "accepted_counts vote stripped minus enforced",
+        "anchor": "command-center/p2-wave/probes/CNF-0090/scenario.py:114"
+      },
+      {
+        "name": "delta-accepted-vetoes",
+        "measured": 4,
+        "method": "accepted_counts veto stripped minus enforced",
+        "anchor": "command-center/p2-wave/probes/CNF-0090/scenario.py:114"
+      },
+      {
+        "name": "replacement-inherited-position",
+        "measured": false,
+        "method": "replace() clears seat.position before new ballot",
+        "anchor": "command-center/p2-wave/probes/CNF-0090/runtime.py:117"
+      }
+    ],
+    "control_ids": [
+      "stripped-stripped-role-collapse",
+      "stripped-vote-leak",
+      "planted-position-inheritance"
+    ],
+    "title": "Role enforcement and participant replacement must change behaviour measurably",
+    "question": "Are roles enforced or merely labelled? Run the same council twice, once with role mandates enforced and once with them stripped, and answer: does the measured behaviour differ - speaking rights honoured, vote rights honoured, veto exercised - or do all participants behave identically? Then replace a participant mid-run and confirm the replacement inherits the role, not the predecessor's position.",
+    "claim_under_test": "Role mandates are enforced at the runtime action site. The same scripted council with mandates stripped produces a different per-participant action log. A mid-run replacement inherits the seat mandate and does not inherit the predecessor's position.",
+    "runtime_under_test": "command-center/p2-wave/probes/CNF-0090/runtime.py (tools/council is absent on this worktree; this is the executable council used for the confirmation)",
+    "configurations": [
+      {
+        "id": "enforced-mandates",
+        "ran": true,
+        "enforce_mandates": true,
+        "description": "Role mandates enforced at speak/vote/veto call sites",
+        "accepted_counts": {
+          "speak": 4,
+          "vote": 2,
+          "veto": 1
+        },
+        "fingerprint": "alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:0|alice-proposer:vote:0|bob-voter:vote:1|cara-critic:vote:0|drew-chair:vote:1|erin-observer:vote:0|alice-proposer:veto:0|bob-voter:veto:0|cara-critic:veto:0|drew-chair:veto:1|erin-observer:veto:0",
+        "participant_action_logs": [
+          {
+            "occupant_id": "alice-proposer",
+            "seat_id": "seat-proposer",
+            "role_id": "proposer",
+            "events": [
+              {
+                "seq": 1,
+                "config": "enforced-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "speak",
+                "accepted": true,
+                "reason": "speaking-granted",
+                "payload": "POSITION:SHIP-THE-WIDGET",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 6,
+                "config": "enforced-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "vote",
+                "accepted": false,
+                "reason": "vote-rights-denied",
+                "payload": "YES-FROM-PROPOSER",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 11,
+                "config": "enforced-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "veto",
+                "accepted": false,
+                "reason": "veto-rights-denied",
+                "payload": "NO-VETO-FROM-PROPOSER",
+                "enforced_at": "runtime"
+              }
+            ]
+          },
+          {
+            "occupant_id": "bob-voter",
+            "seat_id": "seat-voter",
+            "role_id": "voter",
+            "events": [
+              {
+                "seq": 2,
+                "config": "enforced-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "speak",
+                "accepted": true,
+                "reason": "speaking-granted",
+                "payload": "POSITION:APPROVE-WIDGET-X",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 7,
+                "config": "enforced-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "vote",
+                "accepted": true,
+                "reason": "vote-granted",
+                "payload": "APPROVE-WIDGET-X",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 12,
+                "config": "enforced-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "veto",
+                "accepted": false,
+                "reason": "veto-rights-denied",
+                "payload": "NO-VETO-FROM-VOTER",
+                "enforced_at": "runtime"
+              }
+            ]
+          },
+          {
+            "occupant_id": "cara-critic",
+            "seat_id": "seat-critic",
+            "role_id": "critic",
+            "events": [
+              {
+                "seq": 3,
+                "config": "enforced-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "speak",
+                "accepted": true,
+                "reason": "speaking-granted",
+                "payload": "risks remain; the voter should vote no",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 8,
+                "config": "enforced-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "vote",
+                "accepted": false,
+                "reason": "vote-rights-denied",
+                "payload": "NO-FROM-CRITIC",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 13,
+                "config": "enforced-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "veto",
+                "accepted": false,
+                "reason": "veto-rights-denied",
+                "payload": "NO-VETO-FROM-CRITIC",
+                "enforced_at": "runtime"
+              }
+            ]
+          },
+          {
+            "occupant_id": "drew-chair",
+            "seat_id": "seat-chair",
+            "role_id": "chair",
+            "events": [
+              {
+                "seq": 4,
+                "config": "enforced-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "speak",
+                "accepted": true,
+                "reason": "speaking-granted",
+                "payload": "agenda is the widget decision",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 9,
+                "config": "enforced-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "vote",
+                "accepted": true,
+                "reason": "vote-granted",
+                "payload": "APPROVE-WIDGET-X",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 14,
+                "config": "enforced-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "veto",
+                "accepted": true,
+                "reason": "veto-granted",
+                "payload": "BLOCK-UNSAFE",
+                "enforced_at": "runtime"
+              }
+            ]
+          },
+          {
+            "occupant_id": "erin-observer",
+            "seat_id": "seat-observer",
+            "role_id": "observer",
+            "events": [
+              {
+                "seq": 5,
+                "config": "enforced-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "speak",
+                "accepted": false,
+                "reason": "speaking-rights-denied",
+                "payload": "I should not be heard in this round",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 10,
+                "config": "enforced-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "vote",
+                "accepted": false,
+                "reason": "vote-rights-denied",
+                "payload": "YES-FROM-OBSERVER",
+                "enforced_at": "runtime"
+              },
+              {
+                "seq": 15,
+                "config": "enforced-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "veto",
+                "accepted": false,
+                "reason": "veto-rights-denied",
+                "payload": "NO-VETO-FROM-OBSERVER",
+                "enforced_at": "runtime"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "stripped-mandates",
+        "ran": true,
+        "enforce_mandates": false,
+        "description": "Same script with mandates stripped: every occupant may speak, vote, and veto",
+        "accepted_counts": {
+          "speak": 5,
+          "vote": 5,
+          "veto": 5
+        },
+        "fingerprint": "alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:1|alice-proposer:vote:1|bob-voter:vote:1|cara-critic:vote:1|drew-chair:vote:1|erin-observer:vote:1|alice-proposer:veto:1|bob-voter:veto:1|cara-critic:veto:1|drew-chair:veto:1|erin-observer:veto:1",
+        "participant_action_logs": [
+          {
+            "occupant_id": "alice-proposer",
+            "seat_id": "seat-proposer",
+            "role_id": "proposer",
+            "events": [
+              {
+                "seq": 1,
+                "config": "stripped-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "speak",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "POSITION:SHIP-THE-WIDGET",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 6,
+                "config": "stripped-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "vote",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "YES-FROM-PROPOSER",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 11,
+                "config": "stripped-mandates",
+                "occupant_id": "alice-proposer",
+                "seat_id": "seat-proposer",
+                "role_id": "proposer",
+                "action": "veto",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "NO-VETO-FROM-PROPOSER",
+                "enforced_at": "stripped"
+              }
+            ]
+          },
+          {
+            "occupant_id": "bob-voter",
+            "seat_id": "seat-voter",
+            "role_id": "voter",
+            "events": [
+              {
+                "seq": 2,
+                "config": "stripped-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "speak",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "POSITION:APPROVE-WIDGET-X",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 7,
+                "config": "stripped-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "vote",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "APPROVE-WIDGET-X",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 12,
+                "config": "stripped-mandates",
+                "occupant_id": "bob-voter",
+                "seat_id": "seat-voter",
+                "role_id": "voter",
+                "action": "veto",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "NO-VETO-FROM-VOTER",
+                "enforced_at": "stripped"
+              }
+            ]
+          },
+          {
+            "occupant_id": "cara-critic",
+            "seat_id": "seat-critic",
+            "role_id": "critic",
+            "events": [
+              {
+                "seq": 3,
+                "config": "stripped-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "speak",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "risks remain; the voter should vote no",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 8,
+                "config": "stripped-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "vote",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "NO-FROM-CRITIC",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 13,
+                "config": "stripped-mandates",
+                "occupant_id": "cara-critic",
+                "seat_id": "seat-critic",
+                "role_id": "critic",
+                "action": "veto",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "NO-VETO-FROM-CRITIC",
+                "enforced_at": "stripped"
+              }
+            ]
+          },
+          {
+            "occupant_id": "drew-chair",
+            "seat_id": "seat-chair",
+            "role_id": "chair",
+            "events": [
+              {
+                "seq": 4,
+                "config": "stripped-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "speak",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "agenda is the widget decision",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 9,
+                "config": "stripped-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "vote",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "APPROVE-WIDGET-X",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 14,
+                "config": "stripped-mandates",
+                "occupant_id": "drew-chair",
+                "seat_id": "seat-chair",
+                "role_id": "chair",
+                "action": "veto",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "BLOCK-UNSAFE",
+                "enforced_at": "stripped"
+              }
+            ]
+          },
+          {
+            "occupant_id": "erin-observer",
+            "seat_id": "seat-observer",
+            "role_id": "observer",
+            "events": [
+              {
+                "seq": 5,
+                "config": "stripped-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "speak",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "I should not be heard in this round",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 10,
+                "config": "stripped-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "vote",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "YES-FROM-OBSERVER",
+                "enforced_at": "stripped"
+              },
+              {
+                "seq": 15,
+                "config": "stripped-mandates",
+                "occupant_id": "erin-observer",
+                "seat_id": "seat-observer",
+                "role_id": "observer",
+                "action": "veto",
+                "accepted": true,
+                "reason": "mandates-stripped",
+                "payload": "NO-VETO-FROM-OBSERVER",
+                "enforced_at": "stripped"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "comparison": {
+      "measurably_different": true,
+      "metric": "per-occupant action:accepted fingerprint plus accepted speak/vote/veto counts",
+      "enforced_fingerprint": "alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:0|alice-proposer:vote:0|bob-voter:vote:1|cara-critic:vote:0|drew-chair:vote:1|erin-observer:vote:0|alice-proposer:veto:0|bob-voter:veto:0|cara-critic:veto:0|drew-chair:veto:1|erin-observer:veto:0",
+      "stripped_fingerprint": "alice-proposer:speak:1|bob-voter:speak:1|cara-critic:speak:1|drew-chair:speak:1|erin-observer:speak:1|alice-proposer:vote:1|bob-voter:vote:1|cara-critic:vote:1|drew-chair:vote:1|erin-observer:vote:1|alice-proposer:veto:1|bob-voter:veto:1|cara-critic:veto:1|drew-chair:veto:1|erin-observer:veto:1",
+      "accepted_counts": {
+        "enforced": {
+          "speak": 4,
+          "vote": 2,
+          "veto": 1
+        },
+        "stripped": {
+          "speak": 5,
+          "vote": 5,
+          "veto": 5
+        }
+      },
+      "delta_accepted_votes": 3,
+      "delta_accepted_vetoes": 4,
+      "delta_accepted_speaks": 1
+    },
+    "replacement_transcript": {
+      "seat_id": "seat-voter",
+      "predecessor": {
+        "occupant_id": "bob-voter",
+        "position": "APPROVE-WIDGET-X",
+        "ballots": [
+          "APPROVE-WIDGET-X"
+        ],
+        "role_id": "voter",
+        "mandate": {
+          "speaking": true,
+          "vote": true,
+          "veto": false
+        }
+      },
+      "replacement_occupant_id": "zoe-replacement",
+      "inherited_role_id": "voter",
+      "inherited_mandate": {
+        "speaking": true,
+        "vote": true,
+        "veto": false
+      },
+      "inherited_position": null,
+      "inherited_ballots": [],
+      "replacement_vote": {
+        "seq": 17,
+        "config": "enforced-then-replace",
+        "occupant_id": "zoe-replacement",
+        "seat_id": "seat-voter",
+        "role_id": "voter",
+        "action": "vote",
+        "accepted": true,
+        "reason": "vote-granted",
+        "payload": "REJECT-WIDGET-X",
+        "enforced_at": "runtime"
+      },
+      "replacement_position_after_vote": "REJECT-WIDGET-X",
+      "replacement_ballots_after_vote": [
+        "REJECT-WIDGET-X"
+      ],
+      "predecessor_ballot_still_on_replacement": false
+    },
+    "reviewers": [
+      {
+        "reviewer_id": "CNF-0090-probe1-action-log-divergence",
+        "verdict": "PASS",
+        "independent": true,
+        "sees_other_verdict": false
+      },
+      {
+        "reviewer_id": "CNF-0090-probe2-replacement-inherits-role",
+        "verdict": "PASS",
+        "independent": true,
+        "sees_other_verdict": false
+      }
+    ],
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "action-log-divergence",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe1_action_log_divergence.py"
+      },
+      {
+        "id": "probe2",
+        "role": "replacement-inherits-role",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0090/probe2_replacement_inherits_role.py"
+      }
+    ],
+    "cloud_ok": false,
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "tools/council production package exists on this worktree"
+    ]
+  }
+}

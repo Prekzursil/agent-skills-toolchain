@@ -1,0 +1,1028 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-gem-05-executed-corpus-archaeology-mine",
+  "name": "Executed-Corpus Archaeology Mine",
+  "description": "Recover PROVEN workflow topologies from the estate's own executed run history instead of inventing new ones, and arrest the corpus's ongoing decay. The defining rule is mechanical: classification is done by a SCRIPT with zero LLM in the classification path, because handing a mechanical comparison to model judgement measured 86 percent accurate with 100 percent of the errors pointing at data loss. Enumeration is done TWICE with mechanically different probes that must corroborate before the index is trusted, and a probe that returns a different POPULATION (per-agent artifacts rather than run records) is rejected outright rather than averaged in. A missing script is a first-class outcome, not an error - most of the corpus is already gone.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "deterministic-index",
+    "two-probe-corroboration",
+    "decay-arrest"
+  ],
+  "flagship": true,
+  "params": {
+    "corpus_roots": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 20,
+      "items": {
+        "type": "path"
+      },
+      "description": "Roots holding the executed run records"
+    },
+    "topology_pattern": {
+      "type": "string",
+      "default": "",
+      "max_length": 200,
+      "description": "Optional mechanism regex to search the surviving scripts for"
+    },
+    "corroboration_tolerance_percent": {
+      "type": "number",
+      "default": 5.0,
+      "minimum": 0,
+      "maximum": 25,
+      "description": "How far the two enumeration probes may disagree before the index is rejected"
+    },
+    "wrong_population_probe": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "A probe KNOWN to enumerate a DIFFERENT population (per-agent artifacts, not run records). Its count must be REJECTED, which is how the corroboration check proves it can discriminate at all."
+    },
+    "snapshot_survivors": {
+      "type": "boolean",
+      "default": true,
+      "description": "Copy surviving scripts into the repo to arrest decay"
+    },
+    "recover_dead_run_ledgers": {
+      "type": "boolean",
+      "default": false,
+      "description": "Optional S4b: rebuild a dead run's ledger from the per-agent journals"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/archaeology/bp-gem-05",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "mechanical-indexer": {
+      "description": "A SCRIPT, not an agent judgement. Enumerates, resolves and classifies with no LLM in the classification path - the C4 rule this blueprint exists to honour",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/archaeology/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "corroborating-prober": {
+      "description": "Runs the SECOND, mechanically different enumeration; its job is to disagree if the first probe is wrong",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/archaeology/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "topology-interpreter": {
+      "description": "The ONLY model in the pipeline, and only for the semantic question a script cannot answer: does this recovered topology MATTER, and what does it mean",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/archaeology/**)"
+      ],
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/archaeology/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__codex__codex",
+      "Write(platform/**)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/archaeology/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "none-deterministic-script",
+      "vendor": "mixed",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'topology-interpreter'",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "reserve the model for what code cannot do: judging whether a recovered topology matters"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "probes-corroborate": {
+      "predicate": "custom-expression",
+      "expression": "enumeration_probes_agree == true AND wrong_population_probe_rejected == true AND llm_calls_in_classification_path == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "index-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "platform/schema/completion-predicate-result.schema.json",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate-probe-a",
+      "title": "Probe A: enumerate run records by structured glob",
+      "kind": "task",
+      "role": "mechanical-indexer",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0501",
+        "title": "Count and list the executed run records with a structured glob",
+        "phase": "2B",
+        "question_or_target": "Enumerate the run records under the corpus roots with a structured glob and emit the population: the count, the file list, and the exact glob used. This is probe A and is not trusted on its own.",
+        "inputs": [
+          "params.corpus_roots"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "counting is exactly computable; the C4 rule forbids fanning a mechanical count to judgement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/enumeration-probe-a.json",
+        "output_schema": "command-center/schema/sampling-frame.schema.json",
+        "evidence_requirement": "the artifact records the exact glob pattern, the count, and the first and last paths, so the population is reproducible",
+        "tests_required": [
+          "the glob must be recorded verbatim; a count without its producing pattern cannot be corroborated",
+          "a root that does not exist must be reported as such, not silently contribute zero"
+        ],
+        "reviewer_requirement": "probe B must independently agree within tolerance before the index is trusted",
+        "completion_sentinel": "SUCCESS:BPG-0501 emitted only when the probe-A population exists, parses, and carries its glob pattern and count; otherwise FAILED:BPG-0501 <failure-class> <reason>",
+        "retry_policy": "none: a deterministic enumeration over an unchanged tree cannot produce a different count",
+        "failure_classification": [
+          "corpus-root-missing",
+          "detector-truncation"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "structured-glob-enumeration"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/enumeration-probe-a.json",
+          "schema_ref": "command-center/schema/sampling-frame.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0501",
+          "consumers": [
+            "corroboration-check",
+            "resolve-existence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "enumerate-probe-b",
+      "title": "Probe B: a mechanically DIFFERENT enumeration, plus the wrong-population control",
+      "kind": "task",
+      "role": "corroborating-prober",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0502",
+        "title": "Enumerate the same population by a different mechanism and reject the known-wrong population",
+        "phase": "2B",
+        "question_or_target": "Enumerate the SAME population by a different mechanism (directory walk over run directories rather than a file glob), and separately run the known-WRONG-population probe. Probe B must agree with probe A within tolerance, and the wrong-population count must be REJECTED with its reason.",
+        "inputs": [
+          "params.corpus_roots",
+          "params.wrong_population_probe"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "corroborating-prober",
+          "basis": "an independent second measurement, not a re-run of the first"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/enumeration-probe-b.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "both counts (probe B and the wrong-population probe) with their producing commands, plus the stated reason the third count enumerates a different population",
+        "tests_required": [
+          "MANDATORY detector control: the wrong-population probe's count must be REJECTED, not averaged in - a check that cannot discriminate two populations measures nothing",
+          "probe B must use a different MECHANISM from probe A; re-running probe A's glob is not corroboration"
+        ],
+        "reviewer_requirement": "the corroboration gate compares the two counts numerically; neither prober adjudicates its own agreement",
+        "completion_sentinel": "SUCCESS:BPG-0502 emitted only when probe B has a count with its command, and the wrong-population probe is recorded as rejected with a reason; otherwise FAILED:BPG-0502 <failure-class> <reason>",
+        "retry_policy": "none: deterministic enumeration over an unchanged tree",
+        "failure_classification": [
+          "corpus-root-missing",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "mechanically-different-second-enumeration"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/enumeration-probe-b.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0502",
+          "consumers": [
+            "corroboration-check"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corroboration-check",
+      "title": "Compare the two counts numerically and reject the wrong population",
+      "kind": "task",
+      "depends_on": [
+        "enumerate-probe-a",
+        "enumerate-probe-b"
+      ],
+      "role": "mechanical-indexer",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPG-0503",
+        "title": "Compute the probe disagreement against the declared tolerance",
+        "phase": "2B",
+        "question_or_target": "Compute the percentage disagreement between probe A and probe B and compare it against the declared tolerance. Record the verdict, and record separately that the wrong-population count was excluded rather than reconciled.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/enumeration-probe-a.json",
+          "command-center/archaeology/bp-gem-05/enumeration-probe-b.json",
+          "params.corroboration_tolerance_percent"
+        ],
+        "dependencies": [
+          "BPG-0501",
+          "BPG-0502"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "a subtraction and a comparison"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/archaeology/bp-gem-05/corroboration.json",
+        "output_schema": "command-center/schema/agreement-statistic.schema.json",
+        "evidence_requirement": "both counts, the computed disagreement percentage, the tolerance, and the PASS/FAIL verdict - all arithmetic, no judgement",
+        "tests_required": [
+          "two counts differing by more than the tolerance must FAIL, blocking the index",
+          "both-states: two counts inside the tolerance must PASS in the same harness",
+          "the wrong-population count must never enter the disagreement arithmetic"
+        ],
+        "reviewer_requirement": "the corroboration gate reads this verdict; the interpreter never sees an unindexed corpus",
+        "completion_sentinel": "SUCCESS:BPG-0503 emitted only when the disagreement percentage is computed and compared against the tolerance with an explicit verdict; otherwise FAILED:BPG-0503 <failure-class> <reason>",
+        "retry_policy": "none: arithmetic over unchanged inputs",
+        "failure_classification": [
+          "probe-disagreement",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "numeric-probe-corroboration"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/corroboration.json",
+          "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0503",
+          "consumers": [
+            "corroboration-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corroboration-gate",
+      "title": "No index without two agreeing probes and zero LLM in the classification path",
+      "kind": "gate",
+      "depends_on": [
+        "corroboration-check"
+      ],
+      "gate_ref": "probes-corroborate"
+    },
+    {
+      "id": "resolve-existence",
+      "title": "Resolve every recorded script path to exists / missing",
+      "kind": "task",
+      "depends_on": [
+        "corroboration-gate"
+      ],
+      "role": "mechanical-indexer",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0504",
+        "title": "Classify each recorded script as resolving or already gone, and quantify the decay",
+        "phase": "2B",
+        "question_or_target": "For every run record, resolve its script path on disk and classify it exists or missing. A missing script is a FIRST-CLASS OUTCOME, not an error: the decay rate is one of this blueprint's two deliverables.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/enumeration-probe-a.json"
+        ],
+        "dependencies": [
+          "BPG-0501"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "filesystem existence is a fact"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/decay-report.json",
+        "output_schema": "command-center/schema/decay-inventory.schema.json",
+        "evidence_requirement": "counts of resolving vs missing with total surviving bytes; every missing path is listed, not summarised away",
+        "tests_required": [
+          "a record whose script is absent must be classified missing, never dropped from the index",
+          "the resolving plus missing counts must equal the record count exactly"
+        ],
+        "reviewer_requirement": "the snapshot stage acts only on resolving scripts; the missing list is the decay evidence",
+        "completion_sentinel": "SUCCESS:BPG-0504 emitted only when every record is classified, the two counts reconcile against the total, and the surviving byte count is recorded; otherwise FAILED:BPG-0504 <failure-class> <reason>",
+        "retry_policy": "none: deterministic resolution over an unchanged tree",
+        "failure_classification": [
+          "schema-invalid",
+          "count-mismatch"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "script-existence-decay-census"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/decay-report.json",
+          "schema_ref": "command-center/schema/decay-inventory.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0504",
+          "consumers": [
+            "mechanism-scan",
+            "snapshot-survivors"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-scan",
+      "title": "Scan the survivors for mechanism signatures by regex",
+      "kind": "task",
+      "depends_on": [
+        "resolve-existence"
+      ],
+      "role": "mechanical-indexer",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0505",
+        "title": "Detect each surviving script's mechanism set with regexes, and rank by agents times completion",
+        "phase": "2B",
+        "question_or_target": "Scan each surviving script for mechanism signatures (parallel fan-out, schema-typed fan-in, adversarial review, gates, resume, worktree isolation, cross-vendor dispatch, synthesis) and rank the scripts by agent count times completion rate. Regexes only - no model reads a script here.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/decay-report.json",
+          "params.topology_pattern"
+        ],
+        "dependencies": [
+          "BPG-0504"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "pattern matching is exactly computable and inspectable; an LLM classification here measured 86 percent accurate with every error pointing at data loss"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/mechanism-index.json",
+        "output_schema": "command-center/schema/capability-index.schema.json",
+        "evidence_requirement": "every mechanism hit records the regex and the matching line, so a false positive is inspectable; the rank formula is stated",
+        "tests_required": [
+          "a script with a known mechanism must be detected by name (detector control on the regex set)",
+          "a comparison regex must not match a bare assignment: the pattern must distinguish a threshold from an initialiser"
+        ],
+        "reviewer_requirement": "the topology interpreter reads only the top-ranked scripts and may not re-classify a mechanism",
+        "completion_sentinel": "SUCCESS:BPG-0505 emitted only when every surviving script has a mechanism set with per-hit regex and line, and a rank; otherwise FAILED:BPG-0505 <failure-class> <reason>",
+        "retry_policy": "none: deterministic scanning over unchanged inputs",
+        "failure_classification": [
+          "regex-false-positive",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "regex-mechanism-detection-and-rank"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/mechanism-index.json",
+          "schema_ref": "command-center/schema/capability-index.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0505",
+          "consumers": [
+            "interpret-topologies",
+            "snapshot-survivors"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interpret-topologies",
+      "title": "The one model stage: does this recovered topology MATTER?",
+      "kind": "task",
+      "depends_on": [
+        "mechanism-scan"
+      ],
+      "role": "topology-interpreter",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPG-0506",
+        "title": "Describe what each top-ranked topology does and whether it is worth reusing",
+        "phase": "2B",
+        "question_or_target": "For the top-ranked surviving scripts, describe the topology in DSL terms (stages, fan-out width, barrier mode, gates) and judge whether it is worth reusing. Do not re-classify mechanisms: the script owns that.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/mechanism-index.json"
+        ],
+        "dependencies": [
+          "BPG-0505"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "topology-interpreter",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/archaeology/bp-gem-05/recovered-topologies.json",
+        "output_schema": "command-center/schema/foundry-artifact.schema.json",
+        "evidence_requirement": "each topology cites the script path and line ranges it was read from, and states which mechanism-index row it corresponds to",
+        "tests_required": [
+          "a topology description that contradicts the mechanism index must be rejected: the script's classification wins over the model's reading",
+          "a topology with no citable line range must be dropped"
+        ],
+        "reviewer_requirement": "one independent reviewer checks no described topology is absent from the mechanism index",
+        "completion_sentinel": "SUCCESS:BPG-0506 emitted only when every described topology cites its script and lines and maps to a mechanism-index row; otherwise FAILED:BPG-0506 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failures emit the mechanism index alone - the index is the durable deliverable",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "semantic-topology-interpretation"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/recovered-topologies.json",
+          "schema_ref": "command-center/schema/foundry-artifact.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0506",
+          "consumers": [
+            "completion-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "snapshot-survivors",
+      "title": "Arrest the decay: snapshot the surviving scripts",
+      "kind": "task",
+      "depends_on": [
+        "mechanism-scan"
+      ],
+      "when": "snapshot_survivors == true",
+      "role": "mechanical-indexer",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0507",
+        "title": "Copy every surviving script under version control with a byte-parity check",
+        "phase": "2B",
+        "question_or_target": "Copy each surviving script into the snapshot root and verify byte parity per file. Snapshotting without a parity check is how a snapshot silently holds truncated copies.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/decay-report.json",
+          "command-center/archaeology/bp-gem-05/mechanism-index.json"
+        ],
+        "dependencies": [
+          "BPG-0504"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "copy plus hash comparison is exactly verifiable"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/snapshot-manifest.json",
+        "output_schema": "command-center/schema/byte-parity-report.schema.json",
+        "evidence_requirement": "per file: source path, destination path, byte count and hash on both sides; a mismatch is a FAILED row, never a silent copy",
+        "tests_required": [
+          "a truncated copy must be reported as a parity failure - a snapshot without a parity check is the defect this test exists for",
+          "the snapshot count must equal the surviving-script count"
+        ],
+        "reviewer_requirement": "the completion gate checks the manifest count against the decay report's surviving count",
+        "completion_sentinel": "SUCCESS:BPG-0507 emitted only when every surviving script is copied and byte-parity verified, with counts reconciled; otherwise FAILED:BPG-0507 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two parity failures on one file, record it FAILED and continue with the rest",
+        "failure_classification": [
+          "parity-mismatch",
+          "count-mismatch"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "snapshot-with-byte-parity"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/snapshot-manifest.json",
+          "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0507",
+          "consumers": [
+            "completion-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recover-dead-ledgers",
+      "title": "Optional S4b: rebuild a dead run's ledger from the per-agent journals",
+      "kind": "task",
+      "depends_on": [
+        "snapshot-survivors"
+      ],
+      "when": "recover_dead_run_ledgers == true",
+      "role": "mechanical-indexer",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0508",
+        "title": "Join the per-agent journals on the agent identifier to rebuild a lost ledger",
+        "phase": "2B",
+        "question_or_target": "For runs whose orchestrator died, rebuild the ledger by joining the per-agent journals on the AGENT IDENTIFIER. The journal key is a content hash, not a label, so joining on the key produces nonsense - join on the id.",
+        "inputs": [
+          "command-center/archaeology/bp-gem-05/decay-report.json",
+          "params.corpus_roots"
+        ],
+        "dependencies": [
+          "BPG-0504"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "mechanical-indexer",
+          "basis": "a relational join on a declared key"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/archaeology/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/archaeology/bp-gem-05/recovered-ledgers.json",
+        "output_schema": "command-center/schema/run-ledger.schema.json",
+        "evidence_requirement": "each recovered row names the journal file and the agent identifier it was joined on, and states that the content-hash key was NOT used as the join field",
+        "tests_required": [
+          "joining on the content-hash key must produce a detectably wrong result, proving the id join is the correct one",
+          "a run with no surviving journals must be reported unrecoverable, not partially invented"
+        ],
+        "reviewer_requirement": "one independent reviewer spot-checks two recovered rows against their journal files",
+        "completion_sentinel": "SUCCESS:BPG-0508 emitted only when every attempted run is either recovered with its join field named or reported unrecoverable; otherwise FAILED:BPG-0508 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "journal-missing",
+          "join-key-wrong"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "journal-join-ledger-recovery"
+      },
+      "produces": [
+        {
+          "path": "command-center/archaeology/bp-gem-05/recovered-ledgers.json",
+          "schema_ref": "command-center/schema/run-ledger.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0508",
+          "consumers": [
+            "completion-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "completion-gate",
+      "title": "The 12-condition completion predicate over the index deliverables",
+      "kind": "gate",
+      "depends_on": [
+        "interpret-topologies",
+        "recover-dead-ledgers"
+      ],
+      "gate_ref": "index-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "index-built",
+      "expression": "records_without_classification == 0 AND enumeration_probes_agree == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "records_enumerated >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "probes-disagree",
+      "expression": "enumeration_probes_agree == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "probe-disagreement",
+      "count-mismatch",
+      "parity-mismatch",
+      "corpus-root-missing"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "the caller",
+    "quarantine_path": "command-center/archaeology/bp-gem-05/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/archaeology/bp-gem-05/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/archaeology/bp-gem-05/replay/journal.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "store": "command-center/archaeology/bp-gem-05/cache",
+    "ttl_seconds": 2592000,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/archaeology/bp-gem-05/dry-run-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/archaeology/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.1,
+      "expected": 0.6,
+      "max": 2.5
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 1200,
+      "max": 5400
+    },
+    "tokens": {
+      "min": 20000,
+      "expected": 120000,
+      "max": 500000
+    },
+    "tool_calls": {
+      "expected": 30,
+      "max": 250
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the owner's own session history; the snapshot writes only under command-center/archaeology/** and the index is never egressed",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "tests",
+        "examples",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-gem-05.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "exec-corpus-itself",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "owner (the population: run records, distinct scripts, agents dispatched, decay)"
+      },
+      {
+        "source": "skills/recall-workflow-agent",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner (the existing per-agent extractor)"
+      },
+      {
+        "source": "tool-harness-corpus",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner (streaming, bounded-memory, fail-soft distillation pattern)"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-GEM-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "mechanism-index": {
+      "path": "command-center/archaeology/bp-gem-05/mechanism-index.json",
+      "schema_ref": "command-center/schema/capability-index.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/DECISION-LOG.json"
+      ]
+    },
+    "decay-report": {
+      "path": "command-center/archaeology/bp-gem-05/decay-report.json",
+      "schema_ref": "command-center/schema/decay-inventory.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "snapshot-survivors"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-GEM-05",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 646
+    },
+    "acquisition_route_from_card": "BUILD-NEW",
+    "mechanism_signature": [
+      "structured-glob-enumeration",
+      "mechanically-different-second-enumeration",
+      "wrong-population-probe-rejected",
+      "zero-llm-in-the-classification-path",
+      "script-existence-decay-census",
+      "regex-mechanism-detection-and-rank",
+      "snapshot-with-byte-parity"
+    ],
+    "contraindications": [
+      "NOT a substitute for reading the one script you care about",
+      "NOT for provenance of THIRD-PARTY workflows",
+      "the per-agent artifact population is a DIFFERENT set from the run records; conflating them produces a nonsense count, which is exactly what the wrong-population probe exists to demonstrate"
+    ],
+    "the_c4_rule": "Classification is mechanical by mandate. Handing a byte/line/set-membership comparison to LLM judgement measured 86 percent accurate with 100 PERCENT of the errors in the data-loss direction. Error DIRECTION is the metric, not accuracy - so the script classifies everything and the model only describes what the divergent content MEANS.",
+    "unverified": [
+      "UNVERIFIED yield; settling experiment = mine for per-work-unit pipeline topologies and count how many distinct PROVEN variants exist versus the one documented in the authoring guidance."
+    ],
+    "owner_decision": "Snapshot every surviving script into the repo now to stop the decay, or index-only?",
+    "worked_example": {
+      "name": "index the executed corpus and snapshot the survivors",
+      "params": {
+        "corpus_roots": [
+          "command-center/corpus/run-records"
+        ],
+        "topology_pattern": "per-work-unit|barrier|schema-typed-fan-in",
+        "corroboration_tolerance_percent": 5.0,
+        "wrong_population_probe": "glob every per-agent artifact under the subagents tree",
+        "snapshot_survivors": true,
+        "recover_dead_run_ledgers": false
+      },
+      "expected_stage_order": [
+        "enumerate-probe-a",
+        "enumerate-probe-b",
+        "corroboration-check",
+        "corroboration-gate",
+        "resolve-existence",
+        "mechanism-scan",
+        "interpret-topologies",
+        "snapshot-survivors",
+        "recover-dead-ledgers",
+        "completion-gate"
+      ],
+      "expected_skipped": [
+        "recover-dead-ledgers"
+      ],
+      "expected_max_parallel": 1,
+      "expected_gate_ids": [
+        "corroboration-gate",
+        "completion-gate"
+      ],
+      "acceptance": [
+        "the two enumeration probes agree within 5 percent",
+        "the wrong-population probe's count is REJECTED with its reason recorded",
+        "resolving plus missing equals the record count exactly",
+        "every snapshotted file passes byte parity"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "index-built",
+          "why": "the index may not be declared built while any record is unclassified or the probes disagree",
+          "fires_on": {
+            "records_without_classification": 0,
+            "enumeration_probes_agree": true,
+            "records_enumerated": 708
+          },
+          "does_not_fire_on": {
+            "records_without_classification": 12,
+            "enumeration_probes_agree": true,
+            "records_enumerated": 708
+          }
+        },
+        {
+          "rule": "probes-disagree",
+          "why": "disagreeing probes must escalate: a self-contradicting detector is a detector failure, never a finding",
+          "fires_on": {
+            "records_without_classification": 0,
+            "enumeration_probes_agree": false,
+            "records_enumerated": 708
+          },
+          "does_not_fire_on": {
+            "records_without_classification": 0,
+            "enumeration_probes_agree": true,
+            "records_enumerated": 708
+          }
+        }
+      ]
+    }
+  }
+}

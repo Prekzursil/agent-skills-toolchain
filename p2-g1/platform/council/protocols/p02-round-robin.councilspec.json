@@ -1,0 +1,407 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p02-round-robin",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reach a scored recommendation with measurably equal airtime across all seats, so the verdict is not an artefact of who spoke first or longest.",
+    "charter": "Round-robin panel. Fixed rotation, one contribution per seat per round, capped length, no seat may speak twice until all have spoken.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "contribution-length variance across seats is lower than a free-form control",
+      "the rotation was re-randomised at the start of every round",
+      "every seat scored every option"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "rotation-clerk",
+        "display_name": "Rotation clerk (moderator, non-voting)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "facilitation",
+          "turn accounting"
+        ],
+        "role": "moderator",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "seat-architecture",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "system architecture"
+        ],
+        "role": "architect",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-security",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "threat modeling"
+        ],
+        "role": "security_reviewer",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-operations",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "operations",
+          "on-call load"
+        ],
+        "role": "risk_officer",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-cost",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "cost modeling"
+        ],
+        "role": "domain_expert",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-user",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "user workflows"
+        ],
+        "role": "user_advocate",
+        "authority": "voter",
+        "vote_weight": 1.0
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "dominance"
+      ],
+      "preserve_prior_positions": true
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "reseed",
+        "custom_name": "rotation_reseed",
+        "participants": [
+          "rotation-clerk"
+        ]
+      },
+      {
+        "kind": "round_robin",
+        "stage_id": "rotation",
+        "rounds": 3,
+        "quotas": {
+          "ideas_per_participant": 2,
+          "novel_ideas_per_round": 1,
+          "objections_per_participant": 1
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "xexam",
+        "rounds": 1,
+        "quotas": {
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "synthesis"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 5,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 350
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": false,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 1,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 75,
+    "tool_calls": 100,
+    "sources": 18,
+    "turns": 36,
+    "speaking_quota_per_participant": 6,
+    "min_engagement_turns": 6,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 18,
+    "novelty_ratio": 0.55,
+    "diversity_index": 0.7,
+    "objections": 6,
+    "counterexamples": 3,
+    "evidence_items": 12,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": 0,
+      "max": 10
+    },
+    "quorum": {
+      "min_voters": 4,
+      "min_fraction": 0.6,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "trimmed_mean",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:rotation_reseeded_per_round",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "rotation-clerk stage reseed"
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "no_new_objection_rounds",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "metric": "custom:airtime_gini",
+          "op": "<=",
+          "value": 0.25,
+          "value_type": "number",
+          "producer": "rotation-clerk turn accounting"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 8
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 75,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "rotate_roles",
+      "narrow_scope",
+      "split_question",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "participant_dominance",
+      "silence",
+      "echo_chamber",
+      "premature_convergence",
+      "lost_dissent"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "role_rotation",
+      "blind_re_evaluation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "option_cards",
+      "argument_ledger",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P02 round-robin",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:133",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:146"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P02"
+    ],
+    "notes": "DELIBERATIVE. Fixed rotation; each seat contributes exactly once per round at a capped length; no seat may speak twice until all have spoken. Equal airtime is enforced by construction and MEASURED - custom:airtime_gini <= 0.25 is a closing precondition, so an unequal council cannot report success.\n\nanti-failure controls, each mapped to the field implementing it:\n  participant_dominance -> protocol.speaking_order=round_robin plus budgets.speaking_quota_per_participant=6 (one turn per seat per round) makes equal airtime structural, not a request\n  silence -> budgets.min_engagement_turns=6 and max_inactivity_rounds=1; participants.replacement.triggers includes inactivity\n  echo_chamber -> the custom:rotation_reseeded_per_round conjunct in stopping.expression - a fixed rotation lets seat 1 frame every round, so the order must be re-randomised and the reseed is a closing precondition\n  premature_convergence -> stopping.minimum_deliberation.min_rounds=3 and the no_new_objection_rounds >= 2 conjunct\n  lost_dissent -> consensus.minority_report=required + outcomes.allowed includes minority_report"
+  }
+}

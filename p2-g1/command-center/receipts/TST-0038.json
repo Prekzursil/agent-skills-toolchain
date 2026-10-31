@@ -1,0 +1,188 @@
+{
+ "answer": "No for shipped validate.py: 11 of 19 fields are defaults-only on 0/103 items, and V-FIELDS still treats defaults as resolution. Yes for the new executable contract in this unit: per-unit keys are required, defaults do not count, completeness is on by default, closed enums for execution_substrate and failure_classification, both-states proven.",
+ "artifact_paths": [
+  "command-center/receipts/TST-0038.json",
+  "tools/command-center/work_unit_conformance.py",
+  "tools/command-center/tests/test_work_unit_conformance.py",
+  "command-center/schema/work-unit.schema.json",
+  "command-center/p2-wave/probes/TST-0038/probe1_presence_and_mutation.py",
+  "command-center/p2-wave/probes/TST-0038/probe2_both_states_and_negatives.py",
+  "command-center/p2-wave/probes/TST-0038/run_suite.py"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0038.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "tools/command-center/work_unit_conformance.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/command-center/tests/test_work_unit_conformance.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/work-unit.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0038/probe1_presence_and_mutation.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0038/probe2_both_states_and_negatives.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0038/run_suite.py",
+   "role": "supporting"
+  }
+ ],
+ "claim_under_test": "The executable contract (work_unit_conformance.py + work-unit.schema.json) requires all 19 Prompt-Two fields as per-unit keys. Catalogue defaults do not satisfy completeness. Shipped validate.py V-FIELDS still treats defaults as resolution; that hole is measured, not claimed fixed by this TST unit.",
+ "completion_sentinel": "SUCCESS:TST-0038",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0038.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "G-1 measure runs after this receipt and the per-unit manifest exist.",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "detail": "Per-field per-unit presence over items (103) and work_units (2007). On items, 11 of 19 mandated fields are keys on 0/103 units and exist only in catalogue defaults. work_units stamp all 19 semantically (assignment/target via documented aliases).",
+   "kind": "presence-matrix",
+   "path": "command-center/p2-wave/probes/TST-0038/presence-matrix.json"
+  },
+  {
+   "detail": "Deleting the entire defaults block from a mini catalog, then invoking validate.py with --no-require-complete (historical CI shape, isolated so REACH-6 cannot mask V-FIELDS), still exits 0 with no V-FIELDS. The new checker, invoked bare, rejects a catalog whose 11 fields exist only in defaults even while that defaults block remains.",
+   "exit_code": 1,
+   "kind": "mutation",
+   "path": "tools/command-center/work_unit_conformance.py",
+   "verbatim": "lts, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.reviewer_requirement: reviewer_requirement exists only in catalogue defaults, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.retry_policy: retry_policy exists only in catalogue defaults, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.failure_classification: failure_classification exists only in catalogue defaults, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.owner_approval_required: owner_approval_required exists only in catalogue defaults, not as a per-unit key\nwork-unit-conformance violations=11 require_complete=True fields=19\nFAILED:work-unit-conformance violations=11\n{\n  \"bare_checker_conforming_rc\": 0,\n  \"bare_checker_defaults_only_rc\": 1,\n  \"historical_disarmed_defaults_deletion_exit\": 0,\n  \"historical_disarmed_vfields\": false,\n  \"items\": 103,\n  \"items_defaults_only_count\": 11,\n  \"items_defaults_only_fields\": [\n    \"assignment\",\n    \"evidence_requirement\",\n    \"execution_substrate\",\n    \"failure_classification\",\n    \"output_schema\",\n    \"owner_approval_required\",\n    \"retry_policy\",\n    \"reviewer_requirement\",\n    \"tests_required\",\n    \"timeout_seconds\",\n    \"tool_permissions\"\n  ],\n  \"live_item_violations\": 1133,\n  \"n_fields\": 19,\n  \"pass\": true,\n  \"probe\": \"probe1-presence-and-mutation\",\n  \"unit_id\": \"TST-0038\",\n  \"work_units\": 2007\n}\nitems=103 defaults_only=11/19 work_units=2007 bare_bad_rc=1 historical_disarmed_exit=0\nSUCCESS:TST-0038-probe1 presence matrix + defaults-only hole measured"
+  },
+  {
+   "detail": "Conforming fixture (all 19 keys on the unit) is silent. Deliberately non-conforming fixtures fire: defaults-only, missing key, empty string, unknown execution_substrate, unknown failure_classification. Independent reviewer probe rebuilds those fixtures without importing probe1.",
+   "exit_code": 0,
+   "kind": "both-states",
+   "path": "command-center/p2-wave/probes/TST-0038/probe2_both_states_and_negatives.py",
+   "verbatim": "TE R-D01.retry_policy: retry_policy exists only in catalogue defaults, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.failure_classification: failure_classification exists only in catalogue defaults, not as a per-unit key\n  R-DEFAULTS-NOT-COMPLETE R-D01.owner_approval_required: owner_approval_required exists only in catalogue defaults, not as a per-unit key\nwork-unit-conformance violations=11 require_complete=True fields=19\nFAILED:work-unit-conformance violations=11\nwork-unit-conformance violations=0 require_complete=False fields=19\nSUCCESS:work-unit-conformance complete per-unit\n{\n  \"allow_defaults_red_rc\": 0,\n  \"bare_green_rc\": 0,\n  \"bare_red_rc\": 1,\n  \"green_silent\": true,\n  \"live_items_defaults_only\": [\n    \"assignment\",\n    \"tool_permissions\",\n    \"execution_substrate\",\n    \"timeout_seconds\",\n    \"output_schema\",\n    \"evidence_requirement\",\n    \"tests_required\",\n    \"reviewer_requirement\",\n    \"retry_policy\",\n    \"failure_classification\",\n    \"owner_approval_required\"\n  ],\n  \"negatives\": {\n    \"R-BARE-ARMED\": true,\n    \"R-DEFAULTS-NOT-COMPLETE\": true,\n    \"R-EMPTY-REJECTED\": true,\n    \"R-FAILURE-ENUM\": true,\n    \"R-PER-UNIT-KEY\": true,\n    \"R-SUBSTRATE-ENUM\": true\n  },\n  \"pass\": true,\n  \"probe\": \"probe2-both-states-negatives\",\n  \"red_fires\": true,\n  \"unit_id\": \"TST-0038\"\n}\nGREEN silent; RED fires; negatives=R-BARE-ARMED,R-DEFAULTS-NOT-COMPLETE,R-EMPTY-REJECTED,R-FAILURE-ENUM,R-PER-UNIT-KEY,R-SUBSTRATE-ENUM\nSUCCESS:TST-0038-probe2 both-states and per-rule negatives"
+  }
+ ],
+ "implementation": {
+  "checker": "tools/command-center/work_unit_conformance.py",
+  "defaults_are_not_completeness": true,
+  "pytest": "tools/command-center/tests/test_work_unit_conformance.py",
+  "require_complete_default": true,
+  "schema": "command-center/schema/work-unit.schema.json",
+  "validate_py_not_modified": true
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0038/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "defaults-only-catalog-rejected",
+  "missing-title-rejected",
+  "empty-title-rejected",
+  "unknown-substrate-rejected",
+  "unknown-failure-class-rejected",
+  "historical-validate-py-disarmed-defaults-deletion-silent"
+ ],
+ "negative_controls": [
+  {
+   "description": "A unit missing the 11 defaults-block fields is REJECTED by work_unit_conformance even when those fields exist in catalogue defaults. A fully keyed unit is silent.",
+   "fired_on_bad_state": true,
+   "id": "defaults-only-catalog-rejected",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "validate.py --no-require-complete on a catalog with the defaults block deleted still exits 0 (historical CI).",
+   "fired_on_bad_state": false,
+   "id": "historical-validate-py-disarmed-defaults-deletion-silent",
+   "kind": "known-broken-fixture",
+   "note": "This is the measured detector hole; TST-0038 records it.",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 delivery of TST-0038 conformance suite. Live named probes exit 0. Did not run global unit_manifest.py --write. cloud ok is not consulted. Did not modify validate.py require_complete semantics for defaults-as-complete.",
+ "profile": "work-unit-schema-conformance",
+ "question": "Does the work-unit schema require all 19 enumerated fields PER UNIT with a real override key, rather than satisfying them from a single global defaults block? Measured defect: 9 of 19 mandatory fields exist only as a global default, present on 0/103 items, and validate.py cannot detect the whole defaults block being deleted because require_complete defaults False and CI invokes the tool bare.",
+ "question_or_target": "Does the work-unit schema require all 19 enumerated fields PER UNIT with a real override key, rather than satisfying them from a single global defaults block? Measured defect: 9 of 19 mandatory fields exist only as a global default, present on 0/103 items, and validate.py cannot detect the whole defaults block being deleted because require_complete defaults False and CI invokes the tool bare.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0437 arms validate.py V-FIELDS for unresolved fields (defaults deleted). It does not require per-unit keys while defaults remain. That remaining hole is this unit's subject.",
+   "settling_experiment": "After a later IMP stamps the 11 fields onto each items[] row, re-run probe1: items defaults-only count must fall to 0.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "work_units failure_classification uses hundreds of tokens outside the 6-value closed contract set. Enum enforcement on the live work_units collection is reported, not gated.",
+   "settling_experiment": "Choose whether to expand the closed set or rewrite work_units tokens onto the 6-value taxonomy, then re-run with enums on.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Rebuild green/red fixtures and one negative per contract rule without importing probe1. Re-count live items defaults-only fields from WORK_UNIT_FIELDS. Confirm bare CLI is armed.",
+  "reviewer_id": "TST-0038-probe2-both-states-and-negatives",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0038",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0038; _USER-PROMPTS.md:10607-10625; ARC-0083 work-unit schema contract",
+ "state": "SUCCESS",
+ "test_ids": [
+  "probe1-presence-matrix-and-ci-mutation",
+  "probe2-both-states-and-per-rule-negatives",
+  "test_conforming_catalog_is_silent",
+  "test_defaults_only_catalog_is_red",
+  "test_missing_key_is_red",
+  "test_empty_string_is_red",
+  "test_unknown_substrate_is_red",
+  "test_unknown_failure_class_is_red",
+  "test_bare_cli_rejects_defaults_only",
+  "test_bare_cli_accepts_conforming"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0038/probe1_presence_and_mutation.py",
+   "id": "probe1-presence-matrix-and-ci-mutation",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0038/probe2_both_states_and_negatives.py",
+   "id": "probe2-both-states-and-per-rule-negatives",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0038/run_suite.py",
+   "id": "tools/command-center/tests/test_work_unit_conformance.py",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:08:10Z",
+  "started_at": "2026-08-25T01:08:10Z"
+ },
+ "title": "Executable conformance tests for the work-unit schema contract",
+ "unit_id": "TST-0038"
+}

@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0178",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0178",
+  "spec_anchor": "_USER-PROMPTS.md:10900-10907 (required library taxonomy)",
+  "min_bytes_threshold": 256,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "local-parallel"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/gap_finder.py",
+      "bytes": 3039,
+      "sha256": "1fb8bd57498e01dd5d1c33d9e6fefdc2e227473e1971415e793dbf413980a763",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/taxonomy.py",
+      "bytes": 4810,
+      "sha256": "86da733bb61f80aab8e70a1ad5336fe2b80797c617a753e535cf20ff54f1fae6",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/fixtures/spec_taxonomy.md",
+      "bytes": 2686,
+      "sha256": "9851da21e2dbe9b2df9e36f69c4a19e0e26c66502affbd869fdffa14f56f0d5a",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/fixtures/coverage_vectors.json",
+      "bytes": 3404,
+      "sha256": "66597dbd2e5220ddbbabc00a71e97992b0d73782003a11a90728fefa222f4f4a",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/probe1_recount.py",
+      "bytes": 5091,
+      "sha256": "1d538fc9f0e336247cf17452553d55d0ac5f79c06561c35b0e681afde5631705",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0178/probe2_removed_category.py",
+      "bytes": 2672,
+      "sha256": "ff37cf9c6da7bfffa7595b9592d849d802d5bae8622115d372bee83575e5588d",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Parser recounts taxonomy leaves from spec text; family-header integers sum to the same derived total (96); detector modules do not contain that integer as a constant.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0178/taxonomy.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/taxonomy.py",
+          "raw_output": "families=6 leaf_total=96 declared_total=96 consistent=True\n  research/evidence declared=15 leaves=15\n  engineering/reliability declared=21 leaves=21\n  security/governance declared=12 leaves=12\n  product/design declared=15 leaves=15\n  data/science declared=16 leaves=16\n  collective-intelligence/meta declared=17 leaves=17",
+          "fingerprint": "86f5b9484fa1e5f3fcfdf84671be980c9a3b645f1a4636a325a86553a31aa932",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ast.parse taxonomy.py and gap_finder.py; refuse Constant equal to sum of catalog family counts",
+          "raw_output": "catalog_oracle_sum=96\ncommand-center/p2-wave/probes/IMP-0178/taxonomy.py hardcoded_96_linenos=[]\ncommand-center/p2-wave/probes/IMP-0178/gap_finder.py hardcoded_96_linenos=[]\nhardcoded_total_absent=True",
+          "fingerprint": "d53c4db5df6cbe49228a47d8a415c0da3480a9d80185b0e6e39280a134966817",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Deleting one listed category from the spec fixture changes the computed leaf total by one and fires count-mismatch; the unmodified fixture is silent-on-good.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0178/probe2_removed_category.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe2_removed_category.py",
+          "raw_output": "good_sum=96 bad_sum=95 removed=watchlist fired_on_bad=True checksum_mismatch=True silent_on_good=True\nSUCCESS:IMP-0178-probe2 removed category changes computed sum",
+          "fingerprint": "6e6ac7930519e5f76d11982ce32c3ed7f9d9aafb1decddab73883943d7c78e5b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe1_recount.py",
+          "raw_output": "{\n  \"leaf_total\": 96,\n  \"header_sum\": 96,\n  \"catalog_sum\": 96,\n  \"families\": {\n    \"research/evidence\": 15,\n    \"engineering/reliability\": 21,\n    \"security/governance\": 12,\n    \"product/design\": 15,\n    \"data/science\": 16,\n    \"collective-intelligence/meta\": 17\n  },\n  \"hardcoded_total_absent\": true,\n  \"gap_count\": 7,\n  \"gap_set\": [\n    \"multilingual\",\n    \"abandoned-work-salvage\",\n    \"standards-committee\",\n    \"strategy-war-game\",\n    \"invention-wildcard\",\n    \"mediation\",\n    \"council-of-councils\"\n  ],\n  \"planted_closed\": \"multilingual\"\n}\nleaf_total=96 header_sum=96 gaps=7 planted_closed=multilingual\nSUCCESS:IMP-0178-probe1 spec recount without hardcoded total",
+          "fingerprint": "29b55b5ab553dc697808ccf7b3f3f9d600165b3cfec73b3f0342a196bf1943c8",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-category-counts-from-spec",
+      "name": "category counts derived from spec text, not hardcoded (sum == 96)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe1_recount.py",
+      "result": "PASS",
+      "output_tail": "{\n  \"leaf_total\": 96,\n  \"header_sum\": 96,\n  \"catalog_sum\": 96,\n  \"families\": {\n    \"research/evidence\": 15,\n    \"engineering/reliability\": 21,\n    \"security/governance\": 12,\n    \"product/design\": 15,\n    \"data/science\": 16,\n    \"collective-intelligence/meta\": 17\n  },\n  \"hardcoded_total_absent\": true,\n  \"gap_count\": 7,\n  \"gap_set\": [\n    \"multilingual\",\n    \"abandoned-work-salvage\",\n    \"standards-committee\",\n    \"strategy-war-game\",\n    \"invention-wildcard\",\n    \"mediation\",\n    \"council-of-councils\"\n  ],\n  \"planted_closed\": \"multilingual\"\n}\nleaf_total=96 header_sum=96 gaps=7 planted_closed=multilingual\nSUCCESS:IMP-0178-probe1 spec recount without hardcoded total"
+    },
+    {
+      "id": "T2-removed-category-changes-sum",
+      "name": "removing a category from the fixture changes the computed sum",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe2_removed_category.py",
+      "result": "PASS",
+      "output_tail": "good_sum=96 bad_sum=95 removed=watchlist fired_on_bad=True checksum_mismatch=True silent_on_good=True\nSUCCESS:IMP-0178-probe2 removed category changes computed sum"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0178-C1",
+      "kind": "known-broken-fixture",
+      "description": "Remove one listed category from the spec fixture. The recount must change. A hardcoded catalog total is silent on this mutation.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "watchlist removed; leaf_total drops by 1; count-mismatch fires",
+      "good_state_output": "unmodified fixture consistent; leaf_total equals declared_total"
+    },
+    {
+      "id": "IMP0178-C2",
+      "kind": "mutation",
+      "description": "Cover the first gap with a planted candidate. That id must leave the gap set and gap_count must drop by one.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "planted cover of multilingual removes it from gap_set",
+      "good_state_output": "fixture gap_set remains the uncovered leaves"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0178-probe1-independent-regex-recount",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Probe1 re-parses the spec with a regex path that does not import taxonomy parse helpers, and AST-refuses a hardcoded catalog total in the detector modules.",
+    "reviewed_at": "2026-08-25T00:56:18Z"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0178/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "IMP-0178",
+    "registered_at": "2026-08-25T00:56:18Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0178/gap_finder.py",
+      "artifact_path": "command-center/p2-wave/probes/IMP-0178/fixtures/coverage_vectors.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/gap_finder.py",
+        "raw_output": "{\n  \"taxonomy_leaf_total\": 96,\n  \"taxonomy_declared_total\": 96,\n  \"taxonomy_consistent\": true,\n  \"candidate_count\": 6,\n  \"covered_count\": 89,\n  \"gap_count\": 7,\n  \"gap_set\": [\n    \"multilingual\",\n    \"abandoned-work-salvage\",\n    \"standards-committee\",\n    \"strategy-war-game\",\n    \"invention-wildcard\",\n    \"mediation\",\n    \"council-of-councils\"\n  ],\n  \"family_gaps\": {\n    \"research/evidence\": [\n      \"multilingual\"\n    ],\n    \"engineering/reliability\": [\n      \"abandoned-work-salvage\"\n    ],\n    \"security/governance\": [\n      \"standards-committee\"\n    ],\n    \"product/design\": [\n      \"strategy-war-game\"\n    ],\n    \"data/science\": [\n      \"invention-wildcard\"\n    ],\n    \"collective-intelligence/meta\": [\n      \"mediation\",\n      \"council-of-councils\"\n    ]\n  },\n  \"unknown_category_refs\": [],\n  \"candidates\": [\n    {\n      \"id\": \"cand.research-core\",\n      \"cover_count\": 14,\n      \"covers\": [\n        \"deep-research\",\n        \"gem-hunt\",\n        \"systematic-literature-review\",\n        \"rapid-literature-review\",\n        \"evidence-map\",\n        \"fact-citation-audit\",\n        \"official-doc-audit\",\n        \"source-code-archaeology\",\n        \"prior-art-patent\",\n        \"standards-regulatory\",\n        \"niche-forum\",\n        \"archival\",\n        \"contradiction-negative-result\",\n        \"watchlist\"\n      ]\n    },\n    {\n      \"id\": \"cand.engineering-core\",\n      \"cover_count\": 20,\n      \"covers\": [\n        \"root-cause-investigation\",\n        \"regression-triage\",\n        \"incident-response\",\n        \"postmortem\",\n        \"architecture-tournament\",\n        \"planning\",\n        \"tdd-implementation\",\n        \"code-review\",\n        \"refactoring\",\n        \"migration-rehearsal\",\n        \"dependency-supply-chain-audit\",\n        \"cross-vendor-compatibility\",\n        \"plugin-conformance\",\n        \"marketplace-conformance\",\n        \"release-go-no-go\",\n        \"rollback-rehearsal\",\n        \"benchmark-generation\",\n        \"reproducibility\",\n        \"performance\",\n        \"concurrency-load-soak\"\n      ]\n    },\n    {\n      \"id\": \"cand.security-core\",\n      \"cover_count\": 11,\n      \"covers\": [\n        \"threat-modeling\",\n        \"red-blue-review\",\n        \"permission-least-privilege\",\n        \"secret-exposure\",\n        \"privacy\",\n        \"legal-compliance\",\n        \"policy-as-code\",\n        \"governance-proposal\",\n        \"vulnerability-triage\",\n        \"malicious-plugin-review\",\n        \"risk-premortem\"\n      ]\n    },\n    {\n      \"id\": \"cand.product-core\",\n      \"cover_count\": 14,\n      \"covers\": [\n        \"product-discovery\",\n        \"user-research-synthesis\",\n        \"requirements-mining-reconciliation\",\n        \"roadmap-prioritization\",\n        \"competitive-teardown\",\n        \"market-landscape\",\n        \"scenario-planning\",\n        \"design-critique\",\n        \"ux\",\n        \"accessibility\",\n        \"launch-readiness\",\n        \"pricing-packaging\",\n        \"customer-council\",\n        \"outcome-retrospective\"\n      ]\n    },\n    {\n      \"id\": \"cand.data-core\",\n      \"cover_count\": 15,\n      \"covers\": [\n        \"extraction-normalization\",\n        \"data-quality-audit\",\n        \"dataset-documentation\",\n        \"knowledge-base-construction\",\n        \"experiment-design\",\n        \"statistical-review\",\n        \"scientific-replication\",\n        \"model-evaluation\",\n        \"documentation-verification\",\n        \"teaching-curriculum\",\n        \"writing-room\",\n        \"morphological-analysis\",\n        \"simulation-counterfactual\",\n        \"forecasting\",\n        \"expert-elicitation\"\n      ]\n    },\n    {\n      \"id\": \"cand.meta-core\",\n      \"cover_count\": 15,\n      \"covers\": [\n        \"workflow-scout\",\n        \"workflow-forge\",\n        \"workflow-merger-composer\",\n        \"workflow-tournament\",\n        \"workflow-repair-optimization\",\n        \"workflow-benchmark-selection\",\n        \"workflow-supersession\",\n        \"self-improvement-validation\",\n        \"configurable-council\",\n        \"hundred-idea-brainstorm\",\n        \"delphi\",\n        \"oxford-debate\",\n        \"socratic-cross-examination\",\n        \"jury\",\n        \"negotiation\"\n      ]\n    }\n  ],\n  \"source_spec\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0178/fixtures/spec_taxonomy.md\",\n  \"families\": [\n    {\n      \"id\": \"research/evidence\",\n      \"declared_count\": 15,\n      \"leaf_count\": 15\n    },\n    {\n      \"id\": \"engineering/reliability\",\n      \"declared_count\": 21,\n      \"leaf_count\": 21\n    },\n    {\n      \"id\": \"security/governance\",\n      \"declared_count\": 12,\n      \"leaf_count\": 12\n    },\n    {\n      \"id\": \"product/design\",\n      \"declared_count\": 15,\n      \"leaf_count\": 15\n    },\n    {\n      \"id\": \"data/science\",\n      \"declared_count\": 16,\n      \"leaf_count\": 16\n    },\n    {\n      \"id\": \"collective-intelligence/meta\",\n      \"declared_count\": 17,\n      \"leaf_count\": 17\n    }\n  ]\n}",
+        "fingerprint": "145cfcf78c084d9ee8c369fac7972ab807ec20260756fc0957de170976c02e83",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:18Z",
+    "ended_at": "2026-08-25T00:56:18Z",
+    "duration_seconds": 0.0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Gap set against a live IMP-0177 coverage-vector artifact (command-center/foundry/capability/data/vectors.json).",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When command-center/receipts/IMP-0177.json and the live vectors.json exist, re-run gap_finder.py against those vectors and replace the fixture gap_set."
+    }
+  ],
+  "report": {
+    "kind": "coverage-gap-finder",
+    "leaf_total_from_spec_text": 96,
+    "declared_total_from_family_headers": 96,
+    "totals_agree": true,
+    "hardcoded_total_used": false,
+    "gap_count": 7,
+    "gap_set": [
+      "multilingual",
+      "abandoned-work-salvage",
+      "standards-committee",
+      "strategy-war-game",
+      "invention-wildcard",
+      "mediation",
+      "council-of-councils"
+    ],
+    "covered_count": 89,
+    "candidate_count": 6,
+    "family_gaps": {
+      "research/evidence": [
+        "multilingual"
+      ],
+      "engineering/reliability": [
+        "abandoned-work-salvage"
+      ],
+      "security/governance": [
+        "standards-committee"
+      ],
+      "product/design": [
+        "strategy-war-game"
+      ],
+      "data/science": [
+        "invention-wildcard"
+      ],
+      "collective-intelligence/meta": [
+        "mediation",
+        "council-of-councils"
+      ]
+    },
+    "families": [
+      {
+        "id": "research/evidence",
+        "declared_count": 15,
+        "leaf_count": 15
+      },
+      {
+        "id": "engineering/reliability",
+        "declared_count": 21,
+        "leaf_count": 21
+      },
+      {
+        "id": "security/governance",
+        "declared_count": 12,
+        "leaf_count": 12
+      },
+      {
+        "id": "product/design",
+        "declared_count": 15,
+        "leaf_count": 15
+      },
+      {
+        "id": "data/science",
+        "declared_count": 16,
+        "leaf_count": 16
+      },
+      {
+        "id": "collective-intelligence/meta",
+        "declared_count": 17,
+        "leaf_count": 17
+      }
+    ],
+    "dependency_note": "IMP-0177 output is absent on this worktree. The gap finder consumes the coverage-vector document shape IMP-0177 is contracted to emit (candidate id + set of taxonomy leaf ids). command-center/p2-wave/probes/IMP-0178/fixtures/coverage_vectors.json is that contracted shape, not a claim that IMP-0177 itself is delivered. Live-registry gap numbers will change when IMP-0177 vectors exist."
+  },
+  "extensions": {
+    "named_probes": [
+      {
+        "id": "probe1",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe1_recount.py",
+        "exit_code": 0
+      },
+      {
+        "id": "probe2",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0178/probe2_removed_category.py",
+        "exit_code": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+ "id": "AUD-0026",
+ "unit_id": "AUD-0026",
+ "status": "DELIVERED",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:AUD-0026 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent, independent closure pending",
+ "output_path": "command-center/audit/AUD-0026-runtime-vs-dev-split.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0026/probe1_declared_split.py",
+   "exit_code": 0,
+   "role": "delivery-predicate",
+   "raw_output": "{\n \"probe\": \"probe1-declared-prod-dev-split\",\n \"unit_id\": \"AUD-0026\",\n \"manifests_in_plugin_root\": [],\n \"notes\": [\n  \"LIVE DRIFT (both numbers recorded, not picked): the artifact's packaging-defect census recorded tools/plugin/census.py importing harness_walker (top harness_walker, dist harness-walker); the live census.py on this worktree imports only stdlib (os/pathlib/typing) and contains no harness_walker reference, while tools/harness_walker/ still exists. The recorded census is point-in-time; the reviewer must adjudicate with both numbers.\"\n ],\n \"fails\": []\n}\nSUCCESS:AUD-0026-probe1 declared split re-derived (manifest_absent, consumer_forced=[], shipped-dev fires, test-dev silent, filter-off fires); live drift on census.py recorded with both numbers"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0026/probe2_shipped_import_graph.py",
+   "exit_code": 0,
+   "role": "independent-recheck",
+   "raw_output": "{\n \"probe\": \"probe2-shippable-import-graph\",\n \"unit_id\": \"AUD-0026\",\n \"live_defect_rows\": [\n  [\n   \"tools/plugin/__main__.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/backup.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/compat_diagnostics.py\",\n   \"platform\"\n  ],\n  [\n   \"tools/plugin/install.py\",\n   \"marketplace\"\n  ],\n  [\n   \"tools/plugin/install.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/journeys.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/launcher.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/longpath_fs.py\",\n   \"platform\"\n  ],\n  [\n   \"tools/plugin/packet.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/permission_enforcement.py\",\n   \"marketplace\"\n  ],\n  [\n   \"tools/plugin/placement.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/repair.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/repro_gate.py\",\n   \"plugin\"\n  ],\n  [\n   \"tools/plugin/secret_gate.py\",\n   \"plugin\"\n  ]\n ],\n \"recorded_defect_rows\": [\n  [\n   \"tools/plugin/census.py\",\n   \"harness_walker\"\n  ]\n ],\n \"notes\": [\n  \"LIVE DRIFT (both numbers recorded, not picked): recorded packaging defects [('tools/plugin/census.py', 'harness_walker')] vs live AST scan [('tools/plugin/__main__.py', 'plugin'), ('tools/plugin/backup.py', 'plugin'), ('tools/plugin/compat_diagnostics.py', 'platform'), ('tools/plugin/install.py', 'marketplace'), ('tools/plugin/install.py', 'plugin'), ('tools/plugin/journeys.py', 'plugin'), ('tools/plugin/launcher.py', 'plugin'), ('tools/plugin/longpath_fs.py', 'platform'), ('tools/plugin/packet.py', 'plugin'), ('tools/plugin/permission_enforcement.py', 'marketplace'), ('tools/plugin/placement.py', 'plugin'), ('tools/plugin/repair.py', 'plugin'), ('tools/plugin/repro_gate.py', 'plugin'), ('tools/plugin/secret_gate.py', 'plugin')]. The artifact's census is point-in-time; tools/plugin/census.py on this worktree no longer imports harness_walker while tools/harness_walker/ still exists.\"\n ],\n \"fails\": []\n}\nSUCCESS:AUD-0026-probe2 shippable import graph verified (live scan 14 defect rows vs recorded 1, drift recorded with both numbers; AST classifier fires on shipped-dev, silent on test-dev)"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/audit/AUD-0026-runtime-vs-dev-split.json",
+   "bytes": 43441,
+   "sha256": "37c0606ff7c2786f8f96260955f28919b9e901348bee01c16d04c2ba7258d322",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/AUD-0026/UNIT-ARTIFACT-MANIFEST.json",
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Independent reviewer closure unavailable in builder shard; artifact + named probes + manifest sha all verify live this session."
+ },
+ "notes": "Resume 2026-10-25: prior builder's artifact verified, not rebuilt. probe1 re-derives the manifest census live (tools/plugin has no pyproject/package.json/setup.py -> manifest_absent, consumer_forced=[]) and re-proves the shippable classifier both-states in a temp fixture (shipped-dev import fires, test-dev silent, declared-runtime silent, filter-off fires -> filter load-bearing). LIVE DRIFT recorded with both numbers: the point-in-time census recorded tools/plugin/census.py -> harness_walker; live census.py imports stdlib only while tools/harness_walker/ still exists; live AST scan finds 14 repo-sibling import rows vs recorded 1 (probe2). The reviewer must adjudicate the drifted arm with both numbers. No owner gate.",
+ "extensions": {
+  "builder": "shard3 wave-2 (resume) 2026-10-25",
+  "prior_builder": "died mid-flight; artifacts verified against the live contract, not rebuilt"
+ },
+ "ts": "2026-10-25T15:25:25Z"
+}

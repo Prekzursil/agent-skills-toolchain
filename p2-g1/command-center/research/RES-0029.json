@@ -1,0 +1,850 @@
+{
+ "unit_id": "RES-0029",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0029",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0029.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0029.json",
+   "bytes": 21122,
+   "sha256": "8b365edc5f197058cd7ceec87ff74885243632d24c6fd94572fb56268079e2c0",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "kind": "research-claim-record",
+   "schema": "command-center/schema/research-claim-record.schema.json",
+   "question": "How does OpenHands isolate execution (container runtime, action/observation loop) and how do its microagents get triggered — and is the trigger mechanism a better router than keyword matching?",
+   "title": "Teardown of OpenHands runtime isolation and its microagent trigger model",
+   "canonical_mechanism": "DockerWorkspace container + Agent.step action/observation; auto-trigger is Skill.match_trigger at openhands-sdk/openhands/sdk/skills/skill.py:732 (keyword/path match, not an LLM router).",
+   "answer": "Execution isolation: optional DockerWorkspace starts `docker run -d --rm` of an OpenHands agent-server image and proxies tools through that container HTTP API. The loop is Agent.step -> tool action -> ObservationEvent. Microagent/skill auto-trigger is Skill.match_trigger (openhands-sdk/openhands/sdk/skills/skill.py:732) plus PathTrigger globs — identical string matching for KeywordTrigger and TaskTrigger. It is not a better router than keyword matching; it is keyword matching. Failure mode: GitHub issue #10073 (slash-prefixed triggers such as /design not firing, including after type: knowledge).",
+   "completion_sentinel": "SUCCESS:RES-0029 in the receipt AND the trigger implementation cited at file:line plus one issue-tracker-sourced failure mode",
+   "source_lineage": [
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "role": "prose-source"
+    },
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:49Z",
+     "http_status": 200,
+     "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+     "role": "prose-source"
+    },
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073/comments",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "91021a69e839ae8c7183ae709967d9df62dc4a5b6d73188fa2b5d4261ab8ee69",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+     "role": "prose-source"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+     "role": "structured-api"
+    }
+   ],
+   "claims": [
+    {
+     "claim_id": "C-ISOLATION-DOCKER",
+     "text": "OpenHands isolates agent execution by running the agent-server inside a Docker container (DockerWorkspace) that maps host ports to the in-container HTTP API; tools then execute against that remote workspace rather than the operator's unsandboxed shell.",
+     "canonical_mechanism": "DockerWorkspace._start_container docker run -d --rm (openhands-workspace/openhands/workspace/docker/workspace.py:53)",
+     "evidence_tier": "E2",
+     "confidence_band": "high — source + README agree; default image pin can drift",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_trigger_citation.py",
+     "freshness_stamp": "2026-08-25T00:56:47Z",
+     "snapshot_sha256": "e593a905dc82404f19f3804d3059dd6c5319848318fb8d1d3e3d753f8f545a43",
+     "source_lineage": [
+      {
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+       "role": "structured-api"
+      },
+      {
+       "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+       "role": "prose-source"
+      }
+     ],
+     "rails": [
+      {
+       "rail": "R1",
+       "kind": "structured-api",
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+       "bytes": 22214
+      },
+      {
+       "rail": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+       "bytes": 10771
+      }
+     ],
+     "file_line": "openhands-workspace/openhands/workspace/docker/workspace.py:53",
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-workspace/openhands/workspace/docker/workspace.py#L53",
+     "strongest_caveat": "LocalWorkspace is also first-class: isolation is optional. DockerWorkspace needs a prebuilt image and a Docker daemon."
+    },
+    {
+     "claim_id": "C-ACTION-OBSERVATION-LOOP",
+     "text": "The agent loop is action/observation: Agent.step samples tool calls, _execute_action_event runs the tool, and the result is wrapped in ObservationEvent (or AgentErrorEvent) before the next step.",
+     "canonical_mechanism": "Agent.step + Agent._execute_action_event (openhands-sdk/openhands/sdk/agent/agent.py:637; openhands-sdk/openhands/sdk/agent/agent.py:1344)",
+     "evidence_tier": "E2",
+     "confidence_band": "high — function bodies read on the pinned commit",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_trigger_citation.py",
+     "freshness_stamp": "2026-08-25T00:56:47Z",
+     "snapshot_sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+     "source_lineage": [
+      {
+       "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+       "role": "structured-api"
+      },
+      {
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "role": "prose-source"
+      }
+     ],
+     "rails": [
+      {
+       "rail": "R1",
+       "kind": "structured-api",
+       "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+       "bytes": 59502
+      },
+      {
+       "rail": "R2",
+       "kind": "prose-source",
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "bytes": 15840
+      }
+     ],
+     "file_line": "openhands-sdk/openhands/sdk/agent/agent.py:637; openhands-sdk/openhands/sdk/agent/agent.py:1344",
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py#L1344",
+     "strongest_caveat": "Confirmation-mode can execute pending actions before a new sample; that is still the same action-observation machine."
+    },
+    {
+     "claim_id": "C-TRIGGER-IS-KEYWORD-MATCH",
+     "text": "Microagent/skill auto-activation is keyword (and path-glob) matching, not an LLM router. Skill.match_trigger at openhands-sdk/openhands/sdk/skills/skill.py:732 walks KeywordTrigger.keywords or TaskTrigger.triggers and returns the first whole-token hit via _keyword_matches at openhands-sdk/openhands/sdk/skills/skill.py:164. TaskTrigger is a semantic variant of the same string matcher. PathTrigger is a glob on a touched file path.",
+     "canonical_mechanism": "Skill.match_trigger -> _keyword_matches (openhands-sdk/openhands/sdk/skills/skill.py:732)",
+     "evidence_tier": "E2",
+     "confidence_band": "high — implementation and architecture doc agree",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_trigger_citation.py",
+     "freshness_stamp": "2026-08-25T00:56:47Z",
+     "snapshot_sha256": "f860c0769a0e958e01447daeb271a5ce599e0af23ff1aed1327e814edf820475",
+     "source_lineage": [
+      {
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+       "role": "structured-api"
+      },
+      {
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "role": "prose-source"
+      }
+     ],
+     "rails": [
+      {
+       "rail": "R1",
+       "kind": "structured-api",
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+       "bytes": 81532
+      },
+      {
+       "rail": "R2",
+       "kind": "prose-source",
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "bytes": 15840
+      }
+     ],
+     "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/skills/skill.py#L732",
+     "trigger_types": {
+      "KeywordTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:19",
+      "TaskTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:29",
+      "PathTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:39"
+     },
+     "strongest_caveat": "Docs still permalink trigger.py under openhands-sdk/openhands/sdk/context/skills/ which 404s; live path is openhands-sdk/openhands/sdk/skills/. AgentSkills also lists skills for model invocation (invoke_skill) — a second path, not match_trigger."
+    },
+    {
+     "claim_id": "C-NOT-BETTER-THAN-KEYWORD",
+     "text": "The trigger mechanism is not a better router than keyword matching: it is keyword matching (plus deterministic path globs). Architecture docs state KeywordTrigger and TaskTrigger use identical string matching logic.",
+     "canonical_mechanism": "identity: auto-trigger == keyword/path match",
+     "evidence_tier": "E2",
+     "confidence_band": "high for auto-trigger; medium if one conflates invoke_skill",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_trigger_citation.py",
+     "freshness_stamp": "2026-08-25T00:56:47Z",
+     "snapshot_sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "source_lineage": [
+      {
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+       "role": "structured-api"
+      },
+      {
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "role": "prose-source"
+      }
+     ],
+     "rails": [
+      {
+       "rail": "R1",
+       "kind": "structured-api",
+       "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+       "bytes": 81532
+      },
+      {
+       "rail": "R2",
+       "kind": "prose-source",
+       "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+       "fetch_timestamp": "2026-08-25T00:56:48Z",
+       "http_status": 200,
+       "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+       "bytes": 15840
+      }
+     ],
+     "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+     "strongest_caveat": "Model-invocable skills are a different router (the LLM chooses). That path is not what match_trigger implements."
+    },
+    {
+     "claim_id": "C-ISSUE-TRACKER-FAILURE-MODE",
+     "text": "Issue-tracker failure mode: OpenHands/OpenHands#10073 ('[Bug]: Microagents with / not triggering'). Slash-prefixed microagent triggers such as /design stopped firing; switching type to knowledge still did not trigger; a header-only /codereview agent was the exception. This is a false-negative of the keyword-trigger router, not proof that an LLM router would have done better.",
+     "canonical_mechanism": "keyword-trigger false negative on slash commands",
+     "evidence_tier": "E2",
+     "confidence_band": "high that the failure was reported in-thread; low that #10073 still reproduces on the 2026 matcher without a live run",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_issue_failure.py",
+     "freshness_stamp": "2026-08-25T00:56:47Z",
+     "snapshot_sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+     "source_lineage": [
+      {
+       "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+       "role": "structured-api"
+      },
+      {
+       "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+       "fetch_timestamp": "2026-08-25T00:56:49Z",
+       "http_status": 200,
+       "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+       "role": "prose-source"
+      }
+     ],
+     "rails": [
+      {
+       "rail": "R1",
+       "kind": "structured-api",
+       "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+       "fetch_timestamp": "2026-08-25T00:56:47Z",
+       "http_status": 200,
+       "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+       "bytes": 7571
+      },
+      {
+       "rail": "R2",
+       "kind": "prose-source",
+       "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+       "fetch_timestamp": "2026-08-25T00:56:49Z",
+       "http_status": 200,
+       "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+       "bytes": 286581
+      }
+     ],
+     "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+     "issue": {
+      "number": 10073,
+      "html_url": "https://github.com/OpenHands/OpenHands/issues/10073",
+      "title": "[Bug]: Microagents with / not triggering",
+      "state": "closed",
+      "reporter_followup": "changed it to knowledge and tried but it does not get triggered at all :("
+     },
+     "strongest_caveat": "The issue closed stale without a linked root-cause commit. Current _keyword_matches documents slash-prefixed keywords as intentionally supported; #10073 is a recorded failure mode, not a live reproduction on this commit."
+    }
+   ],
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0029/probe1_trigger_citation.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "f860c0769a0e958e01447daeb271a5ce599e0af23ff1aed1327e814edf820475",
+   "repo_canonical": {
+    "catalog_pointer": "All-Hands-AI/OpenHands",
+    "html_redirect": "https://github.com/OpenHands/OpenHands",
+    "python_agent_and_runtime": "OpenHands/software-agent-sdk",
+    "pinned_sdk_commit": "25cc8e56a4d029f4f879bdfead1cd21c11d6483d",
+    "note": "The catalog names All-Hands-AI/OpenHands. That org URL redirects. OpenHands/OpenHands main is now Agent Canvas (TypeScript). The container runtime, action/observation loop, and skill trigger evaluator live in OpenHands/software-agent-sdk on this date."
+   },
+   "citations": {
+    "match_trigger": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+    "keyword_matches": "openhands-sdk/openhands/sdk/skills/skill.py:164",
+    "docker_workspace": "openhands-workspace/openhands/workspace/docker/workspace.py:53",
+    "agent_step": "openhands-sdk/openhands/sdk/agent/agent.py:637",
+    "execute_action_event": "openhands-sdk/openhands/sdk/agent/agent.py:1344",
+    "issue_failure_mode": "https://github.com/OpenHands/OpenHands/issues/10073"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0029",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0029 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0029.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0029.json",
+     "raw_output": "bytes=21122 sha256=8b365edc5f197058cd7ceec87ff74885243632d24c6fd94572fb56268079e2c0",
+     "fingerprint": "119573b5ed0706017309d207892846a4",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0029",
+     "raw_output": "schema-check",
+     "fingerprint": "b91f576c0deb9d2fa2c3397a83143579",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0029 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0029",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0029",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "d218e5d2beba3451ff3a9a6a32de6311",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0029",
+     "raw_output": "schema-valid",
+     "fingerprint": "4d3518280f4ff4459e0fa8ee4e24382f",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0029/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0029"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0029.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0029.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "1553bb5835c321b02b8aedb159047c46",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 21122,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0029.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "kind": "research-claim-record",
+ "schema": "command-center/schema/research-claim-record.schema.json",
+ "question": "How does OpenHands isolate execution (container runtime, action/observation loop) and how do its microagents get triggered — and is the trigger mechanism a better router than keyword matching?",
+ "title": "Teardown of OpenHands runtime isolation and its microagent trigger model",
+ "canonical_mechanism": "DockerWorkspace container + Agent.step action/observation; auto-trigger is Skill.match_trigger at openhands-sdk/openhands/sdk/skills/skill.py:732 (keyword/path match, not an LLM router).",
+ "answer": "Execution isolation: optional DockerWorkspace starts `docker run -d --rm` of an OpenHands agent-server image and proxies tools through that container HTTP API. The loop is Agent.step -> tool action -> ObservationEvent. Microagent/skill auto-trigger is Skill.match_trigger (openhands-sdk/openhands/sdk/skills/skill.py:732) plus PathTrigger globs — identical string matching for KeywordTrigger and TaskTrigger. It is not a better router than keyword matching; it is keyword matching. Failure mode: GitHub issue #10073 (slash-prefixed triggers such as /design not firing, including after type: knowledge).",
+ "completion_sentinel": "SUCCESS:RES-0029 in the receipt AND the trigger implementation cited at file:line plus one issue-tracker-sourced failure mode",
+ "source_lineage": [
+  {
+   "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+   "fetch_timestamp": "2026-08-25T00:56:47Z",
+   "http_status": 200,
+   "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+   "role": "structured-api"
+  },
+  {
+   "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+   "fetch_timestamp": "2026-08-25T00:56:48Z",
+   "http_status": 200,
+   "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+   "role": "prose-source"
+  },
+  {
+   "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+   "fetch_timestamp": "2026-08-25T00:56:47Z",
+   "http_status": 200,
+   "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+   "role": "structured-api"
+  },
+  {
+   "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+   "fetch_timestamp": "2026-08-25T00:56:49Z",
+   "http_status": 200,
+   "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+   "role": "prose-source"
+  },
+  {
+   "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073/comments",
+   "fetch_timestamp": "2026-08-25T00:56:47Z",
+   "http_status": 200,
+   "sha256": "91021a69e839ae8c7183ae709967d9df62dc4a5b6d73188fa2b5d4261ab8ee69",
+   "role": "structured-api"
+  },
+  {
+   "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+   "fetch_timestamp": "2026-08-25T00:56:47Z",
+   "http_status": 200,
+   "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+   "role": "structured-api"
+  },
+  {
+   "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+   "fetch_timestamp": "2026-08-25T00:56:48Z",
+   "http_status": 200,
+   "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+   "role": "prose-source"
+  },
+  {
+   "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+   "fetch_timestamp": "2026-08-25T00:56:47Z",
+   "http_status": 200,
+   "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+   "role": "structured-api"
+  }
+ ],
+ "claims": [
+  {
+   "claim_id": "C-ISOLATION-DOCKER",
+   "text": "OpenHands isolates agent execution by running the agent-server inside a Docker container (DockerWorkspace) that maps host ports to the in-container HTTP API; tools then execute against that remote workspace rather than the operator's unsandboxed shell.",
+   "canonical_mechanism": "DockerWorkspace._start_container docker run -d --rm (openhands-workspace/openhands/workspace/docker/workspace.py:53)",
+   "evidence_tier": "E2",
+   "confidence_band": "high — source + README agree; default image pin can drift",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_trigger_citation.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "e593a905dc82404f19f3804d3059dd6c5319848318fb8d1d3e3d753f8f545a43",
+   "source_lineage": [
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+     "role": "prose-source"
+    }
+   ],
+   "rails": [
+    {
+     "rail": "R1",
+     "kind": "structured-api",
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-workspace/openhands/workspace/docker/workspace.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "0036fcd5659d98d762545eb5088cb9d0cfd15b6b2e862766e294a3717d432847",
+     "bytes": 22214
+    },
+    {
+     "rail": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/OpenHands/software-agent-sdk/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/README.md",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "e84e8728685301bf2769b24c44143738b4147db23dc32ebaa83bb9f589a6c21d",
+     "bytes": 10771
+    }
+   ],
+   "file_line": "openhands-workspace/openhands/workspace/docker/workspace.py:53",
+   "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-workspace/openhands/workspace/docker/workspace.py#L53",
+   "strongest_caveat": "LocalWorkspace is also first-class: isolation is optional. DockerWorkspace needs a prebuilt image and a Docker daemon."
+  },
+  {
+   "claim_id": "C-ACTION-OBSERVATION-LOOP",
+   "text": "The agent loop is action/observation: Agent.step samples tool calls, _execute_action_event runs the tool, and the result is wrapped in ObservationEvent (or AgentErrorEvent) before the next step.",
+   "canonical_mechanism": "Agent.step + Agent._execute_action_event (openhands-sdk/openhands/sdk/agent/agent.py:637; openhands-sdk/openhands/sdk/agent/agent.py:1344)",
+   "evidence_tier": "E2",
+   "confidence_band": "high — function bodies read on the pinned commit",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_trigger_citation.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+   "source_lineage": [
+    {
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "role": "prose-source"
+    }
+   ],
+   "rails": [
+    {
+     "rail": "R1",
+     "kind": "structured-api",
+     "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "dc65fb1eabd6a3ed0ab2843bf3ef8f08b988fb7bd906588e55ab020d049fffdc",
+     "bytes": 59502
+    },
+    {
+     "rail": "R2",
+     "kind": "prose-source",
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "bytes": 15840
+    }
+   ],
+   "file_line": "openhands-sdk/openhands/sdk/agent/agent.py:637; openhands-sdk/openhands/sdk/agent/agent.py:1344",
+   "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/agent/agent.py#L1344",
+   "strongest_caveat": "Confirmation-mode can execute pending actions before a new sample; that is still the same action-observation machine."
+  },
+  {
+   "claim_id": "C-TRIGGER-IS-KEYWORD-MATCH",
+   "text": "Microagent/skill auto-activation is keyword (and path-glob) matching, not an LLM router. Skill.match_trigger at openhands-sdk/openhands/sdk/skills/skill.py:732 walks KeywordTrigger.keywords or TaskTrigger.triggers and returns the first whole-token hit via _keyword_matches at openhands-sdk/openhands/sdk/skills/skill.py:164. TaskTrigger is a semantic variant of the same string matcher. PathTrigger is a glob on a touched file path.",
+   "canonical_mechanism": "Skill.match_trigger -> _keyword_matches (openhands-sdk/openhands/sdk/skills/skill.py:732)",
+   "evidence_tier": "E2",
+   "confidence_band": "high — implementation and architecture doc agree",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_trigger_citation.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "f860c0769a0e958e01447daeb271a5ce599e0af23ff1aed1327e814edf820475",
+   "source_lineage": [
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "role": "prose-source"
+    }
+   ],
+   "rails": [
+    {
+     "rail": "R1",
+     "kind": "structured-api",
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+     "bytes": 81532
+    },
+    {
+     "rail": "R2",
+     "kind": "prose-source",
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "bytes": 15840
+    }
+   ],
+   "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+   "permalink": "https://github.com/OpenHands/software-agent-sdk/blob/25cc8e56a4d029f4f879bdfead1cd21c11d6483d/openhands-sdk/openhands/sdk/skills/skill.py#L732",
+   "trigger_types": {
+    "KeywordTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:19",
+    "TaskTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:29",
+    "PathTrigger": "openhands-sdk/openhands/sdk/skills/trigger.py:39"
+   },
+   "strongest_caveat": "Docs still permalink trigger.py under openhands-sdk/openhands/sdk/context/skills/ which 404s; live path is openhands-sdk/openhands/sdk/skills/. AgentSkills also lists skills for model invocation (invoke_skill) — a second path, not match_trigger."
+  },
+  {
+   "claim_id": "C-NOT-BETTER-THAN-KEYWORD",
+   "text": "The trigger mechanism is not a better router than keyword matching: it is keyword matching (plus deterministic path globs). Architecture docs state KeywordTrigger and TaskTrigger use identical string matching logic.",
+   "canonical_mechanism": "identity: auto-trigger == keyword/path match",
+   "evidence_tier": "E2",
+   "confidence_band": "high for auto-trigger; medium if one conflates invoke_skill",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_trigger_citation.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+   "source_lineage": [
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "role": "prose-source"
+    }
+   ],
+   "rails": [
+    {
+     "rail": "R1",
+     "kind": "structured-api",
+     "permalink": "https://api.github.com/repos/OpenHands/software-agent-sdk/contents/openhands-sdk/openhands/sdk/skills/skill.py",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "cfae5f95e2bb6af77add3b7ae2e057479c5c327a4a51feb05e0d516b0e460608",
+     "bytes": 81532
+    },
+    {
+     "rail": "R2",
+     "kind": "prose-source",
+     "permalink": "https://github.com/OpenHands/docs/blob/80930beab613ebebbc01a63fb83f95fed366c9b5/sdk/arch/skill.mdx",
+     "fetch_timestamp": "2026-08-25T00:56:48Z",
+     "http_status": 200,
+     "sha256": "374ba45a0f6264cdf9f8b2978bcaa3cd6289e7f5f440d739e218b505d859443b",
+     "bytes": 15840
+    }
+   ],
+   "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+   "strongest_caveat": "Model-invocable skills are a different router (the LLM chooses). That path is not what match_trigger implements."
+  },
+  {
+   "claim_id": "C-ISSUE-TRACKER-FAILURE-MODE",
+   "text": "Issue-tracker failure mode: OpenHands/OpenHands#10073 ('[Bug]: Microagents with / not triggering'). Slash-prefixed microagent triggers such as /design stopped firing; switching type to knowledge still did not trigger; a header-only /codereview agent was the exception. This is a false-negative of the keyword-trigger router, not proof that an LLM router would have done better.",
+   "canonical_mechanism": "keyword-trigger false negative on slash commands",
+   "evidence_tier": "E2",
+   "confidence_band": "high that the failure was reported in-thread; low that #10073 still reproduces on the 2026 matcher without a live run",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_issue_failure.py",
+   "freshness_stamp": "2026-08-25T00:56:47Z",
+   "snapshot_sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+   "source_lineage": [
+    {
+     "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+     "role": "structured-api"
+    },
+    {
+     "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:49Z",
+     "http_status": 200,
+     "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+     "role": "prose-source"
+    }
+   ],
+   "rails": [
+    {
+     "rail": "R1",
+     "kind": "structured-api",
+     "permalink": "https://api.github.com/repos/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:47Z",
+     "http_status": 200,
+     "sha256": "ab8897b1011317364a173d3ce3b96697f422b605768366bdcdeab62fdb708ca0",
+     "bytes": 7571
+    },
+    {
+     "rail": "R2",
+     "kind": "prose-source",
+     "permalink": "https://github.com/OpenHands/OpenHands/issues/10073",
+     "fetch_timestamp": "2026-08-25T00:56:49Z",
+     "http_status": 200,
+     "sha256": "d5e2c1306b4e7a1b85f32eb2a57a25056c17e2f251c4cb657305119327fb5763",
+     "bytes": 286581
+    }
+   ],
+   "file_line": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+   "issue": {
+    "number": 10073,
+    "html_url": "https://github.com/OpenHands/OpenHands/issues/10073",
+    "title": "[Bug]: Microagents with / not triggering",
+    "state": "closed",
+    "reporter_followup": "changed it to knowledge and tried but it does not get triggered at all :("
+   },
+   "strongest_caveat": "The issue closed stale without a linked root-cause commit. Current _keyword_matches documents slash-prefixed keywords as intentionally supported; #10073 is a recorded failure mode, not a live reproduction on this commit."
+  }
+ ],
+ "named_settling_probe": "command-center/p2-wave/probes/RES-0029/probe1_trigger_citation.py",
+ "freshness_stamp": "2026-08-25T00:56:47Z",
+ "snapshot_sha256": "f860c0769a0e958e01447daeb271a5ce599e0af23ff1aed1327e814edf820475",
+ "repo_canonical": {
+  "catalog_pointer": "All-Hands-AI/OpenHands",
+  "html_redirect": "https://github.com/OpenHands/OpenHands",
+  "python_agent_and_runtime": "OpenHands/software-agent-sdk",
+  "pinned_sdk_commit": "25cc8e56a4d029f4f879bdfead1cd21c11d6483d",
+  "note": "The catalog names All-Hands-AI/OpenHands. That org URL redirects. OpenHands/OpenHands main is now Agent Canvas (TypeScript). The container runtime, action/observation loop, and skill trigger evaluator live in OpenHands/software-agent-sdk on this date."
+ },
+ "citations": {
+  "match_trigger": "openhands-sdk/openhands/sdk/skills/skill.py:732",
+  "keyword_matches": "openhands-sdk/openhands/sdk/skills/skill.py:164",
+  "docker_workspace": "openhands-workspace/openhands/workspace/docker/workspace.py:53",
+  "agent_step": "openhands-sdk/openhands/sdk/agent/agent.py:637",
+  "execute_action_event": "openhands-sdk/openhands/sdk/agent/agent.py:1344",
+  "issue_failure_mode": "https://github.com/OpenHands/OpenHands/issues/10073"
+ }
+}

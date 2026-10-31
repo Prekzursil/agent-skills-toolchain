@@ -1,0 +1,454 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p20-delphi-anonymous-rounds",
+  "preset": "forecasting_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reach a stable panel judgement under strict anonymity, revising against the anonymised distribution plus outlier rationales rather than against status.",
+    "charter": "ANONYMOUS family, RAND Delphi. Identities are never revealed. The facilitator returns the distribution AND the outlier RATIONALES - a spread without rationales is regression to the mean, not convergence to truth.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "spread narrows across rounds and each round returns outlier rationales",
+      "no participant identity is disclosed at any point",
+      "narrowing inside round 1 fires the anti-sycophancy response instead of stopping"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 120
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "delphi-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "domain estimation"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "delphi-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "reproduction",
+          "measurement"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "delphi-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "base rates",
+          "statistics"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "delphi-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "failure modes"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "delphi-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "operations"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "facilitator",
+        "display_name": "Facilitator (returns the anonymised distribution AND the outlier rationales)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "delphi facilitation",
+          "anonymisation"
+        ],
+        "role": "facilitator",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "double_blind"
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "dominance"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "benchmark_baseline"
+    ]
+  },
+  "topology": {
+    "kind": "delphi"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "round-0-independent",
+        "independent": true,
+        "anonymous": true,
+        "rounds": 1
+      },
+      {
+        "kind": "delphi_round",
+        "stage_id": "revision-rounds",
+        "rounds": 3,
+        "anonymous": true,
+        "independent": true,
+        "quotas": {
+          "objections_per_participant": 2,
+          "novel_ideas_per_round": 1
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:estimate_spread_delta",
+              "op": "<=",
+              "value": 0.05,
+              "value_type": "number",
+              "producer": "delphi_spread_tracker",
+              "note": "stability, not agreement, is the Delphi exit; a flat spread across rounds means the protocol is not running"
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 2,
+              "note": "stability claimed in round 1 is suspicious, not stable"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "distribution-report",
+        "rounds": 1,
+        "participants": [
+          "facilitator"
+        ]
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 3,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 450
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 2,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "tool_calls": 150,
+    "sources": 25,
+    "turns": 30,
+    "speaking_quota_per_participant": 5,
+    "min_engagement_turns": 3,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 1
+  },
+  "targets": {
+    "objections": 6,
+    "evidence_items": 15,
+    "novelty_ratio": 0.4,
+    "diversity_index": 0.6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "bayesian",
+    "quorum": {
+      "min_voters": 5,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true,
+      "calibration_source": "prior council calibration reports"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "independent_positions >= 5 AND rounds_elapsed >= 3 AND (consensus >= 0.8 OR no_new_objection_rounds >= 2)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 5
+        },
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 3
+        },
+        {
+          "any_of": [
+            {
+              "metric": "consensus",
+              "op": ">=",
+              "value": 0.8
+            },
+            {
+              "metric": "no_new_objection_rounds",
+              "op": ">=",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 120,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the reported answer is the distribution, with the outlier rationales attached",
+      "any round whose spread did not move is flagged as a non-running protocol"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "vote_oscillation_rounds": 3
+    },
+    "resolution": [
+      "forced_dissent",
+      "recruit_independent_critic",
+      "strongest_counterexample",
+      "narrow_scope"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "premature_convergence",
+      "sycophancy",
+      "echo_chamber",
+      "silence",
+      "lost_dissent",
+      "strategic_voting",
+      "participant_dominance"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "argument_ledger",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "calibration_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P20 Delphi anonymous rounds",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:423-438"
+    ],
+    "notes": "The registry has no spread metric, so the card's real stability criterion is carried by the stage-level custom:estimate_spread_delta (producer delphi_spread_tracker) while the top-level rule uses consensus measured as confidence_overlap. The negative snapshot with consensus 0.95 at round 1 must evaluate FALSE - that is the round-1-narrowing trap the card names, encoded as an executable control rather than prose."
+  }
+}

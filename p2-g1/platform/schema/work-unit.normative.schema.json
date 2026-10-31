@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/work-unit-normative/1.0.0",
+  "title": "Work Unit - NORMATIVE profile (structural + measured value domains)",
+  "description": "STRUCTURAL profile plus the value domains measured across the 2,007-unit catalog on 2026-08-09. Everything asserted here is a form a validator or runner must be able to CONSUME: an id it can key on, a dependency token it can resolve, a path it can open on Windows and POSIX, a schema reference it can load. Cross-field and referential rules (sentinel names its own id, dependency target exists, no cycles) are NOT expressible in JSON Schema and live in platform/lib/wfdsl/semantics.py as SEM-001..SEM-006.",
+  "allOf": [{ "$ref": "https://schema.ast-integrate.local/work-unit/1.0.0" }],
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}-[0-9]{4}$",
+      "$comment": "measured: 13 prefixes (IMP TST RES CNF WFA ADV CNL ARC AUD BLD SYN CC REL), 0 nonconforming of 2007"
+    },
+    "phase": {
+      "type": "string",
+      "pattern": "^(?:[0-9]|1[0-9]|2[0-9])[A-Z]?$",
+      "$comment": "measured domain: 0-16 plus letter-suffixed sub-phases 2A 2B 2C 7A"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dependency_token" }
+    },
+    "tool_permissions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool_token" }
+    },
+    "execution_substrate": { "$ref": "#/$defs/execution_substrate" },
+    "output_path": { "$ref": "#/$defs/relative_artifact_path" },
+    "output_schema": { "$ref": "#/$defs/schema_reference" },
+    "failure_classification": {
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/failure_class_token" }
+        },
+        { "type": "string", "minLength": 3 }
+      ]
+    }
+  },
+  "$defs": {
+    "dependency_token": {
+      "type": "string",
+      "pattern": "^(?:[A-Z]{2,4}-[0-9]{4}|B[0-9]{2})$",
+      "$comment": "a unit id or a bucket id. Measured: 2,644 unit-id refs + 1,004 bucket refs conform; 41 refs across 40 units carry the bare prefixes ARC/WFA/CC/IMP and are UNRESOLVABLE - those units fail this profile by design."
+    },
+    "tool_token": {
+      "type": "string",
+      "pattern": "^(?:[A-Z][A-Za-z0-9]*|[A-Z][A-Za-z0-9]*:[A-Za-z0-9_.\\-]+|mcp__[a-z0-9][a-z0-9.\\-]*__(?:[A-Za-z0-9_\\-]+|\\*))(?:\\s*\\([^)]*\\))?$",
+      "$comment": "native tool (Read), scoped native tool (Write(command-center/research/**)), sub-shell form (Bash:python), or an MCP tool mcp__<server>__<method> where <method> may be a * family wildcard. The <server> segment forbids '_' on purpose so that two comma-packed tool ids in one array element cannot match (verified: 'mcp__a__b,mcp__c__d' is rejected, 'mcp__codex__codex-reply' is accepted)."
+    },
+    "execution_substrate": {
+      "type": "string",
+      "enum": [
+        "local-parallel",
+        "local-serialized",
+        "worktree-isolated",
+        "cloud-batch",
+        "local-windows-pwsh7",
+        "databricks-job",
+        "modal-sandbox",
+        "container"
+      ],
+      "$comment": "measured in the catalog: local-parallel 784, local-serialized 565, worktree-isolated 456, cloud-batch 202. The remaining four are the substrates named by the spec's scaling doctrine (_USER-PROMPTS.md:10574-10581) and by the catalog `defaults` block, kept so a runner has a closed set to dispatch on."
+    },
+    "relative_artifact_path": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._][A-Za-z0-9._\\-/]*$",
+      "not": { "pattern": "\\.\\." },
+      "$comment": "repo-relative, forward slashes only, no drive letter, no leading '/', no '..'. A backslash or a drive letter makes the path unopenable on the cloud substrates; '..' escapes the artifact root."
+    },
+    "schema_reference": {
+      "type": "string",
+      "pattern": "^(?:https?://[^\\s#]+(?:#\\S*)?|[A-Za-z0-9._][A-Za-z0-9._\\-/]*\\.json(?:#\\S*)?)$",
+      "not": { "pattern": "\\s" },
+      "$comment": "must be LOADABLE: a repo-relative .json path or an absolute http(s) URI, with an optional JSON-pointer fragment. Measured: 159 of 2,007 units carry trailing prose (e.g. 'receipt.schema.json profile=council-runtime-module (required: ...)'). No validator can open that string, so those units fail this profile by design."
+    },
+    "failure_class_token": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "$comment": "lowercase kebab class token. Measured: 18 units carry a non-token value - 17 use the placeholder 'timeout-<n>s' (a template that was never instantiated) and 1 packs a severity plus a prose class list into one element."
+    }
+  }
+}

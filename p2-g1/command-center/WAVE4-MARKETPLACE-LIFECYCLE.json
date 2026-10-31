@@ -1,0 +1,636 @@
+{
+  "unit": "verify/marketplace-lifecycle",
+  "state": "FINISHED",
+  "probe": "command-center/wave4_marketplace_lifecycle_verify.py",
+  "transport": "subprocess -> python -m mkt <verb> (CLI), exit code + terminal marker",
+  "checks": {
+    "1_publish": {
+      "verdict": "PASS",
+      "good_state": {
+        "exit": 0,
+        "marker": "SUCCESS:mkt-publish"
+      },
+      "published": {
+        "name": "verify-probe",
+        "version": "1.0.0",
+        "conformance_score": 90,
+        "payload_files": 3,
+        "manifest": "<HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry/packages/verify-probe/1.0.0/manifest.json",
+        "warnings": []
+      },
+      "control_bad_state": {
+        "exit": 1,
+        "code": "MKT-P05",
+        "note": "no --license-basis -> governance precondition refuses"
+      }
+    },
+    "2_install": {
+      "verdict": "PASS",
+      "temp_prefix": "<TMP>/site",
+      "verify_probe_files": 3,
+      "hello_skill_files": 3,
+      "gates_evaluated": 13,
+      "state_file": true,
+      "lockfile": true
+    },
+    "3_verify_and_corrupt_signature": {
+      "verdict": "PASS",
+      "manifest_signature_verifies": true,
+      "one_char_forgery_verifies": false,
+      "forgery_reason": "signature mismatch",
+      "sbom": {
+        "ok": true,
+        "summary": "3/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=0",
+        "hash_mismatch": 0,
+        "control_tampered_payload_ok": false,
+        "control_tampered_hash_mismatch": 1,
+        "components": 3,
+        "spec": "CycloneDX 1.5",
+        "note": "component hashes recomputed against the INSTALLED copy in the temp prefix"
+      },
+      "corrupt_signature_install": {
+        "exit": 1,
+        "code": "MKT-I03",
+        "nothing_landed": true
+      },
+      "control_good_signature_install": {
+        "exit": 0,
+        "landed": true
+      },
+      "corrupt_sbom_install": {
+        "exit": 1,
+        "code": "MKT-I10",
+        "nothing_landed": true
+      },
+      "standalone_cli_verify_verb": "see side_observations.no_verify_verb -- measured, not assumed"
+    },
+    "4_revoke_blocks": {
+      "verdict": "PASS",
+      "both_states": {
+        "before_revocation": {
+          "exit": 0,
+          "files": 3
+        },
+        "after_revocation": {
+          "exit": 1,
+          "code": "MKT-I04",
+          "files_in_site": 0
+        }
+      },
+      "revocation_ids": [
+        "rev:ae74f65ec606"
+      ],
+      "scoped_not_killswitch": {
+        "other_version_exit": 0,
+        "version": "1.1.0"
+      },
+      "fail_closed_list_deleted": {
+        "exit": 1,
+        "code": "MKT-I04"
+      },
+      "rogue_signed_empty_list": {
+        "exit": 1,
+        "code": "MKT-I04"
+      },
+      "maintainer_emptied_list_control": {
+        "exit": 0,
+        "note": "the SAME emptied file, maintainer-signed, installs -> the refusal above is about the KEY, not the emptiness"
+      }
+    },
+    "5_malicious_permissions": {
+      "verdict": "PASS",
+      "requested_permissions": [
+        "exec:process:**",
+        "fs:write:**",
+        "hook:register:PreToolUse",
+        "net:egress:**",
+        "secrets:read:**"
+      ],
+      "publish_refused_strict": {
+        "exit": 1,
+        "code": "MKT-P07"
+      },
+      "publish_accepted_by_a_lax_registry": {
+        "exit": 0
+      },
+      "install_refused_by_strict_consumer": {
+        "exit": 1,
+        "code": "MKT-I05",
+        "nothing_landed": true
+      },
+      "control_benign_from_same_index": {
+        "exit": 0
+      },
+      "note": "the second half is the load-bearing one: refusing only at publish protects only a registry the attacker does not control"
+    },
+    "6_lockfile_determinism": {
+      "verdict": "PASS",
+      "pinned_version": "1.0.0",
+      "two_runs": [
+        {
+          "site": "site-lock-a",
+          "exit": 0,
+          "resolved_version": "1.0.0",
+          "payload_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+          "lockfile_digest_matches": true
+        },
+        {
+          "site": "site-lock-b",
+          "exit": 0,
+          "resolved_version": "1.0.0",
+          "payload_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+          "lockfile_digest_matches": true
+        }
+      ],
+      "identical_resolved_version": true,
+      "identical_payload_digest": true,
+      "control_unfrozen_same_range_resolves": "1.1.0",
+      "control_note": "the unfrozen install of the SAME range picks a DIFFERENT version, so the lockfile is what pinned it",
+      "control_drifted_pin_refused": {
+        "exit": 1,
+        "code": "MKT-I13"
+      },
+      "nothing_landed_on_drift": true
+    }
+  },
+  "bypass_hunt": {
+    "update_to_revoked_version": {
+      "blocked": true,
+      "code": "MKT-I04",
+      "installed_version_after": "1.0.0"
+    },
+    "rollback_to_revoked_version": {
+      "blocked": true,
+      "code": "MKT-I04"
+    },
+    "revoked_dependency": {
+      "dependant_installs_before": true,
+      "blocked_after": true,
+      "code": "MKT-I04",
+      "dependant_left_in_site": false,
+      "dependency_left_in_site": false
+    },
+    "stale_offline_bundle_import": {
+      "revocation_ids_still_present": [],
+      "install_refused_before_import": true,
+      "refusal_code_before_import": "MKT-I04",
+      "import_exit": 0,
+      "install_after_import_exit": 0,
+      "install_after_import_code": "",
+      "revocations_left_in_destination_list": 0,
+      "landed_in_site": true,
+      "BYPASS": true,
+      "note": "bundle.import_bundle copies the bundle's revocation.json OVER the destination's"
+    },
+    "stale_mirror_revocation_list": {
+      "primary_row_removed": true,
+      "verify_always_mirror": {
+        "mirror_trust_mode": "verify-always",
+        "install_exit": 0,
+        "code": "",
+        "landed_in_site": true,
+        "recorded_source_registry_id": "reg:fixture-mirror-a"
+      },
+      "control_require_primary_index_mirror": {
+        "mirror_trust_mode": "verify-and-require-primary-index",
+        "install_exit": 1,
+        "code": "MKT-I12",
+        "landed_in_site": false,
+        "recorded_source_registry_id": null
+      },
+      "BYPASS": true,
+      "reachability": "requires the registry index to declare a verify-always mirror AND the primary row withdrawn; the fixture's require-primary-index mode is the control",
+      "second_signal": "the install receipt records registry_id reg:fixture-mirror-a, so the mirror WAS the resolution source"
+    }
+  },
+  "commands": [
+    {
+      "label": "fixture-build",
+      "argv": "python -m mkt fixture --into <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-fixture",
+      "stderr_tail": ""
+    },
+    {
+      "label": "scaffold",
+      "argv": "python -m mkt scaffold --name verify-probe --into <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/src --version 1.0.0 --channel stable",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-scaffold",
+      "stderr_tail": ""
+    },
+    {
+      "label": "publish-WITHOUT-license-basis",
+      "argv": "python -m mkt publish <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/src/verify-probe --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry --publisher pub:alpha-tools --fixture-key pub:alpha-tools --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-publish MKT-P05",
+      "stderr_tail": ""
+    },
+    {
+      "label": "publish-WITH-license-basis",
+      "argv": "python -m mkt publish <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/src/verify-probe --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry --publisher pub:alpha-tools --fixture-key pub:alpha-tools --fixture-policy --license-basis <REPO>/platform/marketplace/fixture/LICENSE",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-publish",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-verify-probe=1.0.0",
+      "argv": "python -m mkt install verify-probe --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-hello-skill=1.0.0",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-CORRUPTED-signature",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-badsig --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-badsig --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I03",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-GOOD-signature-control",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/registry --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-goodsig --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-CORRUPTED-sbom",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-badsbom --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-badsbom --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I10",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-BEFORE-revocation",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-revoke --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rev-before --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-version",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-revoke --scope version --name hello-skill --version 1.0.0 --reason wave4 independent verification --severity critical --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-AFTER-revocation",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-revoke --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rev-after --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-OTHER-version-after-revocation",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-revoke --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rev-scoped --range =1.1.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-with-revocation-list-DELETED",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-norev --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-norev --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-after-maintainer-EMPTIED-the-list",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-emptyrev --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-emptyrev --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-after-ROGUE-key-emptied-the-list",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-roguerev --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-roguerev --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "update-seed",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-update --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-update --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-1.1.0",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-update --scope version --name hello-skill --version 1.1.0 --reason wave4 update-path probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "update-to-REVOKED-version",
+      "argv": "python -m mkt update hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-update --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-update --range ^1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-update MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "rollback-seed",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-rollback --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rollback --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "rollback-update-to-1.1.0",
+      "argv": "python -m mkt update hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-rollback --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rollback --range =1.1.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-update",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-1.0.0-after-update",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-rollback --scope version --name hello-skill --version 1.0.0 --reason wave4 rollback-path probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "rollback-to-REVOKED-version",
+      "argv": "python -m mkt rollback hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-rollback --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-rollback --range * --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-rollback MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-dependant-BEFORE-dep-revocation",
+      "argv": "python -m mkt install dep-consumer --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-dep --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-dep-before --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-the-dependency",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-dep --scope package --name hello-skill --reason wave4 dependency-path probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-dependant-AFTER-dep-revocation",
+      "argv": "python -m mkt install dep-consumer --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-dep --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-dep-after --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "export-bundle-BEFORE-revocation",
+      "argv": "python -m mkt export --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-bundle --out <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/bundle-stale --package hello-skill@1.0.0 --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-export",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-then-import-a-stale-bundle",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-bundle --scope version --name hello-skill --version 1.0.0 --reason wave4 stale-bundle probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-after-revocation-BEFORE-the-stale-import",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-bundle --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-bundle-pre --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    },
+    {
+      "label": "import-the-STALE-bundle-into-the-revoked-registry",
+      "argv": "python -m mkt import <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/bundle-stale --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-bundle --fixture-policy --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-import",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-AFTER-the-stale-import",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-bundle --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-bundle-post --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-in-primary-mirror-verify-always",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-mirror-verify-always --scope version --name hello-skill --version 1.0.0 --reason wave4 stale-mirror probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-from-mirror-verify-always-with-a-STALE-revocation-list",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-mirror-verify-always --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-mirror-verify-always --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-in-primary-mirror-require-primary-index",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-mirror-require-primary-index --scope version --name hello-skill --version 1.0.0 --reason wave4 stale-mirror probe --authority pub:registry-root --fixture-key pub:registry-root",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-from-mirror-require-primary-index-with-a-STALE-revocation-list",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-mirror-require-primary-index --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-mirror-require-primary-index --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I12",
+      "stderr_tail": ""
+    },
+    {
+      "label": "publish-MALICIOUS-under-the-strict-policy",
+      "argv": "python -m mkt publish <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/sources/evil-overreach-1.0.0 --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-evil --publisher pub:alpha-tools --fixture-key pub:alpha-tools --fixture-policy --license-basis <REPO>/platform/marketplace/fixture/LICENSE",
+      "exit": 1,
+      "marker": "FAILED:mkt-publish MKT-P07",
+      "stderr_tail": ""
+    },
+    {
+      "label": "publish-MALICIOUS-under-a-LAX-registry-policy",
+      "argv": "python -m mkt publish <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/base/sources/evil-overreach-1.0.0 --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-evil --publisher pub:alpha-tools --fixture-key pub:alpha-tools --trust-policy <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/lax-trust-policy.json --license-basis <REPO>/platform/marketplace/fixture/LICENSE",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-publish",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-MALICIOUS-with-the-STRICT-consumer-policy",
+      "argv": "python -m mkt install evil-overreach --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-evil --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-evil --range =1.0.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I05",
+      "stderr_tail": ""
+    },
+    {
+      "label": "control-benign-package-from-the-SAME-index",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-evil --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-evil-control --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "lockfile-seed",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-lock --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-lock-seed --range =1.0.0 --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "frozen-install-site-lock-a",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-lock --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-lock-a --range * --fixture-policy --frozen",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "frozen-install-site-lock-b",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-lock --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-lock-b --range * --fixture-policy --frozen",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "control-UNfrozen-install-same-range",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-lock --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-lock-unfrozen --range * --fixture-policy",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-install",
+      "stderr_tail": ""
+    },
+    {
+      "label": "frozen-install-with-a-DRIFTED-pin",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-lock --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-lock-drift --range * --fixture-policy --frozen",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I13",
+      "stderr_tail": ""
+    },
+    {
+      "label": "mkt-mutations-battery",
+      "argv": "python -m mkt mutations",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-mutation-battery 13/13 load-bearing",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-with-a-PUBLISHER-authority",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-authz --scope version --name hello-skill --version 1.0.0 --reason wave4 authority probe --authority pub:alpha-tools --fixture-key pub:alpha-tools",
+      "exit": 1,
+      "marker": "FAILED:mkt-revoke moderation-error",
+      "stderr_tail": ""
+    },
+    {
+      "label": "revoke-maintainer-AUTHORITY-signed-by-a-PUBLISHER-key",
+      "argv": "python -m mkt revoke --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-authz2 --scope version --name hello-skill --version 1.0.0 --reason wave4 authority-vs-key probe --authority pub:registry-root --fixture-key pub:alpha-tools",
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "stderr_tail": ""
+    },
+    {
+      "label": "install-an-UNRELATED-version-after-that-revoke",
+      "argv": "python -m mkt install hello-skill --registry <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/reg-authz2 --site <HOME>/AppData/Local/Temp/wave4-mkt-hck4ankx/site-authz2 --range =1.1.0 --fixture-policy",
+      "exit": 1,
+      "marker": "FAILED:mkt-install MKT-I04",
+      "stderr_tail": ""
+    }
+  ],
+  "temp_root": "<TMP>",
+  "step0_fixture": {
+    "exit": 0,
+    "published": [
+      {
+        "name": "hello-skill",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "hello-skill",
+        "version": "1.1.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "dep-consumer",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "vulnerable-lib",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      }
+    ],
+    "refusals": [
+      {
+        "folder": "evil-overreach-1.0.0",
+        "expected": "MKT-P07",
+        "actual": "MKT-P07",
+        "message": "MKT-P07: excessive permissions: ['secrets:read:**', 'net:egress:**', 'exec:process:**', 'fs:write:**', 'hook:register:PreToolUse'] -> {'secrets:read:**': \"forbidden by policy pattern 'secrets:read'\", 'net:egress:**': \"net:egress at universal ('**') width requires an EXACT explicit grant, not a wildc"
+      },
+      {
+        "folder": "secret-leaker-1.0.0",
+        "expected": "MKT-P06",
+        "actual": "MKT-P06",
+        "message": "MKT-P06: 3 secret/topology finding(s) in the payload; deny-by-default refuses the publish"
+      },
+      {
+        "folder": "apache-mixer-1.0.0",
+        "expected": "MKT-P08",
+        "actual": "MKT-P08",
+        "message": "MKT-P08: declared aggregate licence 'MIT' does not cover component licences ['Apache-2.0', 'MIT'] and `aggregate_verified` is false. This is the M1 defect shape: 31 Apache-2.0 entries under a declared MIT, invisible to a LICENSE-file scanner."
+      }
+    ],
+    "registry_index_exists": true
+  },
+  "side_observations": {
+    "mkt_mutations_exit": 0,
+    "mkt_mutations_marker": "SUCCESS:mkt-mutation-battery 13/13 load-bearing",
+    "mkt_mutations_tail": [
+      "  \"all_load_bearing\": true",
+      "}",
+      "SUCCESS:mkt-mutation-battery 13/13 load-bearing"
+    ],
+    "mkt_mutations_stderr_tail": "",
+    "revoke_with_publisher_authority_exit": 1,
+    "revoke_maintainer_authority_publisher_key": {
+      "exit": 0,
+      "marker": "SUCCESS:mkt-revoke",
+      "unrelated_version_install_exit_after": 1,
+      "unrelated_version_install_code": "MKT-I04",
+      "impact": "denial-of-service on EVERY install from that registry, not a revocation bypass"
+    },
+    "no_verify_verb": {
+      "invalid_choice": true,
+      "verify_exit": 2,
+      "control_known_verb_stderr_has_invalid_choice": false,
+      "control_known_verb_exit": 2,
+      "note": "a --help substring search reported the opposite; 'verify' occurs in the import help text"
+    }
+  },
+  "summary": {
+    "checks_pass": 6,
+    "checks_total": 6,
+    "verdicts": {
+      "1_publish": "PASS",
+      "2_install": "PASS",
+      "3_verify_and_corrupt_signature": "PASS",
+      "4_revoke_blocks": "PASS",
+      "5_malicious_permissions": "PASS",
+      "6_lockfile_determinism": "PASS"
+    },
+    "bypasses_found": [
+      "stale_offline_bundle_import",
+      "stale_mirror_revocation_list"
+    ]
+  }
+}

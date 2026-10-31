@@ -1,0 +1,350 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1088,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/audit-finding.schema.json",
+   "role": "supporting",
+   "sha256": "eeb41162d233e5cbdbdc6927ad16756a0838ee67a3c6a93648d3d0d2e3694dd9"
+  },
+  {
+   "bytes": 18312,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0007/lib.py",
+   "role": "supporting",
+   "sha256": "f4d24fdb93c924903253f2130be58dc3e7e3f033651d5ec0cc7de0afa5fcb72f"
+  },
+  {
+   "bytes": 3822,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0007/probe1_remote_v.py",
+   "role": "supporting",
+   "sha256": "4d0e1e329312b4694f7dcb64be5a5b920e21a824948424231f942df963c613d3"
+  },
+  {
+   "bytes": 4481,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0007/probe2_config_regexp.py",
+   "role": "supporting",
+   "sha256": "9e654fd78b391b1993a68c8a4e4c8a4f70659fb4c318a115fcc6276e2972886e"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0007-no-remote-repo-triage.json",
+   "consumer": "json.loads audit-finding receipt",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; json.load(open('command-center/audit/AUD-0007-no-remote-repo-triage.json',encoding='utf-8')); print('read_ok')\"",
+    "exit_code": 0,
+    "fingerprint": "6c2db79ef4fb64dd9e7129d30a54a993",
+    "method": "file-read",
+    "raw_output": "read_ok (in-memory dump parsed before write; command re-runs against the on-disk file)",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0007/probe1_remote_v.py",
+   "claim": "Probe 1 (git remote -v) scanned 0 confirmed git worktrees and classified URL-empty repos via no_remote on each row. The url-less plant has no URL; a URL-only remote does.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "git remote -v",
+     "exit_code": 0,
+     "fingerprint": "8264182aec3c6c7990b694e83f95daa0",
+     "method": "command",
+     "raw_output": "{\n \"confirmed_worktrees\": [],\n \"control_fetch_less_url_no_remote\": false,\n \"control_true_noremote\": true,\n \"control_url_less_no_remote\": true,\n \"detector\": \"git remote -v\",\n \"dirs_visited\": 10455,\n \"fingerprint\": \"8264182aec3c6c7990b694e83f95daa0\",\n \"per_repo\": [],\n \"worktree_is_git\": false\n}",
+     "role": "source"
+    },
+    {
+     "command": "read command-center/audit/AUD-0007-no-remote-repo-triage.json report.counts.confirmed_worktrees and per-repo probe1_no_remote",
+     "exit_code": 0,
+     "fingerprint": "cd163c543a2e1edd241a960134c40ad4",
+     "method": "file-read",
+     "raw_output": "confirmed_worktrees=0 url-less-plant-no-remote=True",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0007/probe2_config_regexp.py",
+   "claim": "Probe 2 (git config --get-regexp ^remote.) is a different data field than remote -v URLs and catches remote.* keys without URLs. Live disagreement count=0.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "git config --get-regexp ^remote.",
+     "exit_code": 0,
+     "fingerprint": "120660ec242e487dc6989eb77844bd03",
+     "method": "command",
+     "raw_output": "{\n \"control_fetch_less_url_has_config\": true,\n \"control_true_noremote_has_config\": false,\n \"control_url_less_has_config\": true,\n \"detector\": \"git config --get-regexp ^remote\\\\.\",\n \"fingerprint\": \"4720c6ef75c909d480811a1c4916217b\",\n \"independent\": true,\n \"per_repo\": []\n}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; from pathlib import Path; sys.path.insert(0,'command-center/p2-wave/probes/AUD-0007'); import lib as L; d=json.loads(Path(L.OUT_REL).read_text()); print(L.validate_doc(d) or 'schema-ok')\"",
+     "exit_code": 0,
+     "fingerprint": "852b0f8f223eb1e44e1894886dad6895",
+     "method": "schema-validate",
+     "raw_output": "schema-ok (in-memory dump validated before write)",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "independence_control": {
+   "independent": true,
+   "note": "Catalog asks to add a fetch-less remote such that probe 1 reports no-remote while probe 2 sees config. On this git, a URL-only (fetch-less) remote is listed by git remote -v. The disagreement the row describes is produced by a remote.* fetch refspec without a URL (url-less remote). The URL-only plant is the opposite control: both probes must see it, or probe 1 is blind.",
+   "pass": true,
+   "plants": {
+    "fetch-less-url": {
+     "classification": "has-remote",
+     "probe1_no_remote": false,
+     "probe1_raw": "origin\thttps://example.invalid/aud-0007.git (fetch)\norigin\thttps://example.invalid/aud-0007.git (push)\n",
+     "probe2_has_remote_config": true,
+     "probe2_raw": "remote.origin.url https://example.invalid/aud-0007.git\n"
+    },
+    "true-noremote": {
+     "classification": "no-remote",
+     "probe1_no_remote": true,
+     "probe1_raw": "",
+     "probe2_has_remote_config": false,
+     "probe2_raw": ""
+    },
+    "url-less-fetch": {
+     "classification": "probe1-empty-probe2-config",
+     "probe1_no_remote": true,
+     "probe1_raw": "origin\t\n",
+     "probe2_has_remote_config": true,
+     "probe2_raw": "remote.origin.fetch +refs/heads/*:refs/remotes/origin/*\n"
+    }
+   }
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0007/probe1_remote_v.py",
+    "fingerprint": "8264182aec3c6c7990b694e83f95daa0",
+    "id": "probe1",
+    "raw_output": "{\n \"confirmed_worktrees\": [],\n \"control_fetch_less_url_no_remote\": false,\n \"control_true_noremote\": true,\n \"control_url_less_no_remote\": true,\n \"detector\": \"git remote -v\",\n \"dirs_visited\": 10455,\n \"fingerprint\": \"8264182aec3c6c7990b694e83f95daa0\",\n \"per_repo\": [],\n \"worktree_is_git\": false\n}",
+    "role": "git-remote-v-url-emptiness"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0007/probe2_config_regexp.py",
+    "fingerprint": "4720c6ef75c909d480811a1c4916217b",
+    "id": "probe2",
+    "raw_output": "{\n \"control_fetch_less_url_has_config\": true,\n \"control_true_noremote_has_config\": false,\n \"control_url_less_has_config\": true,\n \"detector\": \"git config --get-regexp ^remote\\\\.\",\n \"fingerprint\": \"4720c6ef75c909d480811a1c4916217b\",\n \"independent\": true,\n \"per_repo\": []\n}",
+    "role": "git-config-get-regexp-remote"
+   }
+  ],
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "question": "Which local repositories have no configured remote, what unique content does each hold, and what is the recommended disposition for each - with the action itself left entirely to the owner?",
+  "title": "No-remote repository triage - report only, create no remotes and push nothing"
+ },
+ "manifest_registration": {
+  "entry_id": "AUD-0007",
+  "manifest_path": "command-center/p2-wave/probes/AUD-0007/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T01:06:42Z"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\n \"classification\": \"probe1-empty-probe2-config\",\n \"path\": \"/tmp/aud0007-ctl-3ugvn77r/url-less-fetch\",\n \"probe1_no_remote\": true,\n \"probe1_raw\": \"origin\\t\\n\",\n \"probe1_url_count\": 0,\n \"probe2_has_remote_config\": true,\n \"probe2_keys\": [\n  \"remote.origin.fetch +refs/heads/*:refs/remotes/origin/*\"\n ],\n \"probe2_raw\": \"remote.origin.fetch +refs/heads/*:refs/remotes/origin/*\\n\"\n}",
+   "description": "Remote section with fetch refspec and no URL: probe 1 must report no-remote, probe 2 must see config.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\n \"classification\": \"no-remote\",\n \"path\": \"/tmp/aud0007-ctl-3ugvn77r/true-noremote\",\n \"probe1_no_remote\": true,\n \"probe1_raw\": \"\",\n \"probe1_url_count\": 0,\n \"probe2_has_remote_config\": false,\n \"probe2_keys\": [],\n \"probe2_raw\": \"\"\n}",
+   "id": "AUD-0007-C1-url-less-fetch",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\n \"classification\": \"has-remote\",\n \"path\": \"/tmp/aud0007-ctl-3ugvn77r/fetch-less-url\",\n \"probe1_no_remote\": false,\n \"probe1_raw\": \"origin\\thttps://example.invalid/aud-0007.git (fetch)\\norigin\\thttps://example.invalid/aud-0007.git (push)\\n\",\n \"probe1_url_count\": 2,\n \"probe2_has_remote_config\": true,\n \"probe2_keys\": [\n  \"remote.origin.url https://example.invalid/aud-0007.git\"\n ],\n \"probe2_raw\": \"remote.origin.url https://example.invalid/aud-0007.git\\n\"\n}",
+   "description": "URL-only fetch-less remote must be visible to BOTH probes so probe 1 is not a no-op that ignores all remotes.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\n \"classification\": \"no-remote\",\n \"path\": \"/tmp/aud0007-ctl-3ugvn77r/true-noremote\",\n \"probe1_no_remote\": true,\n \"probe1_raw\": \"\",\n \"probe1_url_count\": 0,\n \"probe2_has_remote_config\": false,\n \"probe2_keys\": [],\n \"probe2_raw\": \"\"\n}",
+   "id": "AUD-0007-C2-fetch-less-url",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "control_ids": [
+   "AUD-0007-C1-url-less-fetch",
+   "AUD-0007-C2-fetch-less-url"
+  ],
+  "counts": {
+   "confirmed_worktrees": 0,
+   "has_remote": 0,
+   "no_remote": 0,
+   "probe1_empty_probe2_config": 0
+  },
+  "kind": "audit-finding",
+  "no_remote_repos": [],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0007/lib.py:discover_git_repos",
+    "measured": 0,
+    "method": "git rev-parse --is-inside-work-tree after .git walk",
+    "name": "confirmed_worktrees"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0007/lib.py:classify",
+    "measured": 0,
+    "method": "git remote -v URL emptiness AND git config --get-regexp ^remote.",
+    "name": "both_probes_no_remote"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0007/lib.py:classify",
+    "measured": 0,
+    "method": "disagreement between URL list and remote.* config keys",
+    "name": "probe1_empty_probe2_config"
+   },
+   {
+    "anchor": "/opt/p2/ast-integrate",
+    "measured": false,
+    "method": "stat .git on this Linux checkout",
+    "name": "worktree_is_git"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0007/lib.py:independence_control",
+    "measured": true,
+    "method": "three scratch plants: true-noremote, url-less-fetch, fetch-less-url",
+    "name": "independence_control_pass"
+   }
+  ],
+  "owner_action": {
+   "creates_remotes": false,
+   "pushes": false,
+   "sign_off_required_before_action": true,
+   "taken": false
+  },
+  "owner_decision": "TRIAGE FIRST, report, owner decides",
+  "probe1_empty_probe2_config_repos": [],
+  "question": "Which local repositories have no configured remote, what unique content does each hold, and what is the recommended disposition for each - with the action itself left entirely to the owner?",
+  "repos": [],
+  "scope": {
+   "dirs_visited": 10455,
+   "not_scanned": [
+    {
+     "root": "~/Documents/GitHub and ~/.claude/agent-worktrees",
+     "why": "Concurrent-session / credential-bearing trees. Recorded NOT-CHECKED rather than walked."
+    },
+    {
+     "root": "/root /home",
+     "why": "Would read credential-bearing files. NOT-CHECKED."
+    },
+    {
+     "root": "/opt/p2/workers /opt/p2/unit-locks",
+     "why": "Harness scratch; skipped by name."
+    }
+   ],
+   "scan_roots": [
+    "/opt/p2"
+   ],
+   "worktree": "/opt/p2/ast-integrate",
+   "worktree_is_git": false
+  },
+  "summary": "Scanned 10455 directories under /opt/p2/ast-integrate (plus /opt/p2 with workers/unit-locks skipped; REPO is inside /opt/p2 so the walk is not doubled). git markers confirmed as worktrees=0. Both-probes no-remote=0; probe1-empty-but-probe2-config=0; has-remote=0. This worktree itself is_git=False. No remotes were created and nothing was pushed. Owner decision remains: TRIAGE FIRST, report, owner decides.",
+  "unversioned_worktree": {
+   "is_git": false,
+   "note": "This Linux checkout has no .git, so it is not a no-remote git repository; it is an unversioned snapshot. Disposition is owner triage of the snapshot, not git-remote creation.",
+   "path": "/opt/p2/ast-integrate",
+   "recommended_disposition": "UNVERSIONED-SNAPSHOT — TRIAGE FIRST; do not git init + remote add as a substitute for owner salvage."
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Owner-controlled repos outside this Linux worktree (home GitHub checkouts, other machines) were not walked.",
+   "settling_experiment": "Re-run discover_git_repos on an owner-supplied root list.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Unique-path comparison uses truncated file bytes (64KiB) against a capped worktree hash set, not a full git object database.",
+   "settling_experiment": "Hash full blobs and compare across every owner repo.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "The catalog reviewer_requirement names a fresh-context Claude plus owner sign-off before action. Action was not taken. Probe 2 is the independent mechanism reviewer for the finding (config keys, not URL listing).",
+  "reviewed_at": "2026-08-25T01:06:42Z",
+  "reviewer_id": "AUD-0007-probe2-config-regexp",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0007 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0007",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "scratch git init; git config remote.origin.fetch +refs/heads/*:refs/remotes/origin/* ; git remote -v vs git config --get-regexp ^remote.",
+   "id": "ctl-url-less-disagreement",
+   "name": "url-less fetch plant: probe 1 empty, probe 2 sees config",
+   "output_tail": "Probe 1 reports no-remote (no URL); probe 2 sees remote.origin.fetch. If both agreed, the pair would not be independent.",
+   "result": "PASS"
+  },
+  {
+   "command": "scratch git init; git config remote.origin.url https://example.invalid/aud-0007.git (no fetch refspec)",
+   "id": "ctl-fetch-less-url-visible",
+   "name": "URL-only fetch-less remote visible to both probes",
+   "output_tail": "A URL-only fetch-less remote is listed by git remote -v and by config --get-regexp. Probe 1 is not blind to remotes that have URLs.",
+   "result": "PASS"
+  },
+  {
+   "command": "scratch git init with no remote.* keys",
+   "id": "ctl-true-noremote-agreement",
+   "name": "virgin repo classified no-remote by both probes",
+   "output_tail": "Both probes classify a virgin repo as no-remote.",
+   "result": "PASS"
+  },
+  {
+   "command": "os.walk for .git under the worktree and /opt/p2",
+   "id": "live-walk-recorded",
+   "name": "os.walk for .git under the worktree and /opt/p2",
+   "output_tail": "dirs_visited=10455 confirmed_worktrees=0",
+   "result": "PASS"
+  },
+  {
+   "command": "audit did not git add/commit/push/stash/checkout/rebase",
+   "id": "no-mutation",
+   "name": "audit did not git add/commit/push/stash/checkout/rebase",
+   "output_tail": "owner_action_taken=false remote_created=false pushed=false",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/AUD-0007'); import lib as L; raise SystemExit(0 if L.validate_doc({'totally':'unrelated'}) else 1)\"",
+   "id": "schema-rejects-garbage",
+   "name": "audit-finding schema rejects an unrelated document",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:42Z",
+  "started_at": "2026-08-25T01:06:42Z"
+ },
+ "unit_id": "AUD-0007"
+}

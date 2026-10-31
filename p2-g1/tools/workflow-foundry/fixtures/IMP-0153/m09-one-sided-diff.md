@@ -1,0 +1,1 @@
+A one-directional diff cannot see two-directional divergence. That defect produced thirty-one data-loss-pointing misclassifications here. Diffing only what the new side adds is wrong; the both-sides-unique fixture is the classic counterexample.

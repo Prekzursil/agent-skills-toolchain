@@ -1,0 +1,582 @@
+{
+  "schema_version": 1,
+  "artifact": "PHASE-GRAPH.json",
+  "title": "Prompt Two phase dependency graph, allocation map, critical path, and parallel frontier",
+  "status": "MEASURED",
+  "generated": "2026-08-09",
+  "generated_by": "lane ground/dep-graph",
+  "coverage": "phases=21/21 measured; edges=32 authored; allocation=13/13 buckets measured; critical_path computed; blocked_now measured; parallel_frontier computed. Deliverable lists are spec-faithful summaries, not verbatim transcriptions - cite the spec_line for exact wording.",
+
+  "source_spec": {
+    "path": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md",
+    "line_range": "10473-11437",
+    "line_numbering": "LF-only (sed/grep/CI compatible). See measurement_notes.line_numbering_trap.",
+    "phase_headings_measured": 21,
+    "probe": "data.split(b'\\n'); [n for n in 10473..11437 if line startswith '### Phase'] -> 21 hits at 10652,10662,10681,10719,10729,10746,10769,10797,10824,10844,10873,10915,10948,10965,10985,11028,11043,11066,11084,11100,11135"
+  },
+
+  "relationship_to_dependency_graph_json": {
+    "verdict": "DEPENDENCY-GRAPH.json was NOT modified. This is a SEPARATE, ADDITIVE file.",
+    "why": "DEPENDENCY-GRAPH.json is not a skeleton. It is a fully machine-derived artifact (103 work-unit nodes, 21 edges) produced by tools/command-center/catalog.py:build_graph, and tools/command-center/validate.py check V-GRAPH asserts the committed file equals build_graph(catalog) by whole-dict equality (validate.py:238-245). That validator runs in CI at .github/workflows/quality.yml:402.",
+    "proof": "Both-states detector control on a temp COPY via validate.py --graph: STATE A (committed graph) -> V-GRAPH silent, violations=1; STATE B (committed graph + one extra top-level key 'phases') -> V-GRAPH FIRES, violations=2. Detector VALID (silent on control, fires on broken).",
+    "consequence": "Adding ANY top-level key to DEPENDENCY-GRAPH.json turns a CI gate red. The two graphs are also different objects: DEPENDENCY-GRAPH.json is the WORK-UNIT graph (R-A*/R-B*/R-H*/R-M*), this file is the PHASE graph (0..16). Merging them would fuse two namespaces with different lifecycles.",
+    "owner_decision_needed": "If the owner wants the phase graph inside DEPENDENCY-GRAPH.json, then catalog.py:build_graph must emit it (so parity holds) - a code change, not a data edit."
+  },
+
+  "measurement_notes": {
+    "line_numbering_trap": "pathlib.Path.read_text() applies universal-newline translation. The spec file is CRLF (29,273 CRLF) AND contains 166 BARE CR bytes mid-line; Python turns each bare CR into a line break, inflating line numbers by up to 166 versus sed/grep/wc/CI. Measured: LF=29273, CRLF=29273, CR total=29439, bare CR=166; predicted Python lines = 29273+166+1 = 29440 = observed. All line numbers in this file are LF-only and were cross-checked against the Read tool (two independent signals agree).",
+    "pre_existing_red_gate": "python tools/command-center/validate.py exits 1 on main @53c37c6c with 'REACH-6 -: register snapshot sha256 1a404a91d819 != recorded 8b3e44cc3813'. This predates this lane; no file of mine caused it."
+  },
+
+  "allocation_buckets": {
+    "spec_line": 10552,
+    "spec_floor_units": 2048,
+    "measured_sum": 2048,
+    "sum_matches_floor": true,
+    "caveat": "Spec calls this 'an initial decomposition, not a quota' (line 10568). Split or merge as warranted.",
+    "buckets": [
+      {"id": "B01", "units": 24, "name": "command-center and corpus-control", "spec_line": 10554, "feeds_phases": ["0", "1"]},
+      {"id": "B02", "units": 96, "name": "current-state and dependency-audit", "spec_line": 10555, "feeds_phases": ["0", "1"]},
+      {"id": "B03", "units": 224, "name": "deep-research, ecosystem, and gem-hunt", "spec_line": 10556, "feeds_phases": ["2"]},
+      {"id": "B04", "units": 160, "name": "workflow archaeology, acquisition, translation, and fusion", "spec_line": 10557, "feeds_phases": ["2A", "2B"]},
+      {"id": "B05", "units": 128, "name": "council protocol, role, voting, stopping-rule, and preset-design", "spec_line": 10558, "feeds_phases": ["2C"]},
+      {"id": "B06", "units": 112, "name": "competing-architecture and specification", "spec_line": 10559, "feeds_phases": ["3", "4"]},
+      {"id": "B07", "units": 480, "name": "implementation", "spec_line": 10560, "feeds_phases": ["5", "6", "7", "7A", "8", "9"]},
+      {"id": "B08", "units": 352, "name": "testing, benchmark, mutation, fuzz, chaos, and deliberation-calibration", "spec_line": 10561, "feeds_phases": ["10"]},
+      {"id": "B09", "units": 192, "name": "independent confirmation and reproduction", "spec_line": 10562, "feeds_phases": ["11"]},
+      {"id": "B10", "units": 144, "name": "adversarial, security, privacy, legal, stale-premise, and groupthink", "spec_line": 10563, "feeds_phases": ["12"]},
+      {"id": "B11", "units": 64, "name": "completeness and blind-spot", "spec_line": 10564, "feeds_phases": ["13"]},
+      {"id": "B12", "units": 48, "name": "synthesis and meta-review", "spec_line": 10565, "feeds_phases": ["14"]},
+      {"id": "B13", "units": 24, "name": "release/canary/rollback", "spec_line": 10566, "feeds_phases": ["15"]}
+    ],
+    "FINDING_unfunded_phase": {
+      "phase": "16",
+      "verdict": "CONFIRMED",
+      "detail": "Phase 16 (Self-improvement loop, line 11135) is the only one of the 21 phases with NO allocation bucket. The 13 buckets map onto phases 0-15; the closed loop is unfunded in the suggested decomposition. Its steps 5 and 10 ('run benchmark and regression suite', 'update the benchmark') arguably borrow B08, but no bucket names it.",
+      "recommendation": "Either draw Phase 16 units from B08, or add a 14th bucket. Do not let it silently receive zero units."
+    }
+  },
+
+  "program_preconditions": {
+    "note": "These are NOT numbered phases but the spec requires them before/underneath Phase 0. Modeled separately so the phase count stays honestly 21.",
+    "items": [
+      {
+        "id": "PRE-CC",
+        "name": "Command center and program ledger",
+        "spec_lines": "10586-10625",
+        "deliverables": ["13 named ledger files", "append-only event logs", "20 mandated per-work-unit fields"],
+        "state": "PARTIAL - all 13 files exist on main @53c37c6c plus events/EVENTS.jsonl, sources/REGISTER.md, sources/overlay.json and 4 tools. But validate.py exits 1 (REACH-6 register-snapshot sha mismatch), so the ledger does not currently pass its own gate."
+      },
+      {
+        "id": "PRE-PRED",
+        "name": "One completion predicate everywhere",
+        "spec_lines": "10627-10648",
+        "deliverables": ["one shared reducer used in local runners, cloud dispatchers, monitors, harvesters, workflow fan-in, cross-vendor adapters, final synthesis"],
+        "state": "NOT-CHECKED - extracted into COMPLETION-GATES.json by this lane; no shared reducer implementation was located.",
+        "FINDING_back_edge": "The 'completion predicate' is ALSO listed as a Phase 4 contract (line 10810), yet it is required 'at every fan-in' from Phase 0 onward. It must be pulled forward as a provisional contract, creating a Phase 4 migration obligation."
+      },
+      {
+        "id": "PRE-INPUT",
+        "name": "Selected option IDs / owner overrides / release mode",
+        "spec_lines": "10514-10526",
+        "state": "BLOCKED - see blocked_now BLK-1. Release mode is decided (PR-ONLY); selected option IDs are ambiguous."
+      }
+    ]
+  },
+
+  "edge_semantics": {
+    "HARD": "B cannot start until A has produced a named artifact, or B's output is void without A. Violating a hard edge produces rework, not just inefficiency.",
+    "SOFT": "B is cheaper/better/safer after A, but B can legitimately start and produce valid output first."
+  },
+
+  "phases": [
+    {
+      "id": "0",
+      "title": "Freeze, snapshot, and prove the baseline",
+      "spec_line": 10652,
+      "deliverables": [
+        "snapshot of repo, branches, worktrees, live deployments, caches, plugin settings, marketplaces, hooks, skills, MCPs, relevant system state",
+        "clean-room baseline from a fresh clone and fresh user profile where possible",
+        "the known blocker captured AS A FAILING TEST",
+        "benchmark baselines captured BEFORE any behavior change",
+        "detectors verified against known-broken AND known-good controls",
+        "rollback backups created without copying secrets into the program corpus",
+        "launchers and schemas frozen once the first implementation wave starts; later changes require a versioned migration"
+      ],
+      "allocation_buckets": ["B01", "B02"],
+      "owner_gated": false,
+      "hard_deps": [],
+      "soft_deps": [],
+      "notes": "Root of the critical path AND in the parallel frontier. Highest-priority start. A sibling lane has command-center/BASELINE-SNAPSHOT.{json,md} in flight (untracked)."
+    },
+    {
+      "id": "1",
+      "title": "Corpus normalization and deduplication",
+      "spec_line": 10662,
+      "deliverables": [
+        "all prior findings, option cards, research claims, test failures and incident notes normalized into canonical records",
+        "mechanism-level dedup carrying: stable claim ID, canonical mechanism, duplicate-of edges, support edges, contradiction edges, source lineage, confidence, verification status, implementation impact, exact settling probe",
+        "ranking by independent evidence / cross-domain convergence / severity / decision impact - explicitly NOT by how many agents repeated an idea"
+      ],
+      "allocation_buckets": ["B01", "B02"],
+      "owner_gated": false,
+      "hard_deps": ["0"],
+      "soft_deps": []
+    },
+    {
+      "id": "2",
+      "title": "Deep research and gem hunt",
+      "spec_line": 10681,
+      "deliverables": [
+        "maximal external research across 14 named source classes (official docs, changelogs, issue trackers, source code, standards, papers, engineering blogs, benchmark reports, marketplaces, security advisories, forums, niche communities, multilingual, archival, lawful public Tor) plus counterevidence to every major conclusion",
+        "12 research modes (landscape scan, targeted QA, contradiction hunt, negative-result hunt, prior-art, competitive teardown, implementation-pattern, abandoned-project salvage, gem hunt, source-quality audit, freshness audit, legal/license review)",
+        "every material claim carries source lineage, a confidence band, and an independent verification path"
+      ],
+      "allocation_buckets": ["B03"],
+      "owner_gated": true,
+      "owner_gate_reason": "Enabling controversial source classes (Tor/onion) is explicitly owner-controlled (line 11361). Tor policy at 11280-11296.",
+      "hard_deps": ["1"],
+      "soft_deps": [],
+      "contested_edge": "The 1->2 HARD edge is the most contestable in this graph. See blocked_now.CONTESTED-1: if the claim-record schema is pulled forward from Phase 4, 1->2 downgrades to SOFT and Phase 2 (224 units, the largest research bucket) joins the frontier today."
+    },
+    {
+      "id": "2A",
+      "title": "Workflow archaeology and acquisition",
+      "spec_line": 10719,
+      "deliverables": [
+        "exhaustive search of repo, branches, worktrees, releases, installed skills/plugins, prior artifacts, transcripts, vendor examples, public marketplaces, GitHub, papers, blogs, adjacent orchestration systems",
+        "per candidate: provenance, license, maintenance state, task fit, stages, roles, tools, stop rules, failure behavior, benchmark evidence",
+        "classification into one of 15 dispositions (ADOPT-AS-IS, ADOPT-WITH-WRAPPER, TRANSLATE, REPAIR, EXTEND, MERGE, COMPOSE, CLEAN-ROOM-REIMPLEMENT, DISTILL, SPECIALIZE, GENERALIZE, REBUILD-FROM-SPEC, RETIRE, REJECT, UNKNOWN-NEEDS-PROBE)",
+        "AT LEAST 160 candidate workflows or reusable mechanisms researched (trivial forks/renames do not count)",
+        "machine-readable candidate registry, provenance/license graph, semantic component graph, merge/compatibility map",
+        "constraint: do NOT import a second orchestration runtime merely because a workflow was found there"
+      ],
+      "allocation_buckets": ["B04"],
+      "owner_gated": false,
+      "hard_deps": ["1"],
+      "soft_deps": ["2"]
+    },
+    {
+      "id": "2B",
+      "title": "Workflow fusion, generation, and certification",
+      "spec_line": 10729,
+      "deliverables": [
+        "Workflow Foundry pipeline, 10 stages: ingest/normalize, extract stages-roles-gates-tools-schemas-stop-rules, semantic-diff and dedup, component graph, propose fusions (stage-splice / common-core / union / best-of-breed / conditional-hybrid / ensemble / progressive), generate missing workflows from typed goals or benchmark gaps, run sources and fused candidates on matched benchmark cases, independent review, certify only workflows that outperform or materially complement sources, preserve lineage/credit/license/rollback",
+        "AT LEAST 96 production workflow blueprints, each executable, typed, resumable where applicable, and covered by tests"
+      ],
+      "allocation_buckets": ["B04"],
+      "owner_gated": true,
+      "owner_gate_reason": "Blueprints must span 'the categories selected in Prompt One' (line 10744) - a direct consumer of the ambiguous selected option IDs (BLK-1).",
+      "hard_deps": ["2A"],
+      "soft_deps": ["2"],
+      "FINDING_duplicate_96": "The '>= 96 blueprints' floor appears TWICE: here (line 10744) and in Phase 7 (line 10898, 'at least 96 non-duplicate built-in workflow definitions'). Program stop condition 17 counts them once. Treat 2B as IMPLEMENT and 7 as SHIP-IN-RUNTIME over the same 96, or the program will double-count 192."
+    },
+    {
+      "id": "2C",
+      "title": "Council Foundry and deliberation runtime",
+      "spec_line": 10746,
+      "deliverables": [
+        "/council as a universal workflow COMPILER, not a fixed panel",
+        "typed CouncilSpec configuring: objective/risk/output/confidence/evidence/owner constraints; exact or auto-selected participants; min/max/elastic scaling; model-vendor-expertise-role-authority-vote-weight-tools-effort-context-independence-conflicts-anonymity-information-partition; preparation/research requirements; speaking order, rounds, turn lengths, response obligations, cross-examination, rebuttals, steelmanning, idea quotas, novelty quotas, experiments, critique intensity; deliberation protocol; brainstorming targets incl. 100-item; voting and belief aggregation; consensus and disagreement policy; composable stopping rules with ANY/ALL/weighted logic; minimum deliberation conditions; deadlock/escalation/replacement/owner-intervention; audit, replay, privacy, safety, persistence",
+        "AT LEAST 48 council protocol blueprints and 64 editable presets",
+        "a general-purpose auto-composed council that selects roles and protocol from the task, explains every choice, and allows owner override",
+        "council outputs: independent opening positions, idea ledger, claim/evidence/contradiction graph, argument ledger, votes by round, confidence trajectory, dissent/minority report, unresolved unknowns, experiments, final recommendation, calibration report"
+      ],
+      "allocation_buckets": ["B05"],
+      "owner_gated": false,
+      "hard_deps": [],
+      "soft_deps": ["1", "2"],
+      "notes": "IN THE PARALLEL FRONTIER. 128 units of design work are unblocked TODAY because the spec itself enumerates most of the required topologies, protocols and the 24 named presets (lines 10926-10927, 11200-11225). Risk of starting early: the CouncilSpec type predates Phase 4's schema contracts, so budget a migration."
+    },
+    {
+      "id": "3",
+      "title": "Architecture tournament",
+      "spec_line": 10769,
+      "deliverables": [
+        "MULTIPLE COMMITTED architectures, not one consensus draft - at minimum 9: config-first minimal, generated single-source-of-truth, marketplace-first, gateway/lazy-activation, distributed workflow-runtime, cross-vendor adapter, security-first, UX/product-first, maximal hybrid",
+        "per architecture, independent teams for: design, cost/complexity analysis, failure-mode analysis, security review, migration design, test design, adversarial refutation",
+        "a judge panel that reads FULL artifacts, not only digests",
+        "dissent preserved; a hybrid winner is allowed only when its control planes remain singular and understandable"
+      ],
+      "allocation_buckets": ["B06"],
+      "owner_gated": true,
+      "owner_gate_reason": "Selecting the winning architecture is a 'mutually exclusive product direction' decision (line 11362) when not already resolved by the decision log.",
+      "hard_deps": ["2"],
+      "soft_deps": ["2B", "2C"]
+    },
+    {
+      "id": "4",
+      "title": "Formal contracts before implementation",
+      "spec_line": 10797,
+      "deliverables": [
+        "specify and schema-check 20 contracts: plugin manifest, marketplace manifest, package metadata, permission model, workflow DSL, work-unit schema, artifact schema, claim schema, event schema, completion predicate, hook contract, skill contract, MCP adapter contract, cross-vendor adapter contract, versioning rules, migration rules, rollback contract, compatibility matrix, telemetry/privacy contract, release policy",
+        "EXECUTABLE CONFORMANCE TESTS WRITTEN BEFORE BROAD IMPLEMENTATION (line 10822)"
+      ],
+      "allocation_buckets": ["B06"],
+      "owner_gated": false,
+      "hard_deps": ["3"],
+      "soft_deps": [],
+      "FINDING_back_edges": "Four Phase 4 contracts are required EARLIER than Phase 4: 'completion predicate' (needed from Phase 0 at every fan-in), 'claim schema' (needed by Phase 1 canonical records), 'work-unit schema' and 'event schema' (needed by the command-center precondition, lines 10586-10625). These must be pulled forward as provisional contracts with an explicit Phase 4 migration obligation, or Phase 4 will be ratifying decisions already made."
+    },
+    {
+      "id": "5",
+      "title": "Build the real plugin",
+      "spec_line": 10824,
+      "deliverables": [
+        "minimal distributable package; strict manifest compatibility; explicit interpreters for scripts; Windows/macOS/Linux launch adapters; install, update, repair, rollback, uninstall commands; live deployment synchronization; cache refresh and invalidation; health check; conformance validator; migration from old layouts; compatibility diagnostics; safe failure behavior; clear user-facing error messages",
+        "constraint: never ship .git, unrelated caches, logs, transcripts, credentials, or gigabytes of unrelated content as the plugin artifact"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": true,
+      "owner_gate_reason": "Scoped 'as selected by the owner' (line 10826) - direct consumer of the ambiguous selected option IDs (BLK-1).",
+      "hard_deps": ["4"],
+      "soft_deps": []
+    },
+    {
+      "id": "6",
+      "title": "Build the real marketplace",
+      "spec_line": 10844,
+      "deliverables": [
+        "canonical registry/index; publisher identity; package versions and channels; dependency metadata; platform and client compatibility; permissions; provenance; signatures; SBOM; license metadata; vulnerability status; quality/conformance score; benchmark evidence; search, categories, tags, collections; install/update/remove/rollback; lockfile support; deprecation and revocation; private/federated mirrors; offline export/import; moderation and dispute process; security advisory flow; documented governance model",
+        "marketplace linter, publisher CLI, package scaffolder, validation service or local validator, test fixture marketplace"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": true,
+      "owner_gate_reason": "Scoped 'as selected' (line 10846) - BLK-1. Also interacts with release mode PR-ONLY: a PUBLIC marketplace listing is out of scope under PR-ONLY.",
+      "hard_deps": ["4"],
+      "soft_deps": ["5"],
+      "notes": "5->6 is SOFT precisely because the spec mandates a 'test fixture marketplace' (line 10871), which decouples marketplace development from a finished plugin."
+    },
+    {
+      "id": "7",
+      "title": "Build the workflow foundry",
+      "spec_line": 10873,
+      "deliverables": [
+        "typed workflow system: declarative schema, SDK, visual or structured builder as selected, parameter validation, subworkflows, dynamic fan-out, barriers, loops with convergence rules, human checkpoints, retries, repair loops, resume, deterministic replay, artifact caching, dry-run, cost/time/impact estimate, source and tool policy, model routing, failure policy, export/import",
+        "AT LEAST 96 non-duplicate built-in workflow definitions; AT LEAST 40 flagship with full end-to-end tests; the rest executable, schema-valid, documented and smoke-tested (no placeholders or renamed copies)",
+        "coverage of 5 category families: research and evidence; engineering and reliability; security governance and risk; product design and strategy; data science knowledge and creative; plus collective intelligence and meta-workflows",
+        "an explicit catalog PROVING the 96 entries are materially distinct",
+        "each workflow: examples, tests, presets, documented stopping rules",
+        "workflow-scout and workflow-forge shipped as EXECUTABLE meta-workflows, with fusion lineage decomposable back to source mechanisms"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": true,
+      "owner_gate_reason": "'visual or structured builder as selected' (line 10879) - BLK-1.",
+      "hard_deps": ["4", "2A", "2B"],
+      "soft_deps": [],
+      "notes": "2A->7 is HARD because the seeded regression class 'workflow discovery ignores an existing superior workflow and rebuilds it' (line 11331) is only preventable with the 2A registry in hand."
+    },
+    {
+      "id": "7A",
+      "title": "Build the universal council and collective-intelligence runtime",
+      "spec_line": 10915,
+      "deliverables": [
+        "council as a FIRST-CLASS WORKFLOW TYPE with a validated CouncilSpec, SDK, CLI, and visual/structured builder",
+        "runtime configuring charter/objective/risk/output/success/consensus intent; human-only, agent-only or hybrid participation; 10 participant-selection strategies; participant lifecycle (min/max/elastic/dynamic recruitment/replacement/anonymity/conflicts/information partitioning/duplicate detection); role mandates and rights incl. veto and incompatible-role checks; 11 topologies; ~18 deliberation protocols; effort and engagement budgets; idea/novelty/diversity/coverage/objection/counterexample/evidence targets; ~20 decision rules; composable AND/OR/NOT stopping expressions; dissent, minority reports, irreducible disagreement, no-decision, conditional decision, proof-of-impossibility; transcript through resumable state",
+        "6 REQUIRED EXECUTABLE stopping-expression examples (unique_ideas>=100 AND completeness_score>=0.90; consensus>=0.95 AND no_new_objection_rounds>=2; unanimity==true OR max_rounds==12; quality_gate==PASS AND unresolved_load_bearing_counterexample==0; evidence_saturation==true OR time_minutes>=180; proof_of_impossibility==true)",
+        "anti-failure controls for 14 named pathologies incl. echo chambers, sycophancy, dominance, premature convergence, duplicate-idea count gaming, lost dissent; suspiciously fast unanimity must trigger blind re-evaluation / forced dissent / counterexample generation / role rotation / independent critic recruitment",
+        "AT LEAST 48 protocol blueprints and 64 editable presets, with SIMULATIONS proving role enforcement, participant replacement, voting, dissent preservation, stopping rules, pause/resume, and council-of-councils fan-in"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": false,
+      "hard_deps": ["4", "7", "2C"],
+      "soft_deps": [],
+      "FINDING_duplicate_48_64": "The '48 protocols + 64 presets' floor appears TWICE: Phase 2C (line 10765) and Phase 7A (line 10946). Program stop condition 19 counts them once. Treat 2C as DESIGN and 7A as RUNTIME-IMPLEMENTATION over the same 48/64, or the program will double-count."
+    },
+    {
+      "id": "8",
+      "title": "Skill and capability routing",
+      "spec_line": 10948,
+      "deliverables": [
+        "index of all skills/plugins/workflows/tools; improved descriptions for routing; semantic AND rule-based matching; top-k injection with confidence; conflict resolution; user overrides; explanation of why a capability was selected; fallback when no capability fits; measurement of skill-use breadth and task success",
+        "a regression suite proving the router selects relevant capabilities WITHOUT flooding context",
+        "constraint: do NOT prune capabilities merely because they were rarely used (line 10950)"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": false,
+      "hard_deps": ["4"],
+      "soft_deps": ["7"]
+    },
+    {
+      "id": "9",
+      "title": "Multi-session and cross-vendor coordination",
+      "spec_line": 10965,
+      "deliverables": [
+        "a common work-unit and artifact contract across supported vendors",
+        "session discovery; work claims; file leases; conflict detection; duplicate-work suppression; crash recovery; handoff; shared completion reducer; capability negotiation; vendor-specific adapter boundaries; explicit documentation of abstraction leaks",
+        "constraint: do not pretend full interchangeability where tools, context or permissions differ - degrade LOUDLY and preserve the work artifact"
+      ],
+      "allocation_buckets": ["B07"],
+      "owner_gated": false,
+      "hard_deps": ["4"],
+      "soft_deps": []
+    },
+    {
+      "id": "10",
+      "title": "Testing and verification at maximal depth",
+      "spec_line": 10985,
+      "deliverables": [
+        "36 numbered test layers: unit, integration, contract, schema, clean-install, upgrade, rollback, uninstall, cross-platform, cross-client, differential replay, mutation, property-based, fuzzing, concurrency, load, soak, chaos, network-fault, rate-limit, partial-artifact, stale-monitor, duplicate-dispatch, resume, corrupted-cache, strict-parser, shell-quoting, path-casing, long-path, secret-leak, malicious-plugin, permission-boundary, benchmark regression, latency and overhead, accessibility and UX, documentation command tests",
+        "every important suite carries negative controls or mutations PROVING it detects the defect it claims to detect (line 11026)",
+        "the seeded known-failure-class regression suite (lines 11298-11347, 47 named classes)"
+      ],
+      "allocation_buckets": ["B08"],
+      "owner_gated": false,
+      "hard_deps": ["0", "5", "6", "7", "7A", "8", "9"],
+      "soft_deps": [],
+      "notes": "0->10 is HARD: layer 33 (benchmark regression) has no comparator without the Phase 0 pre-change baselines."
+    },
+    {
+      "id": "11",
+      "title": "Independent confirmation",
+      "spec_line": 11028,
+      "deliverables": [
+        "fresh agents that did NOT write the implementation independently verify every P0/P1 claim plus a stratified sample of lower-severity claims",
+        "each confirmer: starts from raw source and tests (not the implementer's conclusion), reproduces the baseline failure, reproduces the corrected behavior, verifies rollback, verifies no unrelated regression, records discrepancies",
+        "if the sampled error rate exceeds the predefined threshold, re-verification expands to the ENTIRE affected class"
+      ],
+      "allocation_buckets": ["B09"],
+      "owner_gated": false,
+      "hard_deps": ["10"],
+      "soft_deps": [],
+      "notes": "Requires a severity field on claims to identify 'every P0/P1 claim'. Measured: CLAIM-REGISTRY.json's 10 claims have NO severity field - see COMPLETION-GATES condition 3."
+    },
+    {
+      "id": "12",
+      "title": "Adversarial refutation",
+      "spec_line": 11043,
+      "deliverables": [
+        "14 SEPARATE refuter tracks: correctness, stale assumptions, security, privacy, legality, supply chain, cross-platform behavior, performance, operational recovery, marketplace abuse, workflow prompt injection, source manipulation, benchmark gaming, synthesis distortion",
+        "refuters default to REFUTED when evidence is insufficient (a false alarm costs review time; a false pass ships a broken platform)",
+        "every surviving claim states its strongest remaining caveat"
+      ],
+      "allocation_buckets": ["B10"],
+      "owner_gated": false,
+      "hard_deps": ["1"],
+      "soft_deps": ["10", "11"],
+      "notes": "1->12 is HARD because canonical claim records are the refutation targets. 10->12 is SOFT overall, but 2 of the 14 tracks (benchmark gaming, performance) have a HARD dependency on Phase 10 output."
+    },
+    {
+      "id": "13",
+      "title": "Completeness and blind-spot review",
+      "spec_line": 11066,
+      "deliverables": [
+        "11 dedicated questions: what files were never read; what clients were never tested; what platforms were never tested; what owner requirements disappeared; what option IDs were silently dropped; what failures were normalized away; what unknowns remain; what existing work was ignored; what test could falsely pass; what threat actor was not modeled; what would break at 10x scale",
+        "every material blind spot converted into a work unit OR an explicitly accepted residual risk"
+      ],
+      "allocation_buckets": ["B11"],
+      "owner_gated": false,
+      "hard_deps": ["1"],
+      "soft_deps": ["10", "11", "12"],
+      "notes": "BLOCKED by BLK-1: the question 'what option IDs were silently dropped' is NOT COMPUTABLE while 31 ids resolve to two different meanings and 7 resolve to ABSENT."
+    },
+    {
+      "id": "14",
+      "title": "Synthesis and meta-review",
+      "spec_line": 11084,
+      "deliverables": [
+        "a ROOT-CAUSE HIERARCHY and decision trace, not a flat list of findings",
+        "multiple INDEPENDENT synthesis agents, then a meta-review for: unsupported certainty, omitted dissent, duplicate mechanisms, stale evidence, missing artifacts, code/doc mismatches, and completion claims not backed by the shared predicate",
+        "the final synthesis agent MUST VERIFY THE ARTIFACT MANIFEST ON DISK before writing the completion report (line 11098)"
+      ],
+      "allocation_buckets": ["B12"],
+      "owner_gated": false,
+      "hard_deps": ["11", "12", "13"],
+      "soft_deps": []
+    },
+    {
+      "id": "15",
+      "title": "Release ceremony",
+      "spec_line": 11100,
+      "deliverables": [
+        "semantic version; changelog; migration guide; rollback guide; signed artifacts where supported; provenance attestation; SBOM; license inventory; vulnerability scan; compatibility matrix; marketplace listing; install/update/uninstall docs; quick-start examples; advanced workflow examples; security policy; contribution guide; governance guide; support policy; deprecation policy; release notes grounded in verified changes",
+        "shadow mode or private canary FIRST unless the owner explicitly selected direct public release (line 11125)",
+        "promote only after: all required gates pass; false-positive and false-negative telemetry acceptable; canary install/upgrade/rollback succeeds; no data loss; independent reviewers sign off"
+      ],
+      "allocation_buckets": ["B13"],
+      "owner_gated": true,
+      "owner_gate_reason": "Public publishing and creating public infrastructure are explicitly owner-controlled (lines 11355-11360). Release mode is already decided: PR-ONLY.",
+      "hard_deps": ["14"],
+      "soft_deps": [],
+      "constrained_by_release_mode": {
+        "mode": "PR-ONLY",
+        "producible_under_pr_only": ["semantic version", "changelog", "migration guide", "rollback guide", "SBOM", "license inventory", "vulnerability scan", "compatibility matrix", "install/update/uninstall docs", "quick-start examples", "advanced workflow examples", "security policy", "contribution guide", "governance guide", "support policy", "deprecation policy", "release notes"],
+        "blocked_or_redefined_under_pr_only": ["marketplace listing (a LIVE public listing is out of scope)", "signed artifacts (signing infra tied to publication)", "provenance attestation (attests a published artifact)", "canary install/upgrade/rollback (no canary channel exists in PR-ONLY)"],
+        "owner_decision_needed": "Program stop condition 13 is 'release/canary succeeds'. Under PR-ONLY there is no canary. Either (a) redefine condition 13 as 'a merged PR plus a local clean-install/upgrade/rollback rehearsal succeeds', or (b) mark condition 13 permanently N/A under PR-ONLY. Leaving it undefined makes the program unable to ever satisfy its own stopping rule."
+      }
+    },
+    {
+      "id": "16",
+      "title": "Self-improvement loop",
+      "spec_line": 11135,
+      "deliverables": [
+        "closed loop, 10 steps: observe failure or opportunity; create a structured candidate improvement; reproduce the baseline; implement in isolation; run benchmark and regression suite; independently review; keep ONLY when improvement is measured; revert when neutral or harmful; record the lesson in the correct skill/rule/workflow; update the benchmark so the same failure cannot silently return",
+        "constraint: no improvement is retained merely because an agent produced it (line 11150)"
+      ],
+      "allocation_buckets": [],
+      "owner_gated": false,
+      "hard_deps": ["0", "10"],
+      "soft_deps": ["15"],
+      "notes": "UNFUNDED - the only phase with no allocation bucket (see allocation_buckets.FINDING_unfunded_phase). NOT on the critical path to release: 15->16 is SOFT, and the loop's hard deps are the Phase 0 baseline (step 3 'reproduce the baseline') and the Phase 10 benchmark suite (steps 5 and 10)."
+    }
+  ],
+
+  "edges": [
+    {"from": "0", "to": "1", "type": "HARD", "reason": "Phase 1 canonical records carry 'source lineage'; lineage is only stable against a frozen snapshot. Phase 1's 'verification status' field also presupposes Phase 0's known-broken/known-good detector controls."},
+    {"from": "1", "to": "2", "type": "HARD", "reason": "Phase 2 requires every material claim to carry source lineage, a confidence band and an independent verification path - that is the canonical claim record Phase 1 defines. Researching into an undefined record format yields un-mergeable output. CONTESTED: see blocked_now.CONTESTED-1."},
+    {"from": "1", "to": "2A", "type": "HARD", "reason": "2A searches 'prior artifacts, transcripts' for candidates; Phase 1 is what canonicalized them. Without it, 2A re-discovers duplicates it cannot collapse."},
+    {"from": "2", "to": "2A", "type": "SOFT", "reason": "2A runs its own archaeology sweep and can share the Phase 2 research rail concurrently; it consumes no Phase 2 artifact."},
+    {"from": "1", "to": "2C", "type": "SOFT", "reason": "Council design is informed by canonical records but the spec itself enumerates the required topologies, protocols and 24 presets, so 2C is self-sufficient to start."},
+    {"from": "2", "to": "2C", "type": "SOFT", "reason": "External research on deliberation protocols improves 2C but is not consumed as an artifact."},
+    {"from": "2A", "to": "2B", "type": "HARD", "reason": "2B step 1 is literally 'ingest and normalize candidate workflows'. You cannot fuse what has not been acquired."},
+    {"from": "2", "to": "2B", "type": "SOFT", "reason": "Benchmark-case selection for fusion evaluation is better informed by Phase 2, but 2B can use in-repo cases."},
+    {"from": "2", "to": "3", "type": "HARD", "reason": "An architecture tournament with no external research produces nine drafts of the same in-house intuition. The 9 named architectures are research-grounded positions."},
+    {"from": "2B", "to": "3", "type": "SOFT", "reason": "Fusion results inform the distributed-workflow-runtime and marketplace-first candidates but are not required to author them."},
+    {"from": "2C", "to": "3", "type": "SOFT", "reason": "Council design informs the UX/product-first and maximal-hybrid candidates only."},
+    {"from": "3", "to": "4", "type": "HARD", "reason": "Contracts are specified FOR the winning architecture. Specifying 20 contracts against an unchosen architecture locks the loser's shape and is thrown away."},
+    {"from": "4", "to": "5", "type": "HARD", "reason": "Spec line 10822 is explicit: 'Write executable conformance tests before broad implementation.' Phase 5 is broad implementation, gated by the plugin-manifest and permission-model contracts."},
+    {"from": "4", "to": "6", "type": "HARD", "reason": "Marketplace manifest, package metadata, provenance and permission contracts are Phase 4 outputs the marketplace implements."},
+    {"from": "4", "to": "7", "type": "HARD", "reason": "The workflow DSL contract is a Phase 4 output; the typed workflow system implements it."},
+    {"from": "4", "to": "7A", "type": "HARD", "reason": "7A requires a VALIDATED CouncilSpec; validation is against the Phase 4 schema contracts."},
+    {"from": "4", "to": "8", "type": "HARD", "reason": "The skill contract and MCP adapter contract define what the router indexes and how it injects."},
+    {"from": "4", "to": "9", "type": "HARD", "reason": "Cross-vendor coordination is built on the cross-vendor adapter contract plus the shared work-unit and artifact schemas - all Phase 4 outputs."},
+    {"from": "5", "to": "6", "type": "SOFT", "reason": "The spec mandates a 'test fixture marketplace' (line 10871), which is exactly the decoupling that lets the marketplace be built before a finished plugin exists."},
+    {"from": "2A", "to": "7", "type": "HARD", "reason": "Seeded regression class at line 11331 - 'workflow discovery ignores an existing superior workflow and rebuilds it' - is only preventable with the 2A candidate registry in hand before authoring the 96."},
+    {"from": "2B", "to": "7", "type": "HARD", "reason": "Phase 7's 96 shipped definitions are 2B's certified output; 2B owns certification, lineage and the outperform-or-complement test."},
+    {"from": "2C", "to": "7A", "type": "HARD", "reason": "7A productionizes the typed CouncilSpec that 2C designs."},
+    {"from": "7", "to": "7A", "type": "HARD", "reason": "7A implements the council as 'a first-class workflow type', which requires Phase 7's workflow type system to exist."},
+    {"from": "7", "to": "8", "type": "SOFT", "reason": "The router indexes workflows among skills/plugins/tools, but can index skills and tools first and add workflows later."},
+    {"from": "0", "to": "10", "type": "HARD", "reason": "Test layer 33 (benchmark regression) has no comparator without the Phase 0 pre-change benchmark baselines. Spec line 10656: 'Capture benchmark baselines before changing behavior.'"},
+    {"from": "5", "to": "10", "type": "HARD", "reason": "Test layers 5-8 (clean-install, upgrade, rollback, uninstall) execute Phase 5's install tooling."},
+    {"from": "6", "to": "10", "type": "HARD", "reason": "Test layer 31 (malicious-plugin) and the marketplace-abuse classes execute Phase 6's registry and permission surface."},
+    {"from": "7", "to": "10", "type": "HARD", "reason": "Resume, replay, partial-artifact and duplicate-dispatch layers exercise Phase 7's runtime."},
+    {"from": "7A", "to": "10", "type": "HARD", "reason": "Deliberation-calibration units in bucket B08 test the Phase 7A council runtime."},
+    {"from": "8", "to": "10", "type": "HARD", "reason": "Phase 8's own deliverable is a router regression suite, which is executed here."},
+    {"from": "9", "to": "10", "type": "HARD", "reason": "Concurrency, crash-recovery, stale-monitor and duplicate-dispatch layers exercise Phase 9's coordination layer."},
+    {"from": "10", "to": "11", "type": "HARD", "reason": "Confirmers must 'reproduce the baseline failure' and 'reproduce the corrected behavior' - both require the tests to exist and to have run."},
+    {"from": "1", "to": "12", "type": "HARD", "reason": "Canonical claim records are the refutation targets; there is nothing to refute before they exist."},
+    {"from": "10", "to": "12", "type": "SOFT", "reason": "Most refuter tracks can run on claims alone; only the benchmark-gaming and performance tracks hard-require Phase 10 output."},
+    {"from": "11", "to": "12", "type": "SOFT", "reason": "Refuters are stronger against confirmed claims but must not wait on confirmation - and must default to REFUTED on insufficient evidence."},
+    {"from": "1", "to": "13", "type": "HARD", "reason": "Blind-spot review asks what was dropped from the canonical corpus; without the corpus the question has no domain."},
+    {"from": "10", "to": "13", "type": "SOFT", "reason": "'What test could falsely pass' and 'what platforms were never tested' are far sharper after Phase 10."},
+    {"from": "11", "to": "13", "type": "SOFT", "reason": "Confirmation discrepancies feed the blind-spot list."},
+    {"from": "12", "to": "13", "type": "SOFT", "reason": "Refutation output feeds 'what failures were normalized away'."},
+    {"from": "11", "to": "14", "type": "HARD", "reason": "Meta-review must check 'claims of completion not backed by the shared predicate' - it needs confirmer verdicts."},
+    {"from": "12", "to": "14", "type": "HARD", "reason": "Meta-review must check for 'omitted dissent'; dissent originates in refutation."},
+    {"from": "13", "to": "14", "type": "HARD", "reason": "The root-cause hierarchy must account for residual risks and accepted blind spots."},
+    {"from": "14", "to": "15", "type": "HARD", "reason": "Release notes must be 'grounded in verified changes' and promotion requires independent sign-off (line 11133), both Phase 14 outputs."},
+    {"from": "0", "to": "16", "type": "HARD", "reason": "Loop step 3 is 'reproduce the baseline' - the Phase 0 baseline is the reference."},
+    {"from": "10", "to": "16", "type": "HARD", "reason": "Loop steps 5 and 10 run and then UPDATE the benchmark and regression suite built in Phase 10."},
+    {"from": "15", "to": "16", "type": "SOFT", "reason": "The loop can observe failures pre-release; it does not consume a release artifact."}
+  ],
+  "edge_count": 46,
+  "hard_edge_count": 32,
+  "soft_edge_count": 14,
+
+  "critical_path": {
+    "method": "Longest chain of HARD edges only, computed over the 21 phase nodes. SOFT edges are excluded because by definition they can be violated without rework.",
+    "path": ["0", "1", "2", "3", "4", "7", "7A", "10", "11", "14", "15"],
+    "node_count": 11,
+    "hard_edge_count": 10,
+    "edge_reasoning": [
+      {"edge": "0->1", "why_on_path": "Nothing can be canonicalized against a moving corpus; Phase 0 is the only source of a frozen snapshot and of the detector controls that make 'verification status' meaningful."},
+      {"edge": "1->2", "why_on_path": "Phase 2's per-claim lineage/confidence/verification-path requirement is the Phase 1 record. CONTESTED - if the claim schema is pulled forward from Phase 4 this edge becomes SOFT and the critical path shortens by one node while releasing 224 units to start today."},
+      {"edge": "2->3", "why_on_path": "The nine committed architectures must be research-grounded, not nine restatements of one in-house intuition."},
+      {"edge": "3->4", "why_on_path": "Contracts are written for the WINNING architecture. Writing 20 contracts before the tournament locks the loser's shape."},
+      {"edge": "4->7", "why_on_path": "Spec line 10822 mandates executable conformance tests before broad implementation; the workflow DSL contract gates the workflow runtime."},
+      {"edge": "7->7A", "why_on_path": "The council is specified as a first-class workflow TYPE, so it cannot exist before the workflow type system does."},
+      {"edge": "7A->10", "why_on_path": "The deliberation-calibration test units cannot execute against a runtime that does not exist. 7A is the LAST of the six implementation phases to become testable, which is what puts it on the path rather than 5, 6, 8 or 9."},
+      {"edge": "10->11", "why_on_path": "Confirmers reproduce baseline failure and corrected behavior - both require executed tests."},
+      {"edge": "11->14", "why_on_path": "Meta-review checks completion claims against the shared predicate, which requires confirmer verdicts."},
+      {"edge": "14->15", "why_on_path": "Release notes must be grounded in verified changes and promotion requires independent sign-off."}
+    ],
+    "runner_up_paths": [
+      {"path": ["0", "1", "2A", "2B", "7", "7A", "10", "11", "14", "15"], "node_count": 10, "note": "The workflow-archaeology route. One node shorter, so slack of exactly 1 hop versus the critical path - it is a NEAR-critical path and should be scheduled as if critical."},
+      {"path": ["0", "1", "2", "3", "4", "5", "10", "11", "14", "15"], "node_count": 10, "note": "The plugin route."}
+    ],
+    "off_critical_path": {
+      "16": "Hangs off 10 (HARD) and 15 (SOFT). Post-release; not on the path to release.",
+      "6": "4->6->10, one hop shorter than the 7/7A branch.",
+      "8": "4->8->10.",
+      "9": "4->9->10.",
+      "12": "1->12->14, large slack.",
+      "13": "1->13->14, large slack."
+    }
+  },
+
+  "blocked_now": [
+    {
+      "id": "BLK-1",
+      "name": "Option-ID collision (finding F-B-02)",
+      "verdict": "CONFIRMED",
+      "severity": "P0",
+      "detail": "31 option IDs resolve to TWO UNRELATED MEANINGS depending on which artifact is open. 07-OPTION-UNIVERSE family M has 33 ids; 13-ARCHITECTURE-CANDIDATES section 4 mechanism options has 38 ids; they share the M-NN namespace; 31 collide. A further 7 doc-13 ids (M-12, M-16, M-17, M-19, M-28, M-30, M-38) resolve to ABSENT in the universe. Six of the seven ids in doc 13's own owner-decision table mis-resolve. Worked example: M-01 = 'Salvage the executed workflow corpus' (doc 07) vs 'EVENTS as data + generator-completeness test' (doc 13).",
+      "source": "17-DECISION-LOG.md:175",
+      "blocks_phases": ["2B", "5", "6", "7", "13"],
+      "blocks_program_conditions": [1, 17],
+      "why": "The spec's Inputs block (lines 10514-10516) makes 'Selected option IDs' a required program input. Phases 2B/5/6/7 are each scoped 'as selected'. Phase 13 must answer 'what option IDs were silently dropped' (line 11074), which is NOT COMPUTABLE against an ambiguous namespace. Program stop condition 1 ('every selected option is implemented, superseded, or rejected') is likewise not computable.",
+      "current_remediation_state": "A sibling lane has command-center/OPTION-ID-RESOLUTION.{json,md} in flight (untracked). Measured 2026-08-09: the JSON reads status=SKELETON, coverage='zero sections measured'. So the blocker is being worked but is NOT yet resolved. Re-probe before treating it as cleared."
+    },
+    {
+      "id": "BLK-2",
+      "name": "Release mode PR-ONLY leaves stop condition 13 undefined",
+      "verdict": "CONFIRMED",
+      "severity": "P1",
+      "blocks_phases": ["15"],
+      "blocks_program_conditions": [13],
+      "detail": "Owner decision binds release mode to PR-ONLY. Program stop condition 13 is 'release/canary succeeds' and Phase 15 mandates canary install/upgrade/rollback before promotion (line 11132). Under PR-ONLY no canary channel exists, so condition 13 can never become TRUE as written and the program cannot satisfy its own stopping rule.",
+      "owner_decision_needed": "Redefine condition 13 for PR-ONLY (recommended: 'a merged PR plus a local clean-install/upgrade/rollback rehearsal succeeds'), or mark it explicitly N/A. Also affects Phase 15 deliverables 'marketplace listing', 'signed artifacts', 'provenance attestation'."
+    },
+    {
+      "id": "BLK-3",
+      "name": "The command-center ledger does not pass its own gate",
+      "verdict": "CONFIRMED",
+      "severity": "P1",
+      "blocks_phases": [],
+      "blocks_program_conditions": [2, 4],
+      "detail": "python tools/command-center/validate.py exits 1 on main @53c37c6c: 'REACH-6 -: register snapshot sha256 1a404a91d819 != recorded 8b3e44cc3813'. This validator is a required CI step (.github/workflows/quality.yml:402). Pre-existing; not caused by this lane.",
+      "why_it_matters": "Stop condition 2 ('all contracted artifacts exist and pass schema/manifest checks') and condition 4 ('no required test is red') are both FALSE while this holds."
+    },
+    {
+      "id": "CONTESTED-1",
+      "name": "Is 1->2 really a HARD edge?",
+      "verdict": "PARTIAL",
+      "detail": "I model 1->2 as HARD because Phase 2 requires each material claim to carry source lineage, a confidence band and an independent verification path - the Phase 1 canonical record. But the 'claim schema' is formally a PHASE 4 contract (line 10808), so Phase 1 is already working to a provisional schema. If that provisional schema is authored up front as a program precondition, 1->2 becomes SOFT.",
+      "decision_impact": "HIGH - Phase 2 carries bucket B03 at 224 units, the largest research bucket. Downgrading this edge releases 224 units to start today and shortens the critical path from 11 nodes to 10.",
+      "settling_experiment": "Author the provisional claim-record schema (10 fields listed at spec lines 10668-10677) as a PRE-PRED-style precondition artifact and schema-check one real Phase-2 research output against it. If a Phase-2 unit can emit a conformant record without any Phase-1 output, the edge is SOFT."
+    }
+  ],
+
+  "parallel_frontier": {
+    "definition": "Phases whose HARD dependencies are all satisfied by today's state (2026-08-09, main @53c37c6c). SOFT dependencies do not exclude a phase from the frontier.",
+    "can_start_today": [
+      {
+        "phase": "0",
+        "title": "Freeze, snapshot, and prove the baseline",
+        "hard_deps": [],
+        "units_available": 120,
+        "buckets": ["B01", "B02"],
+        "priority": "HIGHEST - it is simultaneously the root of the critical path and a hard dependency of Phase 10 and Phase 16. Every day Phase 0 is not done is a day the benchmark-regression comparator does not exist.",
+        "caveat": "A sibling lane already has BASELINE-SNAPSHOT.{json,md} untracked in the tree. Coordinate before duplicating."
+      },
+      {
+        "phase": "2C",
+        "title": "Council Foundry and deliberation runtime (DESIGN)",
+        "hard_deps": [],
+        "units_available": 128,
+        "buckets": ["B05"],
+        "priority": "HIGH - fully unblocked and off the critical path, so it is free parallel capacity. The spec self-supplies most inputs: 11 topologies and ~18 protocols (lines 10926-10927) and 24 named presets (lines 11200-11225).",
+        "caveat": "Starting before Phase 4 means the CouncilSpec type predates the schema contracts; budget an explicit migration. Do NOT let 2C drift into 7A implementation - 7A is hard-gated on 4 and 7."
+      }
+    ],
+    "not_in_frontier_but_commonly_assumed_to_be": [
+      {"phase": "1", "reason": "HARD dep on 0 (frozen snapshot + detector controls)."},
+      {"phase": "2", "reason": "HARD dep on 1. But see CONTESTED-1 - this is the single highest-value edge to re-litigate, worth 224 units."},
+      {"phase": "2A", "reason": "HARD dep on 1."},
+      {"phase": "12", "reason": "HARD dep on 1 - there are no canonical claims to refute yet."},
+      {"phase": "13", "reason": "HARD dep on 1, and additionally blocked by BLK-1."}
+    ],
+    "total_units_startable_today": 248,
+    "total_units_startable_if_CONTESTED_1_resolves_soft": 472
+  }
+}

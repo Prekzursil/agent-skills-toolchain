@@ -1,0 +1,348 @@
+{
+  "artifacts": [
+    {
+      "path": "tools/workflow_foundry/component_graph.py",
+      "sha256": "461dbaf57eb80dbe3c83ee9406af8ce79ca4a0db2327f7bad12a22bef3d638ef",
+      "bytes": 5138,
+      "exists": true,
+      "role": "primary-implementation"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0174",
+  "evidence": [
+    {
+      "anchor": "tools/workflow_foundry/component_graph.py:orphan_count",
+      "claim": "orphan_count == 0 computed over 5 component nodes (from 7 stage observations); every node has a candidate source span.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0174/probe1_orphan_count.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"collapsed\": 2,\n  \"edge_count\": 4,\n  \"every_node_anchored\": true,\n  \"library_pass\": true,\n  \"merge_happened\": true,\n  \"node_count\": 5,\n  \"orphan_count\": 0,\n  \"pass\": true,\n  \"probe\": \"probe1-orphan-count\",\n  \"stage_observations\": 7,\n  \"unit_id\": \"IMP-0174\"\n}\norphan_count=0 nodes=5 stages=7 collapsed=2\nSUCCESS:IMP-0174-probe1 orphan-component count == 0 (computed)",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/workflow_foundry/component_graph.py:assert_no_orphans",
+      "claim": "A planted component with empty provenance fails the build (orphan-component); a keyword lookalike kind 'orphan-lookalike' with a real span does not. Detector reads provenance/source_span, not the token 'orphan' in ids.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0174/probe2_planted_orphan.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"both_states\": {\n    \"good_orphan_count\": 0,\n    \"lookalike_id\": \"orphan-lookalike:5d090c17152ef1c6\",\n    \"lookalike_orphan_count\": 0,\n    \"lookalike_present\": true,\n    \"pass\": true,\n    \"planted_error_id\": \"orphan-component\",\n    \"planted_id\": \"invented:d272eaf05a66e80b\",\n    \"planted_id_contains_orphan\": false,\n    \"planted_orphan_count\": 1,\n    \"planted_raises\": true,\n    \"unanchored_stage_raises\": true\n  }\n}\n{\n  \"detector_ast\": {\n    \"forbidden_orphan_substring_in\": false,\n    \"is_orphan_reads_provenance\": true,\n    \"missing_functions\": [],\n    \"pass\": true,\n    \"source\": \"tools/workflow_foundry/component_graph.py\",\n    \"span_reads_uri_and_start_line\": true,\n    \"valid_provenance_reads_candidate_id\": true\n  }\n}\ngood_silent planted_fires lookalike_silent planted_id=invented:d272eaf05a66e80b\nSUCCESS:IMP-0174-probe2 planted orphan fails the build",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "graph": {
+    "collapsed": 2,
+    "edge_count": 4,
+    "edges": [
+      {
+        "candidate_id": "cand-a-research-pipeline",
+        "from": "retrieve:f2542e97587eb6f4",
+        "from_local": "retrieve",
+        "to": "rank:0ae6d1d34f15afab",
+        "to_local": "rank"
+      },
+      {
+        "candidate_id": "cand-a-research-pipeline",
+        "from": "rank:0ae6d1d34f15afab",
+        "from_local": "rank",
+        "to": "critique:d0485240027fcdf5",
+        "to_local": "critique"
+      },
+      {
+        "candidate_id": "cand-b-retrieve-then-synthesize",
+        "from": "retrieve:f2542e97587eb6f4",
+        "from_local": "retrieve",
+        "to": "synthesize:23c00461e75b92a1",
+        "to_local": "synthesize"
+      },
+      {
+        "candidate_id": "cand-c-web-retrieve-then-rank",
+        "from": "retrieve:a96a94e878e13842",
+        "from_local": "retrieve",
+        "to": "rank:0ae6d1d34f15afab",
+        "to_local": "rank"
+      }
+    ],
+    "node_count": 5,
+    "nodes": [
+      {
+        "gate": {
+          "args": [
+            {
+              "id": "has-citations",
+              "op": "ATOM"
+            },
+            {
+              "id": "span-complete",
+              "op": "ATOM"
+            }
+          ],
+          "op": "ALL"
+        },
+        "id": "retrieve:f2542e97587eb6f4",
+        "kind": "retrieve",
+        "output_type": "evidence-set",
+        "provenance": [
+          {
+            "candidate_id": "cand-a-research-pipeline",
+            "local_id": "retrieve",
+            "source_span": {
+              "end_line": 24,
+              "start_line": 10,
+              "uri": "candidates/cand-a.yaml"
+            }
+          },
+          {
+            "candidate_id": "cand-b-retrieve-then-synthesize",
+            "local_id": "retrieve",
+            "source_span": {
+              "end_line": 20,
+              "start_line": 8,
+              "uri": "candidates/cand-b.yaml"
+            }
+          }
+        ],
+        "roles": [
+          "researcher"
+        ],
+        "tools": [
+          "Grep",
+          "Read"
+        ]
+      },
+      {
+        "gate": {
+          "id": "score-threshold",
+          "op": "ATOM"
+        },
+        "id": "rank:0ae6d1d34f15afab",
+        "kind": "rank",
+        "output_type": "ranked-set",
+        "provenance": [
+          {
+            "candidate_id": "cand-a-research-pipeline",
+            "local_id": "rank",
+            "source_span": {
+              "end_line": 40,
+              "start_line": 26,
+              "uri": "candidates/cand-a.yaml"
+            }
+          },
+          {
+            "candidate_id": "cand-c-web-retrieve-then-rank",
+            "local_id": "rank",
+            "source_span": {
+              "end_line": 34,
+              "start_line": 20,
+              "uri": "candidates/cand-c.yaml"
+            }
+          }
+        ],
+        "roles": [
+          "ranker"
+        ],
+        "tools": []
+      },
+      {
+        "gate": {
+          "args": [
+            {
+              "id": "disagreement-recorded",
+              "op": "ATOM"
+            }
+          ],
+          "op": "ALL"
+        },
+        "id": "critique:d0485240027fcdf5",
+        "kind": "critique",
+        "output_type": "critique",
+        "provenance": [
+          {
+            "candidate_id": "cand-a-research-pipeline",
+            "local_id": "critique",
+            "source_span": {
+              "end_line": 60,
+              "start_line": 42,
+              "uri": "candidates/cand-a.yaml"
+            }
+          }
+        ],
+        "roles": [
+          "critic",
+          "refuter"
+        ],
+        "tools": []
+      },
+      {
+        "gate": {
+          "id": "sources-cited",
+          "op": "ATOM"
+        },
+        "id": "synthesize:23c00461e75b92a1",
+        "kind": "synthesize",
+        "output_type": "report",
+        "provenance": [
+          {
+            "candidate_id": "cand-b-retrieve-then-synthesize",
+            "local_id": "synthesize",
+            "source_span": {
+              "end_line": 50,
+              "start_line": 22,
+              "uri": "candidates/cand-b.yaml"
+            }
+          }
+        ],
+        "roles": [
+          "synthesizer"
+        ],
+        "tools": [
+          "Write"
+        ]
+      },
+      {
+        "gate": {
+          "args": [
+            {
+              "id": "has-citations",
+              "op": "ATOM"
+            },
+            {
+              "id": "span-complete",
+              "op": "ATOM"
+            }
+          ],
+          "op": "ALL"
+        },
+        "id": "retrieve:a96a94e878e13842",
+        "kind": "retrieve",
+        "output_type": "evidence-set",
+        "provenance": [
+          {
+            "candidate_id": "cand-c-web-retrieve-then-rank",
+            "local_id": "retrieve",
+            "source_span": {
+              "end_line": 18,
+              "start_line": 5,
+              "uri": "candidates/cand-c.yaml"
+            }
+          }
+        ],
+        "roles": [
+          "researcher"
+        ],
+        "tools": [
+          "Grep",
+          "Read",
+          "WebSearch"
+        ]
+      }
+    ],
+    "orphan_count": 0,
+    "orphan_ids": [],
+    "stage_observations": 7
+  },
+  "id": "IMP-0174",
+  "implementation": {
+    "api_module": "tools/workflow_foundry/component_graph.py",
+    "bytes": 11316,
+    "edge_identity": "observed compositions mapped onto component ids",
+    "entry_points": [
+      "workflow_foundry.component_graph.build",
+      "workflow_foundry.component_graph.assemble",
+      "workflow_foundry.component_graph.orphan_count",
+      "workflow_foundry.component_graph.plant_orphan"
+    ],
+    "node_identity": "sha256(kind + canonical contract: roles, gate, tools, output_type)",
+    "orphan_rule": "a node is an orphan iff it has no provenance entry with a non-empty candidate_id and a resolvable source_span (uri + start_line<=end_line, start_line>=1)",
+    "sha256": "9995fffd7291638c456272c96f23f65474af16d7b49a2d007e50c2c70ce02a83"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0174/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Insert a node with empty provenance; assert_no_orphans must raise orphan-component. Control extraction stays silent.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0174-C1-planted-empty-provenance",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A stage missing source_span is ingested as an orphan and fails build(); a spanned twin of the same kind is not.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0174-C2-unanchored-stage",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Kind 'orphan-lookalike' with a resolvable span must build; an invented node whose id does not contain 'orphan' must fail.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0174-C3-keyword-lookalike",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 IMP-0174: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0174 shard8w4 2026-10-26: artifacts[] re-inventoried against live disk after probe-layer reconstruction (prior builder session ended mid-flight); rows for files no longer present were dropped per write_if_valid convention. Reviewer closure unchanged; live re-verification: probes exit 0, per-unit manifest row matches.",
+  "output_path": "command-center/receipts/IMP-0174.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "premise": {
+    "action": "IMP-0165/0166/0167 receipts are absent on this worktree. Shipped the graph builder against a typed extraction document and in-tree control fixtures standing in for stage/role/gate/tool extraction those units would emit. Did not exit on predicate:absent.",
+    "catalog_inputs": [
+      "IMP-0165",
+      "IMP-0166",
+      "IMP-0167 outputs",
+      "_USER-PROMPTS.md:11152-11170 (Workflow Foundry required production behavior)"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the planted empty-provenance node plus AST scan of is_orphan/valid_provenance; not a self-attested prose review.",
+    "reviewer_id": "IMP-0174-probe2-planted-orphan-and-keyword-lookalike",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0174",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0174: graph nodes are reusable COMPONENTS (stage kind + contract); edges are observed compositions; every node traces to a candidate source span; an orphan component is a build failure",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0174/probe1_orphan_count.py",
+      "exit_code": 0,
+      "id": "orphan-component-count-eq-0",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0174/probe2_planted_orphan.py",
+      "exit_code": 0,
+      "id": "planted-orphan-must-fail-the-build",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:00:33Z",
+    "started_at": "2026-08-25T01:00:33Z"
+  },
+  "title": "Build the semantic component graph over extracted stages, roles and gates",
+  "unit_id": "IMP-0174"
+}

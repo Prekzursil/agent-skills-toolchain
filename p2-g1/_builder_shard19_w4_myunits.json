@@ -1,0 +1,573 @@
+{
+ "TST-0283": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "calibration-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0283",
+  "dependencies": [
+   "TST-0281"
+  ],
+  "evidence_requirement": "Publish the yield curve for at least three corpora with different true source counts. Report the point at which the detector fired against the known ground truth.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "calibration-failure",
+   "overclaim"
+  ],
+  "id": "TST-0283",
+  "inputs": [
+   "_USER-PROMPTS.md:10941 (evidence_saturation == true OR time_minutes >= 180)",
+   "seeded corpora with a known distinct-source count",
+   "tools/council/simulate.py (deterministic council simulator)",
+   "the research stage adapters from bucket B07"
+  ],
+  "output_path": "command-center/receipts/TST-0283.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: the stopping expression at :10941 turns on evidence_saturation == true, so the detector behind it must be shown to fire when saturation is real and stay silent when it is not. Define saturation as the marginal yield of new independent evidence per unit of search effort falling below a floor, and measure the yield curve on corpora where the answer is known by construction (a seeded corpus with a known number of distinct sources).",
+  "retry_policy": "Two strikes then pivot (AGENTS.md 4b): after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt.",
+  "reviewer_requirement": "One reviewer with a statistics mandate who must re-run the comparison from the raw per-case results and independently reproduce the reported effect size and interval.",
+  "tests_required": [
+   "Seeded corpus with 12 distinct sources -> detector fires only after the marginal yield collapses, and the fire point is reported against ground truth.",
+   "Both-states control: a corpus still yielding new sources must NOT fire.",
+   "Time-arm interaction: confirm the OR with time_minutes cannot mask a never-firing detector (the timeout arm must be logged distinctly from the saturation arm)."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Evidence saturation: build the detector and prove it is not silent in both states",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "TST-0284": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adversarial-refuter",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0284",
+  "dependencies": [
+   "TST-0281"
+  ],
+  "evidence_requirement": "Validate at least three real impossibility records produced elsewhere in the program and report which of the five mandatory elements each is missing.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "spec-gap",
+   "detector-failure"
+  ],
+  "id": "TST-0284",
+  "inputs": [
+   "_USER-PROMPTS.md:10942",
+   "_USER-PROMPTS.md:11276 (proof-of-impossibility in the research repair loop)",
+   "the record schema from bucket B04/B07",
+   "tools/council/simulate.py (deterministic council simulator)"
+  ],
+  "output_path": "command-center/receipts/TST-0284.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Implementation target: the outcome at :10942 and :11276 requires a proof-of-impossibility record. Specify its mandatory contents - the exact claim shown unobtainable, the search space actually covered, the methods attempted with their outputs, the resource limit reached, and the concrete observation that WOULD refute the impossibility - and gate acceptance on all five. A record that cannot be refuted by any named observation is not a proof and must be rejected by the validator.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One cross-vendor (Codex) reviewer plus one Claude reviewer, both in fresh contexts; a split verdict is resolved by reading the raw probe output, never by vote count.",
+  "tests_required": [
+   "Validator rejects a record with no refuting-observation field.",
+   "Validator accepts a well-formed record (no over-blocking).",
+   "Adversarial: a record whose refuting observation is unobservable in principle must be rejected as circular."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Make proof-of-impossibility falsifiable so it cannot become a polite word for giving up",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0288": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "statistician",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0288",
+  "dependencies": [
+   "TST-0287",
+   "TST-0280"
+  ],
+  "evidence_requirement": "Report the per-method score with confidence intervals and the paired test between the best method and naive majority. A ranking without an interval invites reading noise as a result.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "statistical-invalidity",
+   "overclaim",
+   "benchmark-gaming"
+  ],
+  "id": "TST-0288",
+  "inputs": [
+   "resolved council decision corpus with known outcomes",
+   "_USER-PROMPTS.md:10930",
+   "the aggregation implementations from bucket B07",
+   "tools/council/simulate.py (deterministic council simulator)"
+  ],
+  "output_path": "command-center/receipts/TST-0288.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: the runtime offers weighted and Bayesian aggregation at :10930; on this program's own decision corpus, do they outperform an unweighted majority, and by how much? Run every aggregation method over the same set of resolved council decisions and rank them by proper score. If weighting does not beat majority, the extra machinery is unjustified complexity and the default must change.",
+  "retry_policy": "Two strikes then pivot (AGENTS.md 4b): after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt.",
+  "reviewer_requirement": "One reviewer with a statistics mandate who must re-run the comparison from the raw per-case results and independently reproduce the reported effect size and interval.",
+  "tests_required": [
+   "Paired comparison of every aggregation method on identical decisions.",
+   "Weight-source ablation: weights derived from calibration versus weights assigned by role, scored separately.",
+   "Null control: random weights must not beat majority; if they do, the corpus is too small and the unit must report that instead of a ranking."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Does weighted belief aggregation actually beat naive majority on a scored gold set",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "TST-0297": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0297",
+  "dependencies": [
+   "TST-0295"
+  ],
+  "evidence_requirement": "Report the null-delta distribution over at least 10 repeated identical runs, with its standard deviation. Every later improvement claim in this program must cite this floor.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "nondeterminism",
+   "statistical-invalidity",
+   "overclaim"
+  ],
+  "id": "TST-0297",
+  "inputs": [
+   "tools/bench/ (the benchmark and regression platform built by this lane)",
+   "command-center/bench/cases/ (the benchmark case corpus)",
+   "environment capture from lane C unit for admissibility",
+   "_USER-PROMPTS.md:10577 (stagger arrivals; arrival rate is a scheduler input)"
+  ],
+  "output_path": "command-center/receipts/TST-0297.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: how much of a measured delta is the change, and how much is the harness moving under it? Capture and freeze everything that can vary (seed, model id and snapshot, temperature, tool versions, OS, locale, concurrency), then measure the null delta - the same configuration run twice - and publish it as the variance floor. Any improvement smaller than the variance floor is not a result, and the platform must refuse to report it as one.",
+  "retry_policy": "Re-run is permitted only with a NEW recorded seed; re-running the same seed to get a different answer is a detector failure and must be reported as one.",
+  "reviewer_requirement": "One reviewer with a statistics mandate who must re-run the comparison from the raw per-case results and independently reproduce the reported effect size and interval.",
+  "tests_required": [
+   "Null-delta measurement: identical config run 10+ times, distribution published.",
+   "Seed wiring proof: changing only the seed must change the result set, or the seed is inert.",
+   "Environment drift alarm: a run whose captured environment differs from the baseline must be flagged, not silently compared."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Pin determinism: seeds, model versions, environment capture and a run-to-run variance budget",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0303": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0303",
+  "dependencies": [
+   "TST-0295"
+  ],
+  "evidence_requirement": "Publish the per-class TTL table and the count of currently expired results. A dashboard showing green must show the age of each green.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "TST-0303",
+  "inputs": [
+   "command-center/bench/cases/ (the benchmark case corpus)",
+   "command-center/bench/results/ (append-only per-run results ledger)",
+   "tools/bench/ (the benchmark and regression platform built by this lane)",
+   "the dependency classification from B01 provenance fields"
+  ],
+  "output_path": "command-center/receipts/TST-0303.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: a stored green from last week is not a control for today when the check queries a live advisory database, a marketplace index or a model endpoint that ships new snapshots. Classify every benchmark case by whether its oracle depends on an external live source, assign a staleness TTL per class, and make the platform refuse to cite an expired result as current evidence. The failure is subtle because the expired result is not wrong, it is merely no longer a measurement of today.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
+  "tests_required": [
+   "Expired result cannot satisfy a gate: prove by back-dating a result past its TTL.",
+   "Live-dependency classification checked against the actual network calls each oracle makes, not against its declared class.",
+   "Both-states: a hermetic case must NOT expire, so the TTL does not force pointless re-runs."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Expire benchmark results that depend on a live external source",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0309": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "statistician",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0309",
+  "dependencies": [
+   "TST-0295"
+  ],
+  "evidence_requirement": "Report kappa with n, and the DIRECTION of judge errors (which way it is biased), because direction matters more than accuracy when the downstream action is a release decision.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "calibration-failure",
+   "benchmark-gaming",
+   "overclaim"
+  ],
+  "id": "TST-0309",
+  "inputs": [
+   "command-center/bench/cases/ (the benchmark case corpus)",
+   "deterministic oracles from B01",
+   "the judge prompt and rubric",
+   "command-center/bench/results/ (append-only per-run results ledger)"
+  ],
+  "output_path": "command-center/receipts/TST-0309.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Implementation target: where a benchmark case can be scored by an exact algorithm, the platform must use the algorithm; where only a model judgement is available, the platform must report the judge agreement rate that licenses trusting it. Measure Cohen kappa between the judge and the deterministic oracle on the subset where both exist, then extrapolate the error bar onto the judged-only subset. On this estate an LLM classification of a mechanical comparison measured 86 percent accurate with 100 percent of errors pointing one way, which is why oracle-first is a rule and not a preference.",
+  "retry_policy": "Two strikes then pivot (AGENTS.md 4b): after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt.",
+  "reviewer_requirement": "One reviewer with a statistics mandate who must re-run the comparison from the raw per-case results and independently reproduce the reported effect size and interval.",
+  "tests_required": [
+   "Kappa on the overlap subset with per-class error direction.",
+   "Oracle-first enforcement: a case with an available deterministic oracle that is scored by the judge must fail a lint check.",
+   "Judge-swap: a second judge model on the same cases; disagreement between judges bounds how much either can be trusted."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Measure judge-model agreement against deterministic oracles and mandate the oracle where one exists",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "TST-0313": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0313",
+  "dependencies": [
+   "TST-0295"
+  ],
+  "evidence_requirement": "For each closed defect cite two run ids: the failing run on the pre-fix commit and the passing run on the post-fix commit. A single passing run is not admissible.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "TST-0313",
+  "inputs": [
+   "_USER-PROMPTS.md:11148",
+   "command-center/bench/cases/ (the benchmark case corpus)",
+   "the defect register from bucket B10/B11",
+   "the two-commit runner (pre-fix and post-fix)"
+  ],
+  "output_path": "command-center/receipts/TST-0313.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "16",
+  "question_or_target": "Implementation target: step 10 of the loop at :11148 requires updating the benchmark so the same failure cannot silently return. Enforce it structurally: a defect record cannot move to CLOSED until a case exists whose oracle FAILS on the pre-fix commit and PASSES on the post-fix commit. Both runs must be recorded. A test written after the fix and never run against the broken state proves nothing, which is the ordinary way this requirement is satisfied on paper and violated in fact.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
+  "tests_required": [
+   "Closure blocked when the pre-fix run is missing.",
+   "Both-states enforced automatically by the closure tool, not by reviewer discipline.",
+   "Backfill census: report how many already-closed defects lack a pre-fix failing run and treat that number as debt, not as pass."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Every closed defect must leave behind a regression case that would catch its return",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0315": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0315",
+  "dependencies": [
+   "TST-0310"
+  ],
+  "evidence_requirement": "Cite the linter rule and a rejected fixture listing. A schema that permits free text anywhere in the evidence field must be reported as an open hole.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "security-finding",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "TST-0315",
+  "inputs": [
+   "_USER-PROMPTS.md:10860 (marketplace benchmark evidence)",
+   "_USER-PROMPTS.md:11056 (marketplace abuse refuter)",
+   "command-center/bench/results/ (append-only per-run results ledger)",
+   "the marketplace linter from bucket B07 phase 6"
+  ],
+  "output_path": "command-center/receipts/TST-0315.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Implementation target: spec :10860 lists benchmark evidence as marketplace metadata. Define the evidence field as a reference (run id, case-set id, harness version, commit SHA) rather than a free-text claim, and make the marketplace linter reject a listing whose evidence does not resolve in the results ledger or whose harness version is no longer supported. Unverifiable performance claims are the marketplace-abuse vector at :11056.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "Two reviewers: a cross-vendor security reviewer plus one correctness reviewer in a fresh context; both must reproduce the injection or leakage attempt.",
+  "tests_required": [
+   "Listing with a fabricated run id is rejected.",
+   "Listing with a valid but expired (B09) run is flagged as stale rather than accepted.",
+   "Both-states: a well-formed listing with a resolvable run passes.",
+   "Third-party listing case: evidence produced by a publisher we do not control must be marked unverified rather than silently trusted."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Benchmark evidence on a marketplace listing must resolve to a real run",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0319": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0319",
+  "dependencies": [
+   "TST-0295"
+  ],
+  "evidence_requirement": "Report the configured quota, the returned proportion and the contradiction survival rate into the final artifact, per corpus. Survival into the intermediate notes does not count.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "evidence-bypass",
+   "calibration-failure",
+   "overclaim"
+  ],
+  "id": "TST-0319",
+  "inputs": [
+   "seeded corpora with known support/contradiction ratios",
+   "_USER-PROMPTS.md:11260-11278 (deep-research required configuration)",
+   "command-center/bench/cases/ (the benchmark case corpus)",
+   "tools/bench/ (the benchmark and regression platform built by this lane)"
+  ],
+  "output_path": "command-center/receipts/TST-0319.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: the research workflow at :11260-11278 is configured with favourable and unfavourable result quotas, contradiction search and a requirement to preserve negative and contradictory evidence. Build seeded corpora where the true distribution of supporting and contradicting sources is known by construction, then measure whether the workflow returns them in the configured proportion and whether contradictions survive into the final report. A research system that quietly drops disconfirming evidence still produces a confident, useless answer.",
+  "retry_policy": "Two strikes then pivot (AGENTS.md 4b): after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt.",
+  "reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
+  "tests_required": [
+   "Quota adherence measured against a known ground-truth ratio.",
+   "Contradiction survival traced to the FINAL report, not the working notes.",
+   "Suppression control: a corpus where the contradicting evidence is stronger must not be reported as consensus.",
+   "Proof-of-impossibility path exercised on a corpus where the asked-for evidence does not exist."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Benchmark deep-research quality on quota adherence and contradiction retention",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0322": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "harness-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0322",
+  "dependencies": [
+   "TST-0295",
+   "CC-0007"
+  ],
+  "evidence_requirement": "Show the verifier detecting all three tamper classes on a copy of the real ledger. Report the ledger row count and the verification wall-clock so the check is known to be practical.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "state-corruption",
+   "security-finding",
+   "detector-failure"
+  ],
+  "id": "TST-0322",
+  "inputs": [
+   "command-center/bench/results/ (append-only per-run results ledger)",
+   "command-center/events/EVENTS.jsonl conventions",
+   "the append-only event-log hardening from CC-0007",
+   "tools/bench/ (the benchmark and regression platform built by this lane)"
+  ],
+  "output_path": "command-center/receipts/TST-0322.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Implementation target: every number this program cites eventually traces to the results ledger, so a silently mutated past result poisons every downstream claim. Make the ledger append-only with a per-row content hash chained to the previous row, and ship the verifier that detects insertion, deletion and in-place edit. This is the integrity substrate under B16 (generated tables) and B12 (overfitting series), both of which are worthless if history can move.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One independent reviewer who re-runs the probe under a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding rather than a retry.",
+  "tests_required": [
+   "Tamper controls: in-place edit, deleted row and inserted row each DETECTED.",
+   "Clean ledger verifies silently (no false positive).",
+   "Concurrent-writer safety on Windows: two writers appending simultaneously must not interleave a torn row, tested with real concurrent processes."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Make the results ledger append-only and prove a retroactive edit is detectable",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0328": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "harness-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0328",
+  "dependencies": [],
+  "evidence_requirement": "The fixture itself must be exercised by a self-test that includes a deliberately silent detector and confirms the fixture REJECTS it. A fixture that cannot fail is the same bug one level up.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "TST-0328",
+  "inputs": [
+   "_USER-PROMPTS.md:10658 (verify detectors against known-broken and known-good controls)",
+   "the shared test-support package",
+   "command-center/TEST-REGISTRY.json",
+   "_USER-PROMPTS.md:11026 (every important suite must carry negative controls or mutations)"
+  ],
+  "output_path": "command-center/receipts/TST-0328.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Implementation target: spec :10658 requires verifying detectors against known-broken and known-good controls. Provide it as a shared fixture rather than a convention: a helper that takes a detector, a known-good state and a known-broken state, asserts SILENT then FIRES, and records both observations in the receipt. A probe that is silent in both states measures nothing, and on this estate that exact failure reached the point of being reported as verification, so the discipline needs to be a callable, not a reminder.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
+  "tests_required": [
+   "Self-test: a detector silent in both states is rejected by the fixture.",
+   "Self-test: a detector that fires in both states (always-on) is also rejected.",
+   "Adoption census: report how many registered detectors currently use the fixture versus a hand-rolled control."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Ship a reusable both-states fixture so a detector must fire on the broken state before it is trusted",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0330": {
+  "_source_slice_file": "TST-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0330",
+  "dependencies": [
+   "CC-0003",
+   "CC-0004"
+  ],
+  "evidence_requirement": "Report the corpus size, the number of disagreements and every disagreeing input verbatim. Zero disagreements on a corpus with no malformed inputs is not a result.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "TST-0330",
+  "inputs": [
+   "_USER-PROMPTS.md:11314 (two completion predicates disagree)",
+   "the shared reducer from CC-0003",
+   "monitor and dispatcher reducer implementations",
+   "a corpus of unit states incl. malformed"
+  ],
+  "output_path": "command-center/receipts/TST-0330.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Question: spec :11314 names two completion predicates disagreeing as a failure class. CC-0004 statically detects a fan-in site that rolls its own check; this unit is the runtime differential for the implementations that legitimately exist in different runtimes (the local python reducer, any JavaScript or shell reimplementation in a monitor, and the cloud dispatcher). Feed both the same corpus of unit states, including malformed and partial ones, and require byte-identical verdicts.",
+  "retry_policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture.",
+  "reviewer_requirement": "One cross-vendor (Codex) reviewer plus one Claude reviewer, both in fresh contexts; a split verdict is resolved by reading the raw probe output, never by vote count.",
+  "tests_required": [
+   "Differential over a corpus that deliberately includes partial artifacts, missing sentinels and torn JSON.",
+   "Divergence control: patch one implementation to skip a condition and confirm the differential detects it.",
+   "Implementation census: if only one implementation exists, report that as NOT-CHECKED rather than passing the unit trivially."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Differential-test two completion-predicate implementations against each other on identical inputs",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ }
+}

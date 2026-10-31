@@ -1,0 +1,207 @@
+# agentId=aa1e83cff63e3c2bd
+# type=result
+
+
+===== lane =====
+LANE CASUALTY — independent audit of build round 1 (finish ADV-0021/ADV-0022, census the rest)
+
+===== verdict =====
+PARTIAL
+
+===== findings =====
+ALL SIX DoD ITEMS SUBSTANTIVELY HOLD UNDER MY OWN EXECUTION. Every headline number the builder quoted reproduced. Two DoD self-assessments are stated wider than the evidence, and I found four real (minor) defects the builder did not report. Nothing needs rebuilding.
+
+DoD 1 — ADV-0021 finished to its own contract: CONFIRMED, with one scoping overclaim.
+* Contract authenticity: recovered/ADV-0021-spec.json is field-for-field IDENTICAL to the real catalog entry in command-center/catalog-slices/ADV-1.json (only an added _source_slice_file). So the contract was READ, not inferred from the filename. Same for ADV-0022 and ADV-0002.
+* I recounted the matrix from the JSON myself: 42 cells = 7 boundaries x 6 STRIDE (7 each), statuses {unmitigated 20, partial 9, not-applicable 11, mitigated 2} — exactly the declared stride_status_counts. 0 cells with an empty status, 0 with an empty disposition.
+* I re-executed probes/adv0021_verifier.py: output byte-identical to the stored capture after EOL-normalise. Its four checks each carry a NON-ZERO positive control (16 hash-verb callsites, 4 safe_join functions, 2 free-space Compare nodes, 4 "diverged" test functions), so the zeros are real absences, not an inert walker.
+* I spot-verified three P1 findings in the source directly (a mechanically different check from the AST walker): platform/plugin/journal.py:81 `def version_dir(self, version): return self.versions / version` — no containment; platform/plugin/manifest.py:31 `SEMVER_RE = ^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$` — the `[-+].*` tail accepts separators; platform/plugin/cli.py:287 `cache.verify()` -> cache.py:98 "Quarantine every self-inconsistent entry" = a content re-hash, not signature verification. All three genuine.
+* The 512 MiB expansion is not a probe cap: probes/adv0021_probe2b.py:74 authors `b"\x00" * (512*1024*1024)` as the bomb payload, so 536,870,912 B written is the full uncompressed payload. Correct zip-bomb methodology.
+
+DoD 2 — ADV-0022 finished to its own contract: CONFIRMED (strongest evidence in the audit).
+* I INDEPENDENTLY RE-EXECUTED probes/adv0022_escape_harness.py in a fresh %TEMP% workspace of my own. Result: narrow_out_of_declaration_escapes = 4 of narrow_ops_total = 4; wide_component_control 4/4 SUCCEEDED with escaped_declaration=false on 3 of 4; detector_integrity.discriminates = true (must_fail_nonexistent_binary FAILED, must_fail_closed_port FAILED, must_succeed_trivial_subprocess SUCCEEDED). This is a fresh execution, not a re-read of the builder's capture.
+* I re-ran probes/adv0022_git_verifier.sh: `git grep tool_permissions -- hooks/` exits 1 against a 289-tracked-file empty-pathspec control, so the zero is a real absence; the use-vs-mention classification (3 mentions + 1 getattr caller at wave3_floor_audit.py:456 the python scanner missed) reproduces.
+* The two honestly PARTIAL/NOT-CHECKED clauses (disposable-sandbox substrate; two-different-vendor reviewers) are disclosed inline in the receipt, not buried.
+
+DoD 3 — prior work recovered, not redone: CONFIRMED with a controlled detector.
+* All 10 probe scripts and captures in command-center/casualty/probes/ and probe-output/*.ORIGINAL.* are SHA-256 IDENTICAL to the dead agents' scratch originals at C:/Users/Prekzursil/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-.../scratchpad/, whose mtimes are 2026-08-11 22:37-22:53 (the dead agents' window). My negative control (scratch adv0021_probe1.py vs the lane's new adv0021_verifier.py) correctly DIFFERS, so the comparator is not stuck on MATCH.
+* Caveat I owe: _r1_rerun_diff.py only DIFFS pre-existing ORIGINAL/RERUN pairs; it does not itself re-execute. The re-execution of adv0021_probe1/probe2b happened in the builder's session and I did not repeat those two. I did independently re-execute the ADV-0022 harness and the ADV-0021 verifier.
+
+DoD 4 — discriminating census with its control: CONFIRMED, scope caveat already disclosed by the builder.
+* census_v2.py runs its control FIRST and exits non-zero without printing a tally if any pair fails. My re-run: 6 pairs ALL SEPARATE (complete 6/6 vs skeleton 0/6), 40 artifacts, raw {0:2, 5:4, 6:34}, effective {5:4, 6:36}. Exactly as reported.
+* Honest scoping the builder already states: the "6 pairs" are 3 completes x 2 skeletons — only TWO distinct skeleton fixtures exist and the corpus is bimodal, so a genuinely half-finished artifact is untested. Builder rates this likely 55-80%; I agree.
+* I independently CONFIRMED the P1 defect in the superseded _probe_liveness.py by reading the code AND by timestamp comparison: lines 41-46 read G1 (substance_score) out of ADV-COMPLETENESS-CENSUS.json with NO freshness check, while G2/G3 are live mtimes. The old liveness ran at generated_at_local 2026-08-12T09:35:35 against a census whose generated_at_utc is 2026-08-11T22:35:31Z (= 01:35 local) — an EIGHT-HOUR-stale score input. Six of its eight CASUALTY verdicts (ADV-0031/0032/0035/0036/0039/0042) are complete 6/6 artifacts of 45,604-166,590 B. If anything the builder understated this.
+
+DoD 5 — ADV-0002 accounted for: CONFIRMED.
+* Re-ran _probe_dispatch_census.py: two-sided control passes; 40 dispatched / 40 artifacts, 1:1 in both directions; ADV-0002 and ADV-0038 dispatched=False artifact=False.
+* Re-ran _r1_why_undispatched.py: ADV-0038 deps ['B07','B13'] with no ADV-* dep; 3 counterexamples (ADV-0013<-0007, ADV-0016<-0011, ADV-0018<-0012) dispatched despite in-wave ADV deps. The revision of the grounding lane's snapshot hypothesis from likely-65% down to NOT-CHECKED is warranted.
+* I verified two collateral claims: the catalog holds 144 ADV units (ADV-1.json 128 + ADV-2.json 16), and ALL 144 carry bucket "B10" — so "zero units have bucket B07 or B13" is true.
+
+DoD 6 — census timestamped + live-wave caveat: CONFIRMED, and I demonstrated the caveat is live rather than boilerplate. Between the builder's 09:55 run and my 10:12 run, ADV-0040 grew 72,751 -> 81,454 B and ADV-0041 grew 103,072 -> 116,314 B, and `git status` still shows ADV-0037/0040/0041 modified. A sibling wave IS writing command-center/adversarial/ right now.
+
+GATE — reproduced exactly, and I built the family baseline the builder asserted but never measured.
+Re-running receipt_schema_gate.py on both receipts gives byte-for-byte the reported vector: c2/c4/c6/c7/c8/c12 SATISFIED, c1/c3/c5/c9/c10/c11 UNSATISFIED. I then ran the gate across all 42 receipts (40 siblings + these 2). MY FIRST TALLY WAS ITSELF A BROKEN DETECTOR — it parsed the "predicate-unsatisfied" summary line and scored 0 failures for three receipts whose verdict line reads "schema-invalid" instead, which made a 1,818 B SKELETON look like it passed all 12. I rewrote it to parse the twelve [FAIL]/[ok] condition lines directly and to reject any file where != 12 conditions are seen. Corrected baseline over 42: c1 41 (97%), c3 40 (95%), c11 42 (100%), c9 37 (88%), c5 25 (59%), c10 11 (26%), c6 10, c12 8, c8 6, c7 4, c4 3, c2 0. 40 of 42 receipts declare THEMSELVES as their primary artifact.
+
+COMMITS — verified.
+* 67 casualty files tracked at HEAD; lane working tree CLEAN; both receipts present in the tree at 171,343 and 105,357 B.
+* 5a7df7d8 (2 files) and 4afce4e1 (3 files) are clean pathspec commits, zero foreign paths.
+* 772159ce carries 31 casualty files AND 35 foreign paths (.agents/skills/*, skills/*, scripts/claude-science/*, commands/*, command-center/build/*, command-center/why_not_delivered.py). A whole-index commit DID occur. Both lanes' commit-message files (command-center/build/_commit3.txt and command-center/casualty/_r1_commitmsg.txt) landed inside it, consistent with the builder's account. Git cannot attribute WHO ran it — every commit in this repo shares one author identity — so "a sibling committed it" is NOT-CHECKED, while "a whole-index commit swept both lanes together" is CONFIRMED.
+
+===== reproduction =====
+Every command below is one I ran myself, from C:/Users/Prekzursil/source/ast-integrate.
+
+1) GATE (reproduced the reported vector exactly)
+$ python platform/lib/receipt_schema_gate.py command-center/casualty/ADV-0021-install-path-stride-threat-model.json command-center/casualty/ADV-0022-declared-permission-escape.json --repo-root .
+FAILED:ADV-0021 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c10=UNSATISFIED,c11=UNSATISFIED
+FAILED:ADV-0022 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c10=UNSATISFIED,c11=UNSATISFIED
+  c3 detail -> "declared bytes/sha256 disagree with disk"; c10 detail -> open P0/P1 ['ADV-0021-D1','ADV-0021-D2','ADV-0021-D3']
+
+2) FAMILY BASELINE (my own script, corrected after its own detector failure)
+$ python C:/Users/Prekzursil/AppData/Local/Temp/aud_gate_tally2.py
+parsed: 42 malformed: []
+  c1 41 (97%) | c2 0 | c3 40 (95%) | c4 3 | c5 25 (59%) | c6 10 | c7 4 | c8 6 | c9 37 (88%) | c10 11 (26%) | c11 42 (100%) | c12 8
+  sib ADV-0010 fails=[1,9,11]  <- satisfies c3, c5, c10
+  LANE ADV-0021 fails=[1,3,5,9,10,11] ; LANE ADV-0022 fails=[1,3,5,9,10,11]
+  (worse siblings exist: ADV-0017 fails 8, ADV-0009 and ADV-0020 fail 7)
+$ python platform/lib/receipt_schema_gate.py command-center/adversarial/ADV-0022-declared-permission-escape.json --repo-root .
+FAILED:ADV-0022 schema-invalid (12 error(s))   <- the 1,818 B skeleton fails 10 of 12; my first parser scored it 0-failures. Fixed.
+
+3) STRUCTURAL RECOUNT OF BOTH RECEIPTS (independent of the builder's declared counts)
+$ python C:/Users/Prekzursil/AppData/Local/Temp/aud_recount2.py
+cells: 42
+status tally (recounted from cells): {'unmitigated': 20, 'partial': 9, 'not-applicable': 11, 'mitigated': 2}
+declared stride_status_counts:        {'unmitigated': 20, 'partial': 9, 'not-applicable': 11, 'mitigated': 2}
+cells with empty/absent status: 0 ; cells with empty/absent disposition: 0
+stride categories: {'Spoofing':7,'Tampering':7,'Repudiation':7,'InformationDisclosure':7,'DenialOfService':7,'ElevationOfPrivilege':7}
+unmitigated=20 routed-to-named-ADV=17 unrouted=3
+padding probe: ADV-0021 171,343 B / 837 leaves / longest repeated-char run 16 ('\'), ADV-0022 105,357 B / 414 leaves / run 41 (' ') -> no filler
+
+4) I RE-EXECUTED THE ADV-0022 ESCAPE HARNESS MYSELF (fresh %TEMP% workspace, not the builder's)
+$ $env:ADV0022_BASE="C:/Users/Prekzursil/AppData/Local/Temp/aud_adv0022_ws"; python command-center/casualty/probes/adv0022_escape_harness.py
+summary: {"detector_discriminates": true, "narrow_ops_succeeded": 4, "narrow_ops_total": 4,
+          "narrow_out_of_declaration_escapes": 4, "wide_ops_succeeded": 4}
+detector_integrity.battery: must_fail_nonexistent_binary=FAILED, must_fail_closed_port=FAILED (port 8345), must_succeed_trivial_subprocess=SUCCEEDED
+wide control: op1/op2/op3 escaped=False declared_in_manifest=True ; op4 escaped=True
+
+5) I RE-EXECUTED THE ADV-0021 VERIFIER AND DIFFED IT AGAINST THE STORED CAPTURE
+$ python command-center/casualty/probes/adv0021_verifier.py > /tmp/aud
+stored 4,357 B vs rerun 4,358 B -> IDENTICAL after EOL-normalise: True
+V1 accepts {traversal_dash, traversal_plus, backslash, nul_adjacent} = 4/4 true, control 'not-a-version' rejected
+V2 signature callsites = 1 (cli.py:287 verify) vs hash-verb control = 16
+V3 safe_join_in_version_dir = false vs control = 4 deploy functions
+V4 size-ratio comparisons = 0 vs free-space control = 2 (lifecycle.py:103,129)
+
+6) SOURCE SPOT-CHECK (a different instrument from the AST walker)
+$ sed -n '81,82p' platform/plugin/journal.py -> "def version_dir(self, version: str) -> Path:" / "    return self.versions / version"
+$ sed -n '31p'    platform/plugin/manifest.py -> SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$")
+$ sed -n '287p'   platform/plugin/cli.py      -> actions["quarantined"] = cache.verify()
+$ sed -n '98,99p' platform/plugin/cache.py    -> def verify(): """Quarantine every self-inconsistent entry."""
+
+7) RECOVERY PROVENANCE, HASHED, WITH A NEGATIVE CONTROL
+$ python C:/Users/Prekzursil/AppData/Local/Temp/aud_scratch_hash.py
+MATCH x10 (adv0021_probe1/2/2b.py, adv0022_escape_harness.py, adv0022_probe2.py, and all 5 ORIGINAL captures)
+CONTROL (must DIFFER): adv0021_probe1.py vs adv0021_verifier.py -> DIFFER (control OK)
+matched=10 differ=0 missing=0   (scratch mtimes 1786477077-1786477987 = 2026-08-11 22:37-22:53)
+
+8) CENSUS / LIVENESS / DISPATCH / DIGEST / BLOB — all re-run
+$ python command-center/casualty/census_v2.py       -> 6 pairs ALL SEPARATE; 40 scanned; raw {0:2,5:4,6:34}; eff {5:4,6:36}; SUCCESS:census-v2
+$ python command-center/casualty/liveness_v2.py     -> {'SUBSTANTIVE': 38, 'RECOVERED': 2}; SUCCESS:liveness-v2
+$ python command-center/casualty/liveness_v2.py --selftest -> CASUALTY / SUBSTANTIVE / MID-FLIGHT all PASS; SUCCESS:liveness-v2-selftest
+$ python command-center/casualty/_probe_dispatch_census.py -> control positive=True negative=True; 40 dispatched / 40 artifacts; ADV-0002 and ADV-0038 dispatched=False
+$ python command-center/casualty/_r1_why_undispatched.py   -> ADV-0038 deps ['B07','B13'] no ADV-*; 3 counterexamples
+$ python command-center/casualty/_r1_rerun_diff.py  -> BYTE-IDENTICAL x2; the other two differ only in pid 31240->12812, two %TEMP% names, port, env label
+$ python command-center/casualty/verify_blob_parity.py -> both: worktree==blob, CRLF 0, digest MATCH=True (uses `git cat-file -p`, confirmed at verify_blob_parity.py:30)
+$ python command-center/casualty/verify_elided_digest.py <both paths> -> MATCH=True both; mutated-state digest CHANGED=True (1421c69d..., 318e0b3d...)
+$ python command-center/casualty/recover_failed_agents_v2.py --selftest -> D1 v1 62/92 broken / v2 fixed; D2 v1 "WROTE NOTHING" broken / v2 fixed; SUCCESS
+
+9) THE 8-HOUR-STALE INPUT THAT CAUSED THE 6 FALSE CASUALTIES (my measurement)
+liveness generated_at_local: 2026-08-12T09:35:35
+census   generated_at_utc  : 2026-08-11T22:35:31.808730+00:00   (= 01:35 local)
+ADV-0035 oldscore=0 bytes=166,590 art_age=3,170 s -> verdict CASUALTY   (score field 8 h stale, artifact 53 min old)
+of the 11 units the old census scored 0-1, ALL 11 are now effective 6.
+
+10) LIVE-WAVE CAVEAT DEMONSTRATED (not asserted)
+My census re-run vs the committed one differed ONLY in ages plus: ADV-0040 72,751 -> 81,454 B and ADV-0041 103,072 -> 116,314 B.
+$ git status --porcelain -> " M command-center/adversarial/ADV-0037/0040/0041" — a sibling wave is still writing.
+
+11) COMMITS
+$ git show --name-only --format='' 772159ce -> 66 files: 31 casualty + 35 foreign (.agents/skills/*, skills/*, scripts/claude-science/*, commands/*, command-center/build/*)
+$ git show --name-only 5a7df7d8 / 4afce4e1 -> 2 and 3 files, ALL casualty, zero foreign
+$ git ls-tree -r HEAD --name-only -- command-center/casualty/ | wc -l -> 67
+$ git cat-file -s HEAD:.../ADV-0021-...json -> 171343 ; ADV-0022 -> 105357
+$ git status --porcelain -- command-center/casualty/ -> (empty)
+
+12) CONTRACT AUTHENTICITY
+recovered/ADV-0021-spec.json and ADV-0022-spec.json vs command-center/catalog-slices/ADV-1.json: "fields differing from recovered spec: []". 144 ADV units across the two slices; all 144 bucket="B10".
+
+HOUSEKEEPING: my re-runs rewrote 4 lane outputs (timestamps + the two grown byte counts only). I diffed them, confirmed no verdict changed, then `git checkout --` restored all four; the lane is clean at HEAD and my temp workspace is deleted. I wrote nothing into the repo.
+
+===== confidence =====
+almost-certain (90-99%) on everything I executed: the gate vector, the 42-cell recount, the 4/4 escape (my own fresh execution), the byte-identical verifier re-run, the 10 sha256 provenance matches with a passing negative control, the census control separation, the 8-hour-stale liveness input, the 40/40 dispatch 1:1, the 144-unit / all-B10 catalog facts, the blob digests, and the commit contents. Each of these I ran; each has a control that fires in the broken state.
+
+almost-certain (90-99%) that the two receipts are genuine measurement, not fabrication: 837 and 414 JSON leaves, longest repeated-character run 16 and 41, three P1 findings independently re-derived from the source by a different instrument, and the 512 MiB bomb traced to an authored payload rather than a probe cap.
+
+likely (55-80%) that the 6-axis census generalises past this wave — the control corpus is bimodal with only TWO distinct skeleton fixtures, so a genuinely half-finished artifact is untested. The builder discloses this at the same band; I concur rather than defer.
+
+NOT-CHECKED, stated rather than folded into a pass:
+* WHO ran the whole-index commit 772159ce. All commits in this repo share one author identity, so git cannot distinguish "a sibling committed our staged index" from "this lane committed a dirty index". The FACT of a 35-foreign-path commit is confirmed; the attribution is not, in either direction.
+* Reviewer status on both units. Zero reviewers have run. ADV-0021 needs one cross-vendor openai refuter, ADV-0022 needs two different-vendor reviewers. Both receipts carry reviewer.verdict = NOT-REVIEWED, independent=false. I am a same-vendor auditor and do not satisfy either requirement.
+* I did not re-execute adv0021_probe1.py or adv0021_probe2b.py myself; for those two I verified byte-identity of the stored ORIGINAL/RERUN pair and of the scripts against the dead agent's scratch copies. I DID independently execute the ADV-0022 escape harness and the ADV-0021 verifier.
+* ADV-0021's TB6 subprocess boundary (6 cells) was never executed by anyone; downgraded to unmitigated by the unit's own rule and disclosed.
+* Whether ADV-0002/ADV-0038 were skipped deliberately or by a bug. The builder refuted the leading hypothesis; the cause is genuinely unknown.
+
+One place I disagree with nobody and hold my own ground: my first family-baseline tally was a broken detector (it scored a 1,818 B skeleton as passing all 12 conditions because its verdict line said "schema-invalid" rather than "predicate-unsatisfied"). I caught it, rewrote the parser to read the twelve condition lines directly with a 12-line arity self-check, and re-ran. Every number I report above comes from the corrected instrument.
+
+===== findings_per_dod_item =====
+see findings
+
+===== overclaims =====
+Seven sentences wider than their evidence. In every case the artifact is right and the sentence needs narrowing — none requires rebuilding anything.
+
+1. "every unmitigated cell routed to a NAMED existing catalog unit (ADV-0024/25/27/...)"
+   MEASURED: 17 of 20 unmitigated cells carry a named ADV follow-up; 3 (TB5/Repudiation, TB6/Repudiation, TB7/Repudiation) are accepted residuals with no named unit.
+   CORRECTLY SCOPED: "17 of 20 unmitigated cells route to a named catalog unit; the remaining 3 are explicitly accepted residuals with owner-visible impact statements, which is the other half of the unit's own tests_required disjunction." The RECEIPT states the disjunction correctly (report.tests_required_closure: cells_requiring_disposition 29, cells_without_disposition 0); only the summary prose narrows it to "named".
+
+2. "Probe 2 executes the bypass for every 'mitigated' cell ... All satisfied" (DoD item 1)
+   MEASURED: of the 2 cells still marked `mitigated`, TB3/Tampering's own bypass_result reads "B1c probed the adjacent version-dir boundary and found safe_join ABSENT there; the deploy boundary itself was NOT bypassed in this unit". The spec's evidence_requirement says "a mitigation with no executable check is downgraded to unmitigated" — by that literal rule this cell should have been downgraded.
+   CORRECTLY SCOPED: "Probe 2 executed a bypass for every mitigated cell EXCEPT TB3/Tampering (deploy-side safe_join), retained as mitigated-by-inspection with an inline accepted-residual disposition, an owner-impact statement, and a named settling experiment in residual_unknowns. Under the spec's literal downgrade rule this cell is a residual, not a satisfied clause." Non-blocking per the program's own honestly-disclosed-residual rule — but the DoD line should not read "All satisfied".
+
+3. "c1/c5 = family convention (completed adversarial units ship BLOCKED + FAILED: sentinel)"
+   MEASURED across all 42 receipts: c1 fails 41/42 (97%) — convention confirmed. c5 fails only 25/42 (59%); 17 siblings DO satisfy c5.
+   CORRECTLY SCOPED: "c1 is a near-universal family convention (41/42). c5 fails on 59% of the family including these two — common, not universal."
+
+4. "c3 = self-digest fixed point, proven structural ... cannot be satisfied"
+   MEASURED: c3 fails 40/42, and 40/42 receipts declare THEMSELVES as primary artifact. ADV-0010 and ADV-0005 satisfy c3 by declaring EXTERNAL files (tools/measure-guard/*.py) as primary.
+   CORRECTLY SCOPED: "c3 is unsatisfiable for any receipt that declares itself as its own primary artifact — the family convention in 40 of 42 cases. It is a consequence of that convention, not of the gate."
+
+5. "Blob parity: a fresh clone reproduces both declared digests."
+   MEASURED: verify_blob_parity.py correctly uses `git cat-file -p` (line 30), and both digests match. But with a clean working tree, blob == worktree by construction; no clone was made.
+   CORRECTLY SCOPED: "The STORED BLOB at HEAD is byte-identical to the worktree (CRLF 0 on both) and reproduces each declared elided digest, so a checkout of this commit reproduces them. No fresh clone was performed."
+
+6. "ADV-0002 ... Never dispatched."
+   MEASURED: _probe_dispatch_census.py scans exactly two runs (wf_9cb1a66a-36f, wf_18aa91e4-3c1) under one session id, 100 transcripts.
+   CORRECTLY SCOPED: as ADV-0002-ACCOUNTING.md itself writes it — "dispatched=False in these runs". The builder-report summary line drops the scope.
+
+7. Two stale pasted numbers inside evidence artifacts.
+   ADV-0002-ACCOUNTING.md:13 quotes "transcripts scanned: 98"; live re-run says 100. The git verifier's narrative line quotes "219 files, of which 12"; live values are now 225 and 208 (i.e. 17 lane files). Neither moves a conclusion, but a pasted number that drifts from the recomputed one printed two lines below is the self-contradicting-output shape.
+
+NOT an overclaim after checking, though it looked like one: "neither dead agent appears in the harvest file". The string "ADV-0021" DOES occur once in harvest-wf_18aa91e4-3c1-wf_9cb1a66a-36f.json — but as a cross-reference inside ANOTHER unit's result text ("...ADV-0021/0025/0027 target the same marketplace"), not as a harvested result. Use-vs-mention; the claim stands.
+
+===== real_defects =====
+Four genuine defects I found that the builder did NOT report. All are in ancillary tooling; none invalidates a deliverable. Ranked by how easily each could produce a future false green.
+
+D1 (HIGH, and the one I would fix first) — the superseded generators still overwrite their own DO-NOT-CITE banners.
+command-center/casualty/_probe_liveness.py:97 writes to OUT/"ADV-LIVENESS.json" and _probe_census.py:161 writes to OUT/"ADV-COMPLETENESS-CENSUS.json" — the exact two files the builder stamped with _SUPERSEDED_BY / _DO_NOT_CITE. Both scripts are still present, unpatched, and carry no deprecation notice in their docstrings (I read _probe_liveness.py:1-24). Re-running either SILENTLY ERASES the banner and re-emits the 8 false CASUALTY verdicts. The builder's residual #5 says only "a tool reading them programmatically would ignore the banner" — the sharper hazard is the generator, not the reader. Fix: `raise SystemExit("SUPERSEDED by liveness_v2.py")` at the top, or redirect the output path.
+
+D2 (MEDIUM) — verify_elided_digest.py fails OPEN on empty input.
+`$ python command-center/casualty/verify_elided_digest.py` (no arguments) prints NOTHING and exits 0. Its loop is `for path in sys.argv[1:]` with no arity check, so a zero-input invocation is indistinguishable from two passing verifications. This is precisely the ci-hygiene "empty walk must fail closed" shape, in a tool whose entire purpose is anti-fabrication verification. The right pattern is in the same directory: census_v2.py runs its control first and exits non-zero WITHOUT printing a tally. Fix: `if not sys.argv[1:]: print("FAILED:elided-digest no inputs"); sys.exit(1)`.
+
+D3 (MEDIUM) — liveness_v2.py's three-state control is opt-in, so the citable tally is produced without it.
+The selftest is gated behind `--selftest` (liveness_v2.py:163-167); the default run that emits "verdict tally: {'SUBSTANTIVE': 38, 'RECOVERED': 2}" never exercises it. A gate reporting ZERO casualties is exactly the case where the fire-check must run every time. It does pass when invoked — I ran it, all three states PASS — so this is a wiring defect, not a broken control. Fix: run selftest() unconditionally before evaluate(), mirroring census_v2.py.
+
+D4 (LOW) — probes/adv0022_git_verifier.sh:31 hardcodes a narrative number that has drifted.
+Line 31 prints the literal string "a raw count matched 219 files, of which 12 were this lane's own artifacts", immediately above lines 33/34 which COMPUTE raw_including_this_lane=225 and repo_wide=208 (a 17-file lane delta, not 12). The probe's own output now self-contradicts. The load-bearing figures (208 and 8, and the git_grep_exit=1 zero against the 289-file empty-pathspec control) are recomputed live and reproduce exactly, so no conclusion moves. Fix: compute the delta instead of narrating it.
+
+NOT a defect, recorded so the next reader does not re-flag it: 772159ce containing 35 foreign paths looks like a `git add -A` violation, but the two subsequent lane commits (5a7df7d8, 4afce4e1) are clean pathspec commits with zero foreign paths, both lanes' commit-message files landed inside 772159ce together, and the builder disclosed and documented the incident in COMMIT-PROVENANCE.md before I looked. The underlying hazard is real and structural — on a shared worktree the index is a shared mutable resource and nothing stops a concurrent process from committing another lane's staged entries — and the builder's recommendation (one worktree per lane, or a commit lock) is the right one.
+
+DEFECTS THE BUILDER SELF-REPORTED THAT I INDEPENDENTLY CONFIRMED, so they are not overstated: the _probe_liveness.py stale-G1 P1 (confirmed by reading :41-46 AND by an 8-hour timestamp gap), the substring over-match on "ratio" inside "migration", and the git verifier matching its own lane's tracked files.

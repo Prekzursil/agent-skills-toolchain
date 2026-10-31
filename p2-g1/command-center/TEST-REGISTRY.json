@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "purpose": "Which test protects which invariant, and -- for each -- the KNOWN-BAD input that proves the test can go red. A suite that has never failed is indistinguishable from a no-op (rules/common/ci-hygiene.md section 1).",
+  "counts_are_asserted_by": "tools/command-center/tests/test_registry.py -- if a suite grows or shrinks and this file is not updated, that test fails. Recorded counts that nobody checks are the same rot one layer down.",
+  "suites": [
+    {
+      "path": "tools/command-center/tests/test_validate.py",
+      "tests": 26,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "the reachability contract: every item reaches a final disposition",
+      "red_proof": "17 of the 26 mutate the catalog or its recorded inputs first (dangling dependency, cycle, closed-item-depends-on-open, dead end, phantom owner gate, already-answered gate, evidence-free disposition, non-terminal disposition, dropped item, tampered register snapshot, missing snapshot, blank register digest, deleted register digest, stale graph, duplicate id, malformed id, empty catalog) and assert the specific check fires. The digest pair was added 2026-08-13 after REACH-6 was measured fail-OPEN on them: mutating a value the gate COMPARES was covered, deleting the value it compares AGAINST was not, and the CLI printed SUCCESS:cc-validate ... reachable=all with the check switched off. See TI-9 and CLAIM-REGISTRY CC-11."
+    },
+    {
+      "path": "tools/command-center/tests/test_close.py",
+      "tests": 21,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "close-path symmetry, evidence enforcement, and the deadlock guard",
+      "red_proof": "refusal paths are asserted explicitly: blank evidence, unknown item, unknown supersede target, no verb, --open without --program, and a close whose declared blocker is still open. The deadlock guard is proved by planting an unrelated violation and asserting the close still succeeds."
+    },
+    {
+      "path": "agent-self/harness/tests/test_register_gate.py",
+      "tests": 47,
+      "ci_step": "gate-tests-coverage harness (enshrined runtime)",
+      "protects": "the gate cannot loop, cannot block, cannot become wallpaper, and is actually wired",
+      "red_proof": "both-states control: fires on the real (stale) catalog for MONITOR / Program B / a vague harness prompt, and is silent on clean-full AND on clean-partial (only the 19 MONITOR items closed). The clean-partial row is the sharp one -- it proves the gate tracks THESE items rather than 'the file is non-empty'."
+    },
+    {
+      "path": "tools/command-center/tests/test_registry.py",
+      "tests": 4,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "the two registries themselves -- counts, named tests, and the two-probe rule for every claim",
+      "red_proof": "test_the_counting_guard_can_go_red controls the static counter against a synthetic file. It earned its keep immediately: the first version under-counted a parametrize over a module-level constant (46 vs 47 collected) and this assertion is what found it."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_protecting.py",
+      "tests": 2,
+      "ci_step": "CC-0014 named probes",
+      "protects": "accept() enforces REQUIRED_MIN when minimum= is omitted",
+      "red_proof": "M-IMPL-DEFAULT-ZERO (REQUIRED_MIN = 3 -> 0) kills test_default_floor_rejects_below_minimum; M-REV-DEFAULT-NINETY-NINE (REQUIRED_MIN = 3 -> 99) kills test_default_floor_accepts_exact_minimum. A passing run of the unmutated file is not this proof."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_explicit.py",
+      "tests": 1,
+      "ci_step": "CC-0014 named probes",
+      "protects": "nothing about REQUIRED_MIN (explicit-only hole)",
+      "red_proof": "M-IMPL-DEFAULT-ZERO SURVIVES test_explicit_minimum_ignores_module_default; the registry must record HOLE, not PROTECTING."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_unproven.py",
+      "tests": 1,
+      "ci_step": "CC-0014 named probes",
+      "protects": "UNPROVEN control: a real test with no mutation record",
+      "red_proof": "No mutation is attached. Status must be UNPROVEN and must not count toward protected_claims."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "TI-1",
+      "invariant": "The gate never runs on Stop, StopFailure or SubagentStop.",
+      "why": "A Stop-time inject re-triggers the host re-entrancy counter. Measured 2026-08-08: two trivial probes cost 62,155 and 63,222 tokens with zero tool uses.",
+      "tests": [
+        "test_never_runs_on_the_stop_family",
+        "test_subagent_stop_with_stop_hook_active_is_allowed",
+        "test_reentrant_trigger_is_allowed_on_accepted_events_too"
+      ]
+    },
+    {
+      "id": "TI-2",
+      "invariant": "The gate does not amplify itself.",
+      "why": "A keyword gate on UserPromptSubmit can uniquely match its OWN injected text when that text is echoed back. No prior harness test covered this.",
+      "tests": [
+        "test_fixed_point_the_gate_does_not_match_its_own_output",
+        "test_fifty_identical_prompts_produce_exactly_one_injection"
+      ]
+    },
+    {
+      "id": "TI-3",
+      "invariant": "Every injection leaves a legal next move.",
+      "why": "The other half of the 2026-08-08 bug: an advisory whose only satisfying action is forbidden by AGENTS.md section 9 is a deadlock, so the model loops instead of stopping.",
+      "tests": [
+        "test_the_injection_always_leaves_a_legal_next_move",
+        "test_the_injection_never_uses_coercive_words"
+      ]
+    },
+    {
+      "id": "TI-4",
+      "invariant": "The gate cannot become wallpaper.",
+      "why": "module-modes.json:32 holds ipass_readback in shadow at 19.0 fires/session for exactly this reason.",
+      "tests": [
+        "test_a_huge_paste_matching_everything_stays_silent",
+        "test_at_most_three_items_are_shown",
+        "test_the_contract_records_a_measured_fire_rate"
+      ],
+      "measured": "3.16 fires per 20-prompt session on the real 375-prompt corpus with the shipped cooldown; 0.00 on a clean catalog"
+    },
+    {
+      "id": "TI-5",
+      "invariant": "The gate is reachable by something.",
+      "why": "GREEN-NOT-LIVE is the defect this lane exists to catch. The prior art (~/.claude/hooks/open-loops/trigger_match.py) is fully written, needs a UserPromptSubmit entry, and never got one -- 44 items sat unfired for up to 21 days.",
+      "tests": [
+        "test_the_module_is_actually_wired",
+        "test_fixed_module_order_is_security_then_continuity_then_quality"
+      ]
+    },
+    {
+      "id": "TI-6",
+      "invariant": "The gate never surfaces the evidence column.",
+      "why": "That column holds long paths and credential-adjacent prose; R-B08's evidence names a file of live tokens.",
+      "tests": [
+        "test_the_injection_never_quotes_the_evidence_column"
+      ]
+    },
+    {
+      "id": "TI-7",
+      "invariant": "No register item can be silently dropped.",
+      "why": "The whole failure being fixed. 69 items were lost once already.",
+      "tests": [
+        "test_detects_a_silently_dropped_item",
+        "test_detects_a_tampered_register_snapshot"
+      ]
+    },
+    {
+      "id": "TI-8",
+      "invariant": "The end state is legal: closing everything leaves a valid catalog.",
+      "why": "A register you cannot finish is a register that gets abandoned.",
+      "tests": [
+        "test_closing_every_open_item_leaves_a_valid_catalog"
+      ]
+    },
+    {
+      "id": "TI-9",
+      "invariant": "A check cannot be silently switched off by deleting its own recorded input.",
+      "why": "REACH-6 read `if recorded and digest != recorded`, so blanking or deleting provenance.register_sha256 turned the snapshot-integrity comparison off while the CLI still printed `SUCCESS:cc-validate items=103 open=58 reachable=all`. Measured 2026-08-13 on two mechanically independent instruments -- in-process validate() returned 0 violations and the CLI exited 0 for both the blank and the deleted key, while the control (one hex character flipped) returned 1 violation and exit 1 on both -- so the silence was a property of the code, not a broken probe. TI-7 did not cover it: it mutates the SNAPSHOT, not the recorded digest. Deleting the whole provenance block was already caught (the snapshot path stops resolving), so only the surgical single-field edit was fail-open -- and that is the edit a hurried fix reaches for when REACH-6 goes red, the gate that held gate-tests-coverage (python packages) red for 98 commits.",
+      "tests": [
+        "test_detects_a_blank_register_digest",
+        "test_detects_a_deleted_register_digest",
+        "test_cli_fails_closed_on_a_blank_register_digest"
+      ]
+    },
+    {
+      "id": "INV-CC-0014-DEFAULT-FLOOR",
+      "invariant": "accept() with no minimum argument enforces REQUIRED_MIN.",
+      "why": "Reverting the constant historically left the suite green.",
+      "tests": [
+        "test_default_floor_accepts_exact_minimum",
+        "test_default_floor_rejects_below_minimum"
+      ]
+    },
+    {
+      "id": "INV-CC-0014-EXPLICIT-IS-NOT-PROTECTION",
+      "invariant": "A test that only passes minimum= does not protect REQUIRED_MIN.",
+      "why": "The estate defect: every case passed the value explicitly.",
+      "tests": [
+        "test_explicit_minimum_ignores_module_default"
+      ]
+    },
+    {
+      "id": "INV-CC-0014-UNPROVEN-CONTROL",
+      "invariant": "A test with no mutation record is UNPROVEN, never coverage.",
+      "why": "A green suite is not evidence until a mutation made the test fail.",
+      "tests": [
+        "test_empty_list_rejected_at_explicit_one"
+      ]
+    }
+  ],
+  "failure_classes": {
+    "note": "Prompt Two names 46 failure classes to seed as regressions (_USER-PROMPTS.md:11302-11347). This registry covers the ones this PR actually exercises. The remainder are tracked as R-A19 and are NOT-CHECKED, not absent-therefore-fine.",
+    "covered_here": [
+      "detector silent in both states -> every check has a matching known-bad probe",
+      "green-not-live -> TI-5 asserts wiring, not just behaviour",
+      "two sources of truth drift -> the graph is derived and parity-checked",
+      "an advisory with no legal move -> TI-3",
+      "a Stop-time inject loop -> TI-1",
+      "wallpaper by over-firing -> TI-4, measured not estimated",
+      "overclaim -> CLAIM-REGISTRY.json CC-9 records this PR's own two partials as REFUTED closes"
+    ],
+    "not_covered": "the other 39 classes; see R-A19"
+  },
+  "entries": [
+    {
+      "test_id": "test_empty_list_rejected_at_explicit_one",
+      "claim_id": "CL-CC-0014-UNPROVEN-NOT-COVERAGE",
+      "unit_id": "CC-0014",
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_unproven.py",
+      "role": "no-mutation-control",
+      "status": "UNPROVEN"
+    },
+    {
+      "test_id": "test_default_floor_rejects_below_minimum",
+      "claim_id": "CL-CC-0014-DEFAULT-FLOOR-ENFORCED",
+      "unit_id": "CC-0014",
+      "mutation": {
+        "id": "M-IMPL-DEFAULT-ZERO",
+        "author": "implementer",
+        "outcome": "KILLED",
+        "diff": "--- fixtures/subject.py\n+++ fixtures/subject.py.mutated\n@@ -4,7 +4,7 @@\n suite green after a revert: every case passed the value explicitly.\n \"\"\"\n \n-REQUIRED_MIN = 3\n+REQUIRED_MIN = 0\n \n \n def accept(items, minimum=None):\n",
+        "failing_output": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import importlib.util, sys; sys.path.insert(0, 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\cc0014-mut-8nlxgu6d'); p='C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\cc0014-mut-8nlxgu6d\\\\test_protecting.py'; spec=importlib.util.spec_from_file_location('tmod', p); m=importlib.util.module_from_spec(spec); sys.modules['tmod']=m; spec.loader.exec_module(m); getattr(m, 'test_default_floor_rejects_below_minimum')()\n                                                                                                                                                                                                                                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\cc0014-mut-8nlxgu6d\\test_protecting.py\", line 11, in test_default_floor_rejects_below_minimum\n    assert accept([\"a\", \"b\"]) is False\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError",
+        "exit_code": 1,
+        "anchor": "REQUIRED_MIN = 3",
+        "replacement": "REQUIRED_MIN = 0"
+      },
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_protecting.py",
+      "role": "protecting-default-floor",
+      "status": "PROTECTING"
+    },
+    {
+      "test_id": "test_explicit_minimum_ignores_module_default",
+      "claim_id": "CL-CC-0014-EXPLICIT-ONLY-IS-HOLE",
+      "unit_id": "CC-0014",
+      "mutation": {
+        "id": "M-IMPL-DEFAULT-ZERO",
+        "author": "implementer",
+        "outcome": "SURVIVED",
+        "diff": "--- fixtures/subject.py\n+++ fixtures/subject.py.mutated\n@@ -4,7 +4,7 @@\n suite green after a revert: every case passed the value explicitly.\n \"\"\"\n \n-REQUIRED_MIN = 3\n+REQUIRED_MIN = 0\n \n \n def accept(items, minimum=None):\n",
+        "failing_output": "",
+        "exit_code": 0,
+        "anchor": "REQUIRED_MIN = 3",
+        "replacement": "REQUIRED_MIN = 0"
+      },
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_explicit.py",
+      "role": "survived-explicit-only",
+      "status": "HOLE"
+    },
+    {
+      "test_id": "test_default_floor_accepts_exact_minimum",
+      "claim_id": "CL-CC-0014-DEFAULT-FLOOR-ENFORCED",
+      "unit_id": "CC-0014",
+      "mutation": {
+        "id": "M-REV-DEFAULT-NINETY-NINE",
+        "author": "independent-reviewer",
+        "outcome": "KILLED",
+        "diff": "--- fixtures/subject.py\n+++ fixtures/subject.py.mutated\n@@ -4,7 +4,7 @@\n suite green after a revert: every case passed the value explicitly.\n \"\"\"\n \n-REQUIRED_MIN = 3\n+REQUIRED_MIN = 99\n \n \n def accept(items, minimum=None):\n",
+        "failing_output": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import importlib.util, sys; sys.path.insert(0, 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\cc0014-mut-xt370xje'); p='C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\cc0014-mut-xt370xje\\\\test_protecting.py'; spec=importlib.util.spec_from_file_location('tmod', p); m=importlib.util.module_from_spec(spec); sys.modules['tmod']=m; spec.loader.exec_module(m); getattr(m, 'test_default_floor_accepts_exact_minimum')()\n                                                                                                                                                                                                                                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\cc0014-mut-xt370xje\\test_protecting.py\", line 7, in test_default_floor_accepts_exact_minimum\n    assert accept([\"a\", \"b\", \"c\"]) is True\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError",
+        "exit_code": 1,
+        "anchor": "REQUIRED_MIN = 3",
+        "replacement": "REQUIRED_MIN = 99"
+      },
+      "path": "command-center/p2-wave/probes/CC-0014/fixtures/test_protecting.py",
+      "role": "reviewer-protecting",
+      "status": "PROTECTING"
+    }
+  ],
+  "coverage": {
+    "claims_total": 4,
+    "protected_claims": 2,
+    "protected_percent": 50.0,
+    "holes": 1,
+    "unproven": 1,
+    "unproven_counted_as_coverage": false,
+    "all_unproven_reports_zero_not_hundred": false
+  },
+  "mutation_gate": {
+    "unit_id": "CC-0014",
+    "binder": "command-center/test_registry_bind.py",
+    "rule": "PROTECTING only after a KILLED mutation with diff and failing output; UNPROVEN is not coverage; SURVIVED is HOLE."
+  }
+}

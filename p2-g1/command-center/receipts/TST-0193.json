@@ -1,0 +1,572 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0193",
+ "title": "Workflow parameters are never re-parsed by a shell",
+ "question_or_target": "Can a workflow parameter containing `$(...)`, backticks or `%VAR%` cause command substitution anywhere in the pipeline? PASS requires zero substitution across every parameter sink, proven by a canary that would create a marker file if evaluated.",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0193",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0193",
+ "min_bytes_threshold": 1024,
+ "output_path": "command-center/receipts/TST-0193.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/shell_report",
+ "completion_sentinel": "SUCCESS:TST-0193",
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+   "bytes": 2657,
+   "sha256": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+   "bytes": 2728,
+   "sha256": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/receipts/TST-0193.json",
+   "bytes": 20062,
+   "sha256": "f638a05fd5219f9e098248be0c1ca18a962e1b5d1068445f6a04836a3bd1a5fd",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0193/SUBAGENT-RETURN.json",
+   "bytes": 2886,
+   "sha256": "314517db5605c419b30aa24b97abdf9809c516520c85bf24da86ddc64f4451f5",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json",
+   "bytes": 1399,
+   "sha256": "41764b8618b990a9f7f7380cda33d1f190b529d761cf46a552466cc7177bfb25",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Independent reviewer verified the artifact at command-center/receipts/TST-0193.json exists on disk (20062 LF-normalized bytes), parses as JSON, carried the builder terminal state=BLOCKED with failure.classification=[reviewer-absent] and reviewer=null (no self-certification) at review time, and its report.kind=shell_report matches the catalog output_schema pin.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0193.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "python -I -c json.load(command-center/receipts/TST-0193.json)",
+     "raw_output": "parsed OK; builder state=BLOCKED; classification=[reviewer-absent]; reviewer=null",
+     "fingerprint": "w3s22-parse:TST-0193:f638a05fd5219f9e"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+     "raw_output": "SUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent",
+     "exit_code": 0,
+     "fingerprint": "w3s22-probe1-live:TST-0193:rc0"
+    }
+   ]
+  },
+  {
+   "claim": "Independent reviewer re-ran both named probes live for 3 rounds each under the ambient environment; all exited 0 with the unit SUCCESS sentinel (probe1_canary_property.py=3/3 rounds rc0; probe2_detector_control.py=3/3 rounds rc0); live sentinels match the builder-recorded raw_output lines (consistent=True).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0193/",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py ; python -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+     "raw_output": "SUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent | SUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True",
+     "exit_code": 0,
+     "fingerprint": "w3s22-rerun:TST-0193:3x2rc0"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare live SUCCESS sentinel lines against SUBAGENT-RETURN.json named_probes[].raw_output",
+     "raw_output": "sentinel-consistency=True",
+     "fingerprint": "w3s22-sentinel-cmp:TST-0193"
+    }
+   ]
+  },
+  {
+   "claim": "UNIT-ARTIFACT-MANIFEST.json registered command-center/receipts/TST-0193.json with a sha256 row matching the live artifact (CRLF normalized to LF before hashing; program digest mode sha256+length over LF-normalized bytes). Reviewer recomputed the digest independently.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "byte-compare",
+     "command": "hashlib.sha256(bytes(command-center/receipts/TST-0193.json).replace(CRLF, LF))",
+     "raw_output": "live LF-normalized sha256=f638a05fd5219f9e098248be0c1ca18a962e1b5d1068445f6a04836a3bd1a5fd",
+     "fingerprint": "w3s22-lfsha:TST-0193:f638a05fd5219f9e"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "json.load(command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json) artifacts[path==command-center/receipts/TST-0193.json].sha256",
+     "raw_output": "manifest row sha256=f638a05fd5219f9e098248be0c1ca18a962e1b5d1068445f6a04836a3bd1a5fd",
+     "fingerprint": "w3s22-manrow-read:TST-0193"
+    }
+   ]
+  },
+  {
+   "claim": "The closure receipt validates against BOTH the program gate (platform/schema/receipt.schema.json $defs/receipt_core, 0 errors) and the catalog output_schema pointer (command-center/schema/receipt.schema.json#/$defs/shell_report, 0 errors via the platform schema resolver), and the 12-condition completion predicate evaluates COMPLETE with filesystem verification on.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "platform/lib/receipt_schema_gate.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "receipt_schema_gate.validate_receipt + schema_resolver.validate_artifact(profile pointer)",
+     "raw_output": "0 errors (receipt_core) + 0 errors (catalog profile)",
+     "fingerprint": "w3s22-schemacore:TST-0193"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0193.json",
+     "raw_output": "admission ACCEPT on the closure and REJECT naming the reviewer rule on the independent-flipped mutation copy",
+     "exit_code": 0,
+     "fingerprint": "w3s22-admission-cmd:TST-0193"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "t1-probe1_canary_property",
+   "name": "probe1_canary_property",
+   "command": "python -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+   "result": "PASS",
+   "output_tail": "_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+  },
+  {
+   "id": "t2-probe2_detector_control",
+   "name": "probe2_detector_control",
+   "command": "python -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+   "result": "PASS",
+   "output_tail": ", \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "deliberate-shell-eval",
+   "kind": "other",
+   "description": "A deliberately evaled payload demonstrates the canary fires exactly when a shell re-parses a parameter - the failure mode the unit guards against - while the list-argv sink never triggers it.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "marker_appeared=true marker_content='pwned'",
+   "good_state_output": "marker_after_sink=false argv literal across 300 payloads"
+  },
+  {
+   "id": "MUT-TST-0193-reviewer-independent-flip",
+   "kind": "mutation",
+   "description": "Independent-reviewer mutation control: reviewer.independent flipped to false on a COMPLETE copy of the SUCCESS closure receipt (identical in every other field); receipt_validate.py must REJECT naming the reviewer rule (receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true) while accepting the unmutated closure.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "REJECT:TST-0193 C2 schema-invalid (1): reviewer/independent: True was expected",
+   "good_state_output": "ACCEPT:TST-0193 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "w3-shard22-independent-reviewer-20261026",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude-code",
+  "reviewed_at": "2026-10-26T04:36:47Z",
+  "notes": "Wave-3 shard-22 independent reviewer closure. Reviewer did not build this unit; re-derived every contract check live in a fresh context: artifact predicate on the builder BLOCKED pointer, both named probes re-run for 3 stability rounds each (all exit 0, SUCCESS sentinels match the builder record), manifest sha256 recomputed (CRLF-to-LF digest mode), receipt_core + catalog output_schema validation, 12-condition predicate COMPLETE, and a reviewer mutation control (receipt_core must reject a copy whose reviewer.independent is false). Catalog reviewer_requirement (second Windows shell) re-executed by the reviewer: every probe run under pwsh7 AND Git Bash, exit 0 on both lanes, sha-normalized outputs identical. Receipt rewritten from the builder BLOCKED pointer into receipt-core shape; the original builder document is preserved verbatim under extensions.builder_receipt_original. The receipt self-row is role=supporting and carries the PRE-closure builder bytes sha256; the authoritative post-closure registration is the UNIT-ARTIFACT-MANIFEST row, refreshed by the reviewer to the final closure bytes (see extensions.reviewer_manifest_refresh)."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+   "artifact_path": "command-center/receipts/TST-0193.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0193.json",
+    "raw_output": "ACCEPT:TST-0193 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "exit_code": 0,
+    "fingerprint": "w3s22-validate:TST-0193:rc0"
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "timestamps": {
+  "started_at": "2026-10-26T04:35:11Z",
+  "ended_at": "2026-10-26T04:36:47Z",
+  "duration_seconds": 96
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "report": {
+  "kind": "shell_report",
+  "observations": [
+   {
+    "name": "artifact_lf_bytes",
+    "measured": 20062,
+    "method": "digest_lf",
+    "anchor": "command-center/receipts/TST-0193.json"
+   },
+   {
+    "name": "named_probes_live_rounds",
+    "measured": "3x2 all rc0",
+    "method": "subprocess re-run, ambient env",
+    "anchor": "command-center/p2-wave/probes/TST-0193/"
+   },
+   {
+    "name": "manifest_lf_sha_match",
+    "measured": true,
+    "method": "sha256 CRLF-normalized byte-compare",
+    "anchor": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json"
+   },
+   {
+    "name": "schema_dual_validation",
+    "measured": "receipt_core+profile 0 errors",
+    "method": "receipt_schema_gate + schema_resolver",
+    "anchor": "platform/schema/receipt.schema.json"
+   }
+  ],
+  "control_ids": [
+   "deliberate-shell-eval",
+   "MUT-TST-0193-reviewer-independent-flip"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "wave3-shard22-builder",
+  "execution_substrate": "local-windows-pwsh7"
+ },
+ "extensions": {
+  "reviewer_shard": "wave3-shard22",
+  "builder_receipt_original": {
+   "schema_version": 1,
+   "report_kind": "shell_report",
+   "unit_id": "TST-0193",
+   "id": "TST-0193",
+   "state": "BLOCKED",
+   "sentinel": "FAILED:TST-0193 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent. Artifact completion sentinel on file: SUCCESS:TST-0193",
+   "completion_sentinel": "SUCCESS:TST-0193",
+   "completion_marker": "UNIT-COMPLETE:TST-0193",
+   "title": "Workflow parameters are never re-parsed by a shell",
+   "question": "Can a workflow parameter containing `$(...)`, backticks or `%VAR%` cause command substitution anywhere in the pipeline? PASS requires zero substitution across every parameter sink, proven by a canary that would create a marker file if evaluated.",
+   "question_or_target": "Can a workflow parameter containing `$(...)`, backticks or `%VAR%` cause command substitution anywhere in the pipeline? PASS requires zero substitution across every parameter sink, proven by a canary that would create a marker file if evaluated.",
+   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0193",
+   "output_path": "command-center/receipts/TST-0193.json",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/shell_report",
+   "output_schema_present": true,
+   "min_bytes_threshold": 128,
+   "registered": true,
+   "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+   },
+   "timestamps": {
+    "started_at": "2026-10-26T02:50:13Z",
+    "ended_at": "2026-10-26T02:50:13Z"
+   },
+   "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt"
+   },
+   "failure": {
+    "classification": [
+     "reviewer-absent"
+    ],
+    "reason": "Build and live probes complete; state is BLOCKED only because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true. The prior builder attempt died mid-flight and left a receipt claiming SUCCESS with probe-named reviewer entries and NO probe files on disk; this rebuild replaced the fabricated probe records with real probe files, real runs and real outputs. Only the independent reviewer closes."
+   },
+   "reviewer": null,
+   "builder": {
+    "shard": "wave3-shard22-builder",
+    "role": "shell-portability-tester",
+    "resume_of": "prior builder attempt died mid-flight (host session ended); receipts existed without probe files"
+   },
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+    "role": "probe1 canary-property",
+    "fingerprint": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+    "exit_code": 0,
+    "live_result_digest": "524ef08c3cdb7514db9ced1c05c4f3e7bad6cef6b507b6261d8fa3b2e9337318",
+    "raw_output": "{\"argv_mismatches\": 0, \"canary_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+    "role": "probe2 detector-control",
+    "fingerprint": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+    "exit_code": 0,
+    "live_result_digest": "924235efdd309c9943613fceab762f40861b1072a2f07a577a484b4ff5993402",
+    "raw_output": "{\"detector_control\": {\"deliberately_evaled_payload\": \"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')\", \"marker_appeared\": true, \"marker_content_head\": \"pwned\\n\", \"note\": \"proves the canary detects substitution when a shell is in the path\"}, \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+   },
+   "tests": [
+    {
+     "id": "TST-0193-PROBE1",
+     "name": "probe1 canary-property",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "argv_mismatches": 0,
+     "canary_marker_created": false,
+     "marker_path": "C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt",
+     "payload_families": 15,
+     "payloads_tested": 300,
+     "sink": "list-argv spawn (shell=False, CreateProcess direct) - zero substitution"
+    },
+    {
+     "id": "TST-0193-PROBE2",
+     "name": "probe2 detector-control",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "detector_control": {
+      "deliberately_evaled_payload": "$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')",
+      "marker_appeared": true,
+      "marker_content_head": "pwned\n",
+      "note": "proves the canary detects substitution when a shell is in the path"
+     },
+     "payloads_property_tested_in_probe1": 300,
+     "reference_sink": {
+      "literal_passthrough": true,
+      "marker_after_sink": false,
+      "same_payload_observed": [
+       "$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')"
+      ]
+     }
+    }
+   ],
+   "negative_controls": [
+    {
+     "id": "deliberate-shell-eval",
+     "kind": "detector-control",
+     "description": "A deliberately evaled payload demonstrates the canary fires exactly when a shell re-parses a parameter - the failure mode the unit guards against - while the list-argv sink never triggers it.",
+     "fired_on_bad_state": true,
+     "silent_on_good_state": true,
+     "bad_state_output": "marker_appeared=true marker_content='pwned'",
+     "good_state_output": "marker_after_sink=false argv literal across 300 payloads"
+    }
+   ],
+   "evidence": [
+    {
+     "id": "E-zero-substitution-300-payloads",
+     "anchor": "command-center/p2-wave/probes/TST-0193/param_sink.py:sink",
+     "claim": "Across 300 injection payloads spanning 15 shell-metacharacter families ($(...), backticks, %VAR%, ${...}, ;, |, &&, >, command substitution nesting, CRLF injection, cmd /c invocation, touch), the workflow parameter sink forwards every payload to the child byte-identical (0 argv mismatches) and NO canary marker file was ever created - zero substitution anywhere in the pipeline.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+      "role": "probe1 canary-property",
+      "fingerprint": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+      "exit_code": 0,
+      "live_result_digest": "524ef08c3cdb7514db9ced1c05c4f3e7bad6cef6b507b6261d8fa3b2e9337318",
+      "raw_output": "{\"argv_mismatches\": 0, \"canary_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+      "role": "probe2 detector-control",
+      "fingerprint": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+      "exit_code": 0,
+      "live_result_digest": "924235efdd309c9943613fceab762f40861b1072a2f07a577a484b4ff5993402",
+      "raw_output": "{\"detector_control\": {\"deliberately_evaled_payload\": \"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')\", \"marker_appeared\": true, \"marker_content_head\": \"pwned\\n\", \"note\": \"proves the canary detects substitution when a shell is in the path\"}, \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+       "role": "probe1 canary-property",
+       "fingerprint": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+       "exit_code": 0,
+       "live_result_digest": "524ef08c3cdb7514db9ced1c05c4f3e7bad6cef6b507b6261d8fa3b2e9337318",
+       "raw_output": "{\"argv_mismatches\": 0, \"canary_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+       "role": "probe2 detector-control",
+       "fingerprint": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+       "exit_code": 0,
+       "live_result_digest": "924235efdd309c9943613fceab762f40861b1072a2f07a577a484b4ff5993402",
+       "raw_output": "{\"detector_control\": {\"deliberately_evaled_payload\": \"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')\", \"marker_appeared\": true, \"marker_content_head\": \"pwned\\n\", \"note\": \"proves the canary detects substitution when a shell is in the path\"}, \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+      }
+     ]
+    },
+    {
+     "id": "E-detector-control-eval",
+     "anchor": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py:main",
+     "claim": "Detector control: deliberately evaluating one payload through a real shell creates the canary marker (content 'pwned'), proving the probe can detect substitution when a shell is in the path; the reference sink then runs the same payload class and stays literal (marker absent, argv byte-identical).",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+      "role": "probe2 detector-control",
+      "fingerprint": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+      "exit_code": 0,
+      "live_result_digest": "924235efdd309c9943613fceab762f40861b1072a2f07a577a484b4ff5993402",
+      "raw_output": "{\"detector_control\": {\"deliberately_evaled_payload\": \"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')\", \"marker_appeared\": true, \"marker_content_head\": \"pwned\\n\", \"note\": \"proves the canary detects substitution when a shell is in the path\"}, \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+     },
+     "verifier_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+      "role": "probe1 canary-property",
+      "fingerprint": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+      "exit_code": 0,
+      "live_result_digest": "524ef08c3cdb7514db9ced1c05c4f3e7bad6cef6b507b6261d8fa3b2e9337318",
+      "raw_output": "{\"argv_mismatches\": 0, \"canary_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+     },
+     "probes": [
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+       "role": "probe2 detector-control",
+       "fingerprint": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+       "exit_code": 0,
+       "live_result_digest": "924235efdd309c9943613fceab762f40861b1072a2f07a577a484b4ff5993402",
+       "raw_output": "{\"detector_control\": {\"deliberately_evaled_payload\": \"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/CANARY-MARKER.txt')\", \"marker_appeared\": true, \"marker_content_head\": \"pwned\\n\", \"note\": \"proves the canary detects substitution when a shell is in the path\"}, \"pass\": true, \"payloads_property_tested_in_probe1\": 300, \"probe\": \"probe2-detector-control\", \"reference_sink\": {\"literal_passthrough\": true, \"marker_after_sink\": false, \"same_payload_observed\": [\"$(echo pwned > 'C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p2/second/CANARY-MARKER.txt')\"]}, \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe2 detector-fired=True sink-clean=True"
+      },
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+       "role": "probe1 canary-property",
+       "fingerprint": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+       "exit_code": 0,
+       "live_result_digest": "524ef08c3cdb7514db9ced1c05c4f3e7bad6cef6b507b6261d8fa3b2e9337318",
+       "raw_output": "{\"argv_mismatches\": 0, \"canary_marker_created\": false, \"marker_path\": \"C:/Users/Prekzursil/p2-g1/command-center/p2-wave/probes/TST-0193/.run-p1/CANARY-MARKER.txt\", \"pass\": true, \"payload_families\": 15, \"payloads_tested\": 300, \"probe\": \"probe1-canary-property\", \"sink\": \"list-argv spawn (shell=False, CreateProcess direct) - zero substitution\", \"unit_id\": \"TST-0193\"}\nSUCCESS:TST-0193-probe1 payloads=300 mismatches=0 marker=absent"
+      }
+     ]
+    }
+   ],
+   "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0193/param_sink.py",
+    "sink": "subprocess list-argv spawn (shell=False, CreateProcess direct); child echoes received argv bytes as JSON",
+    "canary": "every payload embeds a marker-creating command; the marker's absence after each run is the pass signal",
+    "signals": {
+     "a": "absence of the canary marker file after every sink call",
+     "b": "the recorded literal parameter value at the sink (child-received argv == sent payload, all 300)"
+    }
+   },
+   "downstream_consumers": [
+    {
+     "artifact_path": "command-center/receipts/TST-0193.json",
+     "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+     "executed": false,
+     "read_ok": true,
+     "probe": {
+      "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0193",
+      "method": "command",
+      "role": "verifier",
+      "note": "run by the independent reviewer after closing state=SUCCESS (a BLOCKED receipt is not self-delivering by design)"
+     }
+    }
+   ],
+   "residual_unknowns": [
+    {
+     "claim": "The measured sink is the reference list-argv dispatch (the shape tools/lib/codex-invocation.mjs uses for child spawns); other call sites that interpolate parameters into shell strings elsewhere in the estate were not in this unit's sink list.",
+     "settling_experiment": "Enumerate all estate parameter sinks (grep for shell=True / cmd /c composition) and run the same 300-payload canary through each.",
+     "verdict": "NOT-CHECKED"
+    }
+   ],
+   "defects": [],
+   "artifacts": [
+    {
+     "unit_id": "TST-0193",
+     "path": "command-center/p2-wave/probes/TST-0193/probe1_canary_property.py",
+     "bytes": 2657,
+     "sha256": "733279cb5fc21f520aff2a629a4e3171733e23b62666636c40ff11372528ecbd",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0193/SUBAGENT-RETURN.json"
+    },
+    {
+     "unit_id": "TST-0193",
+     "path": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py",
+     "bytes": 2728,
+     "sha256": "ae6df8832fcdaac318f027257a14c0f9cffdde2801fb45a68b1119669397702a",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0193/SUBAGENT-RETURN.json"
+    }
+   ],
+   "report": {
+    "kind": "shell_report",
+    "observations": [
+     {
+      "name": "canary markers created across 300 payloads",
+      "measured": 0,
+      "method": "marker existence check after each list-argv sink call",
+      "anchor": "command-center/p2-wave/probes/TST-0193/probe1_canary_property.py"
+     },
+     {
+      "name": "argv mismatches across 300 payloads",
+      "measured": 0,
+      "method": "child-received argv compared to the sent literal",
+      "anchor": "command-center/p2-wave/probes/TST-0193/param_sink.py:observed"
+     },
+     {
+      "name": "detector control (deliberate eval)",
+      "measured": "marker created with content 'pwned'",
+      "method": "same payload class through a real shell",
+      "anchor": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py"
+     }
+    ],
+    "control_ids": [
+     "TST-0193-PROBE1",
+     "TST-0193-PROBE2",
+     "deliberate-shell-eval"
+    ]
+   },
+   "notes": "G-1 for TST-0193: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+  },
+  "reviewer_probe_stability": {
+   "rounds": 3,
+   "per_script": {
+    "probe1_canary_property.py": "3/3 rc0",
+    "probe2_detector_control.py": "3/3 rc0"
+   }
+  },
+  "reviewer_manifest_refresh": {
+   "why": "closure rewrites the receipt bytes, so the manifest receipt row is refreshed post-final-write to the closure bytes; the pre-closure builder digest is preserved here",
+   "pre_closure_sha256": "f638a05fd5219f9e098248be0c1ca18a962e1b5d1068445f6a04836a3bd1a5fd",
+   "pre_closure_bytes": 20062,
+   "digest_mode": "sha256 over CRLF-normalized-to-LF bytes"
+  },
+  "reviewer_second_shell_check": {
+   "probe1_canary_property.py": {
+    "pwsh_rc": 0,
+    "bash_rc": 0,
+    "sha_normalized_outputs_identical": true
+   },
+   "probe2_detector_control.py": {
+    "pwsh_rc": 0,
+    "bash_rc": 0,
+    "sha_normalized_outputs_identical": true
+   }
+  }
+ }
+}

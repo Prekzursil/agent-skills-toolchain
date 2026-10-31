@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/trust-policy.schema.json",
+  "title": "Client-side trust policy",
+  "description": "The CONSUMER's policy, not the registry's. It answers: whose keys do I accept, which permissions may a package hold, which licences may enter my tree, what conformance score is my floor, and how do I behave when a signal is MISSING. The last question is the important one -- every `*_missing` knob defaults to `refuse`, because marketplace-first FM-5 measured 118 units whose declared contract was silently WIDENED to a permissive default, and a trust policy that widens on absence is the same defect wearing a security hat.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy_id", "registry_maintainer_keys", "trusted_publishers", "max_permissions", "license_policy", "thresholds", "on_missing"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "policy_id": { "type": "string", "pattern": "^pol:[a-z][a-z0-9-]{1,40}$" },
+    "registry_maintainer_keys": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "common.schema.json#/$defs/ed25519_public_key" },
+      "description": "Only these keys may sign a registry index. minItems 1: an empty list would make every index unverifiable, which mkt would then have to either refuse (breaking everything) or ignore (verifying nothing)."
+    },
+    "trusted_publishers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["publisher", "public_key"],
+        "properties": {
+          "publisher": { "$ref": "common.schema.json#/$defs/publisher_id" },
+          "public_key": { "$ref": "common.schema.json#/$defs/ed25519_public_key" },
+          "grant_permissions": {
+            "type": "array",
+            "items": { "$ref": "common.schema.json#/$defs/permission" },
+            "uniqueItems": true,
+            "description": "Per-publisher widening ON TOP of max_permissions. Present so a first-party package can hold a permission a third party cannot, without weakening the global ceiling."
+          }
+        }
+      }
+    },
+    "max_permissions": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/permission" },
+      "uniqueItems": true,
+      "description": "The GLOBAL ceiling. A package permission is admissible iff some entry here (or in the publisher grant) SUBSUMES it: `fs:read:workspace/**` subsumes `fs:read:workspace/a.txt`; nothing subsumes `fs:read:*` except `fs:read:*` itself. Subsumption is one function (mkt.permissions.subsumes) so the rule cannot drift between the linter and the installer."
+    },
+    "forbidden_permissions": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 120 },
+      "uniqueItems": true,
+      "description": "Hard denials evaluated BEFORE any grant. A pattern here cannot be re-enabled by a publisher grant -- otherwise the ceiling is advisory."
+    },
+    "license_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_spdx", "on_unknown"],
+      "properties": {
+        "allowed_spdx": { "type": "array", "minItems": 1, "items": { "$ref": "common.schema.json#/$defs/spdx" } },
+        "denied_spdx": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/spdx" } },
+        "on_unknown": { "enum": ["refuse", "warn"], "default": "refuse" }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_conformance_score", "max_advisory_severity"],
+      "properties": {
+        "min_conformance_score": { "$ref": "common.schema.json#/$defs/score_0_100" },
+        "max_advisory_severity": {
+          "$ref": "common.schema.json#/$defs/severity",
+          "description": "The WORST open advisory severity that may still install. `none` means any open advisory refuses."
+        }
+      }
+    },
+    "on_missing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revocation_list", "advisory_list", "sbom", "signature", "publisher"],
+      "properties": {
+        "revocation_list": { "enum": ["refuse", "warn"], "default": "refuse" },
+        "advisory_list": { "enum": ["refuse", "warn"], "default": "refuse" },
+        "sbom": { "enum": ["refuse", "warn"], "default": "refuse" },
+        "signature": { "enum": ["refuse"], "description": "Not tunable. A build in which an unsigned package can install is a build with no supply-chain control at all, so the schema itself refuses to express it." },
+        "publisher": { "enum": ["refuse", "warn"], "default": "refuse" }
+      }
+    },
+    "allow_vulnerable_override": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an operator may pass --allow-vulnerable at all. Recorded in the install receipt when used, so an override is auditable rather than invisible."
+    }
+  }
+}

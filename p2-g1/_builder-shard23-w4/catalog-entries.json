@@ -1,0 +1,559 @@
+[
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adjudicator",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0003",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: an exact set-intersection over every id token extracted by regex from all five artifacts, with the colliding tokens enumerated (mechanical, not eyeballed). B: mechanically independent - a reverse lookup printing BOTH resolved titles for each colliding token, which separates a harmless same-title coincidence from a true semantic clash; the measured 0-of-31 identical-titles result on the M-NN case is the control for this method.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live"
+  ],
+  "id": "WFA-0003",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/07-OPTION-UNIVERSE.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md:175"
+  ],
+  "output_path": "command-center/wfa/WFA-0003-id-namespace-audit.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Do the candidate ids (284 wf-*), blueprint ids (108 BP-*), mechanism ids and any option/mechanism ids cited from workflow artifacts share a prefix namespace in which one literal token resolves to two different records - the exact 31-way M-NN failure recorded at 17-DECISION-LOG.md:175?",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "detector control: plant a synthetic colliding id and confirm the intersection reports it",
+   "the audit must also report ids that resolve to ABSENT (the doc-13 M-12/16/17/19/28/30/38 class)",
+   "if any pinned collision statement is now stale, the audit must say so rather than restate it"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Prove the workflow id namespaces do not collide the way the M-NN option ids did",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "graph-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0004",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: recomputed counts from the emitted library - declared 530, undirected 265, asymmetric 0. B: mechanically independent - an adjacency-matrix transpose equality check (M == M-transpose) computed from the emitted JSON by a separate code path from the counter, so a counter bug cannot certify itself.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "schema-invalid",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "WFA-0004",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json (390 declared, 265 undirected, 140 asymmetric, 0 dangling)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json (compat field, 108 records)"
+  ],
+  "output_path": "command-center/wfa/WFA-0004-compat-symmetry.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/Graph",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Implementation target: make `compat` a provably symmetric relation across all 108 blueprints - declared refs must rise 390 to 530 while undirected edges stay exactly 265, the settling probe named in 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json.FINDING_asymmetric_compat - and add a CI invariant that fails on any future one-sided declaration.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "both-states: remove one reciprocal declaration and confirm the invariant test goes red",
+   "the undirected edge count must be INVARIANT across the fix (265 before and after); any change means content was created or lost",
+   "dangling refs must remain 0 after symmetrisation"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Symmetrise the 140 one-sided compat declarations and add the invariant that keeps them symmetric",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adjudicator",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0005",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: the histogram recomputed from candidates[].classification (ADOPT-AS-IS 122, UNKNOWN-NEEDS-PROBE 44, DISTILL 43, RETIRE 24, ADOPT-WITH-WRAPPER 20, REPAIR 15, EXTEND 6, MERGE 6, SPECIALIZE 4). B: mechanically independent - for each unused value, a targeted search of the 284 does/mechanisms/notes free-text fields for records whose description satisfies that value's decision rule, i.e. positive evidence the value SHOULD have been used rather than the absence of a count.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "WFA-0005",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json (vocabulary of 15; measured histogram uses 9)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10723 (the 15-value disposition list)"
+  ],
+  "output_path": "command-center/wfa/WFA-0005-classification-vocabulary-audit.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "CLEAN-ROOM-REIMPLEMENT, COMPOSE, GENERALIZE, REBUILD-FROM-SPEC, REJECT and TRANSLATE are declared in classification_vocabulary but assigned to zero candidates - is each an unexercised but valid disposition that some candidate should carry, or dead vocabulary that must be deleted from the schema?",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "the search in signal B must be shown to fire on a planted record that obviously warrants the value",
+   "a value may only be deleted from the vocabulary with a written argument, never because its count is zero",
+   "the spec's own 15-value list is authoritative: deleting a spec-named value requires an owner-visible note"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Adjudicate the 6 classification values that 0 of 284 candidates ever received",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adjudicator",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0011",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: id-set equality between a heading-regex extraction over the markdown and the JSON id list, recomputed today with the regex proven silent on a planted non-id heading. B: mechanically independent field-level signal - for a stratified sample of 30 records, compare classification/licence/family strings parsed from the markdown against the JSON fields; set equality alone cannot see a per-field drift and must not be reported as parity.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live"
+  ],
+  "id": "WFA-0011",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json"
+  ],
+  "output_path": "command-center/wfa/WFA-0011-md-json-mirror-parity.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Do 08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md and 08-WORKFLOW-CANDIDATE-REGISTRY.json - and the 09 markdown/JSON pair - hold reconcilable id sets AND field values, or has the human-readable mirror drifted from the machine-readable source?",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "the heading regex must be proven to have a closing-anchor (the measured false-positive class on backtick-delimited ids)",
+   "a planted per-field drift in the markdown must be caught by signal B",
+   "the gate must report WHICH side is newer using commit time, not assume the JSON wins"
+  ],
+  "timeout_seconds": 2700,
+  "title": "MD-to-JSON mirror parity gate for the archaeology and blueprint artifacts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0029",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: a measured arrival histogram from a dry run showing no provider exceeds its configured rate. B: mechanically independent - the providers' own 429 counters and rate-limit response headers over the same window; a scheduler that reports compliance while the provider reports throttling is a detector failure, and the provider's counter wins.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "rate-limited",
+   "detector-failure",
+   "uncontrolled-silence"
+  ],
+  "id": "WFA-0029",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "C:/Users/Prekzursil/source/ast-integrate/tools/lib/ (shared salvage modules, 6 modules / 72 tests)"
+  ],
+  "output_path": "command-center/wfa/WFA-0029-acquisition-scheduler.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: a scheduler that serialises and jitter-staggers every credentialed external acquisition call made by the sweep lane and its retries, enforcing a per-provider token bucket read from config, so the bucket cannot produce a 429 thundering herd.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "both-states: set a limit to 1/min and confirm the scheduler actually blocks; set it to 1000/min and confirm it does not",
+   "resume test: a killed scheduler must not lose queued work",
+   "the scheduler must never be bypassable by a direct call - a lint asserts every external call site routes through it"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Arrival-stagger scheduler for every credentialed external acquisition call in this bucket",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0030",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: a warm-cache re-run of one sweep must issue zero network calls and produce a byte-identical report. B: mechanically independent - a deliberately expired entry must trigger a refetch, proving the freshness check is live rather than a constant true; a cache that reports OK on an empty store is the measured failure this gate exists to prevent.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "source-unreachable"
+  ],
+  "id": "WFA-0030",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10500 (resumable artifacts)",
+   "rule:measured estate defect - an EMPTY cache reported OK"
+  ],
+  "output_path": "command-center/wfa/WFA-0030-acquisition-cache.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: every external fetch is stored content-addressed with its URL, retrieval timestamp and HTTP validators so a re-run resumes instead of refetching - and a stale, empty or truncated entry can never be silently served as fresh.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "both-states: an EMPTY cache must NOT report OK",
+   "corrupted-cache test: truncate an entry and confirm it is rejected rather than served",
+   "cache keys must include the query parameters - two different queries must not collide on one entry"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Content-addressed acquisition cache with resume, staleness and corruption gates",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "extractor",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0042",
+  "dependencies": [
+   "WFA-0001"
+  ],
+  "evidence_requirement": "A: two independent labellers over the same 20 records with per-dimension agreement (Cohen kappa) reported. B: mechanically independent - a blind re-label of 5 of the 20 after a delay by a third reader who sees neither prior label; a dimension whose kappa falls below the stated floor is declared UNMEASURABLE rather than averaged into a comfortable number.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "dependency-blocked"
+  ],
+  "id": "WFA-0042",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json (families A:10 B:4 C:25 D:6 E:19 F:21 G:96 H:72 I:31)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10723 (the 10 recorded dimensions)"
+  ],
+  "output_path": "command-center/wfa/WFA-0042-extraction-gold-set.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/ExtractionReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: a 20-record gold set spanning all 9 candidate families with every one of the 10 extraction dimensions filled by a checked human-grade read, so the extractors can be SCORED rather than trusted.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "cross-vendor: one Codex (openai) verifier that re-derives the result from raw sources plus one Claude adversarial reviewer; a split verdict is resolved by reading both probes, never by vote",
+  "tests_required": [
+   "family coverage must be proven: all 9 families represented, with the sampling rule written before selection",
+   "per-dimension kappa reported separately - an aggregate kappa hides the one dimension nobody can label",
+   "the gold set is frozen once the first extractor is scored against it; later changes require a version bump"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Build the 20-record hand-labelled extraction gold set that scores every other extractor",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adapter-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0048",
+  "dependencies": [
+   "WFA-0044"
+  ],
+  "evidence_requirement": "A: per-command classification as ALIAS or OWN-PROCEDURE with the deciding evidence quoted. B: mechanically independent - for every ALIAS, resolution of the target skill id and a content comparison proving the command adds no stages; an alias miscounted as a workflow directly inflates the 160-candidate floor.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "duplicate-collapse-error",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "WFA-0048",
+  "inputs": [
+   "live:~/.claude/commands and plugin command trees",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json (I-command family n=31)"
+  ],
+  "output_path": "command-center/wfa/WFA-0048-adapter-slash-command.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AdapterConformanceReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: translate the 31 I-family slash commands into IR, distinguishing a command that is a thin alias for a skill from a command that defines its own multi-stage procedure - and collapsing aliases rather than counting them as distinct workflows.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "a command that only invokes a skill must collapse to that skill's id with an alias edge",
+   "detector control: a known alias and a known own-procedure command must be classified correctly first",
+   "the collapsed count must be carried into the floor-proof unit so the floor is not inflated by aliases"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Adapter: slash-command markdown to IR",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adapter-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0051",
+  "dependencies": [
+   "WFA-0044",
+   "WFA-0027"
+  ],
+  "evidence_requirement": "A: each durability mechanism mapped to an IR field or marked REQUIRES-DURABLE-LOG, with the framework source anchor cited. B: mechanically independent - a replay experiment on this estate's control plane for one mapped mechanism, showing the same inputs reproduce the same stage sequence; determinism claimed from documentation is not determinism measured.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "runtime-import-violation",
+   "schema-invalid",
+   "overclaim"
+  ],
+  "id": "WFA-0051",
+  "inputs": [
+   "web:Temporal, Airflow, Prefect and Dagster published source and concept docs",
+   "artifact of the adjacent-runtime teardown",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10885-10890 (deterministic replay, resume, artifact caching)"
+  ],
+  "output_path": "command-center/wfa/WFA-0051-adapter-dag-schedulers.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AdapterConformanceReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: extract the durability mechanisms these four schedulers provide - deterministic replay, idempotency keys, retry/backoff policy, sensors, backfill, task-level SLA - into IR fields, and state which require a durable execution log this estate does not have.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "deterministic replay must be demonstrated on at least one worked case or reported as UNACHIEVED",
+   "a mechanism requiring a durable log must be routed to the architecture lane, not faked with a file",
+   "no scheduler may be installed or run"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Adapter: durable DAG schedulers (Temporal, Airflow, Prefect, Dagster) to IR",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adapter-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0052",
+  "dependencies": [
+   "WFA-0044"
+  ],
+  "evidence_requirement": "A: every job and step parsed, with the needs-graph reconstructed and compared against a topological sort computed independently from the raw YAML. B: mechanically independent - the CI provider's own rendered job graph for a real run compared against the adapter's graph; a YAML that parses is not proof the runtime schedules it that way (matrix expansion is the common divergence).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "schema-invalid",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "WFA-0052",
+  "inputs": [
+   "C:/Users/Prekzursil/source/ast-integrate/.github/workflows/*.yml",
+   "brief:60 CI-declared test steps, 28 executed in the Phase-0 baseline"
+  ],
+  "output_path": "command-center/wfa/WFA-0052-adapter-github-actions.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AdapterConformanceReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: translate this estate's own CI workflow YAML - jobs, needs edges, matrix expansion, conditional steps, required contexts - into IR, so the 60 CI-declared test steps become first-class stages the foundry can reason about.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the unit; the reviewer must re-run this unit's own both-states control before signing PASS",
+  "tests_required": [
+   "matrix expansion must be materialised - an unexpanded matrix under-counts steps",
+   "a job that stops at its first failing step must be represented as such, since a red job otherwise hides later failures",
+   "required-context versus optional-check status must be preserved, not flattened"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Adapter: GitHub Actions workflow YAML to IR",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adapter-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0053",
+  "dependencies": [
+   "WFA-0044",
+   "WFA-0025"
+  ],
+  "evidence_requirement": "A: per-paper translation with every IR field either filled and anchored to a quoted sentence, or marked MISSING. B: mechanically independent - a cross-vendor reader independently lists the parameters the paper specifies; a parameter the adapter filled that the independent reader could not find is a hallucinated default and a unit failure.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "schema-invalid"
+  ],
+  "id": "WFA-0053",
+  "inputs": [
+   "artifact of the academic protocol sweep",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10926-10934 (the protocol vocabulary the IR must cover)"
+  ],
+  "output_path": "command-center/wfa/WFA-0053-adapter-paper-protocol.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AdapterConformanceReport",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: turn a protocol described in a paper into IR, and REFUSE with UNDERSPECIFIED plus the list of missing parameters whenever the prose does not pin down participant count, turn structure, stopping rule or scoring - rather than filling gaps with plausible defaults.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "cross-vendor: one Codex (openai) verifier that re-derives the result from raw sources plus one Claude adversarial reviewer; a split verdict is resolved by reading both probes, never by vote",
+  "tests_required": [
+   "at least one deliberately underspecified paper must be refused (a both-states control on the refusal path)",
+   "every filled field must quote its source sentence - an unquoted field is treated as MISSING",
+   "the refusal output must be usable: it names the exact parameters an author would have to supply"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Adapter: paper-described protocol prose to IR, with a mandatory underspecification refusal",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash(python analysis only; no network, no git write)"
+  ]
+ },
+ {
+  "_source_slice_file": "WFA-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-reviewer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:WFA-0056",
+  "dependencies": [
+   "WFA-0044",
+   "WFA-0027"
+  ],
+  "evidence_requirement": "A: the guard fires on a planted import of each of the seven torn-down runtimes. B: mechanically independent - a dependency-manifest diff plus a process-table observation on a live run, so a runtime that is vendored rather than declared, or spawned rather than imported, is still caught; a manifest check alone measures declarations, not behaviour.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "runtime-import-violation",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "WFA-0056",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md :: _USER-PROMPTS.md:10727 (do not import a second orchestration runtime), 10483 (no duplicate control planes)",
+   "artifacts of the runtime adapters",
+   "C:/Users/Prekzursil/source/ast-integrate/dependency manifests"
+  ],
+  "output_path": "command-center/wfa/WFA-0056-second-control-plane-guard.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+  "owner_approval_required": false,
+  "phase": "2A",
+  "question_or_target": "Implementation target: a gate that fails when an acquired or fused workflow introduces a second control plane - a new scheduler process, a new state store, a new dependency that owns execution order - implementing the spec's rule that mechanisms are extracted and reimplemented, never imported wholesale.",
+  "retry_policy": "two strikes then pivot: after the second failure on the same error fingerprint, enumerate at least two alternative approaches before any third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one security reviewer (threat-model lens) plus one independent adversarial reviewer; both must attempt the named bypass and fail to achieve it before PASS",
+  "tests_required": [
+   "both-states: the guard must be silent on a legitimate library dependency and loud on a runtime import",
+   "the guard must name WHICH control plane it detected, not just fail",
+   "an owner-approved runtime adoption must be expressible as an explicit allowlist entry with the approval recorded"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Guard that detects a second orchestration control plane entering the estate",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash(python, pytest; git read-only; NO add/commit/push)"
+  ]
+ }
+]

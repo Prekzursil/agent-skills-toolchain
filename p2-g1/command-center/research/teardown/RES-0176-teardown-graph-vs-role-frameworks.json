@@ -1,0 +1,462 @@
+{
+  "unit_id": "RES-0176",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:RES-0176",
+  "completion_sentinel": "SUCCESS:RES-0176",
+  "report_kind": "ecosystem-teardown",
+  "schema": "command-center/p2-wave/probes/RES-0176/artifact.schema.json",
+  "declared_output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+  "declared_output_schema_present": true,
+  "question": "What does each framework make easy that the other two make hard (typed state graphs, role/crew delegation, conversational group chat), and which of those abstractions is transferable to a prompt-native control plane WITHOUT importing a second orchestration runtime?",
+  "answer": "LangGraph makes typed shared-state graphs easy: nodes communicate through a TypedDict/Pydantic State whose keys carry independent reducer functions, then StateGraph.compile() builds a Pregel app (checkpointer optional). CrewAI and AutoGen snapshots do not contain that reducer annotation. CrewAI makes role/crew delegation easy: Agent(role, goal, backstory) plus Process.sequential or Process.hierarchical (manager agent + manager_llm). LangGraph and AutoGen snapshots do not contain that role/goal/backstory agent contract. AutoGen/AG2 makes conversational group chat easy: GroupChatManager selects a speaker and broadcasts each utterance to all other agents. LangGraph and CrewAI snapshots do not contain that broadcast loop. Transfer onto this estate's prompt-native control plane (WFA-0044 WorkflowIR, no second orchestration runtime): typed state graphs ARE transferable as IR state_schema + reducer names + edges (cost: schema extension plus overwrite/list-concat; do not import Pregel/checkpointer). Sequential role/crew IS transferable as existing IR role nodes plus ordered stages (cost: map the three prompt fields; do not import Crew.kickoff). Conversational group chat is NOT transferable without the GroupChatManager speaker-select-and-broadcast loop (named runtime service). SUCCESS:RES-0176",
+  "title": "Teardown: LangGraph, CrewAI and AutoGen — graph abstraction versus role abstraction versus conversational group chat",
+  "frameworks": [
+    {
+      "id": "langgraph",
+      "makes_easy": "typed_state_graphs",
+      "distinctive_primitive": "StateGraph + per-key reducers + compile()"
+    },
+    {
+      "id": "crewai",
+      "makes_easy": "role_crew_delegation",
+      "distinctive_primitive": "Agent role/goal/backstory + Crew Process"
+    },
+    {
+      "id": "autogen",
+      "makes_easy": "conversational_group_chat",
+      "distinctive_primitive": "GroupChatManager select-then-broadcast"
+    }
+  ],
+  "control_plane": {
+    "kind": "prompt-native",
+    "ir": "WFA-0044 WorkflowIR (nodes with id/kind/source_anchor)",
+    "constraint": "_USER-PROMPTS.md:10727 do not import a second orchestration runtime; extract the mechanism",
+    "no_runtime_installed": true
+  },
+  "claims": [
+    {
+      "claim_id": "RES-0176-C-LG-TYPED-STATE",
+      "abstraction": "typed_state_graphs",
+      "framework": "LangGraph",
+      "makes_easy": "Shared typed state (TypedDict or Pydantic) with per-key reducer functions, explicit nodes/edges, then compile().",
+      "others_make_hard": "CrewAI tasks pass string context, not per-key reducers. AutoGen group chat treats the message list as the conversation state; neither snapshot contains the LangGraph reducer annotation.",
+      "canonical_mechanism": "A graph-shaped workflow whose nodes read/write a shared state object; each state key has an independent reducer (Value, Value) -> Value.",
+      "quoted_mechanism": "Each state key can optionally be annotated with a reducer function that will be used to aggregate the values of that key received from multiple nodes.",
+      "evidence_tier": "E2",
+      "confidence_band": "highly probable",
+      "sherman_kent_band": "highly probable",
+      "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256; probe2_negative_control.py both-states mutant on transfer verdicts",
+      "named_settling_probe": "probe1_quotes.py",
+      "strongest_caveat": "Docs MDX is the langchain-ai/docs tree, not a Python import; JS and Python sections both exist in graph-api.mdx.",
+      "source_lineage": [
+        {
+          "snapshot": "lg_state.py",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "d8c8021a93a8fc895d62335a9482e50d51353343bf885901e6487611dcd0d212",
+          "bytes": 76310,
+          "quote": "Each state key can optionally be annotated with a reducer function that will be used to aggregate the values of that key received from multiple nodes.",
+          "rail_kind": "R1-source",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "lg_graph_api.mdx",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/docs/main/src/oss/langgraph/graph-api.mdx",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/docs/main/src/oss/langgraph/graph-api.mdx",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "2a69915e9ac1670fbafd151d49a99237eb804d7dca8edf0fe2e4cc1de8f5be46",
+          "bytes": 74528,
+          "quote": "can be either a `TypedDict` or a `Pydantic` model. All `Nodes` will emit updates to the `State` which are then applied using the specified `reducer` function.",
+          "rail_kind": "R2-prose",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "claim_id": "RES-0176-C-LG-COMPILE-PREGEL",
+      "abstraction": "typed_state_graphs",
+      "framework": "LangGraph",
+      "makes_easy": "compile() turns the builder into a Pregel application and is also where checkpointers and breakpoints are attached.",
+      "others_make_hard": "CrewAI and AutoGen do not expose StateGraph.compile or Pregel channels. That is the runtime, not the transferable mechanism.",
+      "canonical_mechanism": "StateGraph is a builder. Execution requires compile(), which the official Pregel guide says creates a Pregel application.",
+      "quoted_mechanism": "When you compile the graph, the StateGraph API automatically creates the Pregel application for you.",
+      "evidence_tier": "E2",
+      "confidence_band": "highly probable",
+      "sherman_kent_band": "highly probable",
+      "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256; probe2_negative_control.py both-states mutant on transfer verdicts",
+      "named_settling_probe": "probe1_quotes.py",
+      "strongest_caveat": "Checkpointer persistence is a runtime service; it is named so it is not smuggled in as 'just typed state'.",
+      "source_lineage": [
+        {
+          "snapshot": "lg_state.py",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "d8c8021a93a8fc895d62335a9482e50d51353343bf885901e6487611dcd0d212",
+          "bytes": 76310,
+          "quote": "You must first call `.compile()` to create an executable graph that supports",
+          "rail_kind": "R1-source",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "lg_pregel.mdx",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/docs/main/src/oss/langgraph/pregel.mdx",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/docs/main/src/oss/langgraph/pregel.mdx",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "e59c75951fcfdd175321862a8538dd59dbddeb75053c7e45ad14ab4d190533a1",
+          "bytes": 26882,
+          "quote": "When you compile the graph, the StateGraph API automatically creates the Pregel application for you.",
+          "rail_kind": "R2-prose",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "lg_state.py",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/graph/state.py",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "d8c8021a93a8fc895d62335a9482e50d51353343bf885901e6487611dcd0d212",
+          "bytes": 76310,
+          "quote": "If provided, this `Checkpointer` serves as a fully versioned \"short-term memory\" for the graph",
+          "rail_kind": "R1-source",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "claim_id": "RES-0176-C-CREW-ROLE",
+      "abstraction": "role_crew_delegation",
+      "framework": "CrewAI",
+      "makes_easy": "First-class Agent with role, goal, backstory, plus Crew Process sequential or hierarchical.",
+      "others_make_hard": "LangGraph nodes are state functions, not role/goal/backstory cards. AutoGen conversable agents are not Crew/Task/Process.",
+      "canonical_mechanism": "A role/goal/backstory prompt triple bound to an agent, then a crew process that either runs tasks in listed order or delegates via a manager agent.",
+      "quoted_mechanism": "Each agent has a role, a goal, a backstory, and an optional language model (llm).",
+      "evidence_tier": "E2",
+      "confidence_band": "highly probable",
+      "sherman_kent_band": "highly probable",
+      "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256; probe2_negative_control.py both-states mutant on transfer verdicts",
+      "named_settling_probe": "probe1_quotes.py",
+      "strongest_caveat": "Sequential process is the transferable slice. Hierarchical manager construction is a Crew runtime loop.",
+      "source_lineage": [
+        {
+          "snapshot": "crew_agent_core.py",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/agent/core.py",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/agent/core.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "d861b84b8e7b5b95c4d17229fdb7c2252d6e064167e34b3db95f741394f91dbd",
+          "bytes": 76949,
+          "quote": "Each agent has a role, a goal, a backstory, and an optional language model (llm).",
+          "rail_kind": "R1-source",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "crew_agents.mdx",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/docs/edge/en/concepts/agents.mdx",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/docs/edge/en/concepts/agents.mdx",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "e5d3448c2939817a455be5bf38e4c723828ccde6253d92ac837941f35c70c91f",
+          "bytes": 31229,
+          "quote": "Defines the agent's function and expertise within the crew.",
+          "rail_kind": "R2-prose",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "crew_process.py",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/process.py",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/process.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "fae2439b635b702a85a109725495eef7ec4d390661bf06a2dba96e1ebe4abe1e",
+          "bytes": 249,
+          "quote": "hierarchical = \"hierarchical\"",
+          "rail_kind": "R1-source",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "claim_id": "RES-0176-C-CREW-HIERARCHICAL",
+      "abstraction": "role_crew_delegation",
+      "framework": "CrewAI",
+      "makes_easy": "Process.hierarchical creates or assigns a manager agent that completes tasks via delegation; manager_llm is required if no manager_agent is supplied.",
+      "others_make_hard": "LangGraph and AutoGen do not ship Process.hierarchical or _create_manager_agent.",
+      "canonical_mechanism": "A manager agent with allow_delegation=True that is either user-supplied or constructed from manager_llm, then _execute_tasks.",
+      "quoted_mechanism": "Creates and assigns a manager agent to complete the tasks.",
+      "evidence_tier": "E2",
+      "confidence_band": "highly probable",
+      "sherman_kent_band": "highly probable",
+      "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256; probe2_negative_control.py both-states mutant on transfer verdicts",
+      "named_settling_probe": "probe1_quotes.py",
+      "strongest_caveat": "Hierarchical kickoff is CrewAI's process executor, not a prompt card. Sequential role cards remain transferable.",
+      "source_lineage": [
+        {
+          "snapshot": "crew_crew.py",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/crew.py",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/lib/crewai/src/crewai/crew.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "df4e2510659a55bfbe5c81b1e30511428be71a6a1e9ceb36f6e32d3e7c9a68b0",
+          "bytes": 94067,
+          "quote": "Creates and assigns a manager agent to complete the tasks.",
+          "rail_kind": "R1-source",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "crew_hier.mdx",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/docs/edge/en/learn/hierarchical-process.mdx",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/docs/edge/en/learn/hierarchical-process.mdx",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "aea53ebdfb1d38dd240b62a989f709a0fd6e1b0226b4ecf8584d035b092cacdb",
+          "bytes": 5525,
+          "quote": "The system requires a manager LLM to be set up for proper function",
+          "rail_kind": "R2-prose",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "claim_id": "RES-0176-C-AG-GROUPCHAT",
+      "abstraction": "conversational_group_chat",
+      "framework": "AutoGen/AG2",
+      "makes_easy": "GroupChat plus GroupChatManager: select next speaker (auto/manual/random/round_robin), then broadcast the utterance to every other agent.",
+      "others_make_hard": "LangGraph has no GroupChatManager broadcast loop. CrewAI hierarchical delegation is manager-to-worker tasks, not all-to-all utterance fan-out.",
+      "canonical_mechanism": "A conversation runtime that holds an agent list and message log, selects a speaker, appends the utterance, and sends it to all non-speakers.",
+      "quoted_mechanism": "broadcast the message to all agents except the speaker",
+      "evidence_tier": "E2",
+      "confidence_band": "probable",
+      "sherman_kent_band": "probable",
+      "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256; probe2_negative_control.py both-states mutant on transfer verdicts",
+      "named_settling_probe": "probe1_quotes.py",
+      "strongest_caveat": "R1 is microsoft/autogen 0.2 groupchat.py (the named GroupChatManager implementation). R2 is current AG2 docs, which still describe the same select-then-broadcast loop. ag2ai/ag2 main no longer vendors autogen/agentchat/groupchat.py (migration note exists). AutoGen LICENSE on the 0.2 branch is CC-BY-4.0; this record quotes short excerpts and extracts the mechanism, it does not copy the runtime.",
+      "source_lineage": [
+        {
+          "snapshot": "ag_groupchat.py",
+          "permalink": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "resolved_url": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "e873b20f6eef5e1be1c8de14c1d4ba27afd0c949fc392df08579513bf39593ff",
+          "bytes": 83538,
+          "quote": "broadcast the message to all agents except the speaker",
+          "rail_kind": "R1-source",
+          "family": "autogen",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "ag_groupchat.py",
+          "permalink": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "resolved_url": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "e873b20f6eef5e1be1c8de14c1d4ba27afd0c949fc392df08579513bf39593ff",
+          "bytes": 83538,
+          "quote": "the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.",
+          "rail_kind": "R1-source",
+          "family": "autogen",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "ag_groupchat.py",
+          "permalink": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "resolved_url": "https://raw.githubusercontent.com/microsoft/autogen/0.2/autogen/agentchat/groupchat.py",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "e873b20f6eef5e1be1c8de14c1d4ba27afd0c949fc392df08579513bf39593ff",
+          "bytes": 83538,
+          "quote": "A chat manager agent that can manage a group chat of multiple agents.",
+          "rail_kind": "R1-source",
+          "family": "autogen",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        },
+        {
+          "snapshot": "ag2_groupchat.html",
+          "permalink": "https://docs.ag2.ai/latest/docs/user-guide/advanced-concepts/groupchat/groupchat/",
+          "resolved_url": "https://docs.ag2.ai/latest/docs/user-guide/advanced-concepts/groupchat/groupchat/",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "6db0c30561592aff1560b2412120a9da1b269801412420282f8710e5946f1af6",
+          "bytes": 82397,
+          "quote": "broadcasts the message to all other agents in the group",
+          "rail_kind": "R2-prose",
+          "family": "autogen",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    }
+  ],
+  "transfer_verdicts": [
+    {
+      "abstraction": "typed_state_graphs",
+      "transferable": true,
+      "mechanism": "Named state keys with an independent merge rule per key (overwrite or list-concat / custom reducer) plus explicit node and edge topology.",
+      "runtime_host": "langgraph.graph.state.StateGraph.compile -> CompiledStateGraph / Pregel; optional Checkpointer",
+      "runtime_service": null,
+      "reimplementation_cost": "Extend WFA-0044 WorkflowIR with a state_schema object (key -> {type, reducer}) and a conditional_edge table; implement overwrite and list-concat in the existing prompt-native runner. Do not install langgraph. Checkpointer put/get and interrupt_before stay unmapped (Pregel persistence).",
+      "what_importing_would_do": "Importing langgraph would add a Pregel superstep scheduler and checkpoint store — a second orchestration runtime."
+    },
+    {
+      "abstraction": "role_crew_delegation",
+      "transferable": true,
+      "mechanism": "Role/goal/backstory prompt triple plus an ordered task list (sequential process).",
+      "runtime_host": "crewai.Crew.kickoff / crewai.Process",
+      "runtime_service": null,
+      "reimplementation_cost": "Map Agent.role/goal/backstory onto existing WFA-0044 IR nodes of kind=role; map sequential Task lists onto existing stage order. Do not install crewai. Process.hierarchical (_run_hierarchical_process / _create_manager_agent) is not in this transferable slice.",
+      "what_importing_would_do": "Importing Crew.kickoff would add CrewAI's process executor as a second control loop beside the prompt-native plane."
+    },
+    {
+      "abstraction": "conversational_group_chat",
+      "transferable": false,
+      "mechanism": "Speaker-selection policy over an agent roster plus broadcast of each utterance to all other agents.",
+      "runtime_host": "autogen.agentchat.groupchat.GroupChatManager (microsoft/autogen 0.2; documented equivalently by AG2)",
+      "runtime_service": "GroupChatManager speaker-select-and-broadcast loop: select_speaker, groupchat.append, then self.send(message, agent, request_reply=False) to every non-speaker",
+      "reimplementation_cost": "Not reimplemented. Doing so would add an in-session agent registry, nested LLM speaker-selection, and all-to-all message fan-out — a second conversation orchestration runtime, forbidden by _USER-PROMPTS.md:10727. A prompt-native plane may still sequence named speakers as ordinary stages; that is not this abstraction.",
+      "what_importing_would_do": "Importing GroupChatManager would create a second orchestration runtime inside the session."
+    }
+  ],
+  "negative_control": {
+    "id": "T-NEG-GROUPCHAT-NOT-TRANSFERABLE",
+    "abstraction": "conversational_group_chat",
+    "transferable": false,
+    "runtime_service": "GroupChatManager speaker-select-and-broadcast loop: select_speaker, groupchat.append, then self.send(message, agent, request_reply=False) to every non-speaker",
+    "why": "The abstraction is the runtime: an agent registry plus nested speaker selection plus all-to-all fan-out. Importing it creates a second orchestration runtime."
+  },
+  "hardness": {
+    "rows": [
+      {
+        "abstraction": "typed_state_graphs",
+        "owner": "langgraph",
+        "needle": "annotated with a reducer function",
+        "present_in_owner": true,
+        "present_in_others": [],
+        "exclusive": true
+      },
+      {
+        "abstraction": "role_crew_delegation",
+        "owner": "crewai",
+        "needle": "Each agent has a role, a goal, a backstory",
+        "present_in_owner": true,
+        "present_in_others": [],
+        "exclusive": true
+      },
+      {
+        "abstraction": "conversational_group_chat",
+        "owner": "autogen",
+        "needle": "broadcast the message to all agents except the speaker",
+        "present_in_owner": true,
+        "present_in_others": [],
+        "exclusive": true
+      }
+    ],
+    "all_exclusive": true
+  },
+  "licenses": [
+    {
+      "project": "langchain-ai/langgraph",
+      "license_file_quote": "MIT License",
+      "classifier_label_not_used": true,
+      "source_lineage": [
+        {
+          "snapshot": "lg_license",
+          "permalink": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/LICENSE",
+          "resolved_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/LICENSE",
+          "fetch_timestamp": "2026-08-24T20:52:43Z",
+          "http_status": 200,
+          "sha256": "d9bb52f2e3540d60ff50d8f0f5b6ba649b7fd346948c4c3d086c8afb120763c7",
+          "bytes": 1072,
+          "quote": "MIT License",
+          "rail_kind": "R2-license",
+          "family": "langgraph",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "project": "crewAIInc/crewAI",
+      "license_file_quote": "Copyright (c) 2025 crewAI, Inc.",
+      "classifier_label_not_used": true,
+      "source_lineage": [
+        {
+          "snapshot": "crew_license",
+          "permalink": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/LICENSE",
+          "resolved_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/LICENSE",
+          "fetch_timestamp": "2026-08-24T20:52:44Z",
+          "http_status": 200,
+          "sha256": "28868731966f4aa37f02879839aabc797137e27ddde4e274ef9cf965f9a71774",
+          "bytes": 1055,
+          "quote": "Copyright (c) 2025 crewAI, Inc.",
+          "rail_kind": "R2-license",
+          "family": "crewai",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    },
+    {
+      "project": "microsoft/autogen (0.2 branch)",
+      "license_file_quote": "Attribution 4.0 International",
+      "classifier_label_not_used": true,
+      "note": "LICENSE file on the 0.2 branch opens with Attribution 4.0 International (CC-BY-4.0). Mechanism extracted; runtime not copied.",
+      "source_lineage": [
+        {
+          "snapshot": "ag_license",
+          "permalink": "https://raw.githubusercontent.com/microsoft/autogen/0.2/LICENSE",
+          "resolved_url": "https://raw.githubusercontent.com/microsoft/autogen/0.2/LICENSE",
+          "fetch_timestamp": "2026-08-24T20:52:45Z",
+          "http_status": 200,
+          "sha256": "7e7170e3cebf88a9f60c7b8421418323c09304da1af4d5e90f4da1dc1c8a2661",
+          "bytes": 18650,
+          "quote": "Attribution 4.0 International",
+          "rail_kind": "R2-license",
+          "family": "autogen",
+          "independent_verification_path": "probe1_quotes.py re-grep of captured bytes plus live sha256"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-quotes-two-rails-hardness",
+      "name": "Every load-bearing claim has two independent rails whose quotes hit captured bytes; distinctive needles are exclusive to the owning framework",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-negative-control",
+      "name": "At least one abstraction is NOT transferable with a named runtime service; a mutant that marks it transferable must fail",
+      "result": "PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0176-probe2-negative-control",
+    "verdict": "PASS",
+    "independent": true,
+    "defaults_to": "REFUTED"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "teardown-analyst",
+    "execution_substrate": "headless-linux"
+  },
+  "timestamps": {
+    "emitted_at": "2026-09-02T00:42:33Z"
+  },
+  "notes": "G-1 research teardown. Live captures hashed. Two-rail (source+prose) citations required for E2 claims. Did not run global unit_manifest.py --write. Did not import langgraph, crewai, or autogen."
+}

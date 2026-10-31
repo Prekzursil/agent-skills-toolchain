@@ -1,0 +1,56 @@
+{
+  "artifacts": [
+    {
+      "bytes": 33182,
+      "exists": true,
+      "path": "command-center/research/RES-0020.json",
+      "role": "primary",
+      "sha256": "b9e65fbc71f2bfd9ad0a29e7943058b263d45954de0d53ea2fbb2fdb532ee729",
+      "unit_id": "RES-0020"
+    }
+  ],
+  "id": "RES-0020",
+  "manifest_path": "command-center/p2-wave/probes/RES-0020/UNIT-ARTIFACT-MANIFEST.json",
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0020/probe1_telemetry_diff.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "raw_output": "[PASS] telemetry ON: marketplace + telemetry both hit: {'marketplace': True, 'telemetry': True, 'telemetry_keys': ['event', 'plugin_id', 'os', 'hostname', 'session_id', 'api_key'], 'vendor': False, 'offline': False}\n  [PASS] telemetry OFF (env): marketplace still hit, telemetry dropped: {'marketplace': True, 'telemetry': False, 'telemetry_keys': [], 'vendor': False, 'offline': False}\n  [PASS] telemetry OFF (settings file): telemetry dropped, marketplace hit: {'marketplace': True, 'telemetry': False, 'telemetry_keys': [], 'vendor': False, 'offline': False}\n  [PASS] settings file WITHOUT the key does NOT disable telemetry: {'marketplace': True, 'telemetry': True, 'telemetry_keys': ['event', 'plugin_id', 'os', 'hostname', 'session_id', 'api_key'], 'vendor': False, 'offline': False}\n  [PASS] empty TELEMETRY_DISABLED does NOT disable telemetry: {'marketplace': True, 'telemetry': True, 'telemetry_keys': ['event', 'plugin_id', 'os', 'hostname', 'session_id', 'api_key'], 'vendor': False, 'offline': False}\n  [PASS] re-measured endpoint diff matches the recorded diff: recorded={'only_with_telemetry': ['telemetry:POST:/v1/event'], 'only_without_telemetry': [], 'shared': ['marketplace:GET:/plugin/fixture.tar']}\n  [PASS] observed collector keys match the recorded six: observed=['api_key', 'event', 'hostname', 'os', 'plugin_id', 'session_id']\n  [PASS] user_email documented but never sent: absent from every POST body\n  [PASS] api_key observed as a key with value NOT stored: recorded=True/False\nSUCCESS:RES-0020-probe1",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0020/probe2_offline_bypass.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "raw_output": "[PASS] OFFLINE=1 (incl. refresh=true): zero connects at both roles: client={'marketplace': False, 'telemetry': False, 'telemetry_keys': [], 'vendor': False, 'offline': True} server_hits=[]\n  [PASS] recorded offline control is the same zero shape: recorded={'collector_hits': 0, 'connect_count': 0, 'new_endpoints': []}\n  [PASS] kill-switch does NOT stop MCP vendor egress: vendor GET still fires: client={'marketplace': True, 'telemetry': False, 'telemetry_keys': [], 'vendor': True, 'offline': False} server_hits=['GET /marketplace/plugin-fixture.tar', 'GET /vendor/mcp']\n  [PASS] recorded harness checks cover the same three controls: [True, True, True]\n  [PASS] NC: mutant diff that hides the telemetry endpoint fires the detector: mutant only_with_telemetry=[]\nSUCCESS:RES-0020-probe2",
+      "result": "PASS"
+    }
+  ],
+  "notes": "Loopback telemetry diff re-measured live on this Windows box (fixture client + marketplace/telemetry/vendor listeners); endpoint diff re-derived in the recorded role vocabulary.",
+  "output_path": "command-center/research/RES-0020.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "registered": true,
+  "reviewer": {
+    "artifact_level": {
+      "fresh_context": true,
+      "independent": true,
+      "mitigations_recorded_as_effective": [
+        "TELEMETRY_DISABLED=1",
+        "telemetry.enabled=false in settings",
+        "OFFLINE=1"
+      ],
+      "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema. Effective mitigations are those whose bypass attempts all failed in bypass_attempts (bypassed=false, recorded_as_effective=true).",
+      "reviewer_id": "schema-resolver",
+      "vendor": "custom",
+      "verdict": "PASS"
+    },
+    "independent": false,
+    "pending": "reviewer-absent"
+  },
+  "sentinel": "SUCCESS:RES-0020 in the receipt AND an endpoint list with a with/without-telemetry diff and an explicit statement of which fields were observed versus merely documented",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "ts": "2026-10-25T16:12:43Z",
+  "unit_id": "RES-0020"
+}

@@ -1,0 +1,87 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0128",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ADV-0128",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0128]",
+ "min_bytes_threshold": 2048,
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+   "bytes": 24792,
+   "sha256": "733866d8d52ff070ad24054971d52e4ff81301396452deda19579f407ab163d1",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Both named probes re-run live this session and exit 0; the primary artifact at output_path parses, carries the completion sentinel, and its per-unit manifest row matches the CRLF-normalized sha256.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0128/SUBAGENT-RETURN.json:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe1_full_offline.py",
+     "raw_output": "{\"contract_labelled\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"naive_silent\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"offline_naive\": [{\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"registry\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"research\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cloud-dispatch\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cross-vendor-mcp\", \"served_as_live\": true}], \"online_ok\": true, \"pass\": true, \"probe\": \"probe1-full-offline\", \"unit_id\": \"ADV-0128\"}\nnc_unlabelled_cache fired_bad=True silent_good=True\nSUCCESS:ADV-0128-probe1 offline: naive silent-success x4, contract labelled x4",
+     "fingerprint": "ADV-0128:probe1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py",
+     "raw_output": "{\"contract_kept_all\": true, \"contract_resume_all\": true, \"explicit_step2_all\": true, \"fixture_loopback_only\": true, \"naive_lost_all\": true, \"pass\": true, \"probe\": \"probe2-mid-partition\", \"rows\": [{\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"registry\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"research\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cloud-dispatch\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cross-vendor-mcp\", \"step2_failed_explicitly\": true}], \"unit_id\": \"ADV-0128\"}\nSUCCESS:ADV-0128-probe2 mid-partition lost naive partial x4; contract kept step-1 and resumed",
+     "fingerprint": "ADV-0128:probe2",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-24T23:42:18Z",
+  "ended_at": "2026-10-25T15:22:41Z"
+ },
+ "retry": {
+  "count": 1,
+  "policy": "two-strikes pivot; skip is a verdict, not a retry"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete and live-verified (_measure_one_delivered.py -> SUCCESS:delivered): artifact at output_path parses, carries the completion sentinel, both named probes re-run exit 0, per-unit manifest row matches the CRLF-normalized sha256. state stays BLOCKED because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, and the catalog reviewer_requirement names a fresh-context / cross-vendor / two-reviewer panel that has not run. Only the independent reviewer closes. one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement Probe kit was lost mid-flight by the dead prior builder (artifact recorded named probes whose scripts did not exist on disk); shard-2 wave-2 builder materialized the full probe kit (loopback fixture server + naive vs contract clients + offline and mid-partition campaigns), both probes re-run exit 0, artifact named_probes refreshed with live raw outputs, builder-authored reviewer self-closure demoted to prev_closure.",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement"
+ },
+ "reviewer": {
+  "reviewer_id": "unassigned-independent-reviewer",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0128/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0128"
+ },
+ "produced_by": {
+  "model": "opus",
+  "role": "builder-shard-2-w2",
+  "vendor": "anthropic"
+ },
+ "extensions": {
+  "carried_from_builder_receipt": {
+   "completion_sentinel": "SUCCESS:ADV-0128 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0128 <reason>.",
+   "gate_note": "not owner-gated (catalog owner_approval_required=false); blanket build directive 2026-10-24 not needed for this unit",
+   "owner_approval_required": false,
+   "output_path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+   "output_schema": "command-center/schema/fault-injection-run.schema.json",
+   "status": "BUILT-AWAITING-REVIEW",
+   "ts": "2026-10-24T23:42:18Z",
+   "id": "ADV-0128",
+   "manifest_path": "command-center/p2-wave/probes/ADV-0128/UNIT-ARTIFACT-MANIFEST.json"
+  }
+ }
+}

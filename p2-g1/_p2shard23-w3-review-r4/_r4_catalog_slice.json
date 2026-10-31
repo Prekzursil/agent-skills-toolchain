@@ -1,0 +1,557 @@
+{
+ "TST-0195": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0195",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the Linux CI leg's resolution result, and (b) the Windows leg's result plus its warning stream",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "platform-gap",
+   "green-not-live",
+   "fixture-invalid"
+  ],
+  "id": "TST-0195",
+  "inputs": [
+   "_USER-PROMPTS.md:11016 (Phase 10 layer 28, path-casing tests)",
+   "_USER-PROMPTS.md:11309 (case-insensitive parser collision)",
+   "command-center/BASELINE-SNAPSHOT.json"
+  ],
+  "output_path": "command-center/receipts/TST-0195.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does a `Skills/` vs `skills/` reference resolve consistently, and is the platform difference declared rather than accidental? PASS requires: exact-match failure on Linux, and on Windows either the same failure or a resolution accompanied by a warning naming the mismatch.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+  "tests_required": [
+   "both-states control: correctly-cased references resolve silently on both",
+   "cross-OS matrix: the same fixture executed on both legs of one run"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Loader lookup casing is exact on Linux and normalized-with-warning on Windows",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "TST-0197": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0197",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the enumerator's returned count with reserved names present, and (b) an independent count from a different API (dir listing) over the same tree",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "platform-gap",
+   "green-not-live",
+   "fixture-invalid"
+  ],
+  "id": "TST-0197",
+  "inputs": [
+   "_USER-PROMPTS.md:11016 (Phase 10 layer 28, path-casing tests)",
+   "_USER-PROMPTS.md:11309 (case-insensitive parser collision)",
+   "command-center/BASELINE-SNAPSHOT.json"
+  ],
+  "output_path": "command-center/receipts/TST-0197.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does the enumerator survive files named NUL/CON/AUX/PRN/COM1/LPT1 in a scanned tree, using the extended-length prefix where required? PASS requires a complete count with the reserved entries reported, never an exception and never a silent zero.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+  "tests_required": [
+   "detector control: confirm the enumerator finds a KNOWN-PRESENT ordinary file in the same tree before trusting any count",
+   "regression seed: os.path.relpath raising ValueError on a file named NUL, which would have zeroed every count in a baseline enumeration"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Reserved device names do not crash tree enumeration",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "TST-0202": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0202",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the measured length recorded by the writer, and (b) an independent resolution of the same path by a different API",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "platform-gap",
+   "green-not-live",
+   "owner-blocked"
+  ],
+  "id": "TST-0202",
+  "inputs": [
+   "_USER-PROMPTS.md:11017 (Phase 10 layer 29, long-path tests)",
+   "rules/common/windows-shell.md",
+   "B07 artifact writer + package extractor"
+  ],
+  "output_path": "command-center/receipts/TST-0202.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "When the target is reached through a junction/symlink, is the length budget applied to the resolved path rather than the short alias? PASS requires the resolved measurement; measuring the alias is the defect being tested.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+  "tests_required": [
+   "both-states control: a direct (non-junction) path of equal resolved length behaves identically",
+   "negative control: measuring the alias must be shown to admit an over-limit write"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Length is measured on the RESOLVED path, through junctions and symlinks",
+  "tool_permissions": [
+   "Read",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "TST-0204": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0204",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the enforced cap in the generator plus a property test over 10,000 generated ids, and (b) the longest observed real path in a full fan-out run",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "platform-gap",
+   "green-not-live",
+   "owner-blocked"
+  ],
+  "id": "TST-0204",
+  "inputs": [
+   "_USER-PROMPTS.md:11017 (Phase 10 layer 29, long-path tests)",
+   "rules/common/windows-shell.md",
+   "B07 artifact writer + package extractor"
+  ],
+  "output_path": "command-center/receipts/TST-0204.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Do generated worktree roots and unit ids have a declared maximum length, so the harness cannot consume the user's path budget? PASS requires a hard cap enforced in code, not a convention.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+  "tests_required": [
+   "property test: every generated root length <= declared cap",
+   "measurement: report the p100 observed path length from a 256-unit run"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Worktree/id generators bound their own contribution to the path budget",
+  "tool_permissions": [
+   "Read",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "TST-0206": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "codex-cli-default",
+   "role": "security-tester",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0206",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) a pattern scanner over the artifact tree, and (b) an entropy-based scanner run independently; both must agree",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0206",
+  "inputs": [
+   "_USER-PROMPTS.md:11018 (Phase 10 layer 30, secret-leak tests)",
+   "_USER-PROMPTS.md:11345 (credentials or decrypted secrets enter an artifact bundle)",
+   "AGENTS.md:9 (security non-negotiables)",
+   "tools/lib/security.mjs"
+  ],
+  "output_path": "command-center/receipts/TST-0206.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "With canary tokens planted in the environment and in local config, does a scan of every produced artifact directory find zero occurrences? PASS requires the scan first PROVE it can find a planted canary inside an artifact before any zero is trusted.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "detector control: plant a canary INSIDE an artifact and confirm both scanners fire",
+   "regression seed: credentials or decrypted secrets enter an artifact bundle (_USER-PROMPTS.md:11345)"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Canary-seeded scan proves no secret enters any produced artifact",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0215": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "codex-cli-default",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0215",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the router's top-k selections for both corpora, and (b) the executed tool sequence for the same tasks",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0215",
+  "inputs": [
+   "_USER-PROMPTS.md:11019 (Phase 10 layer 31, malicious-plugin tests)",
+   "_USER-PROMPTS.md:11346 (marketplace package has malicious or excessive permissions)",
+   "_USER-PROMPTS.md:10844-10871 (Phase 6 marketplace trust surface)",
+   "AGENTS.md:9 (a cloned repo can carry auto-loaded agent config)"
+  ],
+  "output_path": "command-center/receipts/TST-0215.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Can an injected instruction inside a plugin description / SKILL.md alter capability selection or tool use? PASS requires identical routing decisions with and without the injected text, across a fixed task set.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "detector control: an injection that changes routing MUST be detectable - plant one that trivially renames a capability and confirm the comparison sees the change",
+   "corpus: 30 injection payloads x 20 tasks"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Capability text is DATA: a planted instruction cannot steer the router",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0219": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "codex-cli-default",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0219",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the resolver's refusal and message, and (b) the installed tree hash proving the public artifact was not used",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0219",
+  "inputs": [
+   "_USER-PROMPTS.md:11019 (Phase 10 layer 31, malicious-plugin tests)",
+   "_USER-PROMPTS.md:11346 (marketplace package has malicious or excessive permissions)",
+   "_USER-PROMPTS.md:10844-10871 (Phase 6 marketplace trust surface)",
+   "AGENTS.md:9 (a cloned repo can carry auto-loaded agent config)"
+  ],
+  "output_path": "command-center/receipts/TST-0219.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Can a private package name be satisfied from a public mirror? PASS requires the lockfile to pin both the registry origin and an integrity hash, and resolution to FAIL when the public mirror offers a same-named package.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "both-states control: the legitimate private origin resolves",
+   "negative control: a lockfile without an origin pin must fail this test"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Lockfile pins registry origin and integrity, defeating dependency confusion",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0221": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "codex-cli-default",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0221",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the health-check output naming the revoked package, and (b) a pre/post hash of the user-data tree",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0221",
+  "inputs": [
+   "_USER-PROMPTS.md:11019 (Phase 10 layer 31, malicious-plugin tests)",
+   "_USER-PROMPTS.md:11346 (marketplace package has malicious or excessive permissions)",
+   "_USER-PROMPTS.md:10844-10871 (Phase 6 marketplace trust surface)",
+   "AGENTS.md:9 (a cloned repo can carry auto-loaded agent config)"
+  ],
+  "output_path": "command-center/receipts/TST-0221.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "After a package is revoked upstream, does the next health check flag it, and does removal leave user data intact? PASS requires the flag to appear without a manual refresh and the user-data tree to be byte-identical after removal.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "both-states control: a non-revoked package is not flagged",
+   "regression seed: rollback removes existing commands or user data (_USER-PROMPTS.md:11347)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Revocation is honored at the next health check and removal preserves user data",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0223": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0223",
+  "dependencies": [
+   "B06",
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the effective permission set computed at each nesting depth, and (b) an attempted privileged call at the deepest level",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0223",
+  "inputs": [
+   "_USER-PROMPTS.md:11020 (Phase 10 layer 32, permission-boundary tests)",
+   "_USER-PROMPTS.md:10613-10614 (per-unit tool permissions and execution substrate)",
+   "tools/lib/workspace.mjs",
+   "tools/lib/net-allowlist.mjs"
+  ],
+  "output_path": "command-center/receipts/TST-0223.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Can a subworkflow obtain a permission its parent lacks, via nesting, re-entry or a preset? PASS requires a monotone-narrowing property proven over randomized nesting trees.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "property test: 5,000 randomized nesting trees, asserting child_perms subset of parent_perms",
+   "mutation control: allow one widening path and confirm the property fails"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Subworkflow permissions narrow monotonically and can never widen",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0227": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0227",
+  "dependencies": [
+   "B06",
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the denial and alert, and (b) a pre/post hash of the victim session's tree",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "TST-0227",
+  "inputs": [
+   "_USER-PROMPTS.md:11020 (Phase 10 layer 32, permission-boundary tests)",
+   "_USER-PROMPTS.md:10613-10614 (per-unit tool permissions and execution substrate)",
+   "tools/lib/workspace.mjs",
+   "tools/lib/net-allowlist.mjs"
+  ],
+  "output_path": "command-center/receipts/TST-0227.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Is cross-session write containment enforced, given multiple concurrent agent sessions on this box? PASS requires a denied write plus an alert naming both session ids.",
+  "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+  "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+  "tests_required": [
+   "both-states control: a write inside the agent's OWN session root succeeds",
+   "concurrency: run the probe while a second session is genuinely active"
+  ],
+  "timeout_seconds": 2700,
+  "title": "One session cannot write into another session's worktree or artifact root",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0230": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0230",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) per-case input byte/item counts recorded in the result, and (b) the control case's timing separation from the empty case",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live",
+   "flaky-nondeterminism"
+  ],
+  "id": "TST-0230",
+  "inputs": [
+   "_USER-PROMPTS.md:11021 (Phase 10 layer 33, benchmark regression tests)",
+   "_USER-PROMPTS.md:10656-10657 (capture benchmark baselines before changing behavior)",
+   "_USER-PROMPTS.md:11385 (stopping condition 8: intended improvement without material regression)"
+  ],
+  "output_path": "command-center/receipts/TST-0230.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does each benchmark case operate on a non-empty input above a declared floor, so a green cannot be produced by measuring nothing? PASS requires a per-case input-size assertion plus one control case with known non-zero work whose timing must be measurably above noise.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one cross-vendor reviewer (Codex) plus one Claude reviewer; disagreement is resolved from the raw probe output, never by vote",
+  "tests_required": [
+   "detector control: an intentionally empty case must be FLAGGED, not scored",
+   "regression seed: two benchmarks on this estate measured EMPTY inputs and returned a clean, meaningless green"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Every benchmark case has a proven non-empty input",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0233": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0233",
+  "dependencies": [
+   "B07",
+   "TST-0231",
+   "B04"
+  ],
+  "evidence_requirement": "two independent signals: (a) per-source matched-case score matrices, and (b) the named complementarity case executed and shown to differ",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live",
+   "flaky-nondeterminism"
+  ],
+  "id": "TST-0233",
+  "inputs": [
+   "_USER-PROMPTS.md:11021 (Phase 10 layer 33, benchmark regression tests)",
+   "_USER-PROMPTS.md:10656-10657 (capture benchmark baselines before changing behavior)",
+   "_USER-PROMPTS.md:11385 (stopping condition 8: intended improvement without material regression)"
+  ],
+  "output_path": "command-center/receipts/TST-0233.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does the acceptance gate reject a fusion that merely has more stages? PASS requires the fused candidate to beat or materially complement each source on matched cases, with 'more stages' explicitly non-qualifying and the complementarity claim backed by a case where a source fails and the fusion succeeds.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one cross-vendor reviewer (Codex) plus one Claude reviewer; disagreement is resolved from the raw probe output, never by vote",
+  "tests_required": [
+   "detector control: submit a stage-padded fusion with identical behavior and confirm rejection",
+   "regression seed: fused workflow performs worse than every source workflow (_USER-PROMPTS.md:11333)"
+  ],
+  "timeout_seconds": 5400,
+  "title": "A fused workflow must beat or materially complement EVERY source",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ }
+}

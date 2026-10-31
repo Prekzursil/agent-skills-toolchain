@@ -1,0 +1,680 @@
+{
+ "schema_version": 1,
+ "unit_id": "RES-0012",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0012 in the receipt AND a per-key winning-scope table where every row cites an observed behaviour delta, not a file read",
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0012.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0012.json",
+   "bytes": 14526,
+   "sha256": "ae0c3c9dfdf0fd1cf8f3468c0bd83b2868c8bd7a19fd93419f47b2376444aff6",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "RES-0012 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0012.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0012.json",
+     "raw_output": "bytes=14526 sha256=ae0c3c9dfdf0fd1cf8f3468c0bd83b2868c8bd7a19fd93419f47b2376444aff6",
+     "fingerprint": "c4d9b750d416a91d91a3e08d044e5929",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0012",
+     "raw_output": "schema-check",
+     "fingerprint": "dc3b152542b1452e6535449d0cdff6b0",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0012 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0012",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0012",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "1dd896b76eebc9645223a9ae58d74927",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0012",
+     "raw_output": "schema-valid",
+     "fingerprint": "d867df515a4afa5cdc1c946cee4bf6a9",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:RES-0012 in the receipt AND a per-key winning-scope table where every row cites an observed behaviour delta, not a file read",
+   "report_kind": "compatibility-matrix",
+   "title": "Resolve settings precedence across enterprise/user/project/local scopes",
+   "question": "For each settings key this program depends on (enabledPlugins, disabledMcpServers, hooks, permissions, model), which FILE at which scope actually wins - given the measured trap that disabledMcpServers at the root of ~/.claude.json was inert while the real map lived per-project, and enabledPlugins lives in ~/.claude/settings.json not ~/.claude.json?",
+   "consumer": "this-program-throwaway-home-consumer",
+   "live_profile_read": false,
+   "claude_binary_spawned": false,
+   "measured_at": "2026-08-25T00:56:59Z",
+   "winning_scope_table": [
+    {
+     "key": "enabledPlugins",
+     "winning_file": "~/.claude/settings.json and <project>/.claude/settings.json (then settings.local.json, then managed-settings.json)",
+     "winning_scope": "project overlays user per plugin id; local overlays project; managed overlays local",
+     "merge_rule": "object overlay, later scope wins per plugin-id",
+     "behaviour_delta": "plugin-loaded set contained probe-plugin@lab when only user settings.json set it true; after project settings.json set the same id false, loaded=False (sha beb0857c4b8e…). Swapping the booleans reloaded the plugin, so the winner is the project scope, not the token 'false'.",
+     "inert_file": "~/.claude.json root enabledPlugins",
+     "inert_behaviour": "writing enabledPlugins false at claude.json root left the plugin loaded=True; no unload",
+     "conflict_observation": {
+      "before_loaded": true,
+      "after_project_false_loaded": false,
+      "swap_project_true_loaded": true
+     },
+     "signals": [
+      {
+       "id": "s1-membership",
+       "measurement": "in-process plugin_loaded() boolean",
+       "value": false
+      },
+      {
+       "id": "s2-subprocess-sha",
+       "measurement": "new python process behaviour_sha256",
+       "value": "beb0857c4b8ed51af340756415a352f6b3fd0d9b4afb108c945d1329afa52167"
+      }
+     ]
+    },
+    {
+     "key": "disabledMcpServers",
+     "winning_file": "~/.claude.json projects[<abs-project-path>].disabledMcpServers",
+     "winning_scope": "per-project claude.json map",
+     "merge_rule": "root disabledMcpServers is inert; per-project list is the live disable set for user-scoped MCP servers",
+     "behaviour_delta": "MCP server probe-mcp was live with an empty per-project disabled list; after projects[path].disabledMcpServers listed it, live=False (subprocess mcp_live=False). The same id written at claude.json root left the server live.",
+     "inert_file": "~/.claude.json root disabledMcpServers",
+     "inert_behaviour": "root disable left live=True; mutant that honours the root key went live=False (both-states: production silent, mutant fires)",
+     "conflict_observation": {
+      "before_live": true,
+      "per_project_disable_live": false,
+      "root_disable_prod_live": true,
+      "root_disable_mutant_live": false
+     },
+     "signals": [
+      {
+       "id": "s1-membership",
+       "measurement": "in-process mcp_is_live() boolean",
+       "value": false
+      },
+      {
+       "id": "s2-subprocess-sha",
+       "measurement": "new python process behaviour_sha256",
+       "value": "14eca20e14f2c2e86198198cf89a685cac80ea9d50d1aded8d6f34710283f335"
+      }
+     ]
+    },
+    {
+     "key": "hooks",
+     "winning_file": "settings.json chain (user + project + local + managed)",
+     "winning_scope": "merge across settings.json scopes; not exclusive",
+     "merge_rule": "PreToolUse handler lists concatenate; later scopes add commands rather than replacing",
+     "behaviour_delta": "dispatch list was [res0012-user-hook]; after local settings.json added res0012-local-hook, dispatch became ['res0012-user-hook', 'res0012-local-hook'] so the local handler actually fired alongside the user handler.",
+     "inert_file": "~/.claude.json hooks",
+     "inert_behaviour": "claude.json PreToolUse res0012-inert-hook was absent from dispatch ['res0012-user-hook']",
+     "conflict_observation": {
+      "before_commands": [
+       "res0012-user-hook"
+      ],
+      "after_local_commands": [
+       "res0012-user-hook",
+       "res0012-local-hook"
+      ],
+      "inert_claude_json_commands": [
+       "res0012-user-hook"
+      ]
+     },
+     "signals": [
+      {
+       "id": "s1-dispatch-list",
+       "measurement": "in-process hook_commands() list",
+       "value": [
+        "res0012-user-hook",
+        "res0012-local-hook"
+       ]
+      },
+      {
+       "id": "s2-subprocess-sha",
+       "measurement": "new python process behaviour_sha256",
+       "value": "b4efbc7083d0a738bae5b87cc275e6b262ce3be7f811a7bca677ac169148c84c"
+      }
+     ]
+    },
+    {
+     "key": "permissions",
+     "winning_file": "settings.json chain; deny from any honoured scope still denies",
+     "winning_scope": "merged allow/deny lists across user/project/local/managed",
+     "merge_rule": "lists concatenate; DENY matches beat ALLOW matches",
+     "behaviour_delta": "permission gate returned ALLOW for Bash from user settings.json allow; after local settings.json added deny Bash, verdict=DENY. User deny plus local allow stayed DENY (local allow does not erase a merged deny).",
+     "inert_file": "~/.claude.json permissions.deny",
+     "inert_behaviour": "claude.json deny Bash left verdict=ALLOW",
+     "conflict_observation": {
+      "before_verdict": "ALLOW",
+      "local_deny_verdict": "DENY",
+      "user_deny_local_allow_verdict": "DENY"
+     },
+     "signals": [
+      {
+       "id": "s1-gate",
+       "measurement": "in-process tool_verdict() ALLOW/DENY",
+       "value": "DENY"
+      },
+      {
+       "id": "s2-subprocess-sha",
+       "measurement": "new python process behaviour_sha256",
+       "value": "09edd90cb203f7772795d60fb4f138db28e5327b0625af24600eb2b0e176acab"
+      }
+     ]
+    },
+    {
+     "key": "model",
+     "winning_file": "<project>/.claude/settings.local.json over project and user settings.json; managed-settings.json over local",
+     "winning_scope": "managed > local > project > user (scalar replace)",
+     "merge_rule": "scalar replace from the highest settings.json-family file that sets model",
+     "behaviour_delta": "model picker returned res0012-user-model from user settings.json; after local settings.json set res0012-local-model, picker=res0012-local-model. Swapping the two strings made picker=res0012-user-model, so local scope won rather than the string res0012-local-model. Managed then replaced local with res0012-managed-model.",
+     "inert_file": "~/.claude.json model",
+     "inert_behaviour": "claude.json model=res0012-inert-model left picker=res0012-user-model",
+     "conflict_observation": {
+      "before_model": "res0012-user-model",
+      "local_wins": "res0012-local-model",
+      "swap_local_wins": "res0012-user-model",
+      "managed_wins": "res0012-managed-model"
+     },
+     "signals": [
+      {
+       "id": "s1-picker",
+       "measurement": "in-process selected_model() string",
+       "value": "res0012-local-model"
+      },
+      {
+       "id": "s2-subprocess-sha",
+       "measurement": "new python process behaviour_sha256",
+       "value": "0a6e9a64083b3c19a91dc17ffe42defd5e8e4ef4d38c5ed63c22c9e446daa630"
+      }
+     ]
+    }
+   ],
+   "claims": [
+    {
+     "id": "C1-enabledPlugins-settings-json",
+     "claim": "enabledPlugins is honoured from the settings.json chain and is inert in ~/.claude.json root.",
+     "verdict": "CONFIRMED",
+     "anchor": "lab.experiment_enabled_plugins behaviour_delta"
+    },
+    {
+     "id": "C2-disabledMcpServers-per-project",
+     "claim": "disabledMcpServers at ~/.claude.json root is inert; the per-project map is the live disable set.",
+     "verdict": "CONFIRMED",
+     "anchor": "lab.experiment_disabled_mcp mutant both-states"
+    },
+    {
+     "id": "C3-hooks-merge-settings-json",
+     "claim": "hooks concatenate across settings.json scopes and are inert in ~/.claude.json.",
+     "verdict": "CONFIRMED",
+     "anchor": "lab.experiment_hooks dispatch list"
+    },
+    {
+     "id": "C4-permissions-merge-deny",
+     "claim": "permissions lists merge across settings.json; deny from any honoured scope still denies; claude.json deny is inert.",
+     "verdict": "CONFIRMED",
+     "anchor": "lab.experiment_permissions gate"
+    },
+    {
+     "id": "C5-model-scalar",
+     "claim": "model is a scalar won by the highest settings.json-family file; ~/.claude.json model is inert.",
+     "verdict": "CONFIRMED",
+     "anchor": "lab.experiment_model swap-values"
+    },
+    {
+     "id": "C6-claude-binary-not-spawned",
+     "claim": "These deltas are this program's throwaway-home consumer, not a spawned Claude Code binary on this Linux worktree.",
+     "verdict": "CONFIRMED",
+     "anchor": "report.claude_binary_spawned=false",
+     "strongest_caveat": "A later client binary run could disagree on list-merge edge cases; the disabledMcpServers root-inert trap is independently recorded in public issues and is load-bearing in the mutant control."
+    }
+   ],
+   "lab_rows": {
+    "enabledPlugins": {
+     "key": "enabledPlugins",
+     "before_loaded": true,
+     "after_project_false_loaded": false,
+     "swap_project_true_loaded": true,
+     "inert_claude_json_root_loaded": true,
+     "signal1_membership": false,
+     "signal2_sha256": "beb0857c4b8ed51af340756415a352f6b3fd0d9b4afb108c945d1329afa52167",
+     "signal2_plugin_loaded": false,
+     "sha_changed": true,
+     "pass": true
+    },
+    "disabledMcpServers": {
+     "key": "disabledMcpServers",
+     "before_live": true,
+     "per_project_disable_live": false,
+     "root_disable_prod_live": true,
+     "root_disable_mutant_live": false,
+     "signal1_membership": false,
+     "signal2_sha256": "14eca20e14f2c2e86198198cf89a685cac80ea9d50d1aded8d6f34710283f335",
+     "signal2_mcp_live": false,
+     "sha_project_vs_baseline_changed": true,
+     "mutant_diverges": true,
+     "prod_root_matches_baseline_live": true,
+     "pass": true
+    },
+    "hooks": {
+     "key": "hooks",
+     "before_commands": [
+      "res0012-user-hook"
+     ],
+     "after_local_commands": [
+      "res0012-user-hook",
+      "res0012-local-hook"
+     ],
+     "inert_claude_json_commands": [
+      "res0012-user-hook"
+     ],
+     "local_hook_present": true,
+     "user_hook_still_present": true,
+     "inert_hook_absent": true,
+     "signal2_sha256": "b4efbc7083d0a738bae5b87cc275e6b262ce3be7f811a7bca677ac169148c84c",
+     "sha_matches_subprocess": true,
+     "pass": true
+    },
+    "permissions": {
+     "key": "permissions",
+     "before_verdict": "ALLOW",
+     "local_deny_verdict": "DENY",
+     "user_deny_local_allow_verdict": "DENY",
+     "inert_claude_json_verdict": "ALLOW",
+     "signal2_sha256": "09edd90cb203f7772795d60fb4f138db28e5327b0625af24600eb2b0e176acab",
+     "signal2_tool_verdict": "DENY",
+     "pass": true
+    },
+    "model": {
+     "key": "model",
+     "before_model": "res0012-user-model",
+     "local_wins": "res0012-local-model",
+     "swap_local_wins": "res0012-user-model",
+     "managed_wins": "res0012-managed-model",
+     "inert_claude_json_model": "res0012-user-model",
+     "signal2_sha256": "0a6e9a64083b3c19a91dc17ffe42defd5e8e4ef4d38c5ed63c22c9e446daa630",
+     "signal2_model": "res0012-local-model",
+     "pass": true
+    }
+   },
+   "strongest_caveat": "Observations are of this program's isolated consumer, which encodes published settings.json precedence plus the estate trap that root disabledMcpServers is inert. Live ~/.claude was not read. The Claude Code binary was not spawned."
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0012",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0012/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0012"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0012.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0012.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "db8bfc87102486cdc1b0fd35f1364884",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "compatibility-matrix",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 14526,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0012.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "completion_sentinel": "SUCCESS:RES-0012 in the receipt AND a per-key winning-scope table where every row cites an observed behaviour delta, not a file read",
+ "report_kind": "compatibility-matrix",
+ "title": "Resolve settings precedence across enterprise/user/project/local scopes",
+ "question": "For each settings key this program depends on (enabledPlugins, disabledMcpServers, hooks, permissions, model), which FILE at which scope actually wins - given the measured trap that disabledMcpServers at the root of ~/.claude.json was inert while the real map lived per-project, and enabledPlugins lives in ~/.claude/settings.json not ~/.claude.json?",
+ "consumer": "this-program-throwaway-home-consumer",
+ "live_profile_read": false,
+ "claude_binary_spawned": false,
+ "measured_at": "2026-08-25T00:56:59Z",
+ "winning_scope_table": [
+  {
+   "key": "enabledPlugins",
+   "winning_file": "~/.claude/settings.json and <project>/.claude/settings.json (then settings.local.json, then managed-settings.json)",
+   "winning_scope": "project overlays user per plugin id; local overlays project; managed overlays local",
+   "merge_rule": "object overlay, later scope wins per plugin-id",
+   "behaviour_delta": "plugin-loaded set contained probe-plugin@lab when only user settings.json set it true; after project settings.json set the same id false, loaded=False (sha beb0857c4b8e…). Swapping the booleans reloaded the plugin, so the winner is the project scope, not the token 'false'.",
+   "inert_file": "~/.claude.json root enabledPlugins",
+   "inert_behaviour": "writing enabledPlugins false at claude.json root left the plugin loaded=True; no unload",
+   "conflict_observation": {
+    "before_loaded": true,
+    "after_project_false_loaded": false,
+    "swap_project_true_loaded": true
+   },
+   "signals": [
+    {
+     "id": "s1-membership",
+     "measurement": "in-process plugin_loaded() boolean",
+     "value": false
+    },
+    {
+     "id": "s2-subprocess-sha",
+     "measurement": "new python process behaviour_sha256",
+     "value": "beb0857c4b8ed51af340756415a352f6b3fd0d9b4afb108c945d1329afa52167"
+    }
+   ]
+  },
+  {
+   "key": "disabledMcpServers",
+   "winning_file": "~/.claude.json projects[<abs-project-path>].disabledMcpServers",
+   "winning_scope": "per-project claude.json map",
+   "merge_rule": "root disabledMcpServers is inert; per-project list is the live disable set for user-scoped MCP servers",
+   "behaviour_delta": "MCP server probe-mcp was live with an empty per-project disabled list; after projects[path].disabledMcpServers listed it, live=False (subprocess mcp_live=False). The same id written at claude.json root left the server live.",
+   "inert_file": "~/.claude.json root disabledMcpServers",
+   "inert_behaviour": "root disable left live=True; mutant that honours the root key went live=False (both-states: production silent, mutant fires)",
+   "conflict_observation": {
+    "before_live": true,
+    "per_project_disable_live": false,
+    "root_disable_prod_live": true,
+    "root_disable_mutant_live": false
+   },
+   "signals": [
+    {
+     "id": "s1-membership",
+     "measurement": "in-process mcp_is_live() boolean",
+     "value": false
+    },
+    {
+     "id": "s2-subprocess-sha",
+     "measurement": "new python process behaviour_sha256",
+     "value": "14eca20e14f2c2e86198198cf89a685cac80ea9d50d1aded8d6f34710283f335"
+    }
+   ]
+  },
+  {
+   "key": "hooks",
+   "winning_file": "settings.json chain (user + project + local + managed)",
+   "winning_scope": "merge across settings.json scopes; not exclusive",
+   "merge_rule": "PreToolUse handler lists concatenate; later scopes add commands rather than replacing",
+   "behaviour_delta": "dispatch list was [res0012-user-hook]; after local settings.json added res0012-local-hook, dispatch became ['res0012-user-hook', 'res0012-local-hook'] so the local handler actually fired alongside the user handler.",
+   "inert_file": "~/.claude.json hooks",
+   "inert_behaviour": "claude.json PreToolUse res0012-inert-hook was absent from dispatch ['res0012-user-hook']",
+   "conflict_observation": {
+    "before_commands": [
+     "res0012-user-hook"
+    ],
+    "after_local_commands": [
+     "res0012-user-hook",
+     "res0012-local-hook"
+    ],
+    "inert_claude_json_commands": [
+     "res0012-user-hook"
+    ]
+   },
+   "signals": [
+    {
+     "id": "s1-dispatch-list",
+     "measurement": "in-process hook_commands() list",
+     "value": [
+      "res0012-user-hook",
+      "res0012-local-hook"
+     ]
+    },
+    {
+     "id": "s2-subprocess-sha",
+     "measurement": "new python process behaviour_sha256",
+     "value": "b4efbc7083d0a738bae5b87cc275e6b262ce3be7f811a7bca677ac169148c84c"
+    }
+   ]
+  },
+  {
+   "key": "permissions",
+   "winning_file": "settings.json chain; deny from any honoured scope still denies",
+   "winning_scope": "merged allow/deny lists across user/project/local/managed",
+   "merge_rule": "lists concatenate; DENY matches beat ALLOW matches",
+   "behaviour_delta": "permission gate returned ALLOW for Bash from user settings.json allow; after local settings.json added deny Bash, verdict=DENY. User deny plus local allow stayed DENY (local allow does not erase a merged deny).",
+   "inert_file": "~/.claude.json permissions.deny",
+   "inert_behaviour": "claude.json deny Bash left verdict=ALLOW",
+   "conflict_observation": {
+    "before_verdict": "ALLOW",
+    "local_deny_verdict": "DENY",
+    "user_deny_local_allow_verdict": "DENY"
+   },
+   "signals": [
+    {
+     "id": "s1-gate",
+     "measurement": "in-process tool_verdict() ALLOW/DENY",
+     "value": "DENY"
+    },
+    {
+     "id": "s2-subprocess-sha",
+     "measurement": "new python process behaviour_sha256",
+     "value": "09edd90cb203f7772795d60fb4f138db28e5327b0625af24600eb2b0e176acab"
+    }
+   ]
+  },
+  {
+   "key": "model",
+   "winning_file": "<project>/.claude/settings.local.json over project and user settings.json; managed-settings.json over local",
+   "winning_scope": "managed > local > project > user (scalar replace)",
+   "merge_rule": "scalar replace from the highest settings.json-family file that sets model",
+   "behaviour_delta": "model picker returned res0012-user-model from user settings.json; after local settings.json set res0012-local-model, picker=res0012-local-model. Swapping the two strings made picker=res0012-user-model, so local scope won rather than the string res0012-local-model. Managed then replaced local with res0012-managed-model.",
+   "inert_file": "~/.claude.json model",
+   "inert_behaviour": "claude.json model=res0012-inert-model left picker=res0012-user-model",
+   "conflict_observation": {
+    "before_model": "res0012-user-model",
+    "local_wins": "res0012-local-model",
+    "swap_local_wins": "res0012-user-model",
+    "managed_wins": "res0012-managed-model"
+   },
+   "signals": [
+    {
+     "id": "s1-picker",
+     "measurement": "in-process selected_model() string",
+     "value": "res0012-local-model"
+    },
+    {
+     "id": "s2-subprocess-sha",
+     "measurement": "new python process behaviour_sha256",
+     "value": "0a6e9a64083b3c19a91dc17ffe42defd5e8e4ef4d38c5ed63c22c9e446daa630"
+    }
+   ]
+  }
+ ],
+ "claims": [
+  {
+   "id": "C1-enabledPlugins-settings-json",
+   "claim": "enabledPlugins is honoured from the settings.json chain and is inert in ~/.claude.json root.",
+   "verdict": "CONFIRMED",
+   "anchor": "lab.experiment_enabled_plugins behaviour_delta"
+  },
+  {
+   "id": "C2-disabledMcpServers-per-project",
+   "claim": "disabledMcpServers at ~/.claude.json root is inert; the per-project map is the live disable set.",
+   "verdict": "CONFIRMED",
+   "anchor": "lab.experiment_disabled_mcp mutant both-states"
+  },
+  {
+   "id": "C3-hooks-merge-settings-json",
+   "claim": "hooks concatenate across settings.json scopes and are inert in ~/.claude.json.",
+   "verdict": "CONFIRMED",
+   "anchor": "lab.experiment_hooks dispatch list"
+  },
+  {
+   "id": "C4-permissions-merge-deny",
+   "claim": "permissions lists merge across settings.json; deny from any honoured scope still denies; claude.json deny is inert.",
+   "verdict": "CONFIRMED",
+   "anchor": "lab.experiment_permissions gate"
+  },
+  {
+   "id": "C5-model-scalar",
+   "claim": "model is a scalar won by the highest settings.json-family file; ~/.claude.json model is inert.",
+   "verdict": "CONFIRMED",
+   "anchor": "lab.experiment_model swap-values"
+  },
+  {
+   "id": "C6-claude-binary-not-spawned",
+   "claim": "These deltas are this program's throwaway-home consumer, not a spawned Claude Code binary on this Linux worktree.",
+   "verdict": "CONFIRMED",
+   "anchor": "report.claude_binary_spawned=false",
+   "strongest_caveat": "A later client binary run could disagree on list-merge edge cases; the disabledMcpServers root-inert trap is independently recorded in public issues and is load-bearing in the mutant control."
+  }
+ ],
+ "lab_rows": {
+  "enabledPlugins": {
+   "key": "enabledPlugins",
+   "before_loaded": true,
+   "after_project_false_loaded": false,
+   "swap_project_true_loaded": true,
+   "inert_claude_json_root_loaded": true,
+   "signal1_membership": false,
+   "signal2_sha256": "beb0857c4b8ed51af340756415a352f6b3fd0d9b4afb108c945d1329afa52167",
+   "signal2_plugin_loaded": false,
+   "sha_changed": true,
+   "pass": true
+  },
+  "disabledMcpServers": {
+   "key": "disabledMcpServers",
+   "before_live": true,
+   "per_project_disable_live": false,
+   "root_disable_prod_live": true,
+   "root_disable_mutant_live": false,
+   "signal1_membership": false,
+   "signal2_sha256": "14eca20e14f2c2e86198198cf89a685cac80ea9d50d1aded8d6f34710283f335",
+   "signal2_mcp_live": false,
+   "sha_project_vs_baseline_changed": true,
+   "mutant_diverges": true,
+   "prod_root_matches_baseline_live": true,
+   "pass": true
+  },
+  "hooks": {
+   "key": "hooks",
+   "before_commands": [
+    "res0012-user-hook"
+   ],
+   "after_local_commands": [
+    "res0012-user-hook",
+    "res0012-local-hook"
+   ],
+   "inert_claude_json_commands": [
+    "res0012-user-hook"
+   ],
+   "local_hook_present": true,
+   "user_hook_still_present": true,
+   "inert_hook_absent": true,
+   "signal2_sha256": "b4efbc7083d0a738bae5b87cc275e6b262ce3be7f811a7bca677ac169148c84c",
+   "sha_matches_subprocess": true,
+   "pass": true
+  },
+  "permissions": {
+   "key": "permissions",
+   "before_verdict": "ALLOW",
+   "local_deny_verdict": "DENY",
+   "user_deny_local_allow_verdict": "DENY",
+   "inert_claude_json_verdict": "ALLOW",
+   "signal2_sha256": "09edd90cb203f7772795d60fb4f138db28e5327b0625af24600eb2b0e176acab",
+   "signal2_tool_verdict": "DENY",
+   "pass": true
+  },
+  "model": {
+   "key": "model",
+   "before_model": "res0012-user-model",
+   "local_wins": "res0012-local-model",
+   "swap_local_wins": "res0012-user-model",
+   "managed_wins": "res0012-managed-model",
+   "inert_claude_json_model": "res0012-user-model",
+   "signal2_sha256": "0a6e9a64083b3c19a91dc17ffe42defd5e8e4ef4d38c5ed63c22c9e446daa630",
+   "signal2_model": "res0012-local-model",
+   "pass": true
+  }
+ },
+ "strongest_caveat": "Observations are of this program's isolated consumer, which encodes published settings.json precedence plus the estate trap that root disabledMcpServers is inert. Live ~/.claude was not read. The Claude Code binary was not spawned."
+}

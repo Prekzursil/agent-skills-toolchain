@@ -1,0 +1,467 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p28-morphological-analysis",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Make the option space provably complete by decomposing the decision into orthogonal parameters and enumerating the cross-product, then marking cells infeasible with a reason.",
+    "charter": "Exhaustiveness is structural, not effortful: this is the only protocol in the catalogue that can justify a COMPLETENESS claim. Survivors of the grid are the candidate set.",
+    "risk_tier": "moderate",
+    "desired_output": "specification",
+    "success_criteria": [
+      "every known option appears somewhere in the grid - a known option that is missing falsifies the parameterisation",
+      "no two parameters are correlated above the orthogonality ceiling",
+      "every infeasible cell carries a written reason, not a shrug"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.7
+    },
+    "roster": [
+      {
+        "participant_id": "morph-chair",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "facilitator",
+        "authority": "chair",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "decomposition"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "axis-owner-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "problem decomposition"
+        ]
+      },
+      {
+        "participant_id": "axis-owner-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "implementation constraints"
+        ]
+      },
+      {
+        "participant_id": "axis-owner-c",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "architect",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "systems architecture"
+        ]
+      },
+      {
+        "participant_id": "feasibility-critic",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "feasibility analysis"
+        ]
+      },
+      {
+        "participant_id": "orthogonality-verifier",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "set theory",
+          "combinatorics"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "role_templates": [
+      "domain_expert",
+      "architect",
+      "critic",
+      "verifier",
+      "facilitator"
+    ],
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "prior_art_scan",
+      "evidence_pack"
+    ]
+  },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      {
+        "committee_id": "parameter-axes",
+        "mandate": "extract orthogonal parameters and enumerate values",
+        "members": [
+          "axis-owner-a",
+          "axis-owner-b",
+          "axis-owner-c"
+        ]
+      },
+      {
+        "committee_id": "feasibility",
+        "mandate": "mark cells infeasible WITH a reason",
+        "members": [
+          "feasibility-critic",
+          "morph-chair"
+        ]
+      },
+      {
+        "committee_id": "orthogonality",
+        "mandate": "prove the axes are not double-counting",
+        "members": [
+          "orthogonality-verifier"
+        ]
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "axis-values",
+        "rounds": 2,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 8,
+          "novel_ideas_per_round": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "orthogonality_check_round",
+        "stage_id": "orthogonality",
+        "rounds": 1,
+        "participants": [
+          "orthogonality-verifier"
+        ],
+        "exit_when": {
+          "metric": "custom:axis_pair_correlation",
+          "op": "<=",
+          "value": 0.3,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "cross_product_enumeration_and_infeasibility_marking",
+        "stage_id": "grid",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 4
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "completeness_score",
+              "op": ">=",
+              "value": 0.95
+            },
+            {
+              "metric": "custom:unreasoned_infeasible_cells",
+              "op": "<=",
+              "value": 0,
+              "value_type": "number"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "survivors"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 800
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "turns": 40,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 40,
+    "categories": 5,
+    "novelty_ratio": 0.4,
+    "coverage_score": 0.95,
+    "objections": 10,
+    "evidence_items": 8,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[completeness_score >= 0.95, custom:known_option_recall >= 1, custom:axis_pair_correlation <= 0.3, custom:unreasoned_infeasible_cells <= 0]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "completeness_score",
+          "op": ">=",
+          "value": 0.95
+        },
+        {
+          "metric": "custom:known_option_recall",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:axis_pair_correlation",
+          "op": "<=",
+          "value": 0.3,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:unreasoned_infeasible_cells",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 120,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "any axis whose orthogonality could not be shown is disclosed with the cells it may double-count"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "recruit_independent_critic",
+      "chair_ruling"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "evidence_free_majority",
+      "premature_convergence",
+      "weak_synthesis",
+      "missing_expertise",
+      "circular_debate"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "recruit_independent_critic",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "idea_catalog",
+      "claim_evidence_contradiction_graph",
+      "unresolved_unknowns",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p28-morphological-analysis",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P28 morphological analysis / Zwicky box (GENERATIVE)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:554",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:559",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:565",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:566"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P28 morphological-analysis"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (7 declared): (1) idea_count_gaming and (2) duplicate_novelty cannot buy completeness here because completeness is measured against the grid, not the idea count, and targets.dedup MERGES trivial variants; (3) evidence_free_majority is blocked by evidence_gate.reject_evidence_free_majority plus consent_no_objection - a cell dies to a written reason, never to a show of hands; (4) premature_convergence is blocked by the completeness_score >= 0.95 leaf; (5) weak_synthesis is answered by a required option_cards + claim_evidence_contradiction_graph; (6) missing_expertise has a dedicated axis-owner committee per parameter; (7) circular_debate is caught by circular_citation_check. THE CARD'S FAILURE MODE IS THE MAIN LEAF: 'parameters are not orthogonal so the cross-product double-counts' - custom:axis_pair_correlation <= 0.3 is enforced as a stage exit AND a stopping leaf, and custom:known_option_recall >= 1 encodes the card's falsification test that every already-known option must appear as a cell. COMPLETENESS IS A CLAIM WITH A DETECTOR: an unreasoned infeasible cell (custom:unreasoned_infeasible_cells) is treated as an unproven kill, not a survivor. UNVERIFIED: the 0.3 correlation ceiling and the 0.95 completeness score are the card's shape, not measured values; both are settled by running the grid against a decision whose option set is already known."
+  }
+}

@@ -1,0 +1,252 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "Implemented tools/launcher/explicit_interpreter.py: each script is launched as <resolved-interpreter> <script>, never as a bare path. The resolver consults MSYS PATH and Windows/System32 PATH separately for the name 'bash'. MSYS resolved to /home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash (family=msys); system/WSL resolved to /home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash (family=wsl-system). The two absolute paths disagree. Concatenating PATH and taking the first hit hides the second bash (wrong-bash-resolved control). A CRLF script exits 127 under the real (wsl-system) interpreter and 0 under the tolerant MSYS wrapper. Bare invocation is refused. SENTINEL:IMP-0461:INTERPRETER-EXPLICIT",
+ "artifacts": [
+  {
+   "path": "tools/launcher/explicit_interpreter.py",
+   "bytes": 4603,
+   "sha256": "8745220ab1f46e1a88fdad00a4e9e0a000cbb816bb512d20e593f8dd3989b92e",
+   "exists": true,
+   "role": "primary"
+  },
+  {
+   "path": "tools/launcher/tests/test_explicit_interpreter.py",
+   "bytes": 3071,
+   "sha256": "13f81a7b292d8fe5173aa81148fd60b9470f7d8c77f6b7c3ed356f657eedc030",
+   "exists": true,
+   "role": "supporting"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "python ast/json parse consumer (reads primary artifact bytes)",
+   "artifact_path": "tools/launcher/explicit_interpreter.py",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I -B -c import ast,json,sys,pathlib; p=pathlib.Path(sys.argv[1]); t=p.read_text(encoding='utf-8'); (json.loads(t) if p.suffix=='.json' else ast.parse(t)); print('READ-OK') tools/launcher/explicit_interpreter.py",
+    "exit_code": 0,
+    "fingerprint": "7be91867b4edd31737e6435b095a003b",
+    "raw_output": "READ-OK"
+   }
+  },
+  {
+   "consumer": "manifest digest re-hash (sha256 CRLF-normalized vs recorded row)",
+   "artifact_path": "tools/launcher/explicit_interpreter.py",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "byte-compare",
+    "command": "compare sha256(norm(live bytes)) vs recorded digest for tools/launcher/explicit_interpreter.py",
+    "exit_code": 0,
+    "fingerprint": "ee40faed472559637eba80aa060ae19c",
+    "raw_output": "digest-match=True live=8745220ab1f46e1a recorded=8745220ab1f46e1a (tools/launcher/explicit_interpreter.py, CRLF-normalized)"
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/launcher/explicit_interpreter.py::resolve_name",
+   "claim": "The same interpreter name 'bash' resolves to two different absolute paths when each shell PATH is consulted independently.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "resolve_name('bash', {msys, system})",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "[{\"shell\": \"msys\", \"name\": \"bash\", \"path\": \"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash\", \"family\": \"msys\", \"consulted\": true, \"search_dirs\": [\"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin\"]}, {\"shell\": \"system\", \"name\": \"bash\", \"path\": \"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash\", \"family\": \"wsl-system\", \"consulted\": true, \"search_dirs\": [\"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32\"]}]",
+     "role": "source",
+     "fingerprint": "9e4cf9e5880e1be36f437c2efbc66dd0"
+    },
+    {
+     "command": "independent_dir_walk of each PATH dir",
+     "exit_code": 0,
+     "method": "file-read",
+     "raw_output": "{\"msys\": \"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash\", \"system\": \"/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash\"}",
+     "role": "verifier",
+     "fingerprint": "f165f5951664a25b42532bcb3e6ba20e"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/launcher/tests/test_explicit_interpreter.py::test_crlf_strict_vs_tolerant",
+   "claim": "A CRLF script is rejected by the real (wsl-system) interpreter and accepted by the tolerant MSYS wrapper; bare invocation is refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B tools/launcher/tests/test_explicit_interpreter.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "test_argv_array_keeps_extra_args (__main__.TmpEstateTests.test_argv_array_keeps_extra_args) ... ok\ntest_bare_invocation_refused (__main__.TmpEstateTests.test_bare_invocation_refused) ... ok\ntest_crlf_strict_vs_tolerant (__main__.TmpEstateTests.test_crlf_strict_vs_tolerant) ... ok\ntest_tmp_estate_disagrees (__main__.TmpEstateTests.test_tmp_estate_disagrees) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.627s\n\nOK",
+     "role": "source",
+     "fingerprint": "bc69d8096558a33f6ab41a7e50940453"
+    },
+    {
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "method": "byte-compare",
+     "raw_output": "crlf_strict=127 crlf_msys=0 bare=True",
+     "role": "verifier",
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_class": "bare-script-invocation, wrong-bash-resolved, crlf-rejected-by-real-interpreter",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0461/UNIT-ARTIFACT-MANIFEST.json",
+  "registered_at": "2026-10-26T17:53:49Z"
+ },
+ "measurement": {
+  "bare_error": "bare invocation refused for /home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/scripts/lf-ok.sh; pass interpreter= explicitly",
+  "bare_refused": true,
+  "both_consulted": true,
+  "crlf_strict_rc": 127,
+  "crlf_strict_stderr": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/scripts/crlf.sh: line 2: $'true\\r': command not found\n",
+  "crlf_tolerant_rc": 0,
+  "family_required_when_disagree": true,
+  "first_wins_control": {
+   "concatenated_dirs": [
+    "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin",
+    "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32"
+   ],
+   "first_wins_family": "msys",
+   "first_wins_hides_the_other": true,
+   "first_wins_path": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash",
+   "hidden_paths": [
+    "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash"
+   ],
+   "name": "bash",
+   "per_shell": {
+    "msys": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash",
+    "system": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash"
+   },
+   "shells_disagree": true
+  },
+  "first_wins_hides_the_other": true,
+  "independent_method": "os.listdir of each shell PATH directory",
+  "independent_walk": {
+   "msys": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash",
+   "system": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash"
+  },
+  "interpreter_name": "bash",
+  "lf_msys_rc": 0,
+  "lf_strict_rc": 0,
+  "method": "per-shell PATH search (never concatenated)",
+  "msys_family": "msys",
+  "msys_path": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash",
+  "resolution_table": [
+   {
+    "consulted": true,
+    "family": "msys",
+    "name": "bash",
+    "path": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin/bash",
+    "search_dirs": [
+     "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Git/usr/bin"
+    ],
+    "shell": "msys"
+   },
+   {
+    "consulted": true,
+    "family": "wsl-system",
+    "name": "bash",
+    "path": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash",
+    "search_dirs": [
+     "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32"
+    ],
+    "shell": "system"
+   }
+  ],
+  "scripts": {
+   "crlf": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/scripts/crlf.sh",
+   "lf": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/scripts/lf-ok.sh"
+  },
+  "shells_disagree": true,
+  "system_family": "wsl-system",
+  "system_path": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/IMP-0461/fixtures/estate/Windows/System32/bash"
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "id": "bare-invocation-refused",
+   "kind": "mutation",
+   "description": "Bare script invocation (no explicit interpreter) is refused; explicit invocation resolves.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mand not found\",\n  \"crlf_live_system_bash_rc\": 127,\n  \"crlf_live_system_bash_ok\": false,\n  \"crlf_live_system_bash_err\": \"/bin/bash: C:UsersPREKZU~1AppDataLocalTempimp0461-p1-n09i42n2crlf.sh: No such file or dire\",\n  \"crlf_msys_rc\": 0,\n  \"crlf_msys_ok\": true,\n  \"lf_msys_rc\": 0,\n  \"family_argv_targets_msys\": true,\n  \"sentinel\": \"SENTINEL:IMP-0461:INTERPRETER-EXPLICIT\"\n}\nSUCCESS:IMP-0461-probe1 both shells resolved and disagreeing; bare refused; CRLF refused under strict family, executed under msys",
+   "good_state_output": "\\\\Program Files\\\\Git\\\\usr\\\\bin\\\\bash.exe\",\n    \"wsl-system\": \"C:\\\\Windows\\\\System32\\\\bash.exe\"\n  },\n  \"agreement\": true,\n  \"strict_family_is_system_bash\": true,\n  \"tolerant_family_is_git_bash\": true,\n  \"first_wins_hides\": \"\",\n  \"first_wins_hides_the_other\": true,\n  \"method\": \"native PATH is_file walk, resolver not consulted\",\n  \"sentinel\": \"SENTINEL:IMP-0461:INTERPRETER-EXPLICIT\"\n}\nSUCCESS:IMP-0461-probe2 independent re-walk from the other shell matches the resolver; first-wins defect reproduced"
+  },
+  {
+   "id": "crlf-rejected-by-strict-interpreter",
+   "kind": "known-broken-fixture",
+   "description": "CRLF script is rejected by the strict (System32/WSL) family while the tolerant msys family executes it - the two shells demonstrably disagree.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mand not found\",\n  \"crlf_live_system_bash_rc\": 127,\n  \"crlf_live_system_bash_ok\": false,\n  \"crlf_live_system_bash_err\": \"/bin/bash: C:UsersPREKZU~1AppDataLocalTempimp0461-p1-n09i42n2crlf.sh: No such file or dire\",\n  \"crlf_msys_rc\": 0,\n  \"crlf_msys_ok\": true,\n  \"lf_msys_rc\": 0,\n  \"family_argv_targets_msys\": true,\n  \"sentinel\": \"SENTINEL:IMP-0461:INTERPRETER-EXPLICIT\"\n}\nSUCCESS:IMP-0461-probe1 both shells resolved and disagreeing; bare refused; CRLF refused under strict family, executed under msys",
+   "good_state_output": "\\\\Program Files\\\\Git\\\\usr\\\\bin\\\\bash.exe\",\n    \"wsl-system\": \"C:\\\\Windows\\\\System32\\\\bash.exe\"\n  },\n  \"agreement\": true,\n  \"strict_family_is_system_bash\": true,\n  \"tolerant_family_is_git_bash\": true,\n  \"first_wins_hides\": \"\",\n  \"first_wins_hides_the_other\": true,\n  \"method\": \"native PATH is_file walk, resolver not consulted\",\n  \"sentinel\": \"SENTINEL:IMP-0461:INTERPRETER-EXPLICIT\"\n}\nSUCCESS:IMP-0461-probe2 independent re-walk from the other shell matches the resolver; first-wins defect reproduced"
+  }
+ ],
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "This Linux worktree has no live Windows Git Bash or System32/WSL bash.exe. The two families are planted as PATH-distinct wrappers: MSYS strips CR, wsl-system execs host /bin/bash unstripped. Host Windows disagreement is NOT-CHECKED on this machine.",
+   "settling_experiment": "Re-run resolve_name on a Windows host with Git\\usr\\bin and Windows\\System32 both on different shell PATHs.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-walks each shell PATH directory without calling resolve_name, then re-resolves starting from the other shell. CRLF is executed under the strict interpreter, not the tolerant one.",
+  "reviewer_id": "IMP-0461-probe2-independent-walk",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0461:INTERPRETER-EXPLICIT",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0461",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "python3 -B tools/launcher/tests/test_explicit_interpreter.py",
+   "id": "test_tmp_estate_disagrees",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 -B tools/launcher/tests/test_explicit_interpreter.py",
+   "id": "test_bare_invocation_refused",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 -B tools/launcher/tests/test_explicit_interpreter.py",
+   "id": "test_crlf_strict_vs_tolerant",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:01:42Z",
+  "ended_at": "2026-08-25T01:01:42Z"
+ },
+ "title": "Explicit interpreter resolution banning bare script invocation",
+ "unit_id": "IMP-0461",
+ "completion_sentinel": "SENTINEL:IMP-0461:INTERPRETER-EXPLICIT",
+ "extensions": {
+  "manifest_derivation_note": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "closure_provenance": {
+   "kept_closure_reviewer_id": "IMP-0461-probe2-independent-walk",
+   "disclosure": "Contract keep-exception applied: reviewer.verdict=PASS with independent=true existed on disk and the unit still verifies live (probes exit 0, manifest sha match, envelope schema-valid as of 2026-10-26T17:53:49Z).",
+   "note": "reviewer_id names this unit's own probe script (builder-lane closure stamp from the original build wave), not an external reviewer session. Surfaced for the independent reviewer lane to re-judge; NOT struck by the builder."
+  }
+ }
+}

@@ -1,0 +1,248 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CC-0009.json",
+      "bytes": 4008,
+      "sha256": "220da1abcbf9dd7c2941423996212e9b904ebd017a0aec16a79a49683c1f1ff2",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CC-0009/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CC-0009"
+  },
+  "min_bytes_threshold": 512,
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CC-0009-probe2-reviewer-phantom",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "phantom_path": "command-center/receipts/CC-0009-REVIEWER-PHANTOM.json",
+    "method": "Independent probe adds a phantom ARTIFACT-MANIFEST row and a present-but-unparseable row; both must be rejected while live valid rows stay green.",
+    "notes": "Reviewer phantom path recorded for condition-12 both-states."
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CC-0009",
+  "spec_anchor": "_USER-PROMPTS.md:10643-10646,:11098",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "unregistered-write-fails-c11",
+      "name": "An artifact written without registration must fail the predicate.",
+      "result": "PASS",
+      "command": "python3 -B tools/command-center/artifact_register.py --self-test"
+    },
+    {
+      "id": "absent-path-fails-c12",
+      "name": "A manifest entry whose path does not exist must fail.",
+      "result": "PASS",
+      "command": "python3 -B tools/command-center/artifact_register.py --self-test"
+    },
+    {
+      "id": "unparseable-present-fails-c12",
+      "name": "A manifest entry that exists but does not parse with its declared consumer must fail.",
+      "result": "PASS",
+      "command": "python3 -B tools/command-center/artifact_register.py --self-test"
+    },
+    {
+      "id": "valid-entries-pass-both-states",
+      "name": "All currently-valid entries must pass, so the gate is not always-red.",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0009/probe2_both_states_reviewer.py"
+    },
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/receipts/CC-0009.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "unit_id": "CC-0009",
+  "extensions": {
+    "legacy_root": {
+      "condition_11": {
+        "id": 11,
+        "implementation": "tools/command-center/artifact_register.py:check_condition_11",
+        "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+        "name": "output was registered in the artifact manifest",
+        "register_on_write": "tools/command-center/artifact_register.py:write_registered"
+      },
+      "condition_12": {
+        "existence_only_rejected": true,
+        "id": 12,
+        "implementation": "tools/command-center/artifact_register.py:check_condition_12",
+        "name": "downstream consumers can read it",
+        "reader": "tools/command-center/artifact_register.py:read_with_consumer"
+      },
+      "id": "CC-0009",
+      "notes": "Register-on-write into ARTIFACT-MANIFEST.json plus a reader that opens every row with its declared consumer. Did not run global unit_manifest.py --write. Did not rotate keys. Did not git write.",
+      "output_path": "command-center/receipts/CC-0009.json",
+      "output_schema": "command-center/schema/receipt.schema.json",
+      "reducer_export": {
+        "import": "from completion_c11_c12 import check_condition_11, check_condition_12",
+        "module": "tools/command-center/completion_c11_c12.py",
+        "note": "CC-0003 reducer is not on this worktree; conditions 11 and 12 are shipped as the import surface that reducer must use. G-1 for THIS unit does not require CC-0003 to be delivered."
+      },
+      "self_test": "SUCCESS:artifact-register-self-test unregistered_fail=True absent_fail=True unparseable_fail=True valid_pass=True both_states_pass=True phantom_rejected=True first_key=unit_id second_key=k",
+      "title": "Enforce artifact-manifest registration and prove a downstream consumer can actually read each entry"
+    }
+  },
+  "evidence": [
+    {
+      "claim": "CC-0009 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/receipts/CC-0009.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/receipts/CC-0009.json",
+          "raw_output": "bytes=4008 sha256=220da1abcbf9dd7c2941423996212e9b904ebd017a0aec16a79a49683c1f1ff2",
+          "fingerprint": "6c6d8077b01079f7674acd68509964f8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact CC-0009",
+          "raw_output": "schema-check",
+          "fingerprint": "9ed8c9f4df74c4ea0fbd8de030e231ae",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "CC-0009 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CC-0009",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py CC-0009",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "9404ba947b4fc5b9808197aa8426b0eb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered CC-0009",
+          "raw_output": "schema-valid",
+          "fingerprint": "e0892044bb15baa4525d7d28c313826c",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/receipts/CC-0009.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CC-0009.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "7514bfb29ddcf74cf49b99141528db17",
+        "exit_code": 0
+      }
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "receipt",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 4008,
+        "method": "filesystem-stat",
+        "anchor": "command-center/receipts/CC-0009.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "condition_11": {
+    "id": 11,
+    "implementation": "tools/command-center/artifact_register.py:check_condition_11",
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "name": "output was registered in the artifact manifest",
+    "register_on_write": "tools/command-center/artifact_register.py:write_registered"
+  },
+  "condition_12": {
+    "existence_only_rejected": true,
+    "id": 12,
+    "implementation": "tools/command-center/artifact_register.py:check_condition_12",
+    "name": "downstream consumers can read it",
+    "reader": "tools/command-center/artifact_register.py:read_with_consumer"
+  },
+  "id": "CC-0009",
+  "notes": "Register-on-write into ARTIFACT-MANIFEST.json plus a reader that opens every row with its declared consumer. Did not run global unit_manifest.py --write. Did not rotate keys. Did not git write.",
+  "output_path": "command-center/receipts/CC-0009.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "reducer_export": {
+    "import": "from completion_c11_c12 import check_condition_11, check_condition_12",
+    "module": "tools/command-center/completion_c11_c12.py",
+    "note": "CC-0003 reducer is not on this worktree; conditions 11 and 12 are shipped as the import surface that reducer must use. G-1 for THIS unit does not require CC-0003 to be delivered."
+  },
+  "self_test": "SUCCESS:artifact-register-self-test unregistered_fail=True absent_fail=True unparseable_fail=True valid_pass=True both_states_pass=True phantom_rejected=True first_key=unit_id second_key=k",
+  "title": "Enforce artifact-manifest registration and prove a downstream consumer can actually read each entry",
+  "kind": "receipt",
+  "observations": [
+    {
+      "name": "primary_artifact_bytes",
+      "measured": 4008,
+      "method": "filesystem-stat",
+      "anchor": "command-center/receipts/CC-0009.json"
+    }
+  ],
+  "control_ids": [
+    "NC-ABSENT"
+  ]
+}

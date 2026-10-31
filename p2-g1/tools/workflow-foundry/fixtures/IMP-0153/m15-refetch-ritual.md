@@ -1,0 +1,1 @@
+Re-fetching from a record that embeds its own answer proves nothing. If the record carries the expected hash and the verifier compares to it without re-deriving, the ritual is theatre; the mismatch detector that never fired is the tell.

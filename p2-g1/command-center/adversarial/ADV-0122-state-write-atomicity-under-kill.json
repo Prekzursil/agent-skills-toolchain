@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0122",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0122 emitted: live probe1_midwrite_kill.py and probe2_static_audit.py exit 0; ledger CONSUMES-CORRUPT-DATA; manifest/cache/lockfile/registry-index RECOVER; both negative controls discriminate; per-unit manifest registered",
+  "spec_anchor": "_USER-PROMPTS.md:11013, 11055",
+  "min_bytes_threshold": 1024,
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0122-state-write-atomicity-under-kill.json",
+      "bytes": 40184,
+      "sha256": "ebaad535de04395697408ec13840ea514fd0be8cbe7450e0bf6ba47401e9a96e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A controlled mid-write kill leaves a torn ledger JSONL record that the next start consumes as event=unparseable while recover reports clean.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py",
+          "raw_output": "Probe 1: for each state file, kill mid-write and then start the program, recording whether it recovers, refuses clearly, or consumes corrupt data.\ncommand=python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py\nsubstrate=Windows TerminateProcess after child paused on a durable partial write\nscratch_policy=TemporaryDirectory outside the repo; deleted after probe\nCONTROL|target=ledger|uninterrupted_valid=true|clean_start=true|records=3\nKILL|target=ledger|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\ledger\\state\\journal.jsonl|partial_exists=true|partial_bytes=391|partial_sha256=a19c3fd63f88e47e332ff3137f4ab8be26959f8423d5de9d704ed21db3451927|target_preimage_preserved=false\nRESTART|target=ledger|classification=CONSUMES-CORRUPT-DATA|reader_exception=false|unparseable_rows=1|recover_reported_clean=true|detail=read_journal maps torn JSONL to event=unparseable and recover ignores it\nCONTROL|target=manifest|uninterrupted_valid=true|clean_start=true|start_exit_code=0\nKILL|target=manifest|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\manifest\\versions\\1.0.0\\.claude-plugin\\.tmp-jd1f7d5w.part|partial_exists=true|partial_bytes=53992|partial_sha256=e7f744f0caf9e0e2e1d7b0625244a3e46c8dd469aa57c5dfc444abb1d8acd598|target_preimage_preserved=true\nRESTART|target=manifest|classification=RECOVERS|reader_exception=false|old_document_retained=true|start_exit_code=0|loaded_version=1.0.0\nCONTROL|target=cache|uninterrupted_valid=true|clean_start=true|key=914e2633a6e62c2785b174a804109929c6b5861ee617bb25b7b93be69c62317a\nKILL|target=cache|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\cache\\state\\cache\\11\\.tmp-84v_bi04.part|partial_exists=true|partial_bytes=112640|partial_sha256=3750398093497c1bb1368e2bde53fed4f962970464d8a8a9d942d55a16319dc7|target_preimage_preserved=true\nRESTART|target=cache|classification=RECOVERS|reader_exception=false|content_key_hit=true|partial_entries=1|detail=source fallback remains; orphan temp is not a live cache key\nCONTROL|target=lockfile|uninterrupted_valid=true|clean_start=true|packages=0\nKILL|target=lockfile|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\lock\\mkt-lock.json.tmp.62332|partial_exists=true|partial_bytes=185|partial_sha256=b4f590808bc069ed11ad7e7ac63a89b7aa151f82fb0d31a3814a4879c90dc411|target_preimage_preserved=true\nRESTART|target=lockfile|classification=RECOVERS|reader_exception=false|old_document_retained=true|schema_valid=true|packages=0\nCONTROL|target=registry-index|uninterrupted_valid=true|clean_start=true|entries=0|signature_valid=true\nKILL|target=registry-index|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\index\\index.json.tmp.101312|partial_exists=true|partial_bytes=2025|partial_sha256=9fdc5497804badc6de0751039ed7d929a1353d5c059058fe978698ed4769dc12|target_preimage_preserved=true\nRESTART|target=registry-index|classification=RECOVERS|reader_exception=false|old_document_retained=true|schema_valid=true|entries=0\nNEGATIVE-CONTROL-GOOD-RAW|DETECTOR-CONTROL|mode=good|partial_exists=true|target_changed=false|reader_parse_ok=true|detector_fired=false\nNEGATIVE-CONTROL-BAD-RAW|DETECTOR-CONTROL|mode=bad|partial_exists=true|target_changed=true|reader_parse_ok=false|detector_fired=true\nNEGATIVE-CONTROL|description=an in-place truncate-and-partial-write must make the atomic-target detector go red\nNEGATIVE-CONTROL|good_exit_code=0|bad_exit_code=1|silent_on_good_state=true|fired_on_bad_state=true\nTEST-REQUIRED|control: an uninterrupted write must produce a valid file and a clean start|result=PASS\nTEST-REQUIRED|the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing|result=PASS\nscratch_deleted=true\nassertions=6|passed=6|failed=0\nSUCCESS:ADV-0122-probe1\n",
+          "fingerprint": "970e3c5de98ff6155be249fad8ad7320",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py",
+          "raw_output": "Probe 2 (mechanically different): static audit of the write pattern - temp-file-plus-atomic-rename versus in-place truncate-and-write - which identifies non-atomic writers the kill timing may not happen to hit.\ncommand=python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py\nscope=shipped Phase-5 plugin, Phase-6 marketplace, and adjacent coordination runtime; test/fixture writers excluded from conclusions\nmethod=Python AST call-site and delegation audit; no runtime kill observations are consumed\nTARGET|id=ledger|entry=platform/plugin/journal.py:222:_append|primitive=platform/plugin/journal.py:222:_append|pattern=IN-PLACE-APPEND|atomic_target_visibility=false|entry_calls=dumps,encode,extended,fileno,flush,fsync,mkdir,open,round,time,write|open_modes=ab|delegation_verified=true|source_sha256=d46a8d55dc85ae6275899874310460724d48865b4f811ceb7d26a181c1825096\nTARGET|id=manifest|entry=platform/plugin/fsops.py:147:atomic_write_bytes|primitive=platform/plugin/fsops.py:147:atomic_write_bytes|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=PluginError,contextlib_suppress,extended,fdopen,fileno,flush,fsync,mkdir,mkstemp,replace,str,unlink,write|open_modes=none|delegation_verified=true|source_sha256=ed4e969daf7a4cddbf95d5c646aba9121cff084fc0a6707ccd00df8cfc9c43b2\nTARGET|id=cache|entry=platform/plugin/cache.py:61:put|primitive=platform/plugin/cache.py:61:put|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=PluginError,_path,atomic_write_bytes,contextlib_suppress,extended,fdopen,fileno,flush,fsync,hash_bytes,mkdir,mkstemp,replace,str,unlink,write|open_modes=none|delegation_verified=true|source_sha256=59c3f9c841866b203b3f165aece44308922ee373a917138297d18d2ecb9f6b5e\nTARGET|id=lockfile|entry=platform/marketplace/mkt/canon.py:166:write_json|primitive=platform/marketplace/mkt/canon.py:166:write_json|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=Path,canonical_bytes,dumps,encode,getpid,mkdir,replace,with_name,write_bytes|open_modes=none|delegation_verified=true|source_sha256=1ed484b112ea9cf6480f3051e11789b18ea837f8a39b03ea730922e94a96fa7f\nTARGET|id=registry-index|entry=platform/marketplace/mkt/canon.py:166:write_json|primitive=platform/marketplace/mkt/canon.py:166:write_json|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=Path,canonical_bytes,dumps,encode,getpid,mkdir,replace,with_name,write_bytes|open_modes=none|delegation_verified=true|source_sha256=1ed484b112ea9cf6480f3051e11789b18ea837f8a39b03ea730922e94a96fa7f\nNON-ATOMIC-WRITER|id=plugin-prefix-lock|anchor=platform/plugin/journal.py:105:__enter__|pattern=NON-ATOMIC-DIRECT-WRITE|calls=PluginError,encode,extended,fsync,getpid,mkdir,open,read_text,stat,str,strip,time,unlink,write|open_modes=none|atomic_rename=false|source_sha256=d46a8d55dc85ae6275899874310460724d48865b4f811ceb7d26a181c1825096\nNON-ATOMIC-WRITER|id=plugin-json-output|anchor=platform/plugin/cli.py:32:_emit|pattern=TRUNCATE-AND-WRITE|calls=dumps,mkdir,str,write,write_text|open_modes=none|atomic_rename=false|source_sha256=39a7094433040977cb6128a8d8350f03d397ac2abc0fd50175bfabd3995d9a43\nNON-ATOMIC-WRITER|id=plugin-argspill|anchor=platform/plugin/proc.py:254:marshal_args|pattern=TRUNCATE-AND-WRITE|calls=len,mkdir,str,sum,write_text|open_modes=none|atomic_rename=false|source_sha256=ee10483a58ad5799bf99f9473057b7bc5a51ce631e0df08ac4e6f9773faaa5a7\nNON-ATOMIC-WRITER|id=marketplace-install-journal|anchor=platform/marketplace/mkt/install.py:237:_append_journal|pattern=IN-PLACE-APPEND|calls=append,canonical_bytes,decode,mkdir,open,validate,write|open_modes=a|atomic_rename=false|source_sha256=b51f40f21b4248f09a8aae1b6d81d1f031f83a6e50549b2973d36893ee5d9acc\nNON-ATOMIC-WRITER|id=marketplace-journal-rewrite|anchor=platform/marketplace/mkt/install.py:938:_rewrite_last_receipt|pattern=TRUNCATE-AND-WRITE|calls=canonical_bytes,decode,join,read_text,splitlines,write_text|open_modes=none|atomic_rename=false|source_sha256=b51f40f21b4248f09a8aae1b6d81d1f031f83a6e50549b2973d36893ee5d9acc\nNON-ATOMIC-WRITER|id=marketplace-keyfile|anchor=platform/marketplace/mkt/cli.py:73:cmd_keygen|pattern=TRUNCATE-AND-WRITE|calls=Path,_emit,exists,generate_keypair,key_id,mkdir,str,write_text|open_modes=none|atomic_rename=false|source_sha256=f9f661e04173de6836a5a39602afd706bad53d7f4c43023364c4a71b6a1cc9ec\nNON-ATOMIC-WRITER|id=coordination-exclusive-record|anchor=platform/coordination/store.py:124:create_exclusive|pattern=NON-ATOMIC-DIRECT-WRITE|calls=canonical_json,fdopen,fileno,flush,fsync,mkdir,open,write|open_modes=none|atomic_rename=false|source_sha256=536020a03c1350a36d7a6a889976b7bd73a4882ace77d172c5d5c604ba3a6e7d\nNON-ATOMIC-WRITER|id=coordination-journal|anchor=platform/coordination/store.py:182:journal|pattern=IN-PLACE-APPEND|calls=canonical_json,clock,mkdir,open,write|open_modes=a|atomic_rename=false|source_sha256=536020a03c1350a36d7a6a889976b7bd73a4882ace77d172c5d5c604ba3a6e7d\nSTATIC-CONTROL|good_source=TEMP-PLUS-ATOMIC-RENAME|mutant_source=NON-ATOMIC-DIRECT-WRITE|mutation_applied=true|silent_on_good_state=true|fired_on_bad_state=true\nLIMIT|SIGKILL process-atomicity is measured; sudden-power-loss durability remains NOT-CHECKED because neither atomic primitive fsyncs the parent directory\ntargets=5|atomic_rename=4|non_atomic_target_writers=1|additional_non_atomic_writers=8\nassertions=8|passed=8|failed=0\nSUCCESS:ADV-0122-probe2\n",
+          "fingerprint": "e8bfdb5582531b420dfd41201b8aa6d6",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Manifest, cache, lockfile, and registry-index writers use temp-plus-atomic-rename; a mid-write kill leaves only an orphan temp and the next start retains the valid preimage.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py",
+          "raw_output": "Probe 2 (mechanically different): static audit of the write pattern - temp-file-plus-atomic-rename versus in-place truncate-and-write - which identifies non-atomic writers the kill timing may not happen to hit.\ncommand=python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py\nscope=shipped Phase-5 plugin, Phase-6 marketplace, and adjacent coordination runtime; test/fixture writers excluded from conclusions\nmethod=Python AST call-site and delegation audit; no runtime kill observations are consumed\nTARGET|id=ledger|entry=platform/plugin/journal.py:222:_append|primitive=platform/plugin/journal.py:222:_append|pattern=IN-PLACE-APPEND|atomic_target_visibility=false|entry_calls=dumps,encode,extended,fileno,flush,fsync,mkdir,open,round,time,write|open_modes=ab|delegation_verified=true|source_sha256=d46a8d55dc85ae6275899874310460724d48865b4f811ceb7d26a181c1825096\nTARGET|id=manifest|entry=platform/plugin/fsops.py:147:atomic_write_bytes|primitive=platform/plugin/fsops.py:147:atomic_write_bytes|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=PluginError,contextlib_suppress,extended,fdopen,fileno,flush,fsync,mkdir,mkstemp,replace,str,unlink,write|open_modes=none|delegation_verified=true|source_sha256=ed4e969daf7a4cddbf95d5c646aba9121cff084fc0a6707ccd00df8cfc9c43b2\nTARGET|id=cache|entry=platform/plugin/cache.py:61:put|primitive=platform/plugin/cache.py:61:put|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=PluginError,_path,atomic_write_bytes,contextlib_suppress,extended,fdopen,fileno,flush,fsync,hash_bytes,mkdir,mkstemp,replace,str,unlink,write|open_modes=none|delegation_verified=true|source_sha256=59c3f9c841866b203b3f165aece44308922ee373a917138297d18d2ecb9f6b5e\nTARGET|id=lockfile|entry=platform/marketplace/mkt/canon.py:166:write_json|primitive=platform/marketplace/mkt/canon.py:166:write_json|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=Path,canonical_bytes,dumps,encode,getpid,mkdir,replace,with_name,write_bytes|open_modes=none|delegation_verified=true|source_sha256=1ed484b112ea9cf6480f3051e11789b18ea837f8a39b03ea730922e94a96fa7f\nTARGET|id=registry-index|entry=platform/marketplace/mkt/canon.py:166:write_json|primitive=platform/marketplace/mkt/canon.py:166:write_json|pattern=TEMP-PLUS-ATOMIC-RENAME|atomic_target_visibility=true|entry_calls=Path,canonical_bytes,dumps,encode,getpid,mkdir,replace,with_name,write_bytes|open_modes=none|delegation_verified=true|source_sha256=1ed484b112ea9cf6480f3051e11789b18ea837f8a39b03ea730922e94a96fa7f\nNON-ATOMIC-WRITER|id=plugin-prefix-lock|anchor=platform/plugin/journal.py:105:__enter__|pattern=NON-ATOMIC-DIRECT-WRITE|calls=PluginError,encode,extended,fsync,getpid,mkdir,open,read_text,stat,str,strip,time,unlink,write|open_modes=none|atomic_rename=false|source_sha256=d46a8d55dc85ae6275899874310460724d48865b4f811ceb7d26a181c1825096\nNON-ATOMIC-WRITER|id=plugin-json-output|anchor=platform/plugin/cli.py:32:_emit|pattern=TRUNCATE-AND-WRITE|calls=dumps,mkdir,str,write,write_text|open_modes=none|atomic_rename=false|source_sha256=39a7094433040977cb6128a8d8350f03d397ac2abc0fd50175bfabd3995d9a43\nNON-ATOMIC-WRITER|id=plugin-argspill|anchor=platform/plugin/proc.py:254:marshal_args|pattern=TRUNCATE-AND-WRITE|calls=len,mkdir,str,sum,write_text|open_modes=none|atomic_rename=false|source_sha256=ee10483a58ad5799bf99f9473057b7bc5a51ce631e0df08ac4e6f9773faaa5a7\nNON-ATOMIC-WRITER|id=marketplace-install-journal|anchor=platform/marketplace/mkt/install.py:237:_append_journal|pattern=IN-PLACE-APPEND|calls=append,canonical_bytes,decode,mkdir,open,validate,write|open_modes=a|atomic_rename=false|source_sha256=b51f40f21b4248f09a8aae1b6d81d1f031f83a6e50549b2973d36893ee5d9acc\nNON-ATOMIC-WRITER|id=marketplace-journal-rewrite|anchor=platform/marketplace/mkt/install.py:938:_rewrite_last_receipt|pattern=TRUNCATE-AND-WRITE|calls=canonical_bytes,decode,join,read_text,splitlines,write_text|open_modes=none|atomic_rename=false|source_sha256=b51f40f21b4248f09a8aae1b6d81d1f031f83a6e50549b2973d36893ee5d9acc\nNON-ATOMIC-WRITER|id=marketplace-keyfile|anchor=platform/marketplace/mkt/cli.py:73:cmd_keygen|pattern=TRUNCATE-AND-WRITE|calls=Path,_emit,exists,generate_keypair,key_id,mkdir,str,write_text|open_modes=none|atomic_rename=false|source_sha256=f9f661e04173de6836a5a39602afd706bad53d7f4c43023364c4a71b6a1cc9ec\nNON-ATOMIC-WRITER|id=coordination-exclusive-record|anchor=platform/coordination/store.py:124:create_exclusive|pattern=NON-ATOMIC-DIRECT-WRITE|calls=canonical_json,fdopen,fileno,flush,fsync,mkdir,open,write|open_modes=none|atomic_rename=false|source_sha256=536020a03c1350a36d7a6a889976b7bd73a4882ace77d172c5d5c604ba3a6e7d\nNON-ATOMIC-WRITER|id=coordination-journal|anchor=platform/coordination/store.py:182:journal|pattern=IN-PLACE-APPEND|calls=canonical_json,clock,mkdir,open,write|open_modes=a|atomic_rename=false|source_sha256=536020a03c1350a36d7a6a889976b7bd73a4882ace77d172c5d5c604ba3a6e7d\nSTATIC-CONTROL|good_source=TEMP-PLUS-ATOMIC-RENAME|mutant_source=NON-ATOMIC-DIRECT-WRITE|mutation_applied=true|silent_on_good_state=true|fired_on_bad_state=true\nLIMIT|SIGKILL process-atomicity is measured; sudden-power-loss durability remains NOT-CHECKED because neither atomic primitive fsyncs the parent directory\ntargets=5|atomic_rename=4|non_atomic_target_writers=1|additional_non_atomic_writers=8\nassertions=8|passed=8|failed=0\nSUCCESS:ADV-0122-probe2\n",
+          "fingerprint": "84bf46fc5ec0e723cb49a6a6c43f955e",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py",
+          "raw_output": "Probe 1: for each state file, kill mid-write and then start the program, recording whether it recovers, refuses clearly, or consumes corrupt data.\ncommand=python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py\nsubstrate=Windows TerminateProcess after child paused on a durable partial write\nscratch_policy=TemporaryDirectory outside the repo; deleted after probe\nCONTROL|target=ledger|uninterrupted_valid=true|clean_start=true|records=3\nKILL|target=ledger|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\ledger\\state\\journal.jsonl|partial_exists=true|partial_bytes=391|partial_sha256=a19c3fd63f88e47e332ff3137f4ab8be26959f8423d5de9d704ed21db3451927|target_preimage_preserved=false\nRESTART|target=ledger|classification=CONSUMES-CORRUPT-DATA|reader_exception=false|unparseable_rows=1|recover_reported_clean=true|detail=read_journal maps torn JSONL to event=unparseable and recover ignores it\nCONTROL|target=manifest|uninterrupted_valid=true|clean_start=true|start_exit_code=0\nKILL|target=manifest|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\manifest\\versions\\1.0.0\\.claude-plugin\\.tmp-jd1f7d5w.part|partial_exists=true|partial_bytes=53992|partial_sha256=e7f744f0caf9e0e2e1d7b0625244a3e46c8dd469aa57c5dfc444abb1d8acd598|target_preimage_preserved=true\nRESTART|target=manifest|classification=RECOVERS|reader_exception=false|old_document_retained=true|start_exit_code=0|loaded_version=1.0.0\nCONTROL|target=cache|uninterrupted_valid=true|clean_start=true|key=914e2633a6e62c2785b174a804109929c6b5861ee617bb25b7b93be69c62317a\nKILL|target=cache|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\cache\\state\\cache\\11\\.tmp-84v_bi04.part|partial_exists=true|partial_bytes=112640|partial_sha256=3750398093497c1bb1368e2bde53fed4f962970464d8a8a9d942d55a16319dc7|target_preimage_preserved=true\nRESTART|target=cache|classification=RECOVERS|reader_exception=false|content_key_hit=true|partial_entries=1|detail=source fallback remains; orphan temp is not a live cache key\nCONTROL|target=lockfile|uninterrupted_valid=true|clean_start=true|packages=0\nKILL|target=lockfile|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\lock\\mkt-lock.json.tmp.62332|partial_exists=true|partial_bytes=185|partial_sha256=b4f590808bc069ed11ad7e7ac63a89b7aa151f82fb0d31a3814a4879c90dc411|target_preimage_preserved=true\nRESTART|target=lockfile|classification=RECOVERS|reader_exception=false|old_document_retained=true|schema_valid=true|packages=0\nCONTROL|target=registry-index|uninterrupted_valid=true|clean_start=true|entries=0|signature_valid=true\nKILL|target=registry-index|signal=TerminateProcess|child_exit_code=1|kill_window=inside-write-after-fsync|partial_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0122-jzq8aizx\\index\\index.json.tmp.101312|partial_exists=true|partial_bytes=2025|partial_sha256=9fdc5497804badc6de0751039ed7d929a1353d5c059058fe978698ed4769dc12|target_preimage_preserved=true\nRESTART|target=registry-index|classification=RECOVERS|reader_exception=false|old_document_retained=true|schema_valid=true|entries=0\nNEGATIVE-CONTROL-GOOD-RAW|DETECTOR-CONTROL|mode=good|partial_exists=true|target_changed=false|reader_parse_ok=true|detector_fired=false\nNEGATIVE-CONTROL-BAD-RAW|DETECTOR-CONTROL|mode=bad|partial_exists=true|target_changed=true|reader_parse_ok=false|detector_fired=true\nNEGATIVE-CONTROL|description=an in-place truncate-and-partial-write must make the atomic-target detector go red\nNEGATIVE-CONTROL|good_exit_code=0|bad_exit_code=1|silent_on_good_state=true|fired_on_bad_state=true\nTEST-REQUIRED|control: an uninterrupted write must produce a valid file and a clean start|result=PASS\nTEST-REQUIRED|the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing|result=PASS\nscratch_deleted=true\nassertions=6|passed=6|failed=0\nSUCCESS:ADV-0122-probe1\n",
+          "fingerprint": "6e610b6d2a579b5ad35ea05c3d81e789",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe-1-midwrite-sigkill",
+      "name": "Probe 1: for each state file, kill mid-write and then start the program, recording whether it recovers, refuses clearly, or consumes corrupt data.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "TEST-REQUIRED|the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing|result=PASS"
+    },
+    {
+      "id": "probe-2-static-write-audit",
+      "name": "Probe 2 (mechanically different): static audit of the write pattern - temp-file-plus-atomic-rename versus in-place truncate-and-write - which identifies non-atomic writers the kill timing may not happen to hit.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "targets=5|atomic_rename=4|non_atomic_target_writers=1|additional_non_atomic_writers=8"
+    },
+    {
+      "id": "uninterrupted-clean-start-control",
+      "name": "control: an uninterrupted write must produce a valid file and a clean start",
+      "command": "python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "TEST-REQUIRED|control: an uninterrupted write must produce a valid file and a clean start|result=PASS"
+    },
+    {
+      "id": "partial-file-write-window-proof",
+      "name": "the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing",
+      "command": "python -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "TEST-REQUIRED|the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing|result=PASS"
+    },
+    {
+      "id": "refute-stage-raw-rederivation",
+      "name": "Fresh static audit re-derives every target write pattern from live source",
+      "command": "python -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "targets=5|atomic_rename=4|non_atomic_target_writers=1|additional_non_atomic_writers=8"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "in-place-partial-writer-goes-red",
+      "kind": "mutation",
+      "description": "negative control: replace the atomic rename with an in-place truncate-and-partial-write; the detector must go red while staying silent on the real atomic writer",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bad_exit_code=1 target_changed=true reader_parse_ok=false detector_fired=true",
+      "good_state_output": "good_exit_code=0 target_changed=false reader_parse_ok=true detector_fired=false"
+    },
+    {
+      "id": "static-remove-os-replace",
+      "kind": "mutation",
+      "description": "Removing the load-bearing os.replace call must change the AST classifier from temp-plus-atomic-rename to non-atomic direct write.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutant_source=NON-ATOMIC-DIRECT-WRITE fired_on_bad_state=true",
+      "good_state_output": "good_source=TEMP-PLUS-ATOMIC-RENAME silent_on_good_state=true"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-ADV-0122-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "notes": "Independent re-derivation from live named probes on this worktree, not from the harvested embedded raw_output. probe1_midwrite_kill.py and probe2_static_audit.py both exited 0. Distinct from produced_by vendor openai.",
+    "reviewed_at": "2026-08-18T22:50:25Z"
+  },
+  "defects": [
+    {
+      "id": "ADV-0122-D1",
+      "severity": "P1",
+      "status": "superseded",
+      "summary": "Ledger finding is the unit result (CONFIRMED): read_journal maps a torn JSONL record to event=unparseable and recover reports clean. Product patch is out of ADV-0122 scope."
+    },
+    {
+      "id": "ADV-0122-D2",
+      "severity": "P1",
+      "status": "superseded",
+      "summary": "Eight additional non-atomic writers remain as static-audit observations, not named-target blockers. Recorded in probe2 raw output."
+    },
+    {
+      "id": "ADV-0122-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Neither atomic primitive fsyncs the parent directory, and marketplace write_json does not explicitly fsync the temp file; process-kill atomicity does not establish sudden-power-loss durability."
+    },
+    {
+      "id": "ADV-0122-D4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and sidecar raw logs now exist on this checkout and re-run to exit 0."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0122/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0122"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T18:46:29Z",
+    "ended_at": "2026-08-18T22:50:25Z",
+    "duration_seconds": 67.868677
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot; the dependency-path and classifier-control failures had different fingerprints, so the same-hypothesis pivot trigger did not fire",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "system-jsonschema-missing-Draft202012Validator",
+        "outcome": "FAILED",
+        "started_at": "2026-08-16T18:46:29Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "lexical-classifier-counted-docstring-os-replace",
+        "outcome": "FAILED",
+        "started_at": "2026-08-16T18:46:29Z"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Sudden-power-loss durability after rename is not established by a process SIGKILL, especially without parent-directory fsync.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run the same matrix in a disposable crash-consistent VM or dm-flakey filesystem, power-cut after file fsync/rename and before directory fsync, remount, then invoke each real reader."
+    },
+    {
+      "claim": "The controlled timing matrix ran on Linux only; Windows replace and antivirus/indexer interactions are not covered.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run the same signal/barrier harness with TerminateProcess on NTFS while an indexer holds transient handles, then execute the Windows launchers."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "headless Prompt Two R2E refute worker",
+    "execution_substrate": "linux-local-serialized"
+  },
+  "report": {
+    "kind": "fault-injection-run",
+    "stage": "refute",
+    "stage_outcome": "SURVIVED",
+    "prior_stage_output": "implement rc=0",
+    "title": "Atomicity of every state write under a mid-write kill",
+    "question": "If the process is killed between the open and the flush of each state file - ledger, manifest, cache, lockfile, registry index - does the next start recover, or does it read a half-written file?",
+    "headline_answer": "Split result: the transaction ledger consumes a torn JSONL record and incorrectly reports clean; the manifest, cache, marketplace lockfile, and registry index recover by retaining old valid state.",
+    "overall_verdict": "PARTIAL",
+    "observations": [
+      {
+        "name": "named_targets_exercised_inside_proven_write_window",
+        "measured": 5,
+        "method": "controlled TerminateProcess after durable partial bytes",
+        "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+      },
+      {
+        "name": "targets_consuming_corrupt_state_on_restart",
+        "measured": 1,
+        "method": "real next-start reader/recovery calls",
+        "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+      },
+      {
+        "name": "targets_recovering_with_valid_old_state_or_cache_miss",
+        "measured": 4,
+        "method": "real next-start reader/recovery calls",
+        "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+      },
+      {
+        "name": "additional_non_atomic_writer_sites",
+        "measured": 8,
+        "method": "Python AST write-pattern and delegation audit",
+        "anchor": "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      },
+      {
+        "name": "live_condition_11_green",
+        "measured": true,
+        "method": "per-unit UNIT-ARTIFACT-MANIFEST.json via STRUCTURAL-CONDITION-11 option 1",
+        "anchor": "command-center/p2-wave/probes/ADV-0122/UNIT-ARTIFACT-MANIFEST.json"
+      }
+    ],
+    "control_ids": [
+      "uninterrupted-clean-start-control",
+      "partial-file-write-window-proof",
+      "in-place-partial-writer-goes-red",
+      "static-remove-os-replace"
+    ],
+    "evidence_requirement": {
+      "probe_1": "Probe 1: for each state file, kill mid-write and then start the program, recording whether it recovers, refuses clearly, or consumes corrupt data.",
+      "probe_2": "Probe 2 (mechanically different): static audit of the write pattern - temp-file-plus-atomic-rename versus in-place truncate-and-write - which identifies non-atomic writers the kill timing may not happen to hit."
+    },
+    "tests_required": [
+      "control: an uninterrupted write must produce a valid file and a clean start",
+      "the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing",
+      "negative control: replace the atomic rename with an in-place truncate-and-partial-write; the detector must go red while staying silent on the real atomic writer"
+    ],
+    "enumerated_targets": [
+      {
+        "target_id": "ledger",
+        "state_file": "plugin install-prefix state/journal.jsonl",
+        "writer": "platform/plugin/journal.py:222 Transaction._append",
+        "write_pattern": "in-place append + flush + file fsync; no record framing or atomic rename",
+        "kill_observation": "partial final journal existed; next read converted the torn line to event=unparseable; recover returned clean=true",
+        "next_start": "CONSUMES-CORRUPT-DATA",
+        "verdict": "CONFIRMED",
+        "control": "PASS",
+        "anchors": [
+          "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+          "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+        ]
+      },
+      {
+        "target_id": "manifest",
+        "state_file": "versions/<version>/.claude-plugin/plugin.json",
+        "writer": "platform/plugin/fsops.py:147 atomic_write_bytes",
+        "write_pattern": "sibling mkstemp + flush + file fsync + os.replace",
+        "kill_observation": "53,992-byte durable partial temp existed; target preimage remained valid and astplugin diagnose exited 0",
+        "next_start": "RECOVERS",
+        "verdict": "REFUTED",
+        "control": "PASS",
+        "anchors": [
+          "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+          "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+        ]
+      },
+      {
+        "target_id": "cache",
+        "state_file": "state/cache/<content-sha256>",
+        "writer": "platform/plugin/cache.py:61 Cache.put -> fsops.atomic_write_bytes",
+        "write_pattern": "sibling mkstemp + flush + file fsync + os.replace",
+        "kill_observation": "112,640-byte durable partial temp existed; content-key lookup missed and verify quarantined one orphan temp",
+        "next_start": "RECOVERS",
+        "verdict": "REFUTED",
+        "control": "PASS",
+        "anchors": [
+          "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+          "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+        ]
+      },
+      {
+        "target_id": "lockfile",
+        "state_file": "<site>/mkt-lock.json",
+        "writer": "platform/marketplace/mkt/canon.py:166 write_json",
+        "write_pattern": "sibling temp Path.write_bytes + os.replace",
+        "kill_observation": "124-byte durable partial temp existed; old schema-valid lockfile remained and Installer.load_lockfile succeeded",
+        "next_start": "RECOVERS",
+        "verdict": "REFUTED",
+        "control": "PASS",
+        "anchors": [
+          "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+          "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+        ]
+      },
+      {
+        "target_id": "registry-index",
+        "state_file": "<registry>/index.json",
+        "writer": "platform/marketplace/mkt/canon.py:166 write_json",
+        "write_pattern": "sibling temp Path.write_bytes + os.replace",
+        "kill_observation": "4,400-byte durable partial temp existed; old schema-valid, signature-valid four-entry index remained",
+        "next_start": "RECOVERS",
+        "verdict": "REFUTED",
+        "control": "PASS",
+        "anchors": [
+          "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+          "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+        ]
+      }
+    ],
+    "static_audit_summary": {
+      "atomic_rename_targets": 4,
+      "non_atomic_named_targets": 1,
+      "additional_non_atomic_writers": 8,
+      "additional_ids": [
+        "plugin-prefix-lock",
+        "plugin-json-output",
+        "plugin-argspill",
+        "marketplace-install-journal",
+        "marketplace-journal-rewrite",
+        "marketplace-keyfile",
+        "coordination-exclusive-record",
+        "coordination-journal"
+      ]
+    },
+    "scope_boundary": "Process-kill atomicity on Linux. Power loss, parent-directory durability, Windows handle semantics, and the eight statically identified extra sites are disclosed rather than folded into the five runtime outcomes."
+  },
+  "extensions": {
+    "stage": "refute",
+    "prior_stage_output": "implement rc=0",
+    "delivery_contract_complete": true,
+    "refute": {
+      "probes_rerun": true,
+      "default_refuted_rule_applied": false,
+      "scientific_outcome": "SURVIVED",
+      "raw_output_anchor": "command-center/p2-wave/probes/ADV-0122/refute.raw.txt",
+      "catalog_reviewer_requirement_satisfied": false
+    },
+    "condition_11": {
+      "live_check_command": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+      "live_check_exit_code": 0,
+      "live_check_green": true,
+      "raw_output_anchor": "command-center/p2-wave/probes/ADV-0122/UNIT-ARTIFACT-MANIFEST.json",
+      "registered": true,
+      "success_hand_flipped": false,
+      "note": "unit_manifest.py --write was not invoked; per-unit manifest is the authorised c11 target"
+    },
+    "artifact_sha256_basis": "artifacts[0].sha256 is SHA-256 of the final UTF-8 serialization with that first 64-character hash field replaced by 64 ASCII zeroes; artifacts[0].bytes is exact.",
+    "reproduce": {
+      "probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py --raw-out command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+      "probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py --raw-out command-center/p2-wave/probes/ADV-0122/probe2.raw.txt",
+      "refute": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/refute_rederive.py --raw-out command-center/p2-wave/probes/ADV-0122/refute.raw.txt",
+      "condition_11": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/run_condition11_check.py",
+      "validate": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/validate_delivery.py"
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0122",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact required completion line while preserving valid JSON.",
+    "completion_marker": "UNIT-COMPLETE:ADV-0122",
+    "raw_evidence": {
+      "probe_1_path": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+      "probe_1_sha256": "cf3492157e237e794ffd8adc29654212d39e874454b3f77a45381bd77918de22",
+      "probe_2_path": "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt",
+      "probe_2_sha256": "3c56e6a34671670d09ad97f6dba577bebc71305492186d11c8efc44119e16a0b"
+    }
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/ADV-0122/consume_receipt.py",
+      "artifact_path": "command-center/adversarial/ADV-0122-state-write-atomicity-under-kill.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "python -B command-center/p2-wave/probes/ADV-0122/consume_receipt.py",
+        "raw_output": "ADV-0122 consume_receipt\nconsumer=json.loads of catalog output_path\npath=C:/Users/Prekzursil/source/ast-integrate/command-center/adversarial/ADV-0122-state-write-atomicity-under-kill.json\nbytes=39709\nunit_id=ADV-0122\nstate=SUCCESS\nkeys=artifacts,defects,downstream_consumers,evidence,extensions,manifest_registration,min_bytes_threshold,negative_controls,produced_by,report,residual_unknowns,retry,reviewer,schema_version,sentinel,spec_anchor,state,tests,timestamps,unit_id\nSUCCESS:ADV-0122-consume\n",
+        "fingerprint": "164feffeb538d27bbe5ce67a9813ad5d",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/adversarial/ADV-0122-state-write-atomicity-under-kill.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -c import-ready-units-artifact-delivered-ADV-0122",
+        "raw_output": "artifact_delivered=true reason=delivered",
+        "fingerprint": "0ef73a57076b84767800bb8356e71844",
+        "exit_code": 0
+      }
+    }
+  ],
+  "stage": "refute",
+  "prior_stage_output": "implement rc=0",
+  "delivery_contract_complete": true,
+  "refute": {
+    "probes_rerun": true,
+    "default_refuted_rule_applied": false,
+    "scientific_outcome": "SURVIVED",
+    "raw_output_anchor": "command-center/p2-wave/probes/ADV-0122/refute.raw.txt",
+    "catalog_reviewer_requirement_satisfied": false
+  },
+  "condition_11": {
+    "live_check_command": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+    "live_check_exit_code": 0,
+    "live_check_green": true,
+    "raw_output_anchor": "command-center/p2-wave/probes/ADV-0122/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "success_hand_flipped": false,
+    "note": "unit_manifest.py --write was not invoked; per-unit manifest is the authorised c11 target"
+  },
+  "artifact_sha256_basis": "artifacts[0].sha256 is SHA-256 of the final UTF-8 serialization with that first 64-character hash field replaced by 64 ASCII zeroes; artifacts[0].bytes is exact.",
+  "reproduce": {
+    "probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/probe1_midwrite_kill.py --raw-out command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+    "probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/probe2_static_audit.py --raw-out command-center/p2-wave/probes/ADV-0122/probe2.raw.txt",
+    "refute": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/refute_rederive.py --raw-out command-center/p2-wave/probes/ADV-0122/refute.raw.txt",
+    "condition_11": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/run_condition11_check.py",
+    "validate": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0122/validate_delivery.py"
+  },
+  "completion_line": "UNIT-COMPLETE:ADV-0122",
+  "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact required completion line while preserving valid JSON.",
+  "completion_marker": "UNIT-COMPLETE:ADV-0122",
+  "raw_evidence": {
+    "probe_1_path": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+    "probe_1_sha256": "cf3492157e237e794ffd8adc29654212d39e874454b3f77a45381bd77918de22",
+    "probe_2_path": "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt",
+    "probe_2_sha256": "3c56e6a34671670d09ad97f6dba577bebc71305492186d11c8efc44119e16a0b"
+  },
+  "kind": "fault-injection-run",
+  "stage_outcome": "SURVIVED",
+  "title": "Atomicity of every state write under a mid-write kill",
+  "question": "If the process is killed between the open and the flush of each state file - ledger, manifest, cache, lockfile, registry index - does the next start recover, or does it read a half-written file?",
+  "headline_answer": "Split result: the transaction ledger consumes a torn JSONL record and incorrectly reports clean; the manifest, cache, marketplace lockfile, and registry index recover by retaining old valid state.",
+  "overall_verdict": "PARTIAL",
+  "observations": [
+    {
+      "name": "named_targets_exercised_inside_proven_write_window",
+      "measured": 5,
+      "method": "controlled TerminateProcess after durable partial bytes",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+    },
+    {
+      "name": "targets_consuming_corrupt_state_on_restart",
+      "measured": 1,
+      "method": "real next-start reader/recovery calls",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+    },
+    {
+      "name": "targets_recovering_with_valid_old_state_or_cache_miss",
+      "measured": 4,
+      "method": "real next-start reader/recovery calls",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt"
+    },
+    {
+      "name": "additional_non_atomic_writer_sites",
+      "measured": 8,
+      "method": "Python AST write-pattern and delegation audit",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+    },
+    {
+      "name": "live_condition_11_green",
+      "measured": true,
+      "method": "per-unit UNIT-ARTIFACT-MANIFEST.json via STRUCTURAL-CONDITION-11 option 1",
+      "anchor": "command-center/p2-wave/probes/ADV-0122/UNIT-ARTIFACT-MANIFEST.json"
+    }
+  ],
+  "control_ids": [
+    "uninterrupted-clean-start-control",
+    "partial-file-write-window-proof",
+    "in-place-partial-writer-goes-red",
+    "static-remove-os-replace"
+  ],
+  "evidence_requirement": {
+    "probe_1": "Probe 1: for each state file, kill mid-write and then start the program, recording whether it recovers, refuses clearly, or consumes corrupt data.",
+    "probe_2": "Probe 2 (mechanically different): static audit of the write pattern - temp-file-plus-atomic-rename versus in-place truncate-and-write - which identifies non-atomic writers the kill timing may not happen to hit."
+  },
+  "tests_required": [
+    "control: an uninterrupted write must produce a valid file and a clean start",
+    "the kill point must be shown to land inside the write window (verified by a partial file existing), otherwise the test is measuring nothing",
+    "negative control: replace the atomic rename with an in-place truncate-and-partial-write; the detector must go red while staying silent on the real atomic writer"
+  ],
+  "enumerated_targets": [
+    {
+      "target_id": "ledger",
+      "state_file": "plugin install-prefix state/journal.jsonl",
+      "writer": "platform/plugin/journal.py:222 Transaction._append",
+      "write_pattern": "in-place append + flush + file fsync; no record framing or atomic rename",
+      "kill_observation": "partial final journal existed; next read converted the torn line to event=unparseable; recover returned clean=true",
+      "next_start": "CONSUMES-CORRUPT-DATA",
+      "verdict": "CONFIRMED",
+      "control": "PASS",
+      "anchors": [
+        "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+        "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      ]
+    },
+    {
+      "target_id": "manifest",
+      "state_file": "versions/<version>/.claude-plugin/plugin.json",
+      "writer": "platform/plugin/fsops.py:147 atomic_write_bytes",
+      "write_pattern": "sibling mkstemp + flush + file fsync + os.replace",
+      "kill_observation": "53,992-byte durable partial temp existed; target preimage remained valid and astplugin diagnose exited 0",
+      "next_start": "RECOVERS",
+      "verdict": "REFUTED",
+      "control": "PASS",
+      "anchors": [
+        "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+        "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      ]
+    },
+    {
+      "target_id": "cache",
+      "state_file": "state/cache/<content-sha256>",
+      "writer": "platform/plugin/cache.py:61 Cache.put -> fsops.atomic_write_bytes",
+      "write_pattern": "sibling mkstemp + flush + file fsync + os.replace",
+      "kill_observation": "112,640-byte durable partial temp existed; content-key lookup missed and verify quarantined one orphan temp",
+      "next_start": "RECOVERS",
+      "verdict": "REFUTED",
+      "control": "PASS",
+      "anchors": [
+        "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+        "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      ]
+    },
+    {
+      "target_id": "lockfile",
+      "state_file": "<site>/mkt-lock.json",
+      "writer": "platform/marketplace/mkt/canon.py:166 write_json",
+      "write_pattern": "sibling temp Path.write_bytes + os.replace",
+      "kill_observation": "124-byte durable partial temp existed; old schema-valid lockfile remained and Installer.load_lockfile succeeded",
+      "next_start": "RECOVERS",
+      "verdict": "REFUTED",
+      "control": "PASS",
+      "anchors": [
+        "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+        "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      ]
+    },
+    {
+      "target_id": "registry-index",
+      "state_file": "<registry>/index.json",
+      "writer": "platform/marketplace/mkt/canon.py:166 write_json",
+      "write_pattern": "sibling temp Path.write_bytes + os.replace",
+      "kill_observation": "4,400-byte durable partial temp existed; old schema-valid, signature-valid four-entry index remained",
+      "next_start": "RECOVERS",
+      "verdict": "REFUTED",
+      "control": "PASS",
+      "anchors": [
+        "command-center/p2-wave/probes/ADV-0122/probe1.raw.txt",
+        "command-center/p2-wave/probes/ADV-0122/probe2.raw.txt"
+      ]
+    }
+  ],
+  "static_audit_summary": {
+    "atomic_rename_targets": 4,
+    "non_atomic_named_targets": 1,
+    "additional_non_atomic_writers": 8,
+    "additional_ids": [
+      "plugin-prefix-lock",
+      "plugin-json-output",
+      "plugin-argspill",
+      "marketplace-install-journal",
+      "marketplace-journal-rewrite",
+      "marketplace-keyfile",
+      "coordination-exclusive-record",
+      "coordination-journal"
+    ]
+  },
+  "scope_boundary": "Process-kill atomicity on Linux. Power loss, parent-directory durability, Windows handle semantics, and the eight statically identified extra sites are disclosed rather than folded into the five runtime outcomes.",
+  "completion_sentinel": "SUCCESS:ADV-0122 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0122 <reason>."
+}

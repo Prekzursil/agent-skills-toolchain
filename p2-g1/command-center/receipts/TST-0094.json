@@ -1,0 +1,236 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/TST-0094.json",
+  "command-center/p2-wave/probes/TST-0094/harvest.py",
+  "command-center/schema/fault-injection-receipt.schema.json",
+  "command-center/p2-wave/probes/TST-0094/probe1_empty_vs_broken.py",
+  "command-center/p2-wave/probes/TST-0094/probe2_null_key_write.py"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0094.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0094/harvest.py",
+   "role": "engine"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/fault-injection-receipt.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0094/probe1_empty_vs_broken.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0094/probe2_null_key_write.py",
+   "role": "supporting"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0094",
+ "evidence": {
+  "claim": "Three recorded runs \u2014 genuinely-nothing-to-harvest, filter-mismatch, connection-failure \u2014 each produce a DIFFERENT typed outcome rather than a shared empty result. A null session_id is rejected at write time.",
+  "mutant_collapsed": true,
+  "mutant_outcomes": [
+   "EMPTY",
+   "EMPTY",
+   "EMPTY"
+  ],
+  "nonempty_control": {
+   "first": {
+    "artifact_ids": [
+     "art-ok"
+    ],
+    "connected": true,
+    "exit_code": 0,
+    "filter_matched": true,
+    "new_artifact_delta": 1,
+    "outcome": "HARVESTED",
+    "reason": "transferred 1 new artifact(s)",
+    "session_id": "job-ok",
+    "transferred": 1,
+    "transferred_bytes": 5
+   },
+   "first_ok": true,
+   "second": {
+    "artifact_ids": [],
+    "connected": true,
+    "exit_code": 1,
+    "filter_matched": true,
+    "new_artifact_delta": 0,
+    "outcome": "NOTHING_TO_HARVEST",
+    "reason": "session exists and filter matched; remote produced zero new artifacts",
+    "session_id": "job-ok",
+    "transferred": 0,
+    "transferred_bytes": 0
+   },
+   "second_is_nothing_new": true
+  },
+  "null_key_write": {
+   "harvest_null_filter_rejected": true,
+   "json_null_record_rejected": true,
+   "mutant_hidden_count": 1,
+   "mutant_hides_row": true,
+   "production_hidden_count": 0,
+   "production_write_rejected": true
+  },
+  "production_distinct": true,
+  "production_outcomes": [
+   "NOTHING_TO_HARVEST",
+   "FILTER_MISMATCH",
+   "CONNECTION_FAILURE"
+  ],
+  "runs": [
+   {
+    "outcome": "NOTHING_TO_HARVEST",
+    "result": {
+     "artifact_ids": [],
+     "connected": true,
+     "exit_code": 1,
+     "filter_matched": true,
+     "new_artifact_delta": 0,
+     "outcome": "NOTHING_TO_HARVEST",
+     "reason": "session exists and filter matched; remote produced zero new artifacts",
+     "session_id": "job-empty",
+     "transferred": 0,
+     "transferred_bytes": 0
+    },
+    "scenario": "genuinely-nothing-to-harvest"
+   },
+   {
+    "outcome": "FILTER_MISMATCH",
+    "result": {
+     "artifact_ids": [],
+     "connected": true,
+     "exit_code": 1,
+     "filter_matched": false,
+     "new_artifact_delta": 0,
+     "outcome": "FILTER_MISMATCH",
+     "reason": "filter session_id='job-B' matched no known session (known=['job-empty', 'job-A'])",
+     "session_id": "job-B",
+     "transferred": 0,
+     "transferred_bytes": 0
+    },
+    "scenario": "filter-mismatch"
+   },
+   {
+    "outcome": "CONNECTION_FAILURE",
+    "result": {
+     "artifact_ids": [],
+     "connected": false,
+     "exit_code": 1,
+     "filter_matched": false,
+     "new_artifact_delta": 0,
+     "outcome": "CONNECTION_FAILURE",
+     "reason": "remote substrate unreachable; filter was not applied",
+     "session_id": "job-empty",
+     "transferred": 0,
+     "transferred_bytes": 0
+    },
+    "scenario": "connection-failure"
+   }
+  ],
+  "verdict": "CONFIRMED"
+ },
+ "failure_class": "FC-11319",
+ "id": "TST-0094",
+ "implementation": {
+  "empty_is_not_a_production_outcome": true,
+  "entry_points": [
+   "RemoteHarvest.harvest",
+   "RemoteSubstrate.write",
+   "reject_filter_key"
+  ],
+  "filter_key": "session_id",
+  "module": "command-center/p2-wave/probes/TST-0094/harvest.py",
+  "null_at_write_raises": "NullFilterKeyError",
+  "typed_outcomes": [
+   "CONNECTION_FAILURE",
+   "FILTER_MISMATCH",
+   "HARVESTED",
+   "NOTHING_TO_HARVEST"
+  ]
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0094/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "description": "mutant_collapse_zero_transfer maps every zero-transfer run to EMPTY. Production keeps NOTHING_TO_HARVEST, FILTER_MISMATCH, and CONNECTION_FAILURE apart.",
+   "fired_on_bad_state": true,
+   "id": "TST0094-C1-emptiness-collapsing-mutant",
+   "kind": "known-broken-mutant",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "allow_null_key=True stores the row in a hidden bucket so a session-keyed harvest returns NOTHING_TO_HARVEST while the artifact still exists. Production rejects the write.",
+   "fired_on_bad_state": true,
+   "id": "TST0094-C2-null-key-hides-results",
+   "kind": "known-broken-write",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0094: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0094",
+ "output_path": "command-center/receipts/TST-0094.json",
+ "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "fault-injection-engineer",
+  "vendor": "spacexai-cursor"
+ },
+ "profile": "fault-injection-remote-harvest",
+ "question": "A harvest run against a remote substrate that has produced zero new artifacts must be distinguishable from a harvest whose connection or filter silently matched nothing. Measured analogue: a job filter keyed on session id where the written record carried null, hiding every result.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0431 (harvest postcondition in the production harvester) is not delivered on this worktree. This unit ships a typed classifier under probes/TST-0094/harvest.py and proves the three empty-looking runs do not share an outcome. A later production harvester must keep these tokens; it must not reintroduce a shared empty SUCCESS.",
+   "settling_experiment": "Re-run three_typed_runs against the IMP-0431 harvester once command-center/receipts/IMP-0431.json exists.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "note": "Probe 2 does not reuse the three-run table. It AST-scans write() for reject_filter_key, asserts JSON null is refused, and keeps the analogue mutant as a negative control.",
+  "reviewer_id": "TST-0094-probe2-null-key-write",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0094",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0094 question_or_target; _USER-PROMPTS.md:11319; command-center/phase3/A1/FAILURE-MODES.json FC-11319",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0094/probe1_empty_vs_broken.py",
+   "id": "test_empty_harvest_and_broken_harvest_are_distinguishable",
+   "requirement": "genuinely-nothing-to-harvest, filter-mismatch, and connection-failure are three typed outcomes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0094/probe2_null_key_write.py",
+   "id": "test_a_null_key_in_the_filter_is_rejected_at_write_time",
+   "requirement": "write(session_id=None) raises NullFilterKeyError; the analogue mutant that accepts null hides the row",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:56Z",
+  "started_at": "2026-08-25T00:58:56Z"
+ },
+ "title": "Remote harvest that silently does nothing",
+ "unit_id": "TST-0094"
+}

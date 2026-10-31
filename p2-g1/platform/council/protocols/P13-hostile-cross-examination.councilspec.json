@@ -1,0 +1,425 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p13-hostile-cross-examination",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Determine whether ONE flagged claim survives depth-first hostile cross-examination, or names the question it cannot answer.",
+    "charter": "ADVERSARIAL family. One examiner, one witness, a referee who rules non-answers. Scope is a single claim; the merits of sibling claims are out of scope.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "the examiner put at least 3 questions on the SAME claim",
+      "every non-answer was ruled and the question re-put verbatim",
+      "the selection reason for this claim is logged before the first question"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 60
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4,
+      "min": 4,
+      "max": 4
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "referee",
+        "display_name": "Referee (rules non-answers, logs claim selection)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "adjudication",
+          "evidence standards"
+        ],
+        "role": "chair",
+        "authority": "judge",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "examiner",
+        "display_name": "Examiner (uncooperative, hunts the unanswerable question)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "cross-examination",
+          "falsification"
+        ],
+        "role": "custom:examiner",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "effort": "high"
+      },
+      {
+        "participant_id": "witness",
+        "display_name": "Witness (author or defender of the flagged claim)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "the claim under examination"
+        ],
+        "role": "custom:witness",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "clerk",
+        "display_name": "Evidence clerk (anchors, non-answer log)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "evidence handling",
+          "transcript integrity"
+        ],
+        "role": "scribe",
+        "authority": "observer",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "inactivity",
+        "prompt_injection_detected"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "referee"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "claim-statement",
+        "independent": true,
+        "participants": [
+          "witness"
+        ],
+        "rounds": 1
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "xexam",
+        "rounds": 6,
+        "participants": [
+          "examiner",
+          "witness",
+          "referee"
+        ],
+        "quotas": {
+          "objections_per_participant": 3,
+          "counterexamples_per_round": 1
+        },
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "custom:non_answer_streak",
+              "op": ">=",
+              "value": 2,
+              "value_type": "number",
+              "producer": "non_answer_detector",
+              "note": "two consecutive ruled non-answers terminate the claim as unsupported"
+            },
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0,
+              "note": "every put question was answered directly"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "referee-ruling",
+        "rounds": 1,
+        "participants": [
+          "referee"
+        ]
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": false
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 2,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 60,
+    "tool_calls": 80,
+    "sources": 12,
+    "turns": 24,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "objections": 6,
+    "counterexamples": 2,
+    "evidence_items": 8,
+    "novelty_ratio": 0.5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 1,
+      "on_failure": "escalate_to_owner"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "objections_addressed >= 3 AND (objections_open == 0 AND evidence_items >= 6 OR unresolved_load_bearing_counterexample >= 1 OR rounds_elapsed >= 6)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "objections_addressed",
+          "op": ">=",
+          "value": 3
+        },
+        {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "metric": "objections_open",
+                  "op": "==",
+                  "value": 0
+                },
+                {
+                  "metric": "evidence_items",
+                  "op": ">=",
+                  "value": 6
+                }
+              ]
+            },
+            {
+              "metric": "unresolved_load_bearing_counterexample",
+              "op": ">=",
+              "value": 1
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 6
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 60,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the claim is re-scoped to exactly what the answered questions support",
+      "the unanswered question is recorded verbatim as an open unknown"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "strongest_counterexample",
+      "narrow_scope",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "judge"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "circular_debate",
+      "endless_debate",
+      "role_collapse",
+      "moderator_capture",
+      "participant_dominance",
+      "evidence_free_majority",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "blind_re_evaluation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "argument_ledger",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P13 hostile cross-examination",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:305-321"
+    ],
+    "notes": "Anti-rabbit-hole: hard cap 6 rounds and a logged claim-selection reason. The card's adoption proof (non-answer detection must fire on a deliberately evasive control) is the xexam stage exit_when custom:non_answer_streak, producer non_answer_detector - the producer is NOT implemented by this unit, so the detector itself is NOT-CHECKED here."
+  }
+}

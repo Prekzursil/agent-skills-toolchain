@@ -1,0 +1,439 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p01-free-form-moderated-panel",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Surface the tradeoffs of an ambiguous decision that has no obvious winner and return a recommendation with its dissent.",
+    "charter": "Free-form moderated panel. No fixed speaking order and no assigned opposition; the chair moderates and a synthesis secretary drafts.",
+    "risk_tier": "moderate",
+    "desired_output": "recommendation",
+    "success_criteria": [
+      "every seat filed an independent opening position before any peer output was visible",
+      "the panel did not converge before round 2",
+      "each tradeoff names the evidence that establishes it"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 90
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "chair-facilitator",
+        "display_name": "Chair / facilitator",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "facilitation",
+          "decision framing"
+        ],
+        "role": "chair",
+        "authority": "chair",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_recruit": true
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "pragmatist",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "delivery risk",
+          "operational cost"
+        ],
+        "role": "domain_expert",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "skeptic",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "falsification",
+          "counterexample construction"
+        ],
+        "role": "critic",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "user-advocate",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "owner intent",
+          "usability"
+        ],
+        "role": "user_advocate",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "synthesis-secretary",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "technical writing",
+          "argument mapping"
+        ],
+        "role": "synthesizer",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "dominance",
+        "role_collapse"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "chair-facilitator"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "independent-openings",
+        "independent": true,
+        "quotas": {
+          "objections_per_participant": 1
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "open-floor",
+        "rounds": 2,
+        "quotas": {
+          "ideas_per_participant": 2,
+          "novel_ideas_per_round": 1,
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "steelman_before_rebuttal",
+        "stage_id": "steelman",
+        "rounds": 1,
+        "quotas": {
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "synthesis",
+        "participants": [
+          "synthesis-secretary"
+        ]
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "forced_dissent": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 2,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "tool_calls": 120,
+    "sources": 20,
+    "turns": 30,
+    "speaking_quota_per_participant": 6,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 12,
+    "novelty_ratio": 0.5,
+    "diversity_index": 0.6,
+    "objections": 6,
+    "counterexamples": 2,
+    "evidence_items": 10,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.82,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "majority",
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "consensus",
+              "op": ">=",
+              "value": 0.75
+            },
+            {
+              "metric": "no_new_objection_rounds",
+              "op": ">=",
+              "value": 2
+            },
+            {
+              "metric": "all_participants_spoke",
+              "op": "==",
+              "value": true
+            }
+          ]
+        },
+        {
+          "all_of": [
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 6
+            },
+            {
+              "metric": "max_rounds",
+              "op": "==",
+              "value": 6
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 90,
+      "on_cap": "synthesize_best_effort"
+    },
+    "source_expression": "consensus >= 0.75 AND no_new_objection_rounds >= 2 AND all_participants_spoke == true OR rounds_elapsed >= 6 AND max_rounds == 6"
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the named tradeoff is re-measured after the first release"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "strongest_counterexample",
+      "rotate_roles",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "moderator_capture",
+      "participant_dominance",
+      "instant_unanimity",
+      "premature_convergence",
+      "sycophancy",
+      "weak_synthesis"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_graph",
+      "claim_evidence_contradiction_graph",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P01 free-form moderated panel",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:118",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:132"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P01",
+      "skills/council 4-voice panel"
+    ],
+    "notes": "DELIBERATIVE. Chair states the question; seats speak in any order for R rounds; chair summarises each round; the synthesis secretary drafts; the chair calls the vote. The distinguishing property is that speaking_order is NOT fixed and no seat holds assigned opposition - encoded as speaking_order=simultaneous.\n\nanti-failure controls, each mapped to the field implementing it:\n  moderator_capture -> protocol.sequence[0] is a blind_independent_first_pass so every seat commits a position before the chair frames anything; deadlock.resolution includes rotate_roles\n  participant_dominance -> budgets.speaking_quota_per_participant caps any one seat; stopping.minimum_deliberation.every_participant_spoke blocks a close while a seat is silent\n  instant_unanimity -> stopping.minimum_deliberation.min_rounds=2 makes a round-1 close impossible; anti_failure.fast_unanimity_response fires blind_re_evaluation + forced_dissent\n  premature_convergence -> protocol.rounds.divergence_before_convergence + the no_new_objection_rounds >= 2 conjunct in stopping.expression\n  sycophancy -> protocol.obligations.forced_dissent + critique_intensity=adversarial + consensus.dissent_policy.suppression_check\n  weak_synthesis -> outputs.required includes argument_graph and claim_evidence_contradiction_graph, so the synthesis must be reconstructable"
+  }
+}

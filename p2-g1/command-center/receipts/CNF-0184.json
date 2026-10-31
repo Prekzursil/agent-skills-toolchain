@@ -1,0 +1,486 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0184",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0184",
+  "completion_sentinel": "SUCCESS:CNF-0184",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0184]",
+  "title": "Determinism audit: double-run every reproduction and require a normalizer per nondeterminism source",
+  "question": "Question: which reproductions are byte-deterministic, and for those that are not, what exactly varies? Run each reproduction twice, byte-diff the outputs, classify each varying region (timestamps, temp paths, ordering, seeds, host identifiers), and require a named normalizer for each class. An unclassified nondeterminism is a place where a future diff will be ignored as noise.",
+  "answer": "Family-3 command-output and family-6 environment reproductions were each run at least twice on this Linux worktree. Byte-deterministic: ['fam3.deterministic-payload', 'fam6.host-id']. Nondeterministic or borderline: [('fam3.iso-timestamp', ['timestamps']), ('fam3.json-key-order', ['ordering']), ('fam3.clock-seconds', ['timestamps']), ('fam6.temp-path', ['temp_paths']), ('fam6.rng-seed', ['seeds'])]. Named normalizers exist for timestamps, temp_paths, ordering, seeds, and host_identifiers; a planted CLAIM-BODY change is not absorbed by any of them. CNF-0165 command-replay outputs are absent (CNF-0165 depends on this normalizer set). Prior normalizer-named files on this tree: ['command-center/_sub1_normalize_probe.py', 'command-center/_sub1_normalize_probe_out.json', 'command-center/d5_normalize_assignment.py', 'command-center/p2-wave/probes/ADV-0130/normalize.py', 'command-center/p2-wave/probes/CC-0019/normalize.py', 'command-center/p2-wave/probes/CNF-0076/fixtures/original-outputs/wf.lex-normalize.json', 'command-center/p2-wave/probes/CNF-0076/fixtures/sources/wf.lex-normalize.json', 'command-center/p2-wave/probes/CNF-0165/normalize.py', 'command-center/p2-wave/probes/CNF-0182/normalizers.py', 'command-center/p2-wave/probes/IMP-0153/fixtures/corpus/u02-session-transcript-normalizer.md', 'command-center/p2-wave/probes/IMP-0240/examples/ex.refactoring.pure-normalize.json', 'command-center/p2-wave/probes/IMP-0250/extract_normalize.py', 'command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-ultranormalize.py', 'command-center/slop-report/_aud2_normalize.py']. SUCCESS:CNF-0184",
+  "reproductions": [
+    {
+      "id": "fam3.deterministic-payload",
+      "family": 3,
+      "title": "Family 3 command-output with a fixed payload",
+      "classification": "BYTE-DETERMINISTIC",
+      "run_ids": [
+        "fam3.deterministic-payload/run1/139af36685ce",
+        "fam3.deterministic-payload/run2/139af36685ce"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": true,
+      "normalized_identical": true,
+      "varying_classes": [],
+      "unclassified_remainder": false,
+      "example_hunk": "(no unified diff; texts equal)\n"
+    },
+    {
+      "id": "fam3.iso-timestamp",
+      "family": 3,
+      "title": "Family 3 command-output with an embedded ISO timestamp",
+      "classification": "NONDETERMINISTIC",
+      "run_ids": [
+        "fam3.iso-timestamp/run1/bd4d8b3826ba",
+        "fam3.iso-timestamp/run2/a6345d8e6367"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": false,
+      "normalized_identical": true,
+      "varying_classes": [
+        "timestamps"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=stamp-iso\n-now=2026-08-25T00:56:53.678901Z\n+now=2026-08-25T00:56:53.678917Z\n payload=family3-timestamp-control\n status=0\n"
+    },
+    {
+      "id": "fam3.json-key-order",
+      "family": 3,
+      "title": "Family 3 JSON object emitted without sort_keys",
+      "classification": "NONDETERMINISTIC",
+      "run_ids": [
+        "fam3.json-key-order/run1/615ebb5d2289",
+        "fam3.json-key-order/run2/27811579ef10"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": false,
+      "normalized_identical": true,
+      "varying_classes": [
+        "ordering"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "--- run1\n+++ run2\n@@ -1 +1 @@\n-{\"lambda\": \"v-lambda\", \"beta\": \"v-beta\", \"mu\": \"v-mu\", \"zeta\": \"v-zeta\", \"alpha\": \"v-alpha\"}\n+{\"beta\": \"v-beta\", \"lambda\": \"v-lambda\", \"zeta\": \"v-zeta\", \"mu\": \"v-mu\", \"alpha\": \"v-alpha\"}\n"
+    },
+    {
+      "id": "fam3.clock-seconds",
+      "family": 3,
+      "title": "Family 3 second-resolution clock (borderline; needs triple-run)",
+      "classification": "BORDERLINE",
+      "run_ids": [
+        "fam3.clock-seconds/run1/c8b43337502b",
+        "fam3.clock-seconds/run2/c8b43337502b",
+        "fam3.clock-seconds/run3/52dce9c41e08"
+      ],
+      "run_count": 3,
+      "third_run": true,
+      "raw_byte_identical": false,
+      "normalized_identical": true,
+      "varying_classes": [
+        "timestamps"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=clock-seconds\n-now_s=1787619413\n+now_s=1787619414\n payload=family3-borderline-second-bucket\n status=0\n"
+    },
+    {
+      "id": "fam6.temp-path",
+      "family": 6,
+      "title": "Family 6 environment: mkdtemp path",
+      "classification": "NONDETERMINISTIC",
+      "run_ids": [
+        "fam6.temp-path/run1/f19fe79b329d",
+        "fam6.temp-path/run2/959591215a0f"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": false,
+      "normalized_identical": true,
+      "varying_classes": [
+        "temp_paths"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=mkdtemp\n-tmpdir=/tmp/tmpl4qdnikp\n+tmpdir=/tmp/tmpqva06q4v\n payload=family6-temp-path-control\n status=0\n"
+    },
+    {
+      "id": "fam6.host-id",
+      "family": 6,
+      "title": "Family 6 environment: hostname (stable on one box)",
+      "classification": "BYTE-DETERMINISTIC",
+      "run_ids": [
+        "fam6.host-id/run1/44c0a6aa694f",
+        "fam6.host-id/run2/44c0a6aa694f"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": true,
+      "normalized_identical": true,
+      "varying_classes": [
+        "host_identifiers"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "(no unified diff; texts equal)\n"
+    },
+    {
+      "id": "fam6.rng-seed",
+      "family": 6,
+      "title": "Family 6 environment: process entropy draw",
+      "classification": "NONDETERMINISTIC",
+      "run_ids": [
+        "fam6.rng-seed/run1/c7c515acc267",
+        "fam6.rng-seed/run2/d135958fcb72"
+      ],
+      "run_count": 2,
+      "third_run": false,
+      "raw_byte_identical": false,
+      "normalized_identical": true,
+      "varying_classes": [
+        "seeds"
+      ],
+      "unclassified_remainder": false,
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=urandom\n-seed_draw=3f2bf07edb663dd0\n+seed_draw=e36af7e11e599b0a\n payload=family6-seed-control\n status=0\n"
+    }
+  ],
+  "varying_region_catalogue": [
+    {
+      "class": "timestamps",
+      "normalizer_id": "norm.timestamps.iso-and-labeled-unix",
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=stamp-iso\n-now=2026-08-25T00:56:53.678901Z\n+now=2026-08-25T00:56:53.678917Z\n payload=family3-timestamp-control\n status=0\n",
+      "example_from": "fam3.iso-timestamp"
+    },
+    {
+      "class": "temp_paths",
+      "normalizer_id": "norm.temp_paths.tmp-and-var-folders",
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=mkdtemp\n-tmpdir=/tmp/tmpl4qdnikp\n+tmpdir=/tmp/tmpqva06q4v\n payload=family6-temp-path-control\n status=0\n",
+      "example_from": "fam6.temp-path"
+    },
+    {
+      "class": "ordering",
+      "normalizer_id": "norm.ordering.json-sort-keys",
+      "example_hunk": "--- run1\n+++ run2\n@@ -1 +1 @@\n-{\"lambda\": \"v-lambda\", \"beta\": \"v-beta\", \"mu\": \"v-mu\", \"zeta\": \"v-zeta\", \"alpha\": \"v-alpha\"}\n+{\"beta\": \"v-beta\", \"lambda\": \"v-lambda\", \"zeta\": \"v-zeta\", \"mu\": \"v-mu\", \"alpha\": \"v-alpha\"}\n",
+      "example_from": "fam3.json-key-order"
+    },
+    {
+      "class": "seeds",
+      "normalizer_id": "norm.seeds.labeled-draw",
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=urandom\n-seed_draw=3f2bf07edb663dd0\n+seed_draw=e36af7e11e599b0a\n payload=family6-seed-control\n status=0\n",
+      "example_from": "fam6.rng-seed"
+    },
+    {
+      "class": "host_identifiers",
+      "normalizer_id": "norm.host_identifiers.labeled-host",
+      "example_hunk": "--- run1\n+++ run2\n@@ -1,4 +1,4 @@\n cmd=uname-n\n-host=alpha-host\n+host=bravo-host\n payload=family6-host-identifier\n status=0\n",
+      "example_from": "fam6.host-id/HOST-override-control"
+    }
+  ],
+  "normalizers": [
+    {
+      "id": "norm.timestamps.iso-and-labeled-unix",
+      "class": "timestamps",
+      "description": "Replace ISO-8601 datetimes and labeled unix/ns clocks (now_s=, now_ns=, unix=) with <TIMESTAMP>. Bare integers are left intact.",
+      "over_normalization": {
+        "planted_change": "CLAIM-BODY: alpha -> beta",
+        "absorbed": false
+      }
+    },
+    {
+      "id": "norm.temp_paths.tmp-and-var-folders",
+      "class": "temp_paths",
+      "description": "Replace mkdtemp-style /tmp/tmp* and macOS /var/folders paths with <TMPDIR>. The literal token /tmp alone is not rewritten.",
+      "over_normalization": {
+        "planted_change": "CLAIM-BODY: alpha -> beta",
+        "absorbed": false
+      }
+    },
+    {
+      "id": "norm.ordering.json-sort-keys",
+      "class": "ordering",
+      "description": "Parse JSON objects/arrays and re-dump with sort_keys=True so key and set permutation is not treated as a content change.",
+      "over_normalization": {
+        "planted_change": "CLAIM-BODY: alpha -> beta",
+        "absorbed": false
+      }
+    },
+    {
+      "id": "norm.seeds.labeled-draw",
+      "class": "seeds",
+      "description": "Replace labeled rng/seed_draw/seed hex or float draws with <SEED>. Unlabeled numbers are not rewritten.",
+      "over_normalization": {
+        "planted_change": "CLAIM-BODY: alpha -> beta",
+        "absorbed": false
+      }
+    },
+    {
+      "id": "norm.host_identifiers.labeled-host",
+      "class": "host_identifiers",
+      "description": "Replace labeled host=/hostname=/HOST= values with <HOST>. Same-host double-runs typically do not vary; the class is proven by a HOST override.",
+      "over_normalization": {
+        "planted_change": "CLAIM-BODY: alpha -> beta",
+        "absorbed": false
+      }
+    }
+  ],
+  "cells": [
+    {
+      "id": "fam3.deterministic-payload",
+      "family": 3,
+      "verdict": "BYTE-DETERMINISTIC"
+    },
+    {
+      "id": "fam3.iso-timestamp",
+      "family": 3,
+      "verdict": "NONDETERMINISTIC"
+    },
+    {
+      "id": "fam3.json-key-order",
+      "family": 3,
+      "verdict": "NONDETERMINISTIC"
+    },
+    {
+      "id": "fam3.clock-seconds",
+      "family": 3,
+      "verdict": "BORDERLINE"
+    },
+    {
+      "id": "fam6.temp-path",
+      "family": 6,
+      "verdict": "NONDETERMINISTIC"
+    },
+    {
+      "id": "fam6.host-id",
+      "family": 6,
+      "verdict": "BYTE-DETERMINISTIC"
+    },
+    {
+      "id": "fam6.rng-seed",
+      "family": 6,
+      "verdict": "NONDETERMINISTIC"
+    }
+  ],
+  "tests": {
+    "known_nondeterministic_control": {
+      "id": "embedded-timestamp-detected-and-normalized",
+      "pass": true,
+      "reproduction_id": "fam3.iso-timestamp"
+    },
+    "over_normalization_control": {
+      "id": "planted-claim-body-change-not-absorbed",
+      "pass": true,
+      "all_normalizers_refused_content": true,
+      "per_normalizer": [
+        {
+          "class": "timestamps",
+          "normalizer_id": "norm.timestamps.iso-and-labeled-unix",
+          "planted_change": "CLAIM-BODY: alpha -> beta",
+          "absorbed": false
+        },
+        {
+          "class": "temp_paths",
+          "normalizer_id": "norm.temp_paths.tmp-and-var-folders",
+          "planted_change": "CLAIM-BODY: alpha -> beta",
+          "absorbed": false
+        },
+        {
+          "class": "ordering",
+          "normalizer_id": "norm.ordering.json-sort-keys",
+          "planted_change": "CLAIM-BODY: alpha -> beta",
+          "absorbed": false
+        },
+        {
+          "class": "seeds",
+          "normalizer_id": "norm.seeds.labeled-draw",
+          "planted_change": "CLAIM-BODY: alpha -> beta",
+          "absorbed": false
+        },
+        {
+          "class": "host_identifiers",
+          "normalizer_id": "norm.host_identifiers.labeled-host",
+          "planted_change": "CLAIM-BODY: alpha -> beta",
+          "absorbed": false
+        }
+      ]
+    },
+    "both_states": {
+      "id": "deterministic-payload-raw-identical",
+      "pass": true,
+      "reproduction_id": "fam3.deterministic-payload"
+    },
+    "triple_run": {
+      "id": "borderline-second-clock-third-run",
+      "pass": true,
+      "reproduction_id": "fam3.clock-seconds",
+      "run_count": 3
+    }
+  },
+  "report": {
+    "kind": "reproduction-matrix",
+    "observations": [
+      {
+        "name": "known-nondeterministic-iso-timestamp",
+        "measured": true,
+        "method": "double-run fam3.iso-timestamp; timestamp normalizer",
+        "anchor": "command-center/p2-wave/probes/CNF-0184/probe1_known_nd_and_both_states.py"
+      },
+      {
+        "name": "both-states-deterministic-payload",
+        "measured": true,
+        "method": "double-run fam3.deterministic-payload; raw bytes equal",
+        "anchor": "command-center/p2-wave/probes/CNF-0184/probe1_known_nd_and_both_states.py"
+      },
+      {
+        "name": "over-normalization-planted-claim-body",
+        "measured": true,
+        "method": "CLAIM-BODY alpha vs beta against each named normalizer",
+        "anchor": "command-center/p2-wave/probes/CNF-0184/probe2_over_normalization.py"
+      },
+      {
+        "name": "borderline-triple-run",
+        "measured": 3,
+        "method": "fam3.clock-seconds forced through a third run",
+        "anchor": "command-center/p2-wave/probes/CNF-0184/probe2_over_normalization.py"
+      }
+    ],
+    "control_ids": [
+      "known_nondeterministic_control",
+      "over_normalization_control",
+      "both_states",
+      "triple_run"
+    ]
+  },
+  "schema_resolution": {
+    "declared_path": "command-center/schema/reproduction-matrix.schema.json",
+    "declared_path_exists": true,
+    "local_schema": "command-center/p2-wave/probes/CNF-0184/reproduction-matrix.local.schema.json",
+    "note": "Catalog reproduction-matrix.schema.json is a generated shim whose $ref points at https://ast-integrate.invalid and does not resolve offline. This artifact is validated against the unit-local schema."
+  },
+  "inputs_status": {
+    "cnf_0165_command_replay": {
+      "path": "command-center/receipts/CNF-0165.json",
+      "present": false,
+      "status": "ABSENT",
+      "note": "CNF-0165 lists this unit's normalizer set as an input; command-replay outputs are therefore not available here. The auditor ran an executable family-3 command-output set instead."
+    },
+    "prior_normalizer_inventory": {
+      "count": 14,
+      "paths": [
+        "command-center/_sub1_normalize_probe.py",
+        "command-center/_sub1_normalize_probe_out.json",
+        "command-center/d5_normalize_assignment.py",
+        "command-center/p2-wave/probes/ADV-0130/normalize.py",
+        "command-center/p2-wave/probes/CC-0019/normalize.py",
+        "command-center/p2-wave/probes/CNF-0076/fixtures/original-outputs/wf.lex-normalize.json",
+        "command-center/p2-wave/probes/CNF-0076/fixtures/sources/wf.lex-normalize.json",
+        "command-center/p2-wave/probes/CNF-0165/normalize.py",
+        "command-center/p2-wave/probes/CNF-0182/normalizers.py",
+        "command-center/p2-wave/probes/IMP-0153/fixtures/corpus/u02-session-transcript-normalizer.md",
+        "command-center/p2-wave/probes/IMP-0240/examples/ex.refactoring.pure-normalize.json",
+        "command-center/p2-wave/probes/IMP-0250/extract_normalize.py",
+        "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-ultranormalize.py",
+        "command-center/slop-report/_aud2_normalize.py"
+      ],
+      "status": "FOUND"
+    },
+    "families": {
+      "3": "command-output / command-replay style reproductions",
+      "6": "environment (temp path, host, seed) reproductions"
+    }
+  },
+  "evidence": [
+    {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 33906,
+      "snippet": "id\": \"CNF-0184\"",
+      "kind": "catalog",
+      "claim": "Catalog unit CNF-0184 is the determinism-audit work item."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/normalizers.py",
+      "line": 38,
+      "snippet": "def normalize_timestamps",
+      "kind": "live-tree",
+      "claim": "Named timestamp normalizer is executable, not prose."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/reproductions.py",
+      "line": 100,
+      "snippet": "fam3.iso-timestamp",
+      "kind": "live-tree",
+      "claim": "Family-3 ISO-timestamp reproduction is the known-nondeterministic control."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/audit.py",
+      "line": 66,
+      "snippet": "def needs_third_run",
+      "kind": "live-tree",
+      "claim": "Borderline protocol requires a third run before classification."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/probe1_known_nd_and_both_states.py",
+      "line": 73,
+      "snippet": "SUCCESS:CNF-0184-probe1",
+      "kind": "probe",
+      "claim": "Probe 1 re-runs timestamp detection and the deterministic both-states control."
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/probe2_over_normalization.py",
+      "line": 74,
+      "snippet": "SUCCESS:CNF-0184-probe2",
+      "kind": "probe",
+      "claim": "Probe 2 re-runs over-normalization and the triple-run protocol."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0184-probe2-over-normalization",
+    "independent": true,
+    "verdict": "PASS",
+    "notes": "Probe 2 plants a CLAIM-BODY change against every named normalizer and forces the second-resolution clock through a third run. It does not reuse probe 1's ISO-timestamp pair as its verdict source."
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CNF-0184.json",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/reproduction-matrix.schema.json",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/normalizers.py",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0184/audit.py",
+      "role": "supporting"
+    }
+  ],
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "known-nd-and-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0184/probe1_known_nd_and_both_states.py"
+    },
+    {
+      "id": "probe2",
+      "role": "over-normalization-and-triple-run",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0184/probe2_over_normalization.py"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:54Z",
+    "ended_at": "2026-08-25T00:56:54Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt."
+  },
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "reproduction-engineer",
+    "execution_substrate": "linux-local"
+  }
+}

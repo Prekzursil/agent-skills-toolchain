@@ -1,0 +1,349 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+   "bytes": 1174,
+   "sha256": "7645d38e9fddb010816fae7c5cebe9c5bc47693e07b4e3ff5d34b9f1b06776d2",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "cloud_ok": false,
+ "controls": {
+  "detector_fires_when_refresh_disabled": true,
+  "empty_cache_silent_in_both_states": true,
+  "empty_cache_with_refresh": {
+   "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+   "hit": "cas-name-index",
+   "version": "1.0.1"
+  },
+  "empty_cache_without_refresh": {
+   "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+   "hit": "install-tree",
+   "version": "1.0.1"
+  },
+  "fresh_profile_required": true,
+  "partial_refresh_bytecode_only_still_masked": true,
+  "partial_refresh_hit": "unpacked-user-cache"
+ },
+ "drill_kind": "cache-invalidation",
+ "evidence": [
+  {
+   "claim": "Both named probes re-run live 2026-10-26T18:05:42Z against the artifact at the catalog output_path and exited 0.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0020/SUBAGENT-RETURN.json named_probes",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py",
+     "exit_code": 0,
+     "fingerprint": "9e2bd873bac51954e8f4bdd72a1ef920",
+     "raw_output": "poisoned+refresh: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npoisoned+refresh-disabled: behaviour=BEHAVE-POISON-v1-old-bytes hit=bytecode\nempty+refresh-disabled: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npartial-refresh(bytecode-only): behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt-recorded reachable locations: [\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe1 poisoned-refresh"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d",
+     "raw_output": "before: behaviour=BEHAVE-POISON-v1-old-bytes version_file=1.0.1\nversion-trap: file says 1.0.1 while executed=BEHAVE-POISON-v1-old-bytes hit=bytecode\nmutation: behaviour=BEHAVE-MUTATED-PROBE hit=bytecode\ndelete-bytecode: behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt resolution_order=[\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe2 version-trap-and-mutations"
+    }
+   ]
+  },
+  {
+   "claim": "Artifact registered in UNIT-ARTIFACT-MANIFEST.json with the CRLF-normalized sha256 matching the live receipt bytes.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0020/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "read command-center/p2-wave/probes/REL-0020/UNIT-ARTIFACT-MANIFEST.json artifacts[] row for REL-0020",
+     "exit_code": 0,
+     "fingerprint": "90ab1df6cd6ae750c3ea9c35c471a9d2",
+     "raw_output": "row: path=receipt present=true sha256=norm(live)"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(norm(live bytes)) vs manifest row for REL-0020",
+     "exit_code": 0,
+     "fingerprint": "4d91e317d2392ff6f05df6ae00228a03",
+     "raw_output": "manifest row sha == sha256(live bytes CRLF-normalized)"
+    }
+   ]
+  }
+ ],
+ "isolation": {
+  "assertion": "Every reachable cache path is created under a tempfile profile that is destroyed after the attempt. Constructing Client(Path.home()) raises IsolationError. Owner ~/.cache was not seeded.",
+  "client_on_owner_home_raises": true,
+  "owner_home": "/home/prekzursil",
+  "profile_under_owner_home": false,
+  "touched_owner_profile": false
+ },
+ "locations": [
+  {
+   "id": "bytecode",
+   "kind": "bytecode",
+   "path": "cache/bytecode/rel0020-canary-plugin.pyc",
+   "reachable": true,
+   "reason": "reachable: isolated bytecode cache the client consults first",
+   "status": "SEEDED"
+  },
+  {
+   "id": "unpacked-user-cache",
+   "kind": "unpacked",
+   "path": "cache/unpacked/rel0020-canary-plugin/payload.json",
+   "reachable": true,
+   "reason": "reachable: unpacked user cache copy consulted after bytecode",
+   "status": "SEEDED"
+  },
+  {
+   "id": "http-tarball-cache",
+   "kind": "http",
+   "path": "cache/http/rel0020-canary-plugin.tar.json",
+   "reachable": true,
+   "reason": "reachable: download cache of the previous package tarball",
+   "status": "SEEDED"
+  },
+  {
+   "id": "cas-name-index",
+   "kind": "cas",
+   "path": "cache/cas/index.json",
+   "reachable": true,
+   "reason": "reachable: name-index pointer into the content-addressed blob store",
+   "status": "SEEDED"
+  },
+  {
+   "id": "install-tree",
+   "kind": "install",
+   "path": "install/rel0020-canary-plugin/payload.json",
+   "reachable": true,
+   "reason": "candidate package written here; not a poison seed",
+   "status": "INSTALLED"
+  },
+  {
+   "id": "product-platform-plugin-cache",
+   "kind": "unreachable",
+   "path": "platform/plugin/cache.py",
+   "reachable": false,
+   "reason": "NOT-CHECKED: platform/plugin/cache.py absent on this sparse worktree",
+   "status": "NOT-CHECKED"
+  },
+  {
+   "id": "windows-localappdata-plugin-cache",
+   "kind": "unreachable",
+   "path": "%LOCALAPPDATA%\\ast-integrate\\plugin-cache",
+   "reachable": false,
+   "reason": "NOT-CHECKED: Linux worktree; isolation forbids substituting the owner's live Windows profile",
+   "status": "NOT-CHECKED"
+  },
+  {
+   "id": "owner-live-home-cache",
+   "kind": "unreachable",
+   "path": "/home/prekzursil/.cache/ast-integrate",
+   "reachable": false,
+   "reason": "NOT-CHECKED: isolation assertion forbids seeding or reading the owner's live cache",
+   "status": "NOT-CHECKED"
+  }
+ ],
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py",
+   "id": "probe1",
+   "role": "poisoned-refresh"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe2_version_trap.py",
+   "id": "probe2",
+   "role": "version-trap-and-mutations"
+  }
+ ],
+ "notes": "G-1 for REL-0020. Product platform/plugin/cache.py is NOT-CHECKED on this sparse tree. The client under test is the isolated replica whose resolution_order() is enumerated, not assumed. cloud ok=true is not delivery.",
+ "profile": "local-serialized",
+ "question": "Prove the release refresh step actually invalidates: seed a stale copy of the previous package into every cache location the client consults, install the candidate, and assert the running client executes the new bytes.",
+ "report": {
+  "kind": "lifecycle-drill-receipt",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_without_refresh",
+    "measured": "BEHAVE-POISON-v1-old-bytes",
+    "method": "Client.execute after seed_poison+install(refresh=False)",
+    "name": "quoted_old_execution"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_with_refresh",
+    "measured": "BEHAVE-FIXED-v2-new-bytes",
+    "method": "Client.execute after seed_poison+install(refresh=True)",
+    "name": "quoted_new_execution"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:version_string_trap",
+    "measured": "version=1.0.1 behaviour=BEHAVE-POISON-v1-old-bytes",
+    "method": "version sidecar vs execute() on poisoned caches",
+    "name": "version_string_trap"
+   },
+   {
+    "name": "refresh_disabled_executes_old_bytes",
+    "measured": true,
+    "method": "probe1 poisoned-refresh mutation",
+    "anchor": "command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py"
+   },
+   {
+    "name": "version_file_says_new_while_old_bytes_execute",
+    "measured": "1.0.1 vs BEHAVE-POISON-v1-old-bytes (hit=bytecode)",
+    "method": "probe2 version-trap control",
+    "anchor": "command-center/p2-wave/probes/REL-0020/probe2_version_trap.py"
+   },
+   {
+    "name": "refresh_enabled_executes_new_bytes",
+    "measured": true,
+    "method": "probe1 poisoned-refresh",
+    "anchor": "command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py"
+   }
+  ],
+  "control_ids": [
+   "empty-cache-silent-in-both-states",
+   "partial-refresh-bytecode-only-still-masked",
+   "refresh-disabled-executes-old-bytes",
+   "refresh-disabled-perceives-defect",
+   "version-string-trap"
+  ]
+ },
+ "required_fix": null,
+ "resolution_order": [
+  "bytecode",
+  "unpacked-user-cache",
+  "http-tarball-cache",
+  "cas-name-index",
+  "install-tree"
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe2 re-runs: (1) refresh disabled still executes old bytes, (2) version sidecar new while behaviour old, (3) bytecode-only refresh still masked by unpacked-user-cache, (4) omitting a NOT-CHECKED row is rejected.",
+  "reviewer_id": "REL-0020-probe2-mutation-controls",
+  "verdict": "PASS"
+ },
+ "schema_validation": {
+  "catalog_shim": "command-center/schema/lifecycle-drill-receipt.schema.json",
+  "local_contract": "emit_receipt.LOCAL_CONTRACT rejects empty/garbage; receipt_honest is the content gate",
+  "remote_ref": "NOT-CHECKED: jsonschema follows ast-integrate.invalid and cannot resolve"
+ },
+ "sentinel": "SUCCESS:REL-0020",
+ "spec_anchors": [
+  "_USER-PROMPTS.md:11305 (catalog names stale cache masking a fixed package; FAILURE-MODES FC-11306)",
+  "_USER-PROMPTS.md:10837 (cache refresh)"
+ ],
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "rel-0020-probe1",
+   "command": "python -B command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py",
+   "result": "PASS",
+   "output_tail": "poisoned+refresh: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npoisoned+refresh-disabled: behaviour=BEHAVE-POISON-v1-old-bytes hit=bytecode\nempty+refresh-disabled: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npartial-refresh(bytecode-only): behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt-recorded reachable locations: [\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe1 poisoned-refresh"
+  },
+  {
+   "id": "rel-0020-probe2",
+   "command": "python -B command-center/p2-wave/probes/REL-0020/probe2_version_trap.py",
+   "result": "PASS",
+   "output_tail": "before: behaviour=BEHAVE-POISON-v1-old-bytes version_file=1.0.1\nversion-trap: file says 1.0.1 while executed=BEHAVE-POISON-v1-old-bytes hit=bytecode\nmutation: behaviour=BEHAVE-MUTATED-PROBE hit=bytecode\ndelete-bytecode: behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt resolution_order=[\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe2 version-trap-and-mutations"
+  }
+ ],
+ "title": "Cache invalidation proved from the poisoned state, not the empty one",
+ "unit_id": "REL-0020",
+ "completion_sentinel": "SUCCESS:REL-0020",
+ "min_bytes_threshold": 256,
+ "negative_controls": [
+  {
+   "id": "refresh-disabled-executes-old-bytes",
+   "kind": "mutation",
+   "description": "With the refresh step disabled the poisoned cache still serves old bytes - the drill perceives the defect class.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "poisoned+refresh: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npoisoned+refresh-disabled: behaviour=BEHAVE-POISON-v1-old-bytes hit=bytecode\nempty+refresh-disabled: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npartial-refresh(bytecode-only): behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt-recorded reachable locations: [\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe1 poisoned-refresh",
+   "good_state_output": "poisoned+refresh: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npoisoned+refresh-disabled: behaviour=BEHAVE-POISON-v1-old-bytes hit=bytecode\nempty+refresh-disabled: behaviour=BEHAVE-FIXED-v2-new-bytes hit=install-tree\npartial-refresh(bytecode-only): behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt-recorded reachable locations: [\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe1 poisoned-refresh"
+  },
+  {
+   "id": "version-string-trap",
+   "kind": "known-broken-fixture",
+   "description": "The version sidecar reports the new version while poisoned old bytes still execute - the version read is shown to be a false acceptance signal.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "before: behaviour=BEHAVE-POISON-v1-old-bytes version_file=1.0.1\nversion-trap: file says 1.0.1 while executed=BEHAVE-POISON-v1-old-bytes hit=bytecode\nmutation: behaviour=BEHAVE-MUTATED-PROBE hit=bytecode\ndelete-bytecode: behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt resolution_order=[\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe2 version-trap-and-mutations",
+   "good_state_output": "before: behaviour=BEHAVE-POISON-v1-old-bytes version_file=1.0.1\nversion-trap: file says 1.0.1 while executed=BEHAVE-POISON-v1-old-bytes hit=bytecode\nmutation: behaviour=BEHAVE-MUTATED-PROBE hit=bytecode\ndelete-bytecode: behaviour=BEHAVE-POISON-v1-old-bytes hit=unpacked-user-cache\nreceipt resolution_order=[\"bytecode\", \"unpacked-user-cache\", \"http-tarball-cache\", \"cas-name-index\", \"install-tree\"]\nSUCCESS:REL-0020-probe2 version-trap-and-mutations"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "python ast/json parse consumer (reads primary artifact bytes)",
+   "artifact_path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I -B -c import ast,json,sys,pathlib; p=pathlib.Path(sys.argv[1]); t=p.read_text(encoding='utf-8'); (json.loads(t) if p.suffix=='.json' else ast.parse(t)); print('READ-OK') command-center/schema/lifecycle-drill-receipt.schema.json",
+    "exit_code": 0,
+    "fingerprint": "e4daf28e1065d08f56f90c365793f14f",
+    "raw_output": "READ-OK"
+   }
+  },
+  {
+   "consumer": "manifest digest re-hash (sha256 CRLF-normalized vs recorded row)",
+   "artifact_path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "byte-compare",
+    "command": "compare sha256(norm(live bytes)) vs recorded digest for command-center/schema/lifecycle-drill-receipt.schema.json",
+    "exit_code": 0,
+    "fingerprint": "49ca52ea73cfe74d14f4eecc06407d99",
+    "raw_output": "digest-match=True live=7645d38e9fddb010 recorded=7645d38e9fddb010 (command-center/schema/lifecycle-drill-receipt.schema.json, CRLF-normalized)"
+   }
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0020/UNIT-ARTIFACT-MANIFEST.json",
+  "registered_at": "2026-10-26T18:08:09Z"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Cache locations outside the client's recorded resolution order (host-level caches) were not enumerated.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Enumerate the client's full resolution order on the target host and mark each location checked or NOT-CHECKED in the receipt."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts"
+ },
+ "timestamps": {
+  "started_at": "2026-10-26T18:05:42Z",
+  "ended_at": "2026-10-26T18:05:42Z"
+ },
+ "extensions": {
+  "reviewer_extras_preserved": {
+   "mutation_controls_rerun": true
+  },
+  "closure_provenance": {
+   "kept_closure_reviewer_id": "REL-0020-probe2-mutation-controls",
+   "disclosure": "Contract keep-exception applied: reviewer.verdict=PASS with independent=true existed on disk and the unit still verifies live (probes exit 0, manifest sha match, envelope schema-valid as of 2026-10-26T18:08:09Z).",
+   "note": "reviewer_id names this unit's own probe script (builder-lane closure stamp from the original build wave), not an external reviewer session. Surfaced for the independent reviewer lane to re-judge; NOT struck by the builder."
+  },
+  "execution_profile_preserved": {
+   "destroyed_after": true,
+   "fresh_per_attempt": true,
+   "kind": "throwaway-isolated-HOME-equivalent",
+   "retry_policy": "retry only on a FRESH profile; re-running on a dirtied profile measures the dirt, not the drill"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#REL-0020 question_or_target"
+}

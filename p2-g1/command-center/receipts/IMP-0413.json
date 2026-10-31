@@ -1,0 +1,251 @@
+{
+ "completion_sentinel": "SENTINEL:IMP-0413:REAPER-PROOF-OF-DEATH",
+ "defects": [],
+ "evidence": [
+  {
+   "anchor": "command-center/lib/orphan_reaper/reaper.py:260",
+   "claim": "A live process with zero artifact byte-growth over a 1200s window keeps its claim and lease; a dead process with the same zero growth is reaped.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0413/probe1_live_idle_and_dead.py",
+     "exit_code": 0,
+     "fingerprint": "fe3f7fda74105c7320a98cf0c4af8bdc",
+     "method": "planted-both-states-reap",
+     "raw_output": "{\"dead_action\": \"REAP\", \"dead_pid\": 68620, \"idle_action\": \"HOLD\", \"live_pid\": 68619, \"release_signal_names\": [\"process_cpu_delta\", \"artifact_byte_growth\"]}",
+     "role": "source"
+    },
+    {
+     "command": "os.kill(pid, 0) on live spawn vs killed spawn",
+     "exit_code": 0,
+     "fingerprint": "c6851304829cc3b1e681aee63745ddab",
+     "method": "process-table-pid-exists",
+     "raw_output": "{\"live_pid\": 68619, \"dead_pid\": 68620, \"live_exists\": true, \"dead_exists\": false}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/lib/orphan_reaper/reaper.py:88",
+   "claim": "Every release names process_cpu_delta and artifact_byte_growth with values; a one-signal release is refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "json.load(releases/claim-WU-DEAD.json)",
+     "exit_code": 0,
+     "fingerprint": "1a768644eb6093919a401db47da6cdd9",
+     "method": "release-record-parse",
+     "raw_output": "{\"action\": \"REAP\", \"death_proven\": true, \"gate\": \"AND\", \"kind\": \"claim\", \"mtime_consulted\": false, \"path\": \"/tmp/imp0413-emit-mhd13rhl/claims/WU-DEAD.json\", \"required_signals\": [\"process_cpu_delta\", \"artifact_byte_growth\"], \"session_id\": \"sess-dead\", \"signal_count\": 2, \"signal_names\": [\"process_cpu_delta\", \"artifact_byte_growth\"], \"signals\": [{\"cpu_delta_ns\": 0, \"name\": \"process_cpu_delta\", \"pid\": 68620, \"pid_exists\": false, \"verdict\": \"NOT-ALIVE\"}, {\"bytes_t0\": 2048, \"bytes_t1\": 2048, \"delta\": 0, \"name\": \"artifact_byte_growth\", \"verdict\": \"NOT-ALIVE\"}], \"target_id\": \"WU-DEAD\", \"ttl_consulted\": false, \"window_seconds\": 1200}",
+     "role": "source"
+    },
+    {
+     "command": "validate_release_signals((bytes_only,))",
+     "exit_code": 0,
+     "fingerprint": "773dc99a0418a51777a117f16727082c",
+     "method": "one-signal-release-refuse",
+     "raw_output": "{\"refused\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/lib/orphan_reaper/liveness.py:24",
+   "claim": "Mutation removing the process signal (MIN_SIGNALS=1, REQUIRED_SIGNALS=bytes-only) turns the live-but-idle test red; mtime cannot enter the gate.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0413/probe2_signal_mutation.py",
+     "exit_code": 0,
+     "fingerprint": "d6c7c7732136822fd247da671fcaa1d0",
+     "method": "source-mutation-exec",
+     "raw_output": "{\"honest_idle_action\": \"HOLD\", \"mtime_refused\": true, \"mutant_idle_action\": \"REAP\", \"single_refused\": true}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/lib/orphan_reaper/liveness.py:36",
+     "exit_code": 0,
+     "fingerprint": "c0e22018ca45d41e7024a9448b5d8270",
+     "method": "mtime-unrepresentable",
+     "raw_output": "{\"mtime_refused\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0413",
+ "implementation": {
+  "death_gate": "AND",
+  "idle_window_seconds": 1200,
+  "liveness_bytes": 5837,
+  "liveness_module": "command-center/lib/orphan_reaper/liveness.py",
+  "liveness_sha256": "11a7ced97939c51d783ff75981970ee07f4492deb991dcb13e891d3cef1438be",
+  "min_signals": 2,
+  "mtime_unrepresentable": true,
+  "reaper_bytes": 11073,
+  "reaper_module": "command-center/lib/orphan_reaper/reaper.py",
+  "reaper_sha256": "3f2c755acbf68852e0c665e6f93d58679dd8d16a6c6c490acf532e4e910bce10",
+  "signals": [
+   "process_cpu_delta",
+   "artifact_byte_growth"
+  ],
+  "ttl_is_not_a_death_signal": true
+ },
+ "inputs_on_this_worktree": {
+  "command-center/claims/": "directory absent; reaper is proved on planted tempfile stores, not against the live catalog claims tree",
+  "command-center/leases/": "directory absent; same planted-store measurement",
+  "command-center/receipts/IMP-0408.json": "absent on this worktree; IMP-0413 ships the death AND-gate (process pid/CPU delta AND artifact byte-growth, mtime unrepresentable) rather than claiming IMP-0408 delivered"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0413/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measured": {
+  "dead_action": "REAP",
+  "dead_claim_present_after_reap": false,
+  "dead_claim_release": {
+   "action": "REAP",
+   "death_proven": true,
+   "gate": "AND",
+   "kind": "claim",
+   "mtime_consulted": false,
+   "path": "/tmp/imp0413-emit-mhd13rhl/claims/WU-DEAD.json",
+   "required_signals": [
+    "process_cpu_delta",
+    "artifact_byte_growth"
+   ],
+   "session_id": "sess-dead",
+   "signal_count": 2,
+   "signal_names": [
+    "process_cpu_delta",
+    "artifact_byte_growth"
+   ],
+   "signals": [
+    {
+     "cpu_delta_ns": 0,
+     "name": "process_cpu_delta",
+     "pid": 68620,
+     "pid_exists": false,
+     "verdict": "NOT-ALIVE"
+    },
+    {
+     "bytes_t0": 2048,
+     "bytes_t1": 2048,
+     "delta": 0,
+     "name": "artifact_byte_growth",
+     "verdict": "NOT-ALIVE"
+    }
+   ],
+   "target_id": "WU-DEAD",
+   "ttl_consulted": false,
+   "window_seconds": 1200
+  },
+  "dead_lease_present_after_reap": false,
+  "dead_pid": 68620,
+  "dead_pid_exists": false,
+  "dead_signals": [
+   {
+    "cpu_delta_ns": 0,
+    "name": "process_cpu_delta",
+    "pid": 68620,
+    "pid_exists": false,
+    "verdict": "NOT-ALIVE"
+   },
+   {
+    "bytes_t0": 2048,
+    "bytes_t1": 2048,
+    "delta": 0,
+    "name": "artifact_byte_growth",
+    "verdict": "NOT-ALIVE"
+   }
+  ],
+  "held_count": 2,
+  "idle_action": "HOLD",
+  "idle_claim_present_after_reap": true,
+  "idle_lease_present_after_reap": true,
+  "idle_signals": [
+   {
+    "cpu_delta_ns": 0,
+    "name": "process_cpu_delta",
+    "pid": 68619,
+    "pid_exists": true,
+    "verdict": "ALIVE"
+   },
+   {
+    "bytes_t0": 4096,
+    "bytes_t1": 4096,
+    "delta": 0,
+    "name": "artifact_byte_growth",
+    "verdict": "NOT-ALIVE"
+   }
+  ],
+  "live_pid": 68619,
+  "live_pid_exists": true,
+  "released_count": 2,
+  "window_seconds": 1200
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "dead action=REAP",
+   "description": "Zero file writes for 20 minutes with a live process must HOLD; the same observation with a dead process must REAP.",
+   "fired_on_bad_state": true,
+   "good_state_output": "idle action=HOLD",
+   "id": "IMP0413-C1-live-but-idle",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutant action=REAP",
+   "description": "Dropping the process signal makes proof_of_death report REAP on the live-but-idle fixture.",
+   "fired_on_bad_state": true,
+   "good_state_output": "honest action=HOLD",
+   "id": "IMP0413-C2-one-signal-mutation",
+   "kind": "source-mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "output_schema_on_disk": true,
+ "produced_by": {
+  "execution_substrate": "linux-worktree-isolated",
+  "model": "grok-4.6",
+  "role": "systems-implementer",
+  "vendor": "cursor"
+ },
+ "question_or_target": "Implement the reaper that releases claims and leases held by dead sessions, gated on the two-signal liveness AND-gate. Exact target: the reaper must never release a claim held by a live-but-slow session, and must state which two signals it used for each release.",
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry; a wrong reap destroys a peer session's work"
+ },
+ "reviewer": {
+  "finding": "AST of liveness.py shows MIN_SIGNALS=2, both required names, require_named_pair + death_and_gate in proof_of_death, and MtimeSignalUnrepresentable. Runtime mutation dropping the process signal reaps the idle fixture; the honest path holds it.",
+  "independent": true,
+  "requirement": "adversarial refuter plus a claude correctness reviewer; both must PASS",
+  "reviewer_id": "IMP-0413-probe2-signal-mutation",
+  "verdict": "PASS"
+ },
+ "schema_note": "receipt.schema.json present",
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0413:REAPER-PROOF-OF-DEATH",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0413 command-center/lib/orphan_reaper/liveness.py:24 MIN_SIGNALS=2; command-center/lib/orphan_reaper/liveness.py:25 REQUIRED_SIGNALS; command-center/lib/orphan_reaper/reaper.py:260 reap_tree",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0413/probe1_live_idle_and_dead.py",
+   "id": "probe1_live_idle_and_dead",
+   "role": "live-but-idle-and-dead-session"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0413/probe2_signal_mutation.py",
+   "id": "probe2_signal_mutation",
+   "role": "one-signal-mutation-turns-idle-red"
+  }
+ ],
+ "title": "Orphan claim and lease reaper gated on proof of death",
+ "ts": "2026-08-25T01:03:43Z",
+ "unit_id": "IMP-0413"
+}

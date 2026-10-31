@@ -1,0 +1,45 @@
+docs(rule-audit): give the highest-severity finding a tracker, and measure the exemption nobody stated
+
+Two round-3 residuals, both out of this lane's WRITE scope, both previously tracked only in prose.
+
+1. r4_credential_rule_gate.py -- agent-self/config/AGENTS.md omits the Sec.9 bullet forbidding an
+   agent to rotate/revoke/regenerate a credential, and its Sec.9b says "rotate, don't just delete"
+   where the live contract says leave rotation to the owner. bootstrap.ps1:45 force-copies that
+   directory over ~/.claude, so one bootstrap run replaces an always-on security non-negotiable
+   with its inverse. Sec.10 ranks Sec.9 above every lower layer precisely so no layer can relax it.
+
+   Through three rounds this sat in prose while a LOWER-severity out-of-scope defect had a
+   mechanical KNOWN_DEFECTS entry. The gate asserts two invariants on the deploy source (so it
+   still means something in a clone with no ~/.claude) plus a live-comparison arm that reports
+   SKIPPED rather than PASSED when it cannot run. It exits 1 TODAY BY DESIGN and turns green by
+   itself when the owner fixes the source. It changes nothing on disk; AGENTS.md stays propose-only.
+
+   Its own positive control caught it before it produced a verdict: \b after re.escape("9.")
+   matches nothing -- two non-word characters, no boundary -- so every arm was reporting "no Sec.9
+   section", the shape where a broken extractor and a clean document give the same silence.
+
+2. _r4_mention_composition.py -- the bare-filename MENTION exemption is 114 mentions: 58 EXACT,
+   52 BASENAME-ONLY, 4 MISSING, and the 4 that resolve nowhere are named in full. The round-3
+   adversary's 52 + 4 = 56 reproduces EXACTLY, by an instrument that walks the trees instead of
+   reading the gate's output, and the two agree on 56.
+
+   Why nobody had stated it: name_mentions=, basename_only= and missing= are printed only in
+   r2_pathrefs.py's SUCCESS branch (:325-330), and the tracked-defect branch above it returns 2.
+   Those counters have been unreachable for three rounds. The tool volunteers its exemption
+   composition only when it has nothing to exempt.
+
+MEASURED AND DELIBERATELY NOT FIXED: in_claude_home() really does miss
+~/.claude/harness-restore-20260806/check_no_regression.py. The naive fix costs 12.27 s per run
+(37,977 files, 14,445 basenames in one walk) on a gate that runs in about a second, to correct a
+verdict LABEL the round-3 adversary already proved cannot change an outcome. Wrong trade; the price
+is now measured instead of guessed.
+
+Also: the receipt-argv gate caught the commit message of aa50e309 quoting the defect it fixes, and
+this report twice while it was being written. Both are the gate working. Its scan label said
+"markdown file(s)" while counting markdown plus commit templates -- a sentence naming half of what
+it counted, which is the species of wrong this gate exists to catch, so it now says corpus file(s).
+
+Gates: receipt-argv 45 invocations 0 violations, self-test 27 states - rule_audit --self-test 19 -
+r2_control_count_gate 4 prose == tool 19 == AST 19 - r2_pathrefs 254/0 unwaived rc=2 by design -
+pytest ci/tests/test_rules_* 167 passed - ruff check clean, 28 files formatted. rules/, AGENTS.md
+and agent-self/ are untouched: git status for those paths is empty.

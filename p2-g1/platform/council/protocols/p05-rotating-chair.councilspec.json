@@ -1,0 +1,361 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p05-rotating-chair",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide a contested question without letting one chair's framing bias persist across every round.",
+    "charter": "Rotating chair. The chair rotates each round; the outgoing chair becomes an ordinary seat and must file one objection to their OWN prior framing before handing over.",
+    "risk_tier": "moderate",
+    "desired_output": "decision",
+    "success_criteria": [
+      "each round had a different chair",
+      "every outgoing chair filed a self-objection naming a specific framing choice",
+      "the round-1 and round-N framings differ"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4,
+      "min": 4,
+      "max": 4
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "seat-a",
+        "display_name": "Seat A (round-1 chair)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "system architecture"
+        ],
+        "role": "chair",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "seat-b",
+        "display_name": "Seat B (round-2 chair)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "falsification"
+        ],
+        "role": "critic",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-c",
+        "display_name": "Seat C (round-3 chair)",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "operations"
+        ],
+        "role": "risk_officer",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "framing-scribe",
+        "display_name": "Framing scribe (diffs each round's framing)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "record keeping",
+          "diffing"
+        ],
+        "role": "scribe",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "dominance"
+      ],
+      "preserve_prior_positions": true
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "seat-a"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "openings",
+        "independent": true
+      },
+      {
+        "kind": "custom",
+        "stage_id": "rotation",
+        "custom_name": "chair_rotation_with_self_objection",
+        "rounds": 3,
+        "quotas": {
+          "objections_per_participant": 1,
+          "novel_ideas_per_round": 1
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "framing-diff",
+        "custom_name": "round1_vs_roundN_framing_diff",
+        "participants": [
+          "framing-scribe"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "synthesis"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 3,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "steelman_before_rebuttal": false,
+      "forced_dissent": true,
+      "rebuttal_required": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 90,
+    "tool_calls": 110,
+    "sources": 18,
+    "turns": 28,
+    "speaking_quota_per_participant": 7,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 12,
+    "novelty_ratio": 0.5,
+    "objections": 6,
+    "counterexamples": 2,
+    "evidence_items": 10,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.82,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "majority",
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:outgoing_chair_self_objections",
+          "op": ">=",
+          "value": 2,
+          "value_type": "number",
+          "producer": "framing-scribe rotation log"
+        },
+        {
+          "metric": "custom:framing_diff_nonempty",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "framing-scribe framing-diff stage"
+        },
+        {
+          "metric": "consensus",
+          "op": ">=",
+          "value": 0.75
+        },
+        {
+          "metric": "no_new_objection_rounds",
+          "op": ">=",
+          "value": 1
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 8
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 90,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "rotate_roles",
+      "forced_dissent",
+      "run_experiment",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "moderator_capture",
+      "sycophancy",
+      "echo_chamber",
+      "role_collapse",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "role_rotation",
+      "forced_dissent",
+      "blind_re_evaluation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_ledger",
+      "votes_by_round",
+      "dissent_minority_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P05 rotating chair",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:175",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:188"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P05"
+    ],
+    "notes": "DELIBERATIVE. Targets chair bias specifically. topology.chair names the ROUND-1 chair only; the rotation stage reassigns it each round. The card's inertness test (diff round-1 against round-N framing; a null diff means the mechanism is inert) is a stopping conjunct rather than a note.\n\nanti-failure controls, each mapped to the field implementing it:\n  moderator_capture -> the chair rotates every round (custom stage chair_rotation) and voting.tie_break=extend_rounds rather than chair, so no seat both frames the round and breaks the tie\n  sycophancy -> protocol.obligations.forced_dissent plus the outgoing chair's mandatory self-objection, counted as custom:outgoing_chair_self_objections >= 2\n  echo_chamber -> custom:framing_diff_nonempty == true is a closing precondition - a null diff between the round-1 and round-N framings means the rotation was inert and the council may not report a clean close\n  role_collapse -> the self-objection must name a specific framing choice; a generic caveat leaves custom:outgoing_chair_self_objections unincremented and the stopping rule unmet\n  premature_convergence -> stopping.minimum_deliberation.min_rounds=3 (one full rotation) + divergence_before_convergence"
+  }
+}

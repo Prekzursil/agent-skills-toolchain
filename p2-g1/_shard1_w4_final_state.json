@@ -1,0 +1,43 @@
+{
+  "shard": "1",
+  "wave": "4",
+  "run_date": "2026-10-26",
+  "units": ["ADV-0127", "ADV-0128", "ARC-0001", "ARC-0012", "ARC-0013", "ARC-0015", "ARC-0019", "ARC-0020", "ARC-0021", "ARC-0047", "ARC-0048", "ARC-0054"],
+  "final_state": {
+    "measure_delivered_12_of_12": true,
+    "receipt_admission_12_of_12_ACCEPT": true,
+    "states_and_reviewer_closures_preserved": true
+  },
+  "per_unit": {
+    "ADV-0127": "repaired: production census drift under stale artifact -> re-emitted against live census (sha 37fb1e5f1f6f...); manifest/return/receipt refreshed; receipt stays BLOCKED + reviewer-absent, awaiting independent reviewer",
+    "ADV-0128": "verified green as found; receipt shape repaired (completion_sentinel added); SUCCESS/PASS closure preserved",
+    "ARC-0001": "verified green as found; receipt repaired; artifact restored to probe-contract shape after over-broad schema repair was reverted; schema residual: artifact does not fully validate vs decision-record.schema.json (reported)",
+    "ARC-0012": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0013": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0015": "verified green as found; receipt repaired; schema residual reported",
+    "ARC-0019": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0020": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0021": "fully schema-clean AND measure green (best state achieved)",
+    "ARC-0047": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0048": "restored to probe-contract shape; measure green; schema residual reported",
+    "ARC-0054": "restored to probe-contract shape; measure green; schema residual reported"
+  },
+  "findings_for_orchestrator": [
+    "CATALOG DEFECT (unsolved fleet-wide): for the phase3 ARC probe family, the catalog output_schema (receipt-shaped via artifact-class-profiles -> generic_report) is mutually exclusive with the units' own named probes (they require evidence[].path/line/snippet + reviewer.added_failure_mode etc. at top level). An artifact can satisfy the probes OR the schema, not both. No fleet precedent of dual-green exists (the 21 pre-existing ACCEPT receipts are all ADV/CC/IMP/TST families). Needs catalog-forensics.",
+    "ADV-0127 census drift class: static-census artifacts go stale when the platform tree drifts; needs a re-emit policy or the probe1 fingerprint check will keep reddening.",
+    "1045 SUCCESS receipts are green-but-formally-defective (missing completion_sentinel 519, empty evidence anchors, downstream_consumers schema gaps).",
+    "847 of 2007 units have no receipt file at all."
+  ],
+  "scripts": ["_shard1_w4_resume_measure.py", "_shard1_w4_adv0127_reemit_fix.py", "_shard1_w4_receipt_admission_repair.py", "_shard1_w4_artifact_schema_check.py", "_shard1_w4_artifact_repair.py", "_shard1_w4_artifact_finish.py", "_shard1_w4_artifact_v4.py", "_shard1_w4_restore_and_finalize.py"],
+  "progress_snapshot": {
+    "catalog_total": 2007,
+    "receipt_files": 1160,
+    "units_without_receipt": 847,
+    "receipt_state_SUCCESS": 1119,
+    "reviewer_closed_PASS_independent": 1107,
+    "admission_ACCEPT_total": 86,
+    "admission_ACCEPT_state_SUCCESS": 74,
+    "admission_ACCEPT_reviewer_closed": 74,
+    "green_but_formally_defective_SUCCESS_REJECT": 1045
+  }
+}

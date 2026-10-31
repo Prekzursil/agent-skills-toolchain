@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0041",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0041 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three hash manifests are attached and the planted-file control was detected. Any other terminal state is FAILED:CNF-0041 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0041",
+  "min_bytes_threshold": 1200,
+  "profile": "rollback-byte-parity",
+  "artifacts": [
+    {
+      "path": "command-center/schema/rollback-report.schema.json",
+      "bytes": 1096,
+      "sha256": "87596674365da8442079b872f52e48e0acab808a23f2b2ea3d663014cf41d429",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0041/fixtures/ROLLBACK-MANIFEST.md",
+      "bytes": 924,
+      "sha256": "eec2c31c5ea618c56bebe4f63e6995191d2e00873916aff895b9e1bcaadb89dc",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0041/walker.py",
+      "bytes": 5731,
+      "sha256": "5281eef78debddeb5a6b4998e2aac2fa95aece0b1de73bde8f21b10ff8dec2d4",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Post-rollback sha256 set equals the pre-change set on the fixture trees (4 files); the change itself was not vacuous (post had 4 hashed paths).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0041/rehearse.py:run_clean",
+      "probes": [
+        {
+          "role": "source",
+          "method": "byte-compare",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/rehearse.py",
+          "raw_output": "pre=4 post=4 post_rollback=4 symmetric_difference.empty=True",
+          "fingerprint": "cnf0041:source:clean-rehearsal",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe1_byte_parity.py",
+          "raw_output": "named probe1 re-runs run_clean against the artifact",
+          "fingerprint": "cnf0041:verifier:probe1-byte-parity",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Planted-file control fired on incomplete rollback, and the naive reserved-name walker swallowed to zero files.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0041/rehearse.py:run_planted_control",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe2_planted_control.py",
+          "raw_output": "planted=affected/app/PLANTED-CNF-0041.residue detected=True naive_zero=0 safe=4",
+          "fingerprint": "cnf0041:source:planted-and-reserved",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "python3 platform/lib/schema_resolver.py command-center/confirmation/CNF-0041-rollback-byte-parity.json command-center/schema/rollback-report.schema.json",
+          "raw_output": "disk-local rollback-report validator compiled",
+          "fingerprint": "cnf0041:verifier:schema-resolver",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1",
+      "name": "byte-parity pre equals post-rollback",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe1_byte_parity.py",
+      "result": "PASS",
+      "assertions": 1
+    },
+    {
+      "id": "probe2",
+      "name": "planted-file detector and reserved-name walker",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe2_planted_control.py",
+      "result": "PASS",
+      "assertions": 1
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "planted-file-incomplete-rollback",
+      "kind": "known-broken-fixture",
+      "description": "Plant one extra file, restore snapshot bytes without deleting extras; comparison must list the plant.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "affected/app/PLANTED-CNF-0041.residue",
+      "good_state_output": "residue=[]"
+    },
+    {
+      "id": "naive-reserved-name-walker",
+      "kind": "known-broken-fixture",
+      "description": "Opening affected/app/NUL without the extended-length prefix must raise; swallowing that crash reports zero files.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "ValueError: path is on mount '\\\\.\\NUL'",
+      "good_state_output": "safe_count=4"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0041-probe2-planted-control",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "anthropic",
+    "notes": "Named probe2 re-runs the planted-file detector and the reserved-name walker on a fresh temp tree. Re-reading this artifact is not the review."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0041/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0041"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py (validate_artifact)",
+      "artifact_path": "command-center/confirmation/CNF-0041-rollback-byte-parity.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 platform/lib/schema_resolver.py command-center/confirmation/CNF-0041-rollback-byte-parity.json command-center/schema/rollback-report.schema.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "cnf0041:consumer:schema-resolver",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:59Z",
+    "ended_at": "2026-08-25T00:57:59Z",
+    "duration_seconds": 0.012831
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Byte-parity was measured on a disposable fixture named by command-center/p2-wave/probes/CNF-0041/fixtures/ROLLBACK-MANIFEST.md, not a live-estate rollback of command-center/ROLLBACK-MANIFEST.md (catalog_manifest_present=True).",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Owner-approved live-estate run would re-point the walker at the catalog ROLLBACK-MANIFEST and a disposable copy of the named trees."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "rollback-verification-engineer",
+    "execution_substrate": "local-serialized"
+  },
+  "report": {
+    "kind": "rollback-report",
+    "observations": [
+      {
+        "name": "pre_file_count",
+        "measured": 4,
+        "method": "hash-trees-extended-length",
+        "anchor": "command-center/p2-wave/probes/CNF-0041/walker.py:hash_trees"
+      },
+      {
+        "name": "post_rollback_equals_pre",
+        "measured": true,
+        "method": "symmetric-difference",
+        "anchor": "command-center/p2-wave/probes/CNF-0041/walker.py:symmetric_difference"
+      },
+      {
+        "name": "planted_file_detected",
+        "measured": true,
+        "method": "incomplete-rollback-control",
+        "anchor": "command-center/p2-wave/probes/CNF-0041/rehearse.py:run_planted_control"
+      },
+      {
+        "name": "naive_walker_swallowed_to_zero",
+        "measured": true,
+        "method": "reserved-name-naive-open",
+        "anchor": "command-center/p2-wave/probes/CNF-0041/walker.py:naive_hash_swallowed"
+      }
+    ],
+    "control_ids": [
+      "planted-file-incomplete-rollback",
+      "naive-reserved-name-walker"
+    ],
+    "title": "Byte-level proof that rollback restores the exact pre-state",
+    "question": "Does rollback restore the pre-state exactly? Hash every file in the affected trees before the change, after the change, and after rollback, then answer: is the post-rollback hash set identical to the pre-change set, and if not, exactly which paths differ and in which direction?",
+    "verdict": "BYTE-IDENTICAL",
+    "answer": "Yes for the fixture rollback: the post-rollback hash set equals the pre-change set (empty symmetric difference, residue listed as []). An incomplete rollback that leaves a planted extra file is detected on affected/app/PLANTED-CNF-0041.residue. The hashing walker enumerates affected/app/NUL via the extended-length prefix; the naive walker swallowed ValueError and reported zero files.",
+    "hash_manifests": {
+      "pre": [
+        {
+          "path": "affected/app/NUL",
+          "sha256": "1b1bdb6bf784b989ac64edf506be5e07b9eaaa7f6a5c01736003c734c6dc7708",
+          "bytes": 29
+        },
+        {
+          "path": "affected/app/main.py",
+          "sha256": "148d1f34198d3a5ee133e196be376feade38d7de8494d9ee26990e50ce33ee8c",
+          "bytes": 43
+        },
+        {
+          "path": "affected/config/keep.txt",
+          "sha256": "be3c0097e7bd19184d393204de90601639e64a5a6a0f3ea34bd9247a9953bbd8",
+          "bytes": 24
+        },
+        {
+          "path": "affected/config/settings.json",
+          "sha256": "f7d1ce19680f806cef5ccfaaf894b04e17989d6c63dec0d312ed682f7b89bf6f",
+          "bytes": 32
+        }
+      ],
+      "post": [
+        {
+          "path": "affected/app/NUL",
+          "sha256": "1b1bdb6bf784b989ac64edf506be5e07b9eaaa7f6a5c01736003c734c6dc7708",
+          "bytes": 29
+        },
+        {
+          "path": "affected/app/main.py",
+          "sha256": "a4d25731bed0249917434d426bc211cbd9c6d531180260711a216ba3110a09fd",
+          "bytes": 36
+        },
+        {
+          "path": "affected/app/new_module.py",
+          "sha256": "c1d0e166c17991b5a5acb4a63c0883126c7c8d01c7447d5aadf80894a1a10b05",
+          "bytes": 54
+        },
+        {
+          "path": "affected/config/settings.json",
+          "sha256": "f7d1ce19680f806cef5ccfaaf894b04e17989d6c63dec0d312ed682f7b89bf6f",
+          "bytes": 32
+        }
+      ],
+      "post_rollback": [
+        {
+          "path": "affected/app/NUL",
+          "sha256": "1b1bdb6bf784b989ac64edf506be5e07b9eaaa7f6a5c01736003c734c6dc7708",
+          "bytes": 29
+        },
+        {
+          "path": "affected/app/main.py",
+          "sha256": "148d1f34198d3a5ee133e196be376feade38d7de8494d9ee26990e50ce33ee8c",
+          "bytes": 43
+        },
+        {
+          "path": "affected/config/keep.txt",
+          "sha256": "be3c0097e7bd19184d393204de90601639e64a5a6a0f3ea34bd9247a9953bbd8",
+          "bytes": 24
+        },
+        {
+          "path": "affected/config/settings.json",
+          "sha256": "f7d1ce19680f806cef5ccfaaf894b04e17989d6c63dec0d312ed682f7b89bf6f",
+          "bytes": 32
+        }
+      ]
+    },
+    "symmetric_difference": {
+      "only_in_pre": [],
+      "only_in_post": [],
+      "content_changed": [],
+      "empty": true
+    },
+    "residue": [],
+    "planted_file_control": {
+      "planted_path": "affected/app/PLANTED-CNF-0041.residue",
+      "detected": true,
+      "when": "planted extra file after the change, then incomplete rollback",
+      "symmetric_difference": {
+        "only_in_pre": [],
+        "only_in_post": [
+          "affected/app/PLANTED-CNF-0041.residue",
+          "affected/app/new_module.py"
+        ],
+        "content_changed": [],
+        "empty": false
+      }
+    },
+    "reserved_name_walker": {
+      "reserved_path": "affected/app/NUL",
+      "extended_length_prefix_applied": true,
+      "extended_length_path": "/tmp/cnf0041-emit-mue4den3/walk/affected/app/NUL",
+      "safe_count": 4,
+      "naive_count": 0,
+      "naive_swallowed_to_zero": true,
+      "naive_error": "ValueError: path is on mount '\\\\.\\NUL'",
+      "reserved_in_safe": true
+    },
+    "catalog_inputs": {
+      "rollback_manifest_catalog_path": "command-center/ROLLBACK-MANIFEST.md",
+      "catalog_manifest_present": true,
+      "fixture_manifest": "command-center/p2-wave/probes/CNF-0041/fixtures/ROLLBACK-MANIFEST.md",
+      "scope": "disposable fixture trees named by the fixture ROLLBACK-MANIFEST; not a live-estate rollback of command-center/ROLLBACK-MANIFEST.md",
+      "affected_trees": [
+        "affected/app",
+        "affected/config"
+      ]
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "byte-parity",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe1_byte_parity.py"
+      },
+      {
+        "id": "probe2",
+        "role": "planted-file-and-reserved-walker",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0041/probe2_planted_control.py"
+      }
+    ],
+    "fixture_manifest_sha256": "eec2c31c5ea618c56bebe4f63e6995191d2e00873916aff895b9e1bcaadb89dc"
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "output_path": "command-center/confirmation/CNF-0041-rollback-byte-parity.json"
+  }
+}

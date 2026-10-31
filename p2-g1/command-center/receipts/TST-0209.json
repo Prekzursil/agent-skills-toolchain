@@ -1,0 +1,292 @@
+{
+ "answer": "Yes, on the shipped sink. tools/lib/sink_scrub.py (Python) and tools/lib/security.mjs (catalog-named JS twin) are the only redactors. observability.py call sites pass raw strings. A newly added unscrubbed call site in probe1 is still redacted; writing the same payload while bypassing the sink leaks, so the detector is live. 200 synthetic exception shapes redact. A static scan shows call sites do not import or call scrub. Catalog input tools/lib/security.mjs was absent on this worktree and was implemented here; other estate writers not wired through this sink are NOT-CHECKED because no production logger was present.",
+ "artifact_paths": [
+  "command-center/receipts/TST-0209.json",
+  "tools/lib/sink_scrub.py",
+  "tools/lib/observability.py",
+  "tools/lib/secret_shapes.py",
+  "tools/lib/static_scan.py",
+  "tools/lib/security.mjs",
+  "tools/lib/tests/test_sink_scrub.py",
+  "command-center/p2-wave/probes/TST-0209/probe1_new_call_site.py",
+  "command-center/p2-wave/probes/TST-0209/probe2_property_and_static_scan.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 2961,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/sink_scrub.py",
+   "role": "supporting",
+   "sha256": "77a327c779e7b6f870e0f9034a3ab6cd18886535ddd8850bc085076728504e0c"
+  },
+  {
+   "bytes": 622,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/observability.py",
+   "role": "supporting",
+   "sha256": "0e9953fcdc180805c424ab9f5b9fc0c55a57bdc6fc7edd7c65c7635e967974d1"
+  },
+  {
+   "bytes": 3225,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/secret_shapes.py",
+   "role": "supporting",
+   "sha256": "892c3d2f5e0ea6fa41bf9f3da1fb592501a6c2ea662dc70a644eb81ce5ab3252"
+  },
+  {
+   "bytes": 3892,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/static_scan.py",
+   "role": "supporting",
+   "sha256": "5a3958c1aeddbd5673d2ce4ad845dd3755d5e64b2f46060bfc7a5c6898e8c484"
+  },
+  {
+   "bytes": 4885,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/security.mjs",
+   "role": "supporting",
+   "sha256": "dacba649ffc59466d41cb1675cd7516442a2fa4184d507c971d848b6980c2675"
+  },
+  {
+   "bytes": 4481,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/tests/test_sink_scrub.py",
+   "role": "supporting",
+   "sha256": "e87262db4088105d3811c61b5a9145b26f491e2eaf677befe1e6146573b80217"
+  },
+  {
+   "bytes": 3307,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0209/probe1_new_call_site.py",
+   "role": "supporting",
+   "sha256": "ef38352f9b0179c0782407269906ba00bfb704502b9ee925d944e2c891a8de1e"
+  },
+  {
+   "bytes": 5630,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0209/probe2_property_and_static_scan.py",
+   "role": "supporting",
+   "sha256": "99d7a8498f1698e3aaa292d7e57190b971651358e44618f525f4cf8555b34703"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0209",
+ "credential_lifecycle": {
+  "confirmation": "This unit used only synthetic TST0209 infixes generated at runtime. It did not rotate, revoke, unset, or print any live credential body.",
+  "owner_handles_lifecycle": true,
+  "printed_beyond_zero_entropy_prefix": false,
+  "revoked": false,
+  "rotated": false,
+  "unset": false
+ },
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0209.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "G-1 measure runs after this receipt and the per-unit manifest exist."
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0209/probe1_new_call_site.py",
+   "claim": "Signal (a): a newly added logging call site that does not redact still yields sink output with the synthetic infix absent and <redacted> present, on log, exception, and telemetry channels.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0209/probe1_new_call_site.py",
+     "exit_code": 0,
+     "fingerprint": "73ce3c2feb17f923daab20d00a7f90a6d53b2c09ef606efd77c6b3016e43cceb",
+     "method": "command",
+     "raw_output": "new_site_log redacted=True family=anthropic marker=<redacted>\nnew_site_exception redacted=True family=pem marker=<redacted>\nnew_site_telemetry redacted=True family=password_eq marker=<redacted>\nsink_stream_clean=True\nbypass_sink_leaks=True\nnew_call_site_source_has_no_scrub=True\n{\"bypass_sink_leaks\": true, \"channels\": [\"log\", \"exception\", \"telemetry\"], \"new_call_site_redacts_locally\": false, \"pass\": true, \"probe\": \"probe1-new-unscrubbed-call-site\", \"unit_id\": \"TST-0209\"}\nSUCCESS:TST-0209-probe1 new unscrubbed call site redacted; bypass leaks",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/lib/tests/test_sink_scrub.py",
+     "exit_code": 0,
+     "fingerprint": "cd4652142813ca1d4b10bea0f7326b06ad6c240e827efa6d9277bbeee087e4be",
+     "method": "command",
+     "raw_output": "ok test_new_unscrubbed_call_site_is_redacted\nok test_telemetry_and_stack_channels\nok test_bypass_sink_leaks_both_states_control\nok test_call_site_only_redactor_does_not_protect_new_site\nok test_property_200_exception_shapes\nok test_scrub_does_not_need_call_site_help\nok test_static_scan_call_sites_do_not_scrub\nSUCCESS:TST-0209-tests",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/lib/static_scan.py",
+   "claim": "Signal (b): static scan of observability.py and the new call-site probe shows zero scrub() imports or calls. Sink._emit calls scrub; log/emit_exception/emit_telemetry all go through _emit. A call-site-only redactor does not protect a second new site; the sink does.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0209/probe2_property_and_static_scan.py",
+     "exit_code": 0,
+     "fingerprint": "77a7f2a96ef6beea01ec5d495a149487c749c0813472f96beb2b337b7a498be3",
+     "method": "command",
+     "raw_output": "property_shapes=200 leaked=0\nstatic_scan ok=True sink_emit_scrubs=True call_sites_ok=True mjs_ok=True\ncall_site_only_defense_insufficient=True sink_catches_new_site=True\njs_parity ran=True ok=True reason=\nreceipt_infix_hits=deferred (receipt not yet written)\ndirect_scrub_pem=True\n{\"call_site_only_insufficient\": true, \"js_parity\": {\"exit_code\": 0, \"infix_absent\": true, \"marker_present\": true, \"ok\": true, \"ran\": true}, \"leaked\": 0, \"pass\": true, \"probe\": \"probe2-property-and-static-scan\", \"reviewer_id\": \"TST-0209-probe2-property-and-static-scan\", \"shapes\": 200, \"static_scan_ok\": true, \"unit_id\": \"TST-0209\", \"verdict\": \"PASS\"}\nSUCCESS:TST-0209-probe2 200 exception shapes; static scan; call-site-only insufficient",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/lib/tests/test_sink_scrub.py",
+     "exit_code": 0,
+     "fingerprint": "cd4652142813ca1d4b10bea0f7326b06ad6c240e827efa6d9277bbeee087e4be",
+     "method": "command",
+     "raw_output": "ok test_new_unscrubbed_call_site_is_redacted\nok test_telemetry_and_stack_channels\nok test_bypass_sink_leaks_both_states_control\nok test_call_site_only_redactor_does_not_protect_new_site\nok test_property_200_exception_shapes\nok test_scrub_does_not_need_call_site_help\nok test_static_scan_call_sites_do_not_scrub\nSUCCESS:TST-0209-tests",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "call_sites": "tools/lib/observability.py",
+  "call_sites_must_not_call_scrub": true,
+  "channels": [
+   "log",
+   "exception",
+   "telemetry"
+  ],
+  "js_sink": "tools/lib/security.mjs",
+  "python_sink": "tools/lib/sink_scrub.py",
+  "redaction_marker": "<redacted>"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0209/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "negative_controls": [
+  {
+   "bad_state_output": "bypass_sink_leaks=True",
+   "description": "The same unscrubbed payload written with mutant_raw_write (no sink) retains the synthetic infix. If this were silent, the green new-call-site result would be vacuous.",
+   "fired_on_bad_state": true,
+   "good_state_output": "new_site_log redacted=True",
+   "id": "bypass-sink-must-leak",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "new site without helper leaks",
+   "description": "mutant_call_site_redact_then_write protects only the site that remembers to call it. A NEW site that skips it leaks. The sink still redacts that new site.",
+   "fired_on_bad_state": true,
+   "good_state_output": "sink_catches_new_site=True",
+   "id": "call-site-only-redactor-insufficient",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 delivery of TST-0209 sink-level scrubbing. Live evidence: new unscrubbed call site redacted; bypass leaks; 200 exception shapes; static scan shows no call-site-only defense. Did not run global unit_manifest.py --write. Did not rotate or print API keys. cloud ok is not consulted. shard17-w4 2026-10-26 rebuild: probe dir, both probes and the library test did not exist on disk (builder died mid-flight after emitting the SUCCESS receipt with a probe-named reviewer). Instruments rebuilt from the receipt's own recorded claims against the live sinks (tools/lib/sink_scrub.py + tools/lib/security.mjs + tools/lib/observability.py); every claim verified live; original reviewer claim preserved verbatim under prior_builder_reviewer_claim; state demoted to BLOCKED reviewer-absent per the shard19-w4 TST-0174 precedent. Not owner-gated (owner_approval_required=false).",
+ "question": "Are secrets scrubbed from error messages, stack traces and telemetry by a single sink-level scrubber? PASS requires: adding a NEW logging call site with an unscrubbed secret must still be redacted in the output.",
+ "redacted_examples": [
+  {
+   "family": "anthropic",
+   "infix_absent": true,
+   "marker_present": true,
+   "redacted_form": "<redacted>"
+  },
+  {
+   "family": "openai_proj",
+   "infix_absent": true,
+   "marker_present": true,
+   "redacted_form": "<redacted>"
+  },
+  {
+   "family": "openai",
+   "infix_absent": true,
+   "marker_present": true,
+   "redacted_form": "<redacted>"
+  },
+  {
+   "family": "github_pat",
+   "infix_absent": true,
+   "marker_present": true,
+   "redacted_form": "<redacted>"
+  },
+  {
+   "family": "github_fine",
+   "infix_absent": true,
+   "marker_present": true,
+   "redacted_form": "<redacted>"
+  }
+ ],
+ "report_kind": "security_report",
+ "residual_unknowns": [
+  {
+   "claim": "Writers elsewhere in the estate (receipt emitters, event ledgers, package builders) that do not call this sink were not rewired. This worktree had no production logging stack; the contract is proven on the shipped sink.",
+   "settling_experiment": "After a production logger is adopted, route it through get_sink() and re-run probe1 against that logger's stream.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Catalog asks for a second cross-vendor human security reviewer. This headless G-1 lane used probe2 as the independent correctness/security reviewer, matching sibling delivered units.",
+   "settling_experiment": "A Codex reviewer re-runs both named probes.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry: a failure here is a finding"
+ },
+ "reviewer": {
+  "reviewer_id": "pending-independent-review",
+  "verdict": "NOT-REVIEWED",
+  "independent": false,
+  "notes": "An independent reviewer must re-run probe1_new_call_site.py, probe2_property_and_static_scan.py and tools/lib/tests/test_sink_scrub.py (all exit 0 this session), confirm the original receipt's claims held without modification, and acknowledge the scope limit the answer already records: estate writers not wired through this sink are NOT-CHECKED because no production logger was present."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0209",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0209",
+ "state": "BLOCKED",
+ "target_contract_pass": true,
+ "tests": [
+  {
+   "id": "detector-new-unscrubbed-call-site",
+   "name": "adding a NEW logging call site with an unscrubbed secret still redacts",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0209/probe1_new_call_site.py",
+   "result": "PASS",
+   "rebuilt_by": "shard17-w4 2026-10-26"
+  },
+  {
+   "id": "property-200-synthetic-secret-shapes-in-exceptions",
+   "name": "property test over 200 synthetic secret shapes in exception messages",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0209/probe2_property_and_static_scan.py",
+   "result": "PASS",
+   "rebuilt_by": "shard17-w4 2026-10-26"
+  },
+  {
+   "id": "library-tests",
+   "name": "sink_scrub library tests",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/lib/tests/test_sink_scrub.py",
+   "result": "PASS",
+   "rebuilt_by": "shard17-w4 2026-10-26"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:10:35Z",
+  "started_at": "2026-08-25T01:10:34Z",
+  "rebuild_at": "2026-10-26T12:00:00Z"
+ },
+ "title": "Scrubbing happens at the sink, not per call site",
+ "unit_id": "TST-0209",
+ "prior_builder_reviewer_claim": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Property test over 200 exception messages; AST scan that call sites do not call scrub; call-site-only mutant fails to protect a new site; JS stdin parity on security.mjs.",
+  "obligation": "Reproduce the both-states control and the 200-shape property test; confirm call sites are not the only defense.",
+  "reviewer_id": "TST-0209-probe2-property-and-static-scan",
+  "scope_not_agreement": true,
+  "verdict": "PASS",
+  "verification_status_at_handoff": "NOT-VERIFIABLE: the probe files this entry names (probes/TST-0209/probe1_new_call_site.py, probe2_property_and_static_scan.py) and tools/lib/tests/test_sink_scrub.py did not exist on disk at the builder-death handoff, so the PASS/independent closure could not be re-run - same fabrication shape shard19-w4 documented on TST-0174."
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Built-awaiting-review. The prior builder died mid-flight leaving a SUCCESS receipt whose probe-named reviewer entry had NO probe files on disk (unverifiable closure, shard19-w4 TST-0174 precedent). shard17-w4 rebuilt the real instruments - probe1_new_call_site.py (new unscrubbed call site still redacted on log/exception/telemetry; bypass mutant leaks), probe2_property_and_static_scan.py (200-shape property zero failures; AST scan clean sink-only routing; call-site-only mutant leaves a new site exposed; JS twin parity), tools/lib/tests/test_sink_scrub.py (4/4) - and re-verified every factual claim in this receipt live, exit 0. The claims HOLD; the closure itself was not an independent reviewer's. SUCCESS withheld: receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true from a reviewer that can actually re-run."
+ }
+}

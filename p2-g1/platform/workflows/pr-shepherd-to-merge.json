@@ -1,0 +1,889 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "pr-shepherd-to-merge",
+  "name": "PR shepherd - drive one open PR to a terminal state",
+  "description": "Blueprint 87 of 96 (design BP-REL-01). Drive ONE already-open PR from open to merged-or-blocked-with-a-named-reason. Mechanism: a bounded convergence loop over the CI surface where each round fixes only the FIRST failing step and EXPECTS the next failure to surface, wrapped in three decoding gates that encode measured misreadings - mergeStateStatus BLOCKED means the checks RAN AND FAILED (not pending), a `gh` auth error is a DETECTOR failure and never a verdict, and a job stops at its first failing step so one red job can hide four bugs.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "release",
+    "ci",
+    "convergence-loop",
+    "detector-discipline"
+  ],
+  "flagship": true,
+  "params": {
+    "pr_number": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "description": "The open PR to shepherd"
+    },
+    "repo": {
+      "type": "string",
+      "required": true,
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+      "description": "owner/name"
+    },
+    "merge_policy": {
+      "type": "enum",
+      "enum": [
+        "squash",
+        "merge",
+        "rebase",
+        "do-not-merge-report-only"
+      ],
+      "default": "squash",
+      "description": "How to land it, or that landing is out of scope for this run"
+    },
+    "required_contexts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "description": "Only REQUIRED check contexts gate the merge. Gating on every context makes an optional advisory job block forever."
+    },
+    "max_ci_rounds": {
+      "type": "integer",
+      "default": 8,
+      "minimum": 1,
+      "maximum": 30,
+      "description": "Round budget for the fix-and-resurface loop"
+    },
+    "gh_token_ref": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference NAME of the gh credential. The value never enters an artifact, a log, an export bundle or the replay journal. This workflow never rotates it."
+    }
+  },
+  "roles": {
+    "shepherd": {
+      "description": "Reads the real check status, fixes the first failing step, resolves threads, and drives to a terminal state",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:git",
+        "Bash:gh",
+        "Write(command-center/release/**)",
+        "mcp__github__pull_request_read"
+      ],
+      "write_paths": [
+        "command-center/release/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "cross-vendor-critic": {
+      "description": "A cross-vendor reader who reviews the diff before human review is requested; a same-vendor reviewer shares the author's blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may authorise a merge, and the only one that may waive a red required context",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:git",
+      "Bash:gh",
+      "Write(command-center/release/**)",
+      "mcp__github__pull_request_read",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch"
+    ],
+    "require_owner_approval": [
+      "Bash:gh"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/release/**"
+    ],
+    "forbid_write_paths": [
+      ".github/workflows/**"
+    ],
+    "source_policy": {
+      "allow_domains": [
+        "api.github.com",
+        "github.com"
+      ],
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "escalating",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == cross-vendor-critic",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "cross-vendor review is the point of that role; routing it to Anthropic would collapse the independence"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "failure",
+        "timeout",
+        "reviewer-refuted"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "status-decoded-not-guessed": {
+      "predicate": "custom-expression",
+      "expression": "status_source == API AND blocked_decoded_as_ran_and_failed == true AND detector_error == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "detector-not-verdict": {
+      "predicate": "custom-expression",
+      "expression": "NOT auth_error AND NOT rate_limited",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "required-contexts-green": {
+      "predicate": "custom-expression",
+      "expression": "required_contexts_failing == 0 AND required_contexts_pending == 0 AND merge_state_status != UNKNOWN",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "retry"
+    }
+  },
+  "stages": [
+    {
+      "id": "read-real-status",
+      "title": "Decode the check surface - BLOCKED is not pending",
+      "kind": "task",
+      "role": "shepherd",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-8701",
+        "title": "Read the PR check surface from the API and decode every status token",
+        "phase": "7",
+        "question_or_target": "For the PR, record mergeStateStatus, every check run with its conclusion, and which of them are REQUIRED contexts. Decode BLOCKED as 'the checks ran and at least one failed', never as 'not yet run'. Decode UNKNOWN as 'mergeability not computed yet', never as mergeable.",
+        "inputs": [
+          "params.pr_number",
+          "params.repo",
+          "params.required_contexts"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "shepherd",
+          "basis": "substantive subagents default to Opus; decoding a status surface is where the measured misreadings happened"
+        },
+        "tool_permissions": [
+          "Bash:gh",
+          "mcp__github__pull_request_read",
+          "Write(command-center/release/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/release/pr-check-surface.json",
+        "output_schema": "command-center/schema/release-gate-report.schema.json",
+        "evidence_requirement": "the raw API response fields for mergeStateStatus and each check conclusion; a prose summary of CI health is not evidence and cannot be re-derived",
+        "tests_required": [
+          "both-states control: a PR whose required check has conclusion=failure must be recorded as RAN-AND-FAILED, and the SAME decoder must record a genuinely queued check as PENDING - a decoder that returns the same answer in both states measures nothing",
+          "an authentication error from the CLI must produce FAILED:BPW-8701 detector-failure, never a zero-checks report"
+        ],
+        "reviewer_requirement": "one independent reader who confirms the decoded verdict from the recorded raw fields without re-querying the API",
+        "completion_sentinel": "SUCCESS:BPW-8701 emitted only when every required context carries a decoded conclusion and no tool error was swallowed; otherwise FAILED:BPW-8701 <reason>",
+        "retry_policy": "two strikes then pivot: after the second identical API error, stop querying and escalate as a detector failure rather than attempting a third",
+        "failure_classification": [
+          "detector-failure",
+          "auth-scope-insufficient",
+          "rate-limited"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pr-check-surface.json",
+          "schema_ref": "command-center/schema/release-gate-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8701",
+          "consumers": [
+            "fix-rounds",
+            "request-review"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-detector",
+      "title": "A tool auth failure is a detector failure, never a verdict",
+      "kind": "gate",
+      "depends_on": [
+        "read-real-status"
+      ],
+      "gate_ref": "detector-not-verdict"
+    },
+    {
+      "id": "gate-decoded",
+      "title": "Status decoded from the API, not guessed from a label",
+      "kind": "gate",
+      "depends_on": [
+        "gate-detector"
+      ],
+      "gate_ref": "status-decoded-not-guessed"
+    },
+    {
+      "id": "fix-rounds",
+      "title": "Fix the FIRST failing step, then expect the NEXT one to surface",
+      "kind": "loop",
+      "depends_on": [
+        "gate-decoded"
+      ],
+      "loop_var": "ci_round",
+      "timeout_seconds": 21600,
+      "body": [
+        {
+          "id": "fix-first-failing-step",
+          "kind": "task",
+          "role": "shepherd",
+          "timeout_seconds": 3600,
+          "retry": {
+            "strategy": "two-strikes-then-pivot",
+            "max_attempts": 3,
+            "backoff_seconds": 60,
+            "jitter": true,
+            "retry_on": [
+              "ci-infra-flake",
+              "rate-limited"
+            ],
+            "no_retry_on": [
+              "owner-blocked",
+              "required-context-waived"
+            ],
+            "pivot": {
+              "after_attempts": 2,
+              "enumerate_alternatives_min": 2,
+              "escalate_to": "owner-merge-decision"
+            }
+          },
+          "work_unit": {
+            "id": "BPW-8702",
+            "title": "Repair the first failing CI step in this round and re-run",
+            "phase": "7",
+            "question_or_target": "Identify the FIRST failing step of the first failing required job, fix its root cause, and re-run. Do NOT batch fixes across steps: a job stops at its first failing step, so the later steps have not run and their state is unknown.",
+            "inputs": [
+              "command-center/release/pr-check-surface.json"
+            ],
+            "dependencies": [
+              "BPW-8701"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "shepherd",
+              "basis": "root-cause repair on a CI surface is substantive work"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Bash:git",
+              "Bash:gh",
+              "Write(command-center/release/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/release/pr-ci-round-log.json",
+            "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+            "evidence_requirement": "per round: the failing step name, the log excerpt that identifies the cause, the commit that fixes it, and the NEXT failure the re-run surfaced (or none); comparing step NAMES across runs is not enough - compare the failure TEXT",
+            "tests_required": [
+              "a job with four stacked failures must require four rounds and the log must show a DIFFERENT failure text each round",
+              "both-states control: if the same failure text repeats twice the loop must trip the two-strikes pivot rather than attempt a third identical fix"
+            ],
+            "reviewer_requirement": "the cross-vendor critic reads the accumulated round log before human review is requested",
+            "completion_sentinel": "SUCCESS:BPW-8702 emitted only when the round's fix is committed AND the re-run produced a different terminal state than the one that started the round; otherwise FAILED:BPW-8702 <reason>",
+            "retry_policy": "two strikes then pivot on an identical failure fingerprint; enumerate at least two alternatives before a third attempt",
+            "failure_classification": [
+              "ci-infra-flake",
+              "same-fingerprint-twice",
+              "rate-limited",
+              "detector-failure"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 8,
+        "min_iterations": 1,
+        "converged_when": "required_contexts_failing == 0 AND distinct_failure_texts_this_round == 0",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "required_contexts_failing",
+            "direction": "decrease",
+            "target": 0
+          },
+          {
+            "name": "distinct_failure_texts_this_round",
+            "direction": "decrease",
+            "target": 0,
+            "epsilon": 0
+          }
+        ],
+        "on_no_convergence": "escalate"
+      }
+    },
+    {
+      "id": "gate-required-green",
+      "title": "Only REQUIRED contexts gate the merge",
+      "kind": "gate",
+      "depends_on": [
+        "fix-rounds"
+      ],
+      "gate_ref": "required-contexts-green"
+    },
+    {
+      "id": "recover-stalled-ci",
+      "title": "Diagnose, repair and INDEPENDENTLY verify a loop that did not converge",
+      "kind": "repair_loop",
+      "depends_on": [
+        "gate-required-green"
+      ],
+      "target": [
+        "fix-rounds"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "same-fingerprint-twice",
+        "ci-infra-flake",
+        "detector-failure"
+      ],
+      "escalate_to": "owner-merge-decision",
+      "require_root_cause": true,
+      "timeout_seconds": 7200,
+      "diagnose": {
+        "id": "diagnose-stall",
+        "kind": "task",
+        "role": "cross-vendor-critic",
+        "timeout_seconds": 1800,
+        "work_unit": {
+          "id": "BPW-8703",
+          "title": "Cross-vendor root-cause of the non-converging CI loop",
+          "phase": "7",
+          "question_or_target": "Re-derive from the RAW round log why the loop stopped making progress: an actually-broken change, a quota or Actions-availability failure that is not a code failure at all, or a detector that has been reporting the wrong thing.",
+          "inputs": [
+            "command-center/release/pr-ci-round-log.json"
+          ],
+          "dependencies": [
+            "BPW-8702"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "gpt-5-codex",
+            "vendor": "openai",
+            "role": "cross-vendor-critic",
+            "basis": "the shepherd authored the failed fixes, so it cannot be the independent diagnostician"
+          },
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "mcp__codex__codex"
+          ],
+          "execution_substrate": "container",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/release/pr-stall-root-cause.json",
+          "output_schema": "command-center/schema/root-cause-graph.schema.json",
+          "evidence_requirement": "a named root cause with the round-log line that supports it, and an explicit statement of which rival hypotheses were excluded and how",
+          "tests_required": [
+            "an all-red run caused by an Actions quota exhaustion must be classified as an infrastructure cause, not as a code failure"
+          ],
+          "reviewer_requirement": "the shepherd may rebut but may not overrule; a split verdict is resolved by reading the probes, not by counting votes",
+          "completion_sentinel": "SUCCESS:BPW-8703 emitted only when a single root cause is named with its supporting evidence and the excluded rivals listed; otherwise FAILED:BPW-8703 <reason>",
+          "retry_policy": "one attempt then escalate - a second cross-vendor pass on the same log is not an independent signal",
+          "failure_classification": [
+            "detector-failure",
+            "insufficient-log",
+            "overclaim"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "repair": {
+        "id": "apply-stall-repair",
+        "kind": "task",
+        "role": "shepherd",
+        "timeout_seconds": 3600,
+        "work_unit": {
+          "id": "BPW-8704",
+          "title": "Apply the repair named by the root cause",
+          "phase": "7",
+          "question_or_target": "Apply exactly the repair the root cause implies, and nothing else. If the root cause is infrastructural, the repair is to wait and re-run, not to change code.",
+          "inputs": [
+            "command-center/release/pr-stall-root-cause.json"
+          ],
+          "dependencies": [
+            "BPW-8703"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "shepherd",
+            "basis": "the repair is substantive code work"
+          },
+          "tool_permissions": [
+            "Read",
+            "Bash:git",
+            "Bash:gh",
+            "Write(command-center/release/**)"
+          ],
+          "execution_substrate": "local-serialized",
+          "timeout_seconds": 3600,
+          "output_path": "command-center/release/pr-stall-repair.json",
+          "output_schema": "command-center/schema/rollback-report.schema.json",
+          "evidence_requirement": "the diff of the repair plus the assertion that it addresses the NAMED root cause and not a different symptom",
+          "tests_required": [
+            "a repair that does not touch the named root cause must be rejected by the verify stage even if CI turns green"
+          ],
+          "reviewer_requirement": "the verify stage is the reviewer; self-certification is not accepted",
+          "completion_sentinel": "SUCCESS:BPW-8704 emitted only when the applied change maps to the named root cause; otherwise FAILED:BPW-8704 <reason>",
+          "retry_policy": "two strikes then pivot; a third identical repair attempt is banned",
+          "failure_classification": [
+            "wrong-root-cause",
+            "same-fingerprint-twice",
+            "ci-infra-flake"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "verify": {
+        "id": "verify-stall-repair",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "root_cause_addressed == true AND required_contexts_failing == 0 AND regression_count == 0",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "request-review",
+      "title": "Cross-vendor read before a human is asked to look",
+      "kind": "task",
+      "role": "cross-vendor-critic",
+      "depends_on": [
+        "recover-stalled-ci"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPW-8705",
+        "title": "Cross-vendor review of the PR diff and resolution of open threads",
+        "phase": "7",
+        "question_or_target": "Review the PR diff independently of the shepherd's narrative, and for each open review thread record whether it is answered, unanswered, or answered-but-unresolved. An unresolved thread is not a merge blocker by itself, but an UNANSWERED one is.",
+        "inputs": [
+          "command-center/release/pr-check-surface.json",
+          "params.pr_number"
+        ],
+        "dependencies": [
+          "BPW-8701"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "cross-vendor-critic",
+          "basis": "cross-vendor review before human review is the cheapest place to catch an overclaim"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "container",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/release/pr-cross-vendor-review.json",
+        "output_schema": "command-center/schema/second-order-review.schema.json",
+        "evidence_requirement": "per finding a file:line anchor in the diff; per thread the thread id and its answered state",
+        "tests_required": [
+          "a result string containing 'started in the background' or 'Check /codex:status' must be REJECTED as a receipt rather than accepted as a review"
+        ],
+        "reviewer_requirement": "this stage IS the reviewer; its own output is checked only for the receipt-not-a-result failure mode",
+        "completion_sentinel": "SUCCESS:BPW-8705 emitted only when the review artifact exists, is non-empty, parses, and contains no background-receipt marker; otherwise FAILED:BPW-8705 <reason>",
+        "retry_policy": "one retry with the prompt passed by FILE rather than inline, then escalate - an inline prompt can exceed the Windows 32767-char command line",
+        "failure_classification": [
+          "severed-stream",
+          "win-arg-limit",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pr-cross-vendor-review.json",
+          "schema_ref": "command-center/schema/second-order-review.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8705",
+          "consumers": [
+            "owner-merge-decision"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owner-merge-decision",
+      "title": "The merge itself is an owner decision",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "request-review"
+      ],
+      "prompt": "Required contexts are green and the cross-vendor review is attached. Merge under the declared policy, hold for a change, or close? Never --no-verify; never force-push to main.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": [
+        "merge",
+        "hold-for-change",
+        "close-without-merging"
+      ],
+      "decision_artifact": {
+        "path": "command-center/release/pr-merge-decision.json",
+        "schema_ref": "command-center/schema/decision-record.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "command-center/release/pr-shepherd-terminal.json"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "merged-or-named-block",
+      "expression": "merge_result == MERGED OR blocked_reason_named == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "status_source == API AND detector_error == false",
+      "on_stop": "complete"
+    },
+    {
+      "id": "same-fingerprint-twice",
+      "expression": "identical_failure_fingerprint_count >= 2",
+      "applies_to": "loop",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "detector-broke",
+      "expression": "auth_error == true OR rate_limited == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 60,
+    "jitter": true,
+    "retry_on": [
+      "ci-infra-flake",
+      "rate-limited",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "required-context-waived",
+      "auth-scope-insufficient"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-merge-decision"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "detector-failure",
+      "same-fingerprint-twice",
+      "auth-scope-insufficient",
+      "ci-infra-flake"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-merge-decision",
+    "quarantine_path": "command-center/quarantine/pr-shepherd"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/pr-shepherd",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/pr-shepherd.jsonl",
+    "record": [
+      "params",
+      "tool_calls",
+      "tool_results",
+      "timings"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/pr-shepherd-plan.json",
+    "forbid_tools": [
+      "Bash:gh",
+      "Bash:git",
+      "Write(command-center/release/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "min": 0.5,
+      "expected": 3.0,
+      "max": 20.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 5400,
+      "max": 86400
+    },
+    "tokens": {
+      "min": 40000,
+      "expected": 300000,
+      "max": 1500000
+    },
+    "tool_calls": {
+      "min": 10,
+      "expected": 80,
+      "max": 400
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "commits to the PR branch and, on owner approval, merges into the base branch; a merged PR is revertible but the history is not rewritten",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/pr-shepherd.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-01",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "commands/pr-shepherd",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "metaswarm:pr-shepherd",
+        "relation": "ADOPT-AS-IS",
+        "license": "third-party - metaswarm",
+        "credit": "metaswarm (dsifry/metaswarm)",
+        "url": "https://github.com/dsifry/metaswarm"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "commands/pr-shepherd@current"
+    ]
+  },
+  "outputs": {
+    "terminal": {
+      "path": "command-center/release/pr-shepherd-terminal.json",
+      "schema_ref": "command-center/schema/release-gate-receipt.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "command-center/release/pr-merge-decision.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 87,
+      "of": 96,
+      "design_card": "BP-REL-01",
+      "design_family": "D17-release",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "ADOPT-WITH-WRAPPER",
+      "flagship": true
+    },
+    "mechanism": "a bounded convergence loop whose progress metric is 'the failure TEXT changed this round', fronted by three status-decoding gates. The loop cannot converge by exhausting its budget: on_no_convergence is escalate, and the no_progress_rounds=2 exit fires before the round budget does.",
+    "not_a_duplicate_because": {
+      "vs_pre-pr-surface-check": "that measures a branch BEFORE the PR exists and never reads CI; this only runs once a PR is open and its whole subject is the CI surface",
+      "vs_anchor-checked-per-file-deploy": "that lands bytes into a live tree with anchors; this lands a PR through a hosted merge queue"
+    },
+    "contraindications": [
+      "NOT for a batch of stacked PRs - order them first",
+      "NOT when the PR should not land at all - closing is a decision, not a shepherding failure"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "blocked-is-not-pending",
+        "given": "a PR with mergeStateStatus BLOCKED and a required check with conclusion=failure",
+        "expect": "recorded as RAN-AND-FAILED; the same decoder must record a genuinely queued check as PENDING"
+      },
+      {
+        "id": "auth-error-is-a-detector-failure",
+        "given": "a gh call that fails on token scope",
+        "expect": "FAILED:BPW-8701 detector-failure - never a zero-checks 'no CI configured' report"
+      },
+      {
+        "id": "four-stacked-failures",
+        "given": "one red job hiding four independent broken steps",
+        "expect": "four rounds, four DIFFERENT failure texts, and no two-strikes trip"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "one-red-job-four-bugs",
+        "params": {
+          "pr_number": 412,
+          "repo": "prekzursil/example-repo",
+          "merge_policy": "squash",
+          "required_contexts": [
+            "quality",
+            "e2e"
+          ],
+          "max_ci_rounds": 8
+        },
+        "rounds": [
+          {
+            "ci_round": 1,
+            "first_failing_step": "install deps",
+            "failure_text": "lockfile out of date",
+            "next_surfaced": "ruff format --check"
+          },
+          {
+            "ci_round": 2,
+            "first_failing_step": "ruff format --check",
+            "failure_text": "would reformat notify.py",
+            "next_surfaced": "pytest -m 'not live'"
+          },
+          {
+            "ci_round": 3,
+            "first_failing_step": "pytest",
+            "failure_text": "2 failed - network egress in fixture",
+            "next_surfaced": "e2e launch"
+          },
+          {
+            "ci_round": 4,
+            "first_failing_step": "e2e launch",
+            "failure_text": "executablePath not found",
+            "next_surfaced": "none"
+          }
+        ],
+        "convergence": "required_contexts_failing 0 at round 4; distinct_failure_texts_this_round 0; no_progress_rounds never reached",
+        "terminal_state": "SUCCESS - owner approved merge under squash policy",
+        "note": "This is the shape of the measured incident behind the design: a single red job hid four stacked failures because a job stops at its first failing step. A shepherd that reports 'e2e is broken' after round 1 has reported one quarter of the truth."
+      }
+    ],
+    "owner_decision": "none - the merge itself is an in-workflow human checkpoint, not a design question",
+    "unverified": [
+      "The claim that the two-strikes pivot fires before the round budget is a PROPERTY of the declared convergence block (no_progress_rounds=2 < max_iterations=8), not a measurement of a real run. Settling experiment = replay a recorded CI history where the same failure text repeats and assert the loop exits at round 3, not round 8. This workflow's tests assert the declared property; they do not assert runner behaviour, because no runner exists yet."
+    ]
+  }
+}

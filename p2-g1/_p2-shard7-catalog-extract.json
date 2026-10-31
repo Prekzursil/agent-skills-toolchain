@@ -1,0 +1,346 @@
+{
+ "IMP-0074": {
+  "id": "IMP-0074",
+  "title": "Typed registry API contract with a strict-parser conformance surface",
+  "output_path": "command-center/receipts/IMP-0074.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/registry-api.schema.json",
+  "dependencies": [
+   "IMP-0067"
+  ],
+  "description": null,
+  "question_or_target": "Publish the registry's read API as a typed contract (request/response schemas, error shapes, pagination) plus a conformance fixture set a third-party client can run to prove it parses the index correctly under strict settings.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the reference client passes the conformance fixtures; (2) a deliberately strict second client (unknown-field-rejecting) also passes, proving the contract does not depend on lenient parsing.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10991 (contract tests)",
+   "_USER-PROMPTS.md:11302",
+   "IMP-0067"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_api_contract.py (all endpoints, all error shapes)",
+   "NEGATIVE CONTROL: a response missing a required field must fail conformance",
+   "pagination: a truncated page must be distinguishable from an empty result"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0074"
+ },
+ "IMP-0076": {
+  "id": "IMP-0076",
+  "title": "Publisher trust levels derived from measurement, not popularity",
+  "output_path": "command-center/receipts/IMP-0076.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0075",
+   "IMP-0094"
+  ],
+  "description": null,
+  "question_or_target": "Compute a publisher trust level from measurable, auditable inputs (signed releases, conformance pass rate, advisory response time, provenance completeness) and explicitly exclude download counts, stars and ratings, per the estate's measurement-only stance on quality signals.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the computed level for fixture publishers matches a hand-derived expectation; (2) a gaming probe (a publisher inflating download-like metrics) produces NO trust change, proving the excluded inputs are genuinely excluded and not merely down-weighted.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10859 (quality/conformance score)",
+   "WORK-UNIT-CATALOG owner_questions Q9 (measurement-only ratings, no stars or download counts)",
+   "IMP-0094 conformance score"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_trust_levels.py (each input moves the level in the expected direction)",
+   "GAMING CONTROL: popularity-like inputs move nothing",
+   "NEGATIVE CONTROL: a publisher with no measurable history is UNRATED, never DEFAULT-TRUSTED"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0076"
+ },
+ "IMP-0077": {
+  "id": "IMP-0077",
+  "title": "Detached signature format binding a package digest to a publisher key",
+  "output_path": "command-center/receipts/IMP-0077.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/signature.schema.json",
+  "dependencies": [
+   "IMP-0075"
+  ],
+  "description": null,
+  "question_or_target": "Define the on-registry signature record (algorithm, digest, key id, signed timestamp, canonicalisation rules) and implement verification. This defines the FORMAT and the verify function; the trust decision built on it is IMP-0078 and the build-side attestation is IMP-0063.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) verification succeeds for a correctly signed fixture; (2) verification fails for each of: flipped payload byte, swapped signature between two packages, re-encoded (non-canonical) payload with the same semantic content. The canonicalisation case is the one that catches real bypasses.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10855 (signatures)",
+   "IMP-0063 build attestation",
+   "IMP-0075 publisher keys"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_signature_format.py (valid, tampered, swapped, non-canonical re-encoding, unknown key id)",
+   "NEGATIVE CONTROL: an unsigned package must be reported unsigned, never treated as valid-by-absence",
+   "algorithm agility: an unsupported algorithm must fail closed"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0077"
+ },
+ "IMP-0080": {
+  "id": "IMP-0080",
+  "title": "Registry-side provenance record storage and query",
+  "output_path": "command-center/receipts/IMP-0080.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0063",
+   "IMP-0067"
+  ],
+  "description": null,
+  "question_or_target": "Store and expose, for every published version, the provenance attestation produced at build time (source repo, commit sha, builder, build parameters) and make it queryable, so 'where did this exact artifact come from' is answerable from the registry without re-running a build.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the stored provenance for a version verifies against the artifact digest; (2) the referenced commit sha resolves in the source repository and its tree hash matches what the attestation claims. A stored record nobody can resolve is provenance theatre.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 1800,
+  "inputs": [
+   "IMP-0063 build attestation (producer)",
+   "_USER-PROMPTS.md:10854 (provenance)",
+   "IMP-0067 index schema"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_provenance_store.py::test_stored_provenance_verifies_against_artifact",
+   "NEGATIVE CONTROL: a provenance record pointing at a non-existent commit must be rejected at publish time",
+   "query: every published version returns a provenance record or an explicit NONE, never an empty success"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0080"
+ },
+ "IMP-0082": {
+  "id": "IMP-0082",
+  "title": "Dependency metadata model with a cycle detector",
+  "output_path": "command-center/receipts/IMP-0082.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/dependency.schema.json",
+  "dependencies": [
+   "IMP-0070"
+  ],
+  "description": null,
+  "question_or_target": "Model declared dependencies (required, optional, peer, dev) with version ranges and detect cycles at publish time, reporting the exact cycle path rather than failing with a recursion error at install time.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the detector reports the exact node sequence of a planted cycle; (2) an independent graph library run over the same edge list reports the same cycle set. Agreement on existence AND on membership is required.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10851 (dependency metadata)",
+   "IMP-0070 version model",
+   "IMP-0067 index schema"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_dependency_graph.py (self-cycle, two-node cycle, long cycle, diamond without a cycle)",
+   "NEGATIVE CONTROL: an acyclic diamond must NOT be reported as a cycle",
+   "optional and peer edges are classified distinctly from required ones"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0082"
+ },
+ "IMP-0085": {
+  "id": "IMP-0085",
+  "title": "Platform and client compatibility resolution with an explicit refusal reason",
+  "output_path": "command-center/receipts/IMP-0085.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0083",
+   "IMP-0008"
+  ],
+  "description": null,
+  "question_or_target": "Filter candidate versions by declared platform and client compatibility during resolution, and when nothing satisfies the constraints, report the exact unmet requirement (e.g. 'requires client >= X, you have Y') instead of an empty result set.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the resolver's filtered candidate set for each of Windows/macOS/Linux and two client versions; (2) an independent recomputation of the same filter from the raw metadata, requiring identical sets. An empty result must always carry a reason string, asserted separately.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10852 (platform and client compatibility)",
+   "IMP-0008 client negotiation",
+   "IMP-0083 resolver"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_compat_resolution.py (per-platform, per-client, and the no-candidate case)",
+   "NEGATIVE CONTROL: an empty result with an empty reason must fail the test",
+   "a package with NO declared compatibility must be treated as unknown, not as universally compatible"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0085"
+ },
+ "IMP-0087": {
+  "id": "IMP-0087",
+  "title": "Marketplace `update` with changelog and permission-diff preview",
+  "output_path": "command-center/receipts/IMP-0087.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0086",
+   "IMP-0060"
+  ],
+  "description": null,
+  "question_or_target": "Implement update so the user sees, before anything changes, the version delta, the changelog entries between the two versions, and the permission diff — and so a permission-widening update requires the explicit consent implemented in IMP-0060.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the preview's declared file and permission changes; (2) the actual post-update census and effective permission set, requiring an exact match with the preview. A preview that under-reports is worse than none.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "IMP-0060 permission diff",
+   "_USER-PROMPTS.md:10862",
+   "_USER-PROMPTS.md:11346"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_update_preview_fidelity.py::test_preview_matches_actual",
+   "NEGATIVE CONTROL: a widening update without consent must abort with nothing written",
+   "a changelog gap (missing entry for an intermediate version) must be reported, not silently skipped"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0087"
+ },
+ "IMP-0090": {
+  "id": "IMP-0090",
+  "title": "Package permission declaration and the install-time permission surface",
+  "output_path": "command-center/receipts/IMP-0090.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/permissions.schema.json",
+  "dependencies": [
+   "IMP-0067",
+   "IMP-0059"
+  ],
+  "description": null,
+  "question_or_target": "Add a declared permission block to package metadata and render it at install time as a human-readable list grouped by risk, so a user sees what a package may do before it runs — the registry-side counterpart to the Phase-5 runtime enforcement.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) the rendered surface lists exactly the declared permissions (set equality with the metadata); (2) the runtime enforcement layer, queried separately, reports the same effective set — a declaration the runtime does not enforce is decorative and must be flagged.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10853 (permissions)",
+   "IMP-0059 runtime enforcement",
+   "IMP-0067 index schema"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_permission_surface.py::test_rendered_set_equals_declared_set",
+   "tools/marketplace/tests/test_permission_surface.py::test_declared_set_equals_enforced_set",
+   "NEGATIVE CONTROL: a package declaring nothing must render 'no permissions declared', never an empty screen"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0090"
+ },
+ "IMP-0093": {
+  "id": "IMP-0093",
+  "title": "License metadata with SPDX validation and dependency-closure compatibility",
+  "output_path": "command-center/receipts/IMP-0093.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0083",
+   "IMP-0067"
+  ],
+  "description": null,
+  "question_or_target": "Validate each package's declared license against the SPDX identifier list, and compute license compatibility across the resolved dependency closure so an incompatible combination is reported at resolve time with the exact offending pair.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) SPDX identifier validity checked against the official list; (2) a compatibility verdict for each closure pair, cross-checked against a published compatibility matrix. Any pair not covered by the matrix must be reported UNKNOWN-NEEDS-REVIEW, never assumed compatible.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10857 (license metadata)",
+   "_USER-PROMPTS.md:11334 (workflow provenance or license is lost)",
+   ".claude-plugin/plugin.json license MIT",
+   "IMP-0083 resolver"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_license.py (valid SPDX, invalid SPDX, compatible closure, incompatible closure, unknown pair)",
+   "NEGATIVE CONTROL: an unknown pair must NOT resolve to compatible",
+   "a missing license must be LICENSE-ABSENT and must block publication"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0093"
+ },
+ "IMP-0095": {
+  "id": "IMP-0095",
+  "title": "Score and verdict decay: recompute when an input changes",
+  "output_path": "command-center/receipts/IMP-0095.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0094"
+  ],
+  "description": null,
+  "question_or_target": "Implement freshness semantics so a stored quality score, vulnerability verdict, or conformance result carries the timestamp and input hashes it was computed from, and is marked STALE (and recomputed) when any input changes — because a green result computed last week against a live advisory database is not a control for today.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) changing one input hash flips the stored verdict to STALE; (2) an age-based sweep independently marks a verdict older than its freshness window as STALE even when no input hash changed — the advisory database is an input the registry cannot hash.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "PINNED GROUND TRUTH: a green CI run DECAYS; gate-deps/osv-scanner queries a live advisory DB",
+   "IMP-0094 score",
+   "IMP-0098 vulnerability ingestion"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_verdict_freshness.py::test_input_change_marks_stale",
+   "tools/marketplace/tests/test_verdict_freshness.py::test_age_alone_marks_stale",
+   "NEGATIVE CONTROL: a fresh verdict with unchanged inputs stays valid in the same run"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0095"
+ },
+ "IMP-0104": {
+  "id": "IMP-0104",
+  "title": "Collections: curated bundles installable under one compatible lock",
+  "output_path": "command-center/receipts/IMP-0104.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/collection.schema.json",
+  "dependencies": [
+   "IMP-0084"
+  ],
+  "description": null,
+  "question_or_target": "Implement a collection as a named set of packages with a single resolved lockfile, so 'install the RE toolchain' is one atomic, reproducible operation whose members are known to resolve together — and where an incompatible member is reported at collection-definition time, not at install time.",
+  "mechanism": null,
+  "evidence_requirement": "TWO independent signals: (1) a collection resolves to one lockfile whose member set equals the declared set; (2) a partially failing install leaves the machine in a declared state (all-or-nothing, or partial-with-explicit-report) confirmed by a filesystem census — the observed state must match the documented guarantee exactly.",
+  "owner_approval_required": false,
+  "phase": "6",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "_USER-PROMPTS.md:10861",
+   "IMP-0083 resolver",
+   "IMP-0084 lockfile"
+  ],
+  "tests_required": [
+   "tools/marketplace/tests/test_collections.py::test_collection_resolves_to_one_lock",
+   "tools/marketplace/tests/test_collections.py::test_partial_failure_matches_declared_guarantee",
+   "NEGATIVE CONTROL: a collection with a mutually incompatible pair must fail at definition time"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0104"
+ },
+ "IMP-0146": {
+  "id": "IMP-0146",
+  "title": "Implement canonical export/import with a byte-stable round trip",
+  "output_path": "command-center/receipts/IMP-0146.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0129",
+   "IMP-0130",
+   "IMP-0131",
+   "IMP-0132"
+  ],
+  "description": null,
+  "question_or_target": "Target: extend tools/agentspec/agentspec/canonical.py so any Workflow (including the new node types) exports to a canonical form and re-imports to an equal object. Acceptance: export(import(export(w))) == export(w) byte-for-byte, on LF bytes obtained via `git cat-file -p` (NOT `git archive`, which returns CRLF on this box and would silently validate the wrong bytes).",
+  "mechanism": null,
+  "evidence_requirement": "Two signals: (1) round-trip byte equality over every fixture; (2) the same check run against the committed blob bytes (git cat-file) as well as the working tree, so a CRLF-only difference cannot masquerade as a pass.",
+  "owner_approval_required": false,
+  "phase": "7",
+  "bucket": null,
+  "timeout_seconds": 3600,
+  "inputs": [
+   "tools/agentspec/agentspec/canonical.py",
+   "rules/common/windows-shell.md (8b: blob vs archive)"
+  ],
+  "tests_required": [
+   "idempotent round trip over all fixtures including every new node type",
+   "CRLF working-tree copy and LF blob copy both round-trip (the recorded EOL trap)"
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0146"
+ }
+}

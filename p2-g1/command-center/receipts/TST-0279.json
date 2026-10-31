@@ -1,0 +1,978 @@
+{
+ "answer": "On the runtime this unit executes (probe-local CouncilRuntime), role mandates are enforced at the point of use: 60/60 forbidden cells REFUSED, 28/28 permitted cells PERMITTED, proposer+judge seating REFUSED, guardian veto BLOCKS, observer veto REFUSED. A prompt-only role (prompt_scribe) is UNENFORCED on every action. Production tools/council is absent here and is not claimed.",
+ "artifacts": [
+  {
+   "bytes": 16277,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0279/runtime.py",
+   "role": "supporting",
+   "sha256": "6c20983883cf841af61eba962fe4ce31cd2d28e2b529bf6ce31c6e26334553bb"
+  },
+  {
+   "bytes": 3576,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0279/probe1_matrix.py",
+   "role": "supporting",
+   "sha256": "e2d3a0122ef98acf6609e8d45290c8ccbf9946d91ebeaf50dd55cfa9f3c948eb"
+  },
+  {
+   "bytes": 4100,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+   "role": "supporting",
+   "sha256": "95a8a2e4e884cb07249a367012c23cb7d71d1d9bb3244d466d03de680e6697d5"
+  },
+  {
+   "bytes": 15293,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0279/emit_receipt.py",
+   "role": "supporting",
+   "sha256": "7a55e5f75ae44224637d37670ef16f660d1c1830239f8278e7785c7b378f26cf"
+  }
+ ],
+ "both_states": {
+  "behaviour_differs": true,
+  "enforced_forbidden_leaked": 0,
+  "stripped_forbidden_leaked": 60,
+  "stripped_forbidden_total": 60
+ },
+ "completion_sentinel": "SUCCESS:TST-0279",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0279.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py TST-0279",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0279",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "measured after receipt+manifest write",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0279/runtime.py:action_permitted",
+   "claim": "Typed-role matrix is complete and discriminating: 88 cells (8 roles \u00d7 11 actions); 60/60 forbidden cells REFUSED; 28/28 permitted cells PERMITTED; prompt-only role prompt_scribe is UNENFORCED on every action.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe1_matrix.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "cells=88 forbidden_refused=60/60",
+     "role": "source"
+    },
+    {
+     "command": "run_full_matrix(enforce=True) inside emit_receipt.py",
+     "exit_code": 0,
+     "method": "in-process-matrix",
+     "raw_output": "mismatches=0 matrix_ok=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+   "claim": "Enforcement is not prompt-label theatre: stripping the gate leaks every forbidden cell (60/60); proposer+judge seating is REFUSED; guardian veto BLOCKS an open motion and observer veto is REFUSED with the motion left OPEN.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "leaked_off=60 leaked_on=0 incompatible=REFUSED veto_holder=BLOCKED",
+     "role": "source"
+    },
+    {
+     "command": "incompatible_trial(); veto_trial()",
+     "exit_code": 0,
+     "method": "in-process-trials",
+     "raw_output": "{\"incompatible\": true, \"veto\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "incompatible_role_trial": {
+  "bad_observed": "REFUSED",
+  "bad_reason": "incompatible-roles:judge+proposer",
+  "good_observed": "PERMITTED",
+  "ok": true
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0279/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "leaked=60/60",
+   "description": "CouncilRuntime(enforce=False) must permit every typed forbidden action, else the matrix is a constant REFUSED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "leaked=0/60",
+   "id": "TST-0279-C1-STRIP-ENFORCEMENT",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "prompt_cells=11 all_unenforced=True",
+   "description": "prompt_scribe has no Mandate record; every action is UNENFORCED, not greened as REFUSED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "typed roles use Mandate records and are not UNENFORCED",
+   "id": "TST-0279-C2-PROMPT-ONLY-ROLE",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "cursor-grok-4.6",
+  "role": "test-engineer",
+  "vendor": "spacexai-cursor"
+ },
+ "production_runtime_census": {
+  "any_present": false,
+  "note": "IMP-0280/TST-0257 production council files are absent on this worktree. TST-0279 ships and measures a probe-local kernel with point-of-use checks; it does not claim those missing files exist.",
+  "rows": [
+   {
+    "bytes": 0,
+    "exists": false,
+    "path": "tools/council/roles/mandate.py"
+   },
+   {
+    "bytes": 0,
+    "exists": false,
+    "path": "tools/council/simulate.py"
+   },
+   {
+    "bytes": 0,
+    "exists": false,
+    "path": "tools/council/kernel.py"
+   },
+   {
+    "bytes": 0,
+    "exists": false,
+    "path": "command-center/schema/council-spec.schema.json"
+   },
+   {
+    "bytes": 0,
+    "exists": false,
+    "path": "_USER-PROMPTS.md"
+   }
+  ],
+  "subject_runtime": "command-center/p2-wave/probes/TST-0279/runtime.py"
+ },
+ "profile": "council-role-enforcement-matrix",
+ "question": "Are role mandates enforced by the runtime or merely described in the prompt? Attempt every forbidden action from every role and require a runtime refusal; a role that only exists in the prompt is a suggestion and must be reported as unenforced.",
+ "residual_unknowns": [
+  {
+   "claim": "Whether a future IMP-0280 tools/council/roles/mandate.py on another worktree matches this kernel cell-for-cell.",
+   "settling_experiment": "When tools/council/roles/mandate.py lands, re-run this matrix against that module and diff every cell.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "_USER-PROMPTS.md:10925 is not on this worktree; the eight-role template is reconstructed from catalog language (TST-0279/IMP-0280/CNL-0027/0029/0024).",
+   "settling_experiment": "Diff REGISTRY against the restored spec lines 10925-10946.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "Two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 is a second executable control (strip-gate + incompatible seating + veto effect + mute-veto leak). It does not author the mandate table; it reproduces the both-states divergence from the raw cells.",
+  "reviewer_id": "TST-0279-probe2-both-states",
+  "verdict": "PASS"
+ },
+ "role_x_forbidden_action_matrix": {
+  "actions": [
+   "speak",
+   "propose",
+   "critique",
+   "synthesize",
+   "vote",
+   "veto",
+   "judge",
+   "use_tool:draft",
+   "use_tool:exec",
+   "read_source:brief",
+   "read_source:hidden"
+  ],
+  "cell_count": 88,
+  "cells": [
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "chair",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "critic",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "guardian",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "judge",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "juror",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "observer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "proposer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "speak",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "propose",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "critique",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "synthesize",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "vote",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "veto",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "judge",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "PERMITTED",
+    "observed": "PERMITTED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "REFUSED",
+    "observed": "REFUSED",
+    "role": "synthesizer",
+    "verdict": "PASS"
+   }
+  ],
+  "forbidden_refused": 60,
+  "forbidden_total": 60,
+  "permitted_ok": 28,
+  "permitted_total": 28,
+  "prompt_only_cells": [
+   {
+    "action": "speak",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "propose",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "critique",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "synthesize",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "vote",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "veto",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "judge",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "use_tool:draft",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "use_tool:exec",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "read_source:brief",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   },
+   {
+    "action": "read_source:hidden",
+    "expected": "UNENFORCED",
+    "observed": "UNENFORCED",
+    "role": "prompt_scribe",
+    "verdict": "UNENFORCED"
+   }
+  ],
+  "prompt_only_role": "prompt_scribe",
+  "typed_roles": [
+   "chair",
+   "critic",
+   "guardian",
+   "judge",
+   "juror",
+   "observer",
+   "proposer",
+   "synthesizer"
+  ]
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0279",
+ "spec_anchor": "_USER-PROMPTS.md:10925 and :10946 (role mandates; simulations proving enforcement)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe1_matrix.py",
+   "id": "TST-0279-MATRIX-FORBIDDEN",
+   "name": "Every role attempts every forbidden action -> refusal in every prohibited cell",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe1_matrix.py",
+   "id": "TST-0279-MATRIX-PERMITTED",
+   "name": "Permitted actions succeed in every allowed cell (no over-blocking)",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+   "id": "TST-0279-INCOMPATIBLE-ROLES",
+   "name": "Incompatible-role assignment (proposer+judge) rejected at validation",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+   "id": "TST-0279-VETO-EFFECT",
+   "name": "Veto by a holder blocks; veto by a non-holder is refused and does not block",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0279/probe2_controls.py",
+   "id": "TST-0279-BOTH-STATES",
+   "name": "Stripping enforcement leaks every forbidden cell; enforcing leaks none",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:53:41Z",
+  "started_at": "2026-08-25T00:53:41Z"
+ },
+ "unit_id": "TST-0279",
+ "veto_trial": {
+  "holder_blocked": true,
+  "holder_motion_status": "BLOCKED",
+  "holder_observed": "PERMITTED",
+  "nonholder_blocked": false,
+  "nonholder_motion_status": "OPEN",
+  "nonholder_observed": "REFUSED",
+  "ok": true
+ }
+}

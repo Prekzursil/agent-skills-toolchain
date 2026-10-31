@@ -1,0 +1,1077 @@
+{
+ "unit_id": "CNF-0046",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0046 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the locked and unlocked runs completed and the resulting version inventories are attached. Any other terminal state is FAILED:CNF-0046 <classification> with the diagnostic tail attached.",
+ "schema_version": 1,
+ "min_bytes_threshold": 1200,
+ "report": {
+  "kind": "rollback-report",
+  "observations": [
+   {
+    "name": "locked-aware-exit",
+    "measured": 2,
+    "method": "fcntl.LOCK_EX|LOCK_NB preflight under live client hold",
+    "anchor": "command-center/p2-wave/probes/CNF-0046/rollback.py"
+   },
+   {
+    "name": "error-names-locking-pid",
+    "measured": true,
+    "method": "/proc fd inode scan plus /proc/locks",
+    "anchor": "command-center/p2-wave/probes/CNF-0046/handles.py"
+   },
+   {
+    "name": "unlocked-control-exit",
+    "measured": 0,
+    "method": "same rollback with client stopped",
+    "anchor": "command-center/p2-wave/probes/CNF-0046/lab.py"
+   },
+   {
+    "name": "naive-skip-mixed-version",
+    "measured": true,
+    "method": "skip-on-lock detector control",
+    "anchor": "command-center/p2-wave/probes/CNF-0046/probe1_locked.py"
+   }
+  ],
+  "control_ids": [
+   "locked-aware-clean-refusal",
+   "locked-naive-skip-mixed-version",
+   "unlocked-client-stopped",
+   "locked-posix-replace"
+  ]
+ },
+ "evidence": [
+  {
+   "claim": "CNF-0046 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0046-locked-file-rollback.json",
+     "raw_output": "bytes=18513 sha256=40e76b9cb4884aa78bf1f2a7754645ea3d038b2e7909d9faa27bd297b90beaf3",
+     "fingerprint": "f7c59b7db2d4f5edb73f5f03568fc31d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0046",
+     "raw_output": "schema-check",
+     "fingerprint": "afa402ceea4537b4de730cefd3ddb41f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0046 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0046",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0046",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "6184e38d3053d1e47d4244a9f2af832e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0046",
+     "raw_output": "schema-valid",
+     "fingerprint": "3248a161a2ab3190fa57550fa8b6b1e6",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0046-locked-file-rollback.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+   "bytes": 18513,
+   "sha256": "40e76b9cb4884aa78bf1f2a7754645ea3d038b2e7909d9faa27bd297b90beaf3",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:CNF-0046 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the locked and unlocked runs completed and the resulting version inventories are attached. Any other terminal state is FAILED:CNF-0046 <classification> with the diagnostic tail attached.",
+   "report_kind": "locked-file-rollback",
+   "title": "Rollback while target files are locked by a running Windows client",
+   "question": "Windows refuses to replace a file held open. With a client process actively holding the installed files, run the rollback and answer: does it fail loudly with an actionable message naming the locking process, does it silently skip the locked file leaving a mixed version, or does it corrupt the file?",
+   "measured_at": "2026-08-25T00:53:42Z",
+   "substrate": {
+    "os": "Linux",
+    "kernel": "6.8.0-136-generic",
+    "python": "3.12.3",
+    "windows_client": false,
+    "platform_plugin_cli_present": true,
+    "implementation_under_test": "command-center/p2-wave/probes/CNF-0046/rollback.py",
+    "lock_analogue": "fcntl.LOCK_EX held by a client subprocess; rollback preflight uses LOCK_EX|LOCK_NB (BlockingIOError = sharing-violation analogue) and /proc fd inode scan to name the locker",
+    "posix_note": "POSIX os.replace succeeds while a fd is held; the locker keeps the old inode. That is not Windows behaviour and is recorded as posix-replace, not as the verdict."
+   },
+   "verdict": {
+    "classification": "clean-refusal",
+    "summary": "Locking-aware rollback refuses the whole tree when any target is held open, names the locking pid/comm in the error text, writes nothing, and leaves a uniform V2 inventory (no mixed version, no corruption). The naive skip-on-error path — the failure class this unit hunts — exits 0 and leaves a mixed V1/V2 tree, proving the probe discriminates silent skip from clean refusal. Unlocked control restores byte-identical V1.",
+    "silent_skip_mixed_version": false,
+    "file_corruption": false,
+    "names_locking_process": true,
+    "unlocked_control_succeeds": true
+   },
+   "locked_run": {
+    "id": "locked-aware",
+    "role": "windows-lock-analogue",
+    "mode": "aware",
+    "exit_code": 2,
+    "error_text": "ROLLBACK REFUSED: target files are locked by another process.\n  plugin.py: pid=37256 comm=python3 fd=3 (inode 1311250)\n  hooks/hook.py: pid=37256 comm=python3 fd=4 (inode 1311252)\nUnlock the named process and retry; a partial rollback was not applied.",
+    "wrote": false,
+    "skipped": [],
+    "blocked_paths": [
+     "plugin.py",
+     "hooks/hook.py"
+    ],
+    "handle_list": [
+     {
+      "pid": 37256,
+      "comm": "python3",
+      "fd": "3",
+      "path": "/tmp/cnf0046-ufgk6s68/prefix/plugin.py",
+      "dev": 2049,
+      "ino": 1311250
+     },
+     {
+      "pid": 37256,
+      "comm": "python3",
+      "fd": "4",
+      "path": "/tmp/cnf0046-ufgk6s68/prefix/hooks/hook.py",
+      "dev": 2049,
+      "ino": 1311252
+     }
+    ],
+    "locking_process": {
+     "pid": 37256,
+     "comm": "python3"
+    },
+    "locker_pid_started": 37256,
+    "locker_pid_observed": true,
+    "error_names_pid": true,
+    "mixed_version": false,
+    "corrupted": false,
+    "all_v1": false,
+    "all_v2": true,
+    "names_locking_process": true,
+    "locked_rels": [
+     "plugin.py",
+     "hooks/hook.py"
+    ],
+    "unlocked_rel": "logs/active.log"
+   },
+   "unlocked_run": {
+    "id": "unlocked-control",
+    "role": "client-stopped",
+    "mode": "aware",
+    "exit_code": 0,
+    "error_text": "",
+    "wrote": true,
+    "skipped": [],
+    "blocked_paths": [],
+    "handle_list": [],
+    "locking_process": {
+     "pid": null,
+     "comm": null
+    },
+    "locker_pid_started": null,
+    "locker_pid_observed": false,
+    "error_names_pid": false,
+    "mixed_version": false,
+    "corrupted": false,
+    "all_v1": true,
+    "all_v2": false,
+    "names_locking_process": false,
+    "locked_rels": [
+     "plugin.py",
+     "hooks/hook.py"
+    ],
+    "unlocked_rel": "logs/active.log"
+   },
+   "runs": [
+    {
+     "id": "locked-aware",
+     "role": "windows-lock-analogue",
+     "mode": "aware",
+     "exit_code": 2,
+     "error_text": "ROLLBACK REFUSED: target files are locked by another process.\n  plugin.py: pid=37256 comm=python3 fd=3 (inode 1311250)\n  hooks/hook.py: pid=37256 comm=python3 fd=4 (inode 1311252)\nUnlock the named process and retry; a partial rollback was not applied.",
+     "wrote": false,
+     "skipped": [],
+     "blocked_paths": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "handle_list": [
+      {
+       "pid": 37256,
+       "comm": "python3",
+       "fd": "3",
+       "path": "/tmp/cnf0046-ufgk6s68/prefix/plugin.py",
+       "dev": 2049,
+       "ino": 1311250
+      },
+      {
+       "pid": 37256,
+       "comm": "python3",
+       "fd": "4",
+       "path": "/tmp/cnf0046-ufgk6s68/prefix/hooks/hook.py",
+       "dev": 2049,
+       "ino": 1311252
+      }
+     ],
+     "locking_process": {
+      "pid": 37256,
+      "comm": "python3"
+     },
+     "locker_pid_started": 37256,
+     "locker_pid_observed": true,
+     "error_names_pid": true,
+     "mixed_version": false,
+     "corrupted": false,
+     "all_v1": false,
+     "all_v2": true,
+     "names_locking_process": true,
+     "locked_rels": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "unlocked_rel": "logs/active.log"
+    },
+    {
+     "id": "unlocked-control",
+     "role": "client-stopped",
+     "mode": "aware",
+     "exit_code": 0,
+     "error_text": "",
+     "wrote": true,
+     "skipped": [],
+     "blocked_paths": [],
+     "handle_list": [],
+     "locking_process": {
+      "pid": null,
+      "comm": null
+     },
+     "locker_pid_started": null,
+     "locker_pid_observed": false,
+     "error_names_pid": false,
+     "mixed_version": false,
+     "corrupted": false,
+     "all_v1": true,
+     "all_v2": false,
+     "names_locking_process": false,
+     "locked_rels": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "unlocked_rel": "logs/active.log"
+    },
+    {
+     "id": "locked-naive-skip",
+     "role": "detector-control-silent-skip",
+     "mode": "naive-skip",
+     "exit_code": 0,
+     "error_text": "",
+     "wrote": true,
+     "skipped": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "blocked_paths": [],
+     "handle_list": [
+      {
+       "pid": 37265,
+       "comm": "python3",
+       "fd": "3",
+       "path": "/tmp/cnf0046-q52hnqak/prefix/plugin.py",
+       "dev": 2049,
+       "ino": 1311250
+      },
+      {
+       "pid": 37265,
+       "comm": "python3",
+       "fd": "4",
+       "path": "/tmp/cnf0046-q52hnqak/prefix/hooks/hook.py",
+       "dev": 2049,
+       "ino": 1311252
+      }
+     ],
+     "locking_process": {
+      "pid": 37265,
+      "comm": "python3"
+     },
+     "locker_pid_started": 37265,
+     "locker_pid_observed": true,
+     "error_names_pid": false,
+     "mixed_version": true,
+     "corrupted": false,
+     "all_v1": false,
+     "all_v2": false,
+     "names_locking_process": true,
+     "locked_rels": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "unlocked_rel": "logs/active.log"
+    },
+    {
+     "id": "locked-posix-replace",
+     "role": "posix-native-replace-while-open",
+     "mode": "posix-replace",
+     "exit_code": 0,
+     "error_text": "",
+     "wrote": true,
+     "skipped": [],
+     "blocked_paths": [],
+     "handle_list": [
+      {
+       "pid": 37267,
+       "comm": "python3",
+       "fd": "3",
+       "path": "/tmp/cnf0046-qf543cjy/prefix/plugin.py",
+       "dev": 2049,
+       "ino": 1311250
+      },
+      {
+       "pid": 37267,
+       "comm": "python3",
+       "fd": "4",
+       "path": "/tmp/cnf0046-qf543cjy/prefix/hooks/hook.py",
+       "dev": 2049,
+       "ino": 1311252
+      }
+     ],
+     "locking_process": {
+      "pid": 37267,
+      "comm": "python3"
+     },
+     "locker_pid_started": 37267,
+     "locker_pid_observed": true,
+     "error_names_pid": false,
+     "mixed_version": false,
+     "corrupted": false,
+     "all_v1": true,
+     "all_v2": false,
+     "names_locking_process": true,
+     "locked_rels": [
+      "plugin.py",
+      "hooks/hook.py"
+     ],
+     "unlocked_rel": "logs/active.log"
+    }
+   ],
+   "inventories": {
+    "v1_snapshot": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+       "bytes": 24,
+       "version": "v1"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+       "bytes": 22,
+       "version": "v1"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+       "bytes": 21,
+       "version": "v1"
+      }
+     ]
+    },
+    "v2_installed": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+       "bytes": 24,
+       "version": "v2"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+       "bytes": 22,
+       "version": "v2"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5",
+       "bytes": 21,
+       "version": "v2"
+      }
+     ]
+    },
+    "post_locked_aware": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+       "bytes": 24,
+       "version": "v2"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+       "bytes": 22,
+       "version": "v2"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5",
+       "bytes": 21,
+       "version": "v2"
+      }
+     ]
+    },
+    "post_unlocked_control": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+       "bytes": 24,
+       "version": "v1"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+       "bytes": 22,
+       "version": "v1"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+       "bytes": 21,
+       "version": "v1"
+      }
+     ]
+    },
+    "post_naive_skip": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+       "bytes": 24,
+       "version": "v2"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+       "bytes": 22,
+       "version": "v2"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+       "bytes": 21,
+       "version": "v1"
+      }
+     ]
+    },
+    "post_posix_replace": {
+     "files": [
+      {
+       "path": "plugin.py",
+       "present": true,
+       "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+       "bytes": 24,
+       "version": "v1"
+      },
+      {
+       "path": "hooks/hook.py",
+       "present": true,
+       "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+       "bytes": 22,
+       "version": "v1"
+      },
+      {
+       "path": "logs/active.log",
+       "present": true,
+       "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+       "bytes": 21,
+       "version": "v1"
+      }
+     ]
+    },
+    "known_hashes": {
+     "v1": {
+      "plugin.py": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+      "hooks/hook.py": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+      "logs/active.log": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c"
+     },
+     "v2": {
+      "plugin.py": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+      "hooks/hook.py": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+      "logs/active.log": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5"
+     }
+    }
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "locked-file-hunt",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0046/probe1_locked.py"
+    },
+    {
+     "id": "probe2",
+     "role": "unlocked-control",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0046/probe2_unlocked.py"
+    }
+   ],
+   "output_path": "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+   "output_schema": "command-center/schema/rollback-report.schema.json"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0046",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0046/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0046"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0046-locked-file-rollback.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "4dd172f8f3dfbe2af2afa04323fcef86",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0046 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the locked and unlocked runs completed and the resulting version inventories are attached. Any other terminal state is FAILED:CNF-0046 <classification> with the diagnostic tail attached.",
+ "report_kind": "locked-file-rollback",
+ "title": "Rollback while target files are locked by a running Windows client",
+ "question": "Windows refuses to replace a file held open. With a client process actively holding the installed files, run the rollback and answer: does it fail loudly with an actionable message naming the locking process, does it silently skip the locked file leaving a mixed version, or does it corrupt the file?",
+ "measured_at": "2026-08-25T00:53:42Z",
+ "substrate": {
+  "os": "Linux",
+  "kernel": "6.8.0-136-generic",
+  "python": "3.12.3",
+  "windows_client": false,
+  "platform_plugin_cli_present": true,
+  "implementation_under_test": "command-center/p2-wave/probes/CNF-0046/rollback.py",
+  "lock_analogue": "fcntl.LOCK_EX held by a client subprocess; rollback preflight uses LOCK_EX|LOCK_NB (BlockingIOError = sharing-violation analogue) and /proc fd inode scan to name the locker",
+  "posix_note": "POSIX os.replace succeeds while a fd is held; the locker keeps the old inode. That is not Windows behaviour and is recorded as posix-replace, not as the verdict."
+ },
+ "verdict": {
+  "classification": "clean-refusal",
+  "summary": "Locking-aware rollback refuses the whole tree when any target is held open, names the locking pid/comm in the error text, writes nothing, and leaves a uniform V2 inventory (no mixed version, no corruption). The naive skip-on-error path — the failure class this unit hunts — exits 0 and leaves a mixed V1/V2 tree, proving the probe discriminates silent skip from clean refusal. Unlocked control restores byte-identical V1.",
+  "silent_skip_mixed_version": false,
+  "file_corruption": false,
+  "names_locking_process": true,
+  "unlocked_control_succeeds": true
+ },
+ "locked_run": {
+  "id": "locked-aware",
+  "role": "windows-lock-analogue",
+  "mode": "aware",
+  "exit_code": 2,
+  "error_text": "ROLLBACK REFUSED: target files are locked by another process.\n  plugin.py: pid=37256 comm=python3 fd=3 (inode 1311250)\n  hooks/hook.py: pid=37256 comm=python3 fd=4 (inode 1311252)\nUnlock the named process and retry; a partial rollback was not applied.",
+  "wrote": false,
+  "skipped": [],
+  "blocked_paths": [
+   "plugin.py",
+   "hooks/hook.py"
+  ],
+  "handle_list": [
+   {
+    "pid": 37256,
+    "comm": "python3",
+    "fd": "3",
+    "path": "/tmp/cnf0046-ufgk6s68/prefix/plugin.py",
+    "dev": 2049,
+    "ino": 1311250
+   },
+   {
+    "pid": 37256,
+    "comm": "python3",
+    "fd": "4",
+    "path": "/tmp/cnf0046-ufgk6s68/prefix/hooks/hook.py",
+    "dev": 2049,
+    "ino": 1311252
+   }
+  ],
+  "locking_process": {
+   "pid": 37256,
+   "comm": "python3"
+  },
+  "locker_pid_started": 37256,
+  "locker_pid_observed": true,
+  "error_names_pid": true,
+  "mixed_version": false,
+  "corrupted": false,
+  "all_v1": false,
+  "all_v2": true,
+  "names_locking_process": true,
+  "locked_rels": [
+   "plugin.py",
+   "hooks/hook.py"
+  ],
+  "unlocked_rel": "logs/active.log"
+ },
+ "unlocked_run": {
+  "id": "unlocked-control",
+  "role": "client-stopped",
+  "mode": "aware",
+  "exit_code": 0,
+  "error_text": "",
+  "wrote": true,
+  "skipped": [],
+  "blocked_paths": [],
+  "handle_list": [],
+  "locking_process": {
+   "pid": null,
+   "comm": null
+  },
+  "locker_pid_started": null,
+  "locker_pid_observed": false,
+  "error_names_pid": false,
+  "mixed_version": false,
+  "corrupted": false,
+  "all_v1": true,
+  "all_v2": false,
+  "names_locking_process": false,
+  "locked_rels": [
+   "plugin.py",
+   "hooks/hook.py"
+  ],
+  "unlocked_rel": "logs/active.log"
+ },
+ "runs": [
+  {
+   "id": "locked-aware",
+   "role": "windows-lock-analogue",
+   "mode": "aware",
+   "exit_code": 2,
+   "error_text": "ROLLBACK REFUSED: target files are locked by another process.\n  plugin.py: pid=37256 comm=python3 fd=3 (inode 1311250)\n  hooks/hook.py: pid=37256 comm=python3 fd=4 (inode 1311252)\nUnlock the named process and retry; a partial rollback was not applied.",
+   "wrote": false,
+   "skipped": [],
+   "blocked_paths": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "handle_list": [
+    {
+     "pid": 37256,
+     "comm": "python3",
+     "fd": "3",
+     "path": "/tmp/cnf0046-ufgk6s68/prefix/plugin.py",
+     "dev": 2049,
+     "ino": 1311250
+    },
+    {
+     "pid": 37256,
+     "comm": "python3",
+     "fd": "4",
+     "path": "/tmp/cnf0046-ufgk6s68/prefix/hooks/hook.py",
+     "dev": 2049,
+     "ino": 1311252
+    }
+   ],
+   "locking_process": {
+    "pid": 37256,
+    "comm": "python3"
+   },
+   "locker_pid_started": 37256,
+   "locker_pid_observed": true,
+   "error_names_pid": true,
+   "mixed_version": false,
+   "corrupted": false,
+   "all_v1": false,
+   "all_v2": true,
+   "names_locking_process": true,
+   "locked_rels": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "unlocked_rel": "logs/active.log"
+  },
+  {
+   "id": "unlocked-control",
+   "role": "client-stopped",
+   "mode": "aware",
+   "exit_code": 0,
+   "error_text": "",
+   "wrote": true,
+   "skipped": [],
+   "blocked_paths": [],
+   "handle_list": [],
+   "locking_process": {
+    "pid": null,
+    "comm": null
+   },
+   "locker_pid_started": null,
+   "locker_pid_observed": false,
+   "error_names_pid": false,
+   "mixed_version": false,
+   "corrupted": false,
+   "all_v1": true,
+   "all_v2": false,
+   "names_locking_process": false,
+   "locked_rels": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "unlocked_rel": "logs/active.log"
+  },
+  {
+   "id": "locked-naive-skip",
+   "role": "detector-control-silent-skip",
+   "mode": "naive-skip",
+   "exit_code": 0,
+   "error_text": "",
+   "wrote": true,
+   "skipped": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "blocked_paths": [],
+   "handle_list": [
+    {
+     "pid": 37265,
+     "comm": "python3",
+     "fd": "3",
+     "path": "/tmp/cnf0046-q52hnqak/prefix/plugin.py",
+     "dev": 2049,
+     "ino": 1311250
+    },
+    {
+     "pid": 37265,
+     "comm": "python3",
+     "fd": "4",
+     "path": "/tmp/cnf0046-q52hnqak/prefix/hooks/hook.py",
+     "dev": 2049,
+     "ino": 1311252
+    }
+   ],
+   "locking_process": {
+    "pid": 37265,
+    "comm": "python3"
+   },
+   "locker_pid_started": 37265,
+   "locker_pid_observed": true,
+   "error_names_pid": false,
+   "mixed_version": true,
+   "corrupted": false,
+   "all_v1": false,
+   "all_v2": false,
+   "names_locking_process": true,
+   "locked_rels": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "unlocked_rel": "logs/active.log"
+  },
+  {
+   "id": "locked-posix-replace",
+   "role": "posix-native-replace-while-open",
+   "mode": "posix-replace",
+   "exit_code": 0,
+   "error_text": "",
+   "wrote": true,
+   "skipped": [],
+   "blocked_paths": [],
+   "handle_list": [
+    {
+     "pid": 37267,
+     "comm": "python3",
+     "fd": "3",
+     "path": "/tmp/cnf0046-qf543cjy/prefix/plugin.py",
+     "dev": 2049,
+     "ino": 1311250
+    },
+    {
+     "pid": 37267,
+     "comm": "python3",
+     "fd": "4",
+     "path": "/tmp/cnf0046-qf543cjy/prefix/hooks/hook.py",
+     "dev": 2049,
+     "ino": 1311252
+    }
+   ],
+   "locking_process": {
+    "pid": 37267,
+    "comm": "python3"
+   },
+   "locker_pid_started": 37267,
+   "locker_pid_observed": true,
+   "error_names_pid": false,
+   "mixed_version": false,
+   "corrupted": false,
+   "all_v1": true,
+   "all_v2": false,
+   "names_locking_process": true,
+   "locked_rels": [
+    "plugin.py",
+    "hooks/hook.py"
+   ],
+   "unlocked_rel": "logs/active.log"
+  }
+ ],
+ "inventories": {
+  "v1_snapshot": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+     "bytes": 24,
+     "version": "v1"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+     "bytes": 22,
+     "version": "v1"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+     "bytes": 21,
+     "version": "v1"
+    }
+   ]
+  },
+  "v2_installed": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+     "bytes": 24,
+     "version": "v2"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+     "bytes": 22,
+     "version": "v2"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5",
+     "bytes": 21,
+     "version": "v2"
+    }
+   ]
+  },
+  "post_locked_aware": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+     "bytes": 24,
+     "version": "v2"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+     "bytes": 22,
+     "version": "v2"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5",
+     "bytes": 21,
+     "version": "v2"
+    }
+   ]
+  },
+  "post_unlocked_control": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+     "bytes": 24,
+     "version": "v1"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+     "bytes": 22,
+     "version": "v1"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+     "bytes": 21,
+     "version": "v1"
+    }
+   ]
+  },
+  "post_naive_skip": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+     "bytes": 24,
+     "version": "v2"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+     "bytes": 22,
+     "version": "v2"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+     "bytes": 21,
+     "version": "v1"
+    }
+   ]
+  },
+  "post_posix_replace": {
+   "files": [
+    {
+     "path": "plugin.py",
+     "present": true,
+     "sha256": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+     "bytes": 24,
+     "version": "v1"
+    },
+    {
+     "path": "hooks/hook.py",
+     "present": true,
+     "sha256": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+     "bytes": 22,
+     "version": "v1"
+    },
+    {
+     "path": "logs/active.log",
+     "present": true,
+     "sha256": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c",
+     "bytes": 21,
+     "version": "v1"
+    }
+   ]
+  },
+  "known_hashes": {
+   "v1": {
+    "plugin.py": "58a40c83e5d6be832e5afc8e4b11c184dc6f1f715c5fe7dbd9f08bf67b42d7e0",
+    "hooks/hook.py": "eb4a2a9044e690d1ff6f2a1788db2f8781aa27aec19ccc3424c44d008206fe3c",
+    "logs/active.log": "20706931a51d3d8428122b73dd0fb9dbad6ab5312694a399fe166027faddd29c"
+   },
+   "v2": {
+    "plugin.py": "fe6d4cf29cebc7de8c458bc4e128aa61aad90339a7052ba20d659543681325be",
+    "hooks/hook.py": "a2190f6ed3e782f6f0d4d9a6551df3ac5d5e66d9f949ee24b8a2a0d4ce430382",
+    "logs/active.log": "68c28f6173e3627e857917ab322198955abc396befb514601d7043d4dcb4dfc5"
+   }
+  }
+ },
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "locked-file-hunt",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0046/probe1_locked.py"
+  },
+  {
+   "id": "probe2",
+   "role": "unlocked-control",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0046/probe2_unlocked.py"
+  }
+ ],
+ "output_path": "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+ "output_schema": "command-center/schema/rollback-report.schema.json"
+}

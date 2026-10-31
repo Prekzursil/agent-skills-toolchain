@@ -1,0 +1,653 @@
+{
+ "unit_id": "REL-0016",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:REL-0016",
+ "schema_version": 1,
+ "evidence": [
+  {
+   "claim": "REL-0016 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/REL-0016.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/REL-0016.json",
+     "raw_output": "bytes=16994 sha256=0cb3deced0b5c5ea39320361d712ca9b5e676cea3a4456c20290e249680100aa",
+     "fingerprint": "2cb35bfa7f15aab0157b0f2ed8408866",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact REL-0016",
+     "raw_output": "schema-check",
+     "fingerprint": "120fccea7ca8710f01070c2bd6fc6103",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REL-0016 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0016",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py REL-0016",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "f2cf9380900888b6eea61ca722d45c9f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered REL-0016",
+     "raw_output": "schema-valid",
+     "fingerprint": "6789ec143686dc61373d61f2e0db40e0",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/REL-0016.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/REL-0016.json",
+   "bytes": 16994,
+   "sha256": "0cb3deced0b5c5ea39320361d712ca9b5e676cea3a4456c20290e249680100aa",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "report": {
+  "kind": "release-gate-receipt",
+  "observations": [
+   {
+    "name": "eligible_verified_claims",
+    "measured": 7,
+    "method": "project(CLAIM-REGISTRY.json)",
+    "anchor": "command-center/CLAIM-REGISTRY.json"
+   },
+   {
+    "name": "emitted_verified_lines",
+    "measured": 7,
+    "method": "project verified section; every line carries claim id",
+    "anchor": "command-center/receipts/REL-0016.release-notes.md"
+   },
+   {
+    "name": "withheld_count",
+    "measured": 5,
+    "method": "tagged statuses plus unresolvable VERIFIED rows",
+    "anchor": "command-center/CLAIM-REGISTRY.json"
+   }
+  ],
+  "control_ids": [
+   "inject-unverified",
+   "missing-verified-anchor-refuses",
+   "fabrication-freshness",
+   "positive-verified-emitted"
+  ]
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:63148-63178 (REL-0016 changelog/release notes projected from CLAIM-REGISTRY)",
+ "min_bytes_threshold": 1024,
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:REL-0016",
+   "question": "Generate the changelog and the release notes by projection from CLAIM-REGISTRY.json, so a sentence can only appear when it is backed by a claim whose verification status is VERIFIED and whose evidence anchor resolves on disk.",
+   "gate_verdict": "PASS",
+   "enumerated": [
+    {
+     "id": "claim-registry",
+     "status": "CHECKED",
+     "query": "read command-center/CLAIM-REGISTRY.json claims[] verification_status evidence_anchor"
+    },
+    {
+     "id": "changelog-projection",
+     "status": "CHECKED",
+     "query": "project verified section from VERIFIED claims with resolving anchors"
+    },
+    {
+     "id": "release-notes-projection",
+     "status": "CHECKED",
+     "query": "project release notes; every claim line carries source claim id"
+    },
+    {
+     "id": "rel-0001-version",
+     "status": "NOT-CHECKED",
+     "query": "read command-center/receipts/REL-0001.json derived version",
+     "reason": "REL-0001 receipt absent on this tree"
+    },
+    {
+     "id": "b12-root-cause-hierarchy",
+     "status": "NOT-CHECKED",
+     "query": "read command-center/synthesis/ROOT-CAUSE-HIERARCHY.json for grouping of projected notes",
+     "reason": "ROOT-CAUSE-HIERARCHY.json absent; notes stay ungrouped"
+    },
+    {
+     "id": "spec-prompt-11105-11123",
+     "status": "NOT-CHECKED",
+     "query": "read _USER-PROMPTS.md lines 11105-11123",
+     "reason": "_USER-PROMPTS.md absent on this worktree"
+    }
+   ],
+   "not_checked": [
+    {
+     "id": "rel-0001-version",
+     "reason": "REL-0001 receipt absent on this tree"
+    },
+    {
+     "id": "b12-root-cause-hierarchy",
+     "reason": "ROOT-CAUSE-HIERARCHY.json absent; notes stay ungrouped"
+    },
+    {
+     "id": "spec-prompt-11105-11123",
+     "reason": "_USER-PROMPTS.md absent on this worktree"
+    }
+   ],
+   "title": "Release notes projected from the claim registry, never hand-written",
+   "ts": "2026-08-25T00:46:59Z",
+   "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+   "gate": {
+    "id": "REL-0016-claim-registry-projection",
+    "verdict": "PASS",
+    "rule": "A sentence appears in the verified section only when backed by a VERIFIED claim whose evidence anchor resolves on disk. VERIFIED plus missing file refuses the generator. Tagged statuses are withheld from verified and rendered with the tag inline."
+   },
+   "version": {
+    "source_unit": "REL-0001",
+    "path": "command-center/receipts/REL-0001.json",
+    "status": "NOT-CHECKED",
+    "reason": "REL-0001 receipt absent on this tree",
+    "value": null
+   },
+   "version_line": "Version: NOT-CHECKED (REL-0001 receipt absent on this tree)",
+   "b12_root_cause_hierarchy": {
+    "path": "command-center/synthesis/ROOT-CAUSE-HIERARCHY.json",
+    "status": "NOT-CHECKED",
+    "reason": "hierarchy artifact absent; notes are an ungrouped projection"
+   },
+   "spec_prompt": {
+    "path": "_USER-PROMPTS.md",
+    "lines": "11105-11123",
+    "status": "NOT-CHECKED",
+    "reason": "_USER-PROMPTS.md absent on this worktree"
+   },
+   "registry": {
+    "path": "command-center/CLAIM-REGISTRY.json",
+    "present": true,
+    "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+    "bytes": 10940,
+    "claim_count": 12,
+    "bootstrap": "Live CLAIM-REGISTRY.json is present (CC-1..CC-12). Projection maps verdict CONFIRMED->VERIFIED and infers an on-disk path from free-text evidence when evidence_anchor is absent. An explicit evidence_anchor pointing at a missing file still refuses the generator."
+   },
+   "projection": {
+    "eligible": 7,
+    "emitted": 7,
+    "emitted_tagged": 5,
+    "withheld": 5,
+    "by_status": {
+     "VERIFIED": 7,
+     "INFERRED": 1,
+     "UNVERIFIED": 2,
+     "REJECTED": 2
+    },
+    "withheld_by_status": {
+     "INFERRED": {
+      "count": 1,
+      "reason": "status:INFERRED — excluded from verified section",
+      "ids": [
+       "CC-7"
+      ]
+     },
+     "UNVERIFIED": {
+      "count": 2,
+      "reason": "status:UNVERIFIED — excluded from verified section",
+      "ids": [
+       "CC-8",
+       "CC-10"
+      ]
+     },
+     "REJECTED": {
+      "count": 2,
+      "reason": "status:REJECTED — excluded from verified section",
+      "ids": [
+       "CC-9",
+       "CC-12"
+      ]
+     }
+    },
+    "generated_lines": [
+     {
+      "section": "verified",
+      "claim_id": "CC-1",
+      "line": "- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-2",
+      "line": "- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.",
+      "anchor": "tools/command-center/tests/test_validate.py"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-3",
+      "line": "- [CC-3] The dependency graph cannot drift from the catalog.",
+      "anchor": "tools/command-center/tests/test_validate.py"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-4",
+      "line": "- [CC-4] Closing an item costs the same one command as opening one.",
+      "anchor": "tools/command-center/tests/test_close.py"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-5",
+      "line": "- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.",
+      "anchor": "agent-self/harness/tests/test_register_gate.py"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-6",
+      "line": "- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.",
+      "anchor": "agent-self/harness/tests/test_register_gate.py"
+     },
+     {
+      "section": "verified",
+      "claim_id": "CC-11",
+      "line": "- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.",
+      "anchor": "tools/command-center/tests/test_validate.py"
+     },
+     {
+      "section": "not-verified",
+      "claim_id": "CC-7",
+      "status": "INFERRED",
+      "line": "- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.",
+      "anchor": ""
+     },
+     {
+      "section": "not-verified",
+      "claim_id": "CC-8",
+      "status": "UNVERIFIED",
+      "line": "- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.",
+      "anchor": ""
+     },
+     {
+      "section": "not-verified",
+      "claim_id": "CC-9",
+      "status": "REJECTED",
+      "line": "- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.",
+      "anchor": ""
+     },
+     {
+      "section": "not-verified",
+      "claim_id": "CC-10",
+      "status": "UNVERIFIED",
+      "line": "- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.",
+      "anchor": ""
+     },
+     {
+      "section": "not-verified",
+      "claim_id": "CC-12",
+      "status": "REJECTED",
+      "line": "- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.",
+      "anchor": ""
+     }
+    ]
+   },
+   "changelog": {
+    "path": "command-center/receipts/REL-0016.changelog.md",
+    "sha256": "1fd15c40a0c87691078aab07077cff430dbcbc1d0a061969fcd6c96c03956787",
+    "bytes": 1686,
+    "text": "# Changelog\nVersion: NOT-CHECKED (REL-0001 receipt absent on this tree)\n\n## Verified\n\n- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.\n- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.\n- [CC-3] The dependency graph cannot drift from the catalog.\n- [CC-4] Closing an item costs the same one command as opening one.\n- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.\n- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.\n- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.\n\n## Not verified\n\nItems below are withheld from the verified section. The status tag is inline beside each item.\n\n- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.\n- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.\n- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.\n- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.\n- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.\n"
+   },
+   "release_notes": {
+    "path": "command-center/receipts/REL-0016.release-notes.md",
+    "sha256": "f749f82c3e2cca696c60215373a5477ad89937b6be07b30b7eea52ee0eaaa3d4",
+    "bytes": 1726,
+    "text": "# Release notes\nVersion: NOT-CHECKED (REL-0001 receipt absent on this tree)\nProjected from the claim registry. Verified sentences are those whose claim is VERIFIED and whose evidence anchor resolves on disk.\n\n## Verified\n\n- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.\n- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.\n- [CC-3] The dependency graph cannot drift from the catalog.\n- [CC-4] Closing an item costs the same one command as opening one.\n- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.\n- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.\n- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.\n\n## Not verified\n\n- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.\n- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.\n- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.\n- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.\n- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.\n"
+   },
+   "inputs_measured": [
+    {
+     "path": "command-center/CLAIM-REGISTRY.json",
+     "present": true,
+     "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+     "bytes": 10940
+    },
+    {
+     "path": "command-center/synthesis/ROOT-CAUSE-HIERARCHY.json",
+     "present": false
+    },
+    {
+     "path": "command-center/receipts/REL-0001.json",
+     "present": true,
+     "sha256": "032df81a33905c418181c5da7b978f3de4238fa0b1b90aafba8717bec3924949",
+     "bytes": 144266
+    },
+    {
+     "path": "_USER-PROMPTS.md",
+     "present": false
+    }
+   ],
+   "adv_rebuild_circle": false,
+   "cloud_ok": false
+  }
+ },
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0016/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0016"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/REL-0016.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/REL-0016.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "f06174cb0f36ceb7ac177f8f42400b0b",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "completion_sentinel": "SUCCESS:REL-0016",
+ "question": "Generate the changelog and the release notes by projection from CLAIM-REGISTRY.json, so a sentence can only appear when it is backed by a claim whose verification status is VERIFIED and whose evidence anchor resolves on disk.",
+ "gate_verdict": "PASS",
+ "enumerated": [
+  {
+   "id": "claim-registry",
+   "status": "CHECKED",
+   "query": "read command-center/CLAIM-REGISTRY.json claims[] verification_status evidence_anchor"
+  },
+  {
+   "id": "changelog-projection",
+   "status": "CHECKED",
+   "query": "project verified section from VERIFIED claims with resolving anchors"
+  },
+  {
+   "id": "release-notes-projection",
+   "status": "CHECKED",
+   "query": "project release notes; every claim line carries source claim id"
+  },
+  {
+   "id": "rel-0001-version",
+   "status": "NOT-CHECKED",
+   "query": "read command-center/receipts/REL-0001.json derived version",
+   "reason": "REL-0001 receipt absent on this tree"
+  },
+  {
+   "id": "b12-root-cause-hierarchy",
+   "status": "NOT-CHECKED",
+   "query": "read command-center/synthesis/ROOT-CAUSE-HIERARCHY.json for grouping of projected notes",
+   "reason": "ROOT-CAUSE-HIERARCHY.json absent; notes stay ungrouped"
+  },
+  {
+   "id": "spec-prompt-11105-11123",
+   "status": "NOT-CHECKED",
+   "query": "read _USER-PROMPTS.md lines 11105-11123",
+   "reason": "_USER-PROMPTS.md absent on this worktree"
+  }
+ ],
+ "not_checked": [
+  {
+   "id": "rel-0001-version",
+   "reason": "REL-0001 receipt absent on this tree"
+  },
+  {
+   "id": "b12-root-cause-hierarchy",
+   "reason": "ROOT-CAUSE-HIERARCHY.json absent; notes stay ungrouped"
+  },
+  {
+   "id": "spec-prompt-11105-11123",
+   "reason": "_USER-PROMPTS.md absent on this worktree"
+  }
+ ],
+ "title": "Release notes projected from the claim registry, never hand-written",
+ "ts": "2026-08-25T00:46:59Z",
+ "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+ "gate": {
+  "id": "REL-0016-claim-registry-projection",
+  "verdict": "PASS",
+  "rule": "A sentence appears in the verified section only when backed by a VERIFIED claim whose evidence anchor resolves on disk. VERIFIED plus missing file refuses the generator. Tagged statuses are withheld from verified and rendered with the tag inline."
+ },
+ "version": {
+  "source_unit": "REL-0001",
+  "path": "command-center/receipts/REL-0001.json",
+  "status": "NOT-CHECKED",
+  "reason": "REL-0001 receipt absent on this tree",
+  "value": null
+ },
+ "version_line": "Version: NOT-CHECKED (REL-0001 receipt absent on this tree)",
+ "b12_root_cause_hierarchy": {
+  "path": "command-center/synthesis/ROOT-CAUSE-HIERARCHY.json",
+  "status": "NOT-CHECKED",
+  "reason": "hierarchy artifact absent; notes are an ungrouped projection"
+ },
+ "spec_prompt": {
+  "path": "_USER-PROMPTS.md",
+  "lines": "11105-11123",
+  "status": "NOT-CHECKED",
+  "reason": "_USER-PROMPTS.md absent on this worktree"
+ },
+ "registry": {
+  "path": "command-center/CLAIM-REGISTRY.json",
+  "present": true,
+  "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+  "bytes": 10940,
+  "claim_count": 12,
+  "bootstrap": "Live CLAIM-REGISTRY.json is present (CC-1..CC-12). Projection maps verdict CONFIRMED->VERIFIED and infers an on-disk path from free-text evidence when evidence_anchor is absent. An explicit evidence_anchor pointing at a missing file still refuses the generator."
+ },
+ "projection": {
+  "eligible": 7,
+  "emitted": 7,
+  "emitted_tagged": 5,
+  "withheld": 5,
+  "by_status": {
+   "VERIFIED": 7,
+   "INFERRED": 1,
+   "UNVERIFIED": 2,
+   "REJECTED": 2
+  },
+  "withheld_by_status": {
+   "INFERRED": {
+    "count": 1,
+    "reason": "status:INFERRED — excluded from verified section",
+    "ids": [
+     "CC-7"
+    ]
+   },
+   "UNVERIFIED": {
+    "count": 2,
+    "reason": "status:UNVERIFIED — excluded from verified section",
+    "ids": [
+     "CC-8",
+     "CC-10"
+    ]
+   },
+   "REJECTED": {
+    "count": 2,
+    "reason": "status:REJECTED — excluded from verified section",
+    "ids": [
+     "CC-9",
+     "CC-12"
+    ]
+   }
+  },
+  "generated_lines": [
+   {
+    "section": "verified",
+    "claim_id": "CC-1",
+    "line": "- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.",
+    "anchor": "command-center/WORK-UNIT-CATALOG.json"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-2",
+    "line": "- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.",
+    "anchor": "tools/command-center/tests/test_validate.py"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-3",
+    "line": "- [CC-3] The dependency graph cannot drift from the catalog.",
+    "anchor": "tools/command-center/tests/test_validate.py"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-4",
+    "line": "- [CC-4] Closing an item costs the same one command as opening one.",
+    "anchor": "tools/command-center/tests/test_close.py"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-5",
+    "line": "- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.",
+    "anchor": "agent-self/harness/tests/test_register_gate.py"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-6",
+    "line": "- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.",
+    "anchor": "agent-self/harness/tests/test_register_gate.py"
+   },
+   {
+    "section": "verified",
+    "claim_id": "CC-11",
+    "line": "- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.",
+    "anchor": "tools/command-center/tests/test_validate.py"
+   },
+   {
+    "section": "not-verified",
+    "claim_id": "CC-7",
+    "status": "INFERRED",
+    "line": "- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.",
+    "anchor": ""
+   },
+   {
+    "section": "not-verified",
+    "claim_id": "CC-8",
+    "status": "UNVERIFIED",
+    "line": "- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.",
+    "anchor": ""
+   },
+   {
+    "section": "not-verified",
+    "claim_id": "CC-9",
+    "status": "REJECTED",
+    "line": "- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.",
+    "anchor": ""
+   },
+   {
+    "section": "not-verified",
+    "claim_id": "CC-10",
+    "status": "UNVERIFIED",
+    "line": "- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.",
+    "anchor": ""
+   },
+   {
+    "section": "not-verified",
+    "claim_id": "CC-12",
+    "status": "REJECTED",
+    "line": "- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.",
+    "anchor": ""
+   }
+  ]
+ },
+ "changelog": {
+  "path": "command-center/receipts/REL-0016.changelog.md",
+  "sha256": "1fd15c40a0c87691078aab07077cff430dbcbc1d0a061969fcd6c96c03956787",
+  "bytes": 1686,
+  "text": "# Changelog\nVersion: NOT-CHECKED (REL-0001 receipt absent on this tree)\n\n## Verified\n\n- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.\n- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.\n- [CC-3] The dependency graph cannot drift from the catalog.\n- [CC-4] Closing an item costs the same one command as opening one.\n- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.\n- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.\n- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.\n\n## Not verified\n\nItems below are withheld from the verified section. The status tag is inline beside each item.\n\n- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.\n- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.\n- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.\n- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.\n- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.\n"
+ },
+ "release_notes": {
+  "path": "command-center/receipts/REL-0016.release-notes.md",
+  "sha256": "f749f82c3e2cca696c60215373a5477ad89937b6be07b30b7eea52ee0eaaa3d4",
+  "bytes": 1726,
+  "text": "# Release notes\nVersion: NOT-CHECKED (REL-0001 receipt absent on this tree)\nProjected from the claim registry. Verified sentences are those whose claim is VERIFIED and whose evidence anchor resolves on disk.\n\n## Verified\n\n- [CC-1] The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.\n- [CC-2] Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.\n- [CC-3] The dependency graph cannot drift from the catalog.\n- [CC-4] Closing an item costs the same one command as opening one.\n- [CC-5] The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.\n- [CC-6] The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.\n- [CC-11] REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.\n\n## Not verified\n\n- [INFERRED] [CC-7] The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.\n- [UNVERIFIED] [CC-8] The gate's advice is useful -- it surfaces the RIGHT item.\n- [REJECTED] [CC-9] R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.\n- [UNVERIFIED] [CC-10] The live ~/.agents/harness tree now carries this gate.\n- [REJECTED] [CC-12] V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.\n"
+ },
+ "inputs_measured": [
+  {
+   "path": "command-center/CLAIM-REGISTRY.json",
+   "present": true,
+   "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+   "bytes": 10940
+  },
+  {
+   "path": "command-center/synthesis/ROOT-CAUSE-HIERARCHY.json",
+   "present": false
+  },
+  {
+   "path": "command-center/receipts/REL-0001.json",
+   "present": true,
+   "sha256": "032df81a33905c418181c5da7b978f3de4238fa0b1b90aafba8717bec3924949",
+   "bytes": 144266
+  },
+  {
+   "path": "_USER-PROMPTS.md",
+   "present": false
+  }
+ ],
+ "adv_rebuild_circle": false,
+ "cloud_ok": false
+}

@@ -1,0 +1,1 @@
+Audit the corpus for mention-only hits. Extract candidates, classify each sentence, then check the mention-only control yields zero candidates, and record the precision and recall of the control set as numbers.

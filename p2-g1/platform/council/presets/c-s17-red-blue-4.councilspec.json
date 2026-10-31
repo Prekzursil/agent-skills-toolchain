@@ -1,0 +1,438 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s17-red-blue-4",
+  "preset": "security_red_blue_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Harden a named artifact by attacking it until at least one attack is reproduced by an independent white cell.",
+    "charter": "Red/blue hardening council. Red attacks, blue defends, the white cell decides which attacks LANDED. Opinions do not score; reproductions do.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "at least one attack reproduced by the white cell, with the reproduction path recorded",
+      "every landed attack carries an executable receipt, not a description",
+      "every attack that did NOT reproduce is recorded as not-landed, not deleted"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "red-1",
+        "display_name": "Red 1 (attack surface)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "threat modeling",
+          "input boundaries"
+        ],
+        "role": "red_team",
+        "authority": "contributor",
+        "effort": "high",
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "red-2",
+        "display_name": "Red 2 (cross-vendor attacker)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "exploit reproduction",
+          "sandbox escape"
+        ],
+        "role": "red_team",
+        "authority": "contributor",
+        "effort": "high",
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "blue-1",
+        "display_name": "Blue 1 (owner of the artifact)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "the artifact under attack",
+          "mitigation design"
+        ],
+        "role": "blue_team",
+        "authority": "contributor",
+        "effort": "high",
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "blue-2",
+        "display_name": "Blue 2 (defence review)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "defensive engineering",
+          "regression risk"
+        ],
+        "role": "blue_team",
+        "authority": "contributor",
+        "effort": "high",
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "white-cell",
+        "display_name": "White cell (adjudicates what landed)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "reproduction",
+          "both-states control"
+        ],
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "xhigh",
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        },
+        "independence": {
+          "fresh_context": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "red_blue",
+    "caucuses": [
+      {
+        "caucus_id": "red",
+        "members": [
+          "red-1",
+          "red-2"
+        ],
+        "private_rounds": 1
+      },
+      {
+        "caucus_id": "blue",
+        "members": [
+          "blue-1",
+          "blue-2"
+        ],
+        "private_rounds": 1
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "attack-plan",
+        "independent": true,
+        "participants": [
+          "red-1",
+          "red-2"
+        ],
+        "quotas": {
+          "objections_per_participant": 4
+        }
+      },
+      {
+        "kind": "war_game",
+        "stage_id": "attack-run",
+        "rounds": 3
+      },
+      {
+        "kind": "custom",
+        "stage_id": "adjudicate",
+        "custom_name": "white-cell reproduction adjudication",
+        "participants": [
+          "white-cell"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "experiments_passed",
+              "op": ">=",
+              "value": 1,
+              "note": "a reproduction the white cell RAN, not an attack description"
+            },
+            {
+              "metric": "executable_test_settled",
+              "op": "==",
+              "value": true,
+              "note": "the reproduction was proven against the known-good state too"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "hardening-plan"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 3,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 12,
+      "required_before_decision": true,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 45,
+    "tool_calls": 200,
+    "sources": 20,
+    "turns": 30,
+    "experiments": 12,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "counterexamples": 6,
+    "objections": 8,
+    "evidence_items": 12
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 1,
+      "on_failure": "escalate_to_owner"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "experiments_passed >= 1 AND executable_test_settled == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "experiments_passed",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "executable_test_settled",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 4
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 45,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "irreducible_disagreement",
+      "no_decision",
+      "conditional_decision",
+      "proof_of_impossibility"
+    ],
+    "conditional_decision_requires": [
+      "every landed attack has a named mitigation owner"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "run_experiment",
+      "strongest_counterexample",
+      "judge_ruling"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "role_collapse",
+      "prompt_injection",
+      "hallucinated_expertise"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "evidence_map",
+      "experiments",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 90
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Red/blue hardening council (4+1)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S17 red-blue-4",
+      "P08 red-blue-team"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1387-1400"
+    ],
+    "notes": "DESIGN LINEAGE: C-S17 red-blue-4 in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 4; roles: blue_x2,red_x2,white_cell).\nPRESET LABEL: security_red_blue_council - exact archetype match.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.budgets.experiments / $.protocol.experiments.max_experiments : attack_budget dial from the card\n  - $.stopping.expression : reproduction_requirement dial; raise experiments_passed to demand N landed attacks\n  - $.participants.count + roster : seat count; add red seats to widen the attack surface\n  - $.protocol.experiments.runner : sandbox|local|ci|owner - where a reproduction is allowed to run\nSEAT DISCREPANCY (measured): the card says seats:4 but its roles line enumerates 5. This instance seats 5 and treats the white cell as the 5th, judging seat - the most likely reading, since the card's voting rule requires an adjudicator the four combatants cannot supply. Change $.participants.count.exact_n to 4 and drop a seat if the owner reads it the other way.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

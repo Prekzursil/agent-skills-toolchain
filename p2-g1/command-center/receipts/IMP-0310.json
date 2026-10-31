@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0310",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0310",
+  "completion_sentinel": "SUCCESS:IMP-0310",
+  "title": "Deadlock detector with escalation and owner intervention",
+  "question": "Implement tools/council/stopping/deadlock.py detecting no-progress states and escalating through replacement, protocol change, or an owner-intervention request. Falsifiable question: how does the detector distinguish a deadlock from slow but genuine progress, and what is its false-positive rate on a corpus of slow-converging runs?",
+  "answer": "The detector distinguishes deadlock from slow progress by requiring two independent observables for STALL_ROUNDS consecutive rounds: (1) no progress delta (no new unique evidence, no new unique claims, no rise in vote agreement, no drop in vote entropy) and (2) a wait-for cycle among seats that still return. Labels are stripped before evaluation. On the recorded corpus of 20 slow-but-converging runs FPR=0.0 (fp=0/20) and on 10 constructed deadlocks TPR=1.0 (tp=10/10), reported separately; a combined accuracy figure is refused. Escalation is replace, then protocol_change, then one owner-intervention question with a recommendation and a default-if-silent. A converging run is not escalated. A never-returned seat is stalled_runtime, not deadlock.",
+  "profile": "council-stopping-module",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0310]",
+  "min_bytes_threshold": 2048,
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-stopping-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "headless-linux"
+  },
+  "artifact_paths": [
+    "command-center/receipts/IMP-0310.json",
+    "tools/council/stopping/deadlock.py",
+    "command-center/p2-wave/probes/IMP-0310/fixtures/recorded_corpus.json"
+  ],
+  "reviewer_verdict": "PASS",
+  "test_ids": [
+    "IMP0310-TPR-FPR-SEPARATE",
+    "IMP0310-CONVERGING-NOT-ESCALATED"
+  ],
+  "negative_control_ids": [
+    "IMP0310-C1-converging-silent",
+    "IMP0310-C2-planted-wait-cycle-fires",
+    "IMP0310-C3-gate-disabled-silent",
+    "IMP0310-C4-stalled-runtime-not-deadlock",
+    "IMP0310-C5-combined-accuracy-refused"
+  ],
+  "distinction": {
+    "progress_signals": [
+      "new unique evidence_anchors",
+      "new unique claims",
+      "rising vote agreement",
+      "falling vote entropy"
+    ],
+    "deadlock_requires": [
+      "no progress delta for STALL_ROUNDS consecutive rounds",
+      "a wait-for cycle among returning seats (seat or resource)"
+    ],
+    "stall_rounds": 3,
+    "labels_stripped_before_evaluate": true,
+    "not_deadlock": [
+      "slow progress inside every stall window",
+      "productive disagreement that still emits new claims or evidence",
+      "a seat that never returns (stalled_runtime / operational failure)"
+    ]
+  },
+  "rates": {
+    "true_positive_rate": 1.0,
+    "false_positive_rate": 0.0,
+    "true_positives": 10,
+    "false_positives": 0,
+    "true_negatives": 20,
+    "false_negatives": 0,
+    "n_deadlock_labeled": 10,
+    "n_slow_labeled": 20,
+    "rates_reported_separately": true,
+    "combined_accuracy_refused": true,
+    "corpus": "command-center/p2-wave/probes/IMP-0310/fixtures/recorded_corpus.json",
+    "scope": "Rates are for this recorded corpus only. They are not a claim about every possible slow council in the wild."
+  },
+  "escalation_ladder": [
+    {
+      "rung": 1,
+      "action": "replace",
+      "trigger": "first deadlock detection; seats in the wait-cycle are named"
+    },
+    {
+      "rung": 2,
+      "action": "protocol_change",
+      "trigger": "still deadlocked after replacement",
+      "protocol_from": "consent-no-objection",
+      "protocol_to": "majority-with-dissent-annex"
+    },
+    {
+      "rung": 3,
+      "action": "owner_intervention",
+      "trigger": "still deadlocked after protocol change",
+      "owner_question": "Should the owner authorize a stop-and-reframe of the council deadlocked on alice-planted-freeze [wait-cycle alice -> bob -> alice] after replacement of seats [alice, bob] and a protocol change from consent to majority both failed to restore progress?",
+      "recommendation": "Stop the council, keep the last pre-deadlock artifact as non-binding, and require a new brief on a single foundation-level question.",
+      "default_if_silent": "If the owner does not answer inside the intervention window, stop with a non-binding last-pre-deadlock artifact and do not spend further budget."
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "False-positive rate on 20 recorded slow-but-converging runs is 0.0 (fp=0, tn=20).",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0310/probe1-tpr-fpr.raw.json"
+    },
+    {
+      "claim": "True-positive rate on 10 constructed deadlocks is 1.0 (tp=10, fn=0), reported separately from FPR.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0310/probe1-tpr-fpr.raw.json"
+    },
+    {
+      "claim": "A converging run is not escalated; planting a wait-cycle freeze into that same run is detected as deadlock (both-states).",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0310/probe2-negative-control.raw.json"
+    },
+    {
+      "claim": "combined_accuracy() refuses rather than returning a single accuracy figure.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/council/stopping/deadlock.py CombinedAccuracyRefused"
+    },
+    {
+      "claim": "A never-returned seat is classified stalled_runtime and does not climb the deadlock escalation ladder.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0310/probe2-negative-control.raw.json"
+    },
+    {
+      "claim": "11-COUNCIL-SPECIFICATION.md and IMP-0306/IMP-0325 artifacts are present on this worktree so the detector is wired into a live council CLI.",
+      "verdict": "REFUTED",
+      "anchor": "tools/council/stopping/deadlock.py (standalone; vote/consent.py and cli/main.py absent)"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:47:53Z",
+    "ended_at": "2026-08-25T00:47:53Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt"
+  },
+  "tests": [
+    {
+      "id": "IMP0310-TPR-FPR-SEPARATE",
+      "name": "TPR and FPR reported separately, never a single accuracy figure",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0310/probe1_tpr_fpr.py",
+      "result": "PASS",
+      "true_positive_rate": 1.0,
+      "false_positive_rate": 0.0
+    },
+    {
+      "id": "IMP0310-CONVERGING-NOT-ESCALATED",
+      "name": "Negative control: a converging run must not be escalated",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0310/probe2_negative_control.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0310-C1-converging-silent",
+      "kind": "known-good-fixture",
+      "description": "A monotonically converging run with no wait-for edges must not be classified deadlock and must not escalate.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "classification=converged escalated=False",
+      "bad_state_output": "classification=deadlock named_seats=['alice', 'bob']"
+    },
+    {
+      "id": "IMP0310-C2-planted-wait-cycle-fires",
+      "kind": "known-broken-fixture",
+      "description": "Planting a two-seat wait-cycle freeze over the last stall window of the converging run must fire.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "alice-planted-freeze [wait-cycle alice -> bob -> alice]"
+    },
+    {
+      "id": "IMP0310-C3-gate-disabled-silent",
+      "kind": "gate-disabled",
+      "description": "The same planted freeze with stall_rounds raised to 10**6 must not deadlock.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "IMP0310-C4-stalled-runtime-not-deadlock",
+      "kind": "operational-failure-vs-deliberation",
+      "description": "A seat that never returns while others still progress is stalled_runtime, not deadlock.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "stalled_runtime"
+    },
+    {
+      "id": "IMP0310-C5-combined-accuracy-refused",
+      "kind": "metric-game",
+      "description": "Calling combined_accuracy() must raise CombinedAccuracyRefused.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "TPR and FPR must be reported separately; a single accuracy figure is forbidden for IMP-0310"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0310-probe1-corpus",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "method": "Named probe1 loads the recorded corpus and the detector API directly. It does not read this receipt. It asserts TPR and FPR separately, refuses combined accuracy, and checks that flipping a label does not change the verdict."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0310/UNIT-ARTIFACT-MANIFEST.json",
+    "global_catalog_write": false
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0310/probe1_tpr_fpr.py",
+      "artifact_path": "tools/council/stopping/deadlock.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0310/probe2_negative_control.py",
+      "artifact_path": "tools/council/stopping/deadlock.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "False-positive rate on slow-converging runs outside this 20-trace recorded corpus.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Record 20 additional slow traces from a live council kernel (IMP-0264) and re-score without retraining thresholds."
+    },
+    {
+      "claim": "Wiring into tools/council/vote/consent.py (IMP-0306) and tools/council/cli/main.py (IMP-0325).",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Those modules are absent on this worktree. Re-run evaluate() at the CLI inspect/run seam once they exist."
+    },
+    {
+      "claim": "command-center/schema/receipt.schema.json live-validates this profile.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Path.is_file() on /opt/p2/ast-integrate/command-center/schema/receipt.schema.json is True. G-1 for this unit does not require re-authoring that schema."
+    }
+  ],
+  "dependencies_on_this_tree": {
+    "IMP-0306": false,
+    "IMP-0325": false,
+    "IMP-0264": false
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "tpr-fpr-separate",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0310/probe1_tpr_fpr.py"
+    },
+    {
+      "id": "probe2",
+      "role": "converging-negative-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0310/probe2_negative_control.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0310.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/council/stopping/deadlock.py",
+      "exists": true,
+      "role": "implementation"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0310/fixtures/recorded_corpus.json",
+      "exists": true,
+      "role": "fixture"
+    }
+  ]
+}

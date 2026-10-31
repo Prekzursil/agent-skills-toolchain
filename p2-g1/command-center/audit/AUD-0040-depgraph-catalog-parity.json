@@ -1,0 +1,595 @@
+{
+  "artifacts": [
+    {
+      "bytes": 15833,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/audit/AUD-0040-depgraph-catalog-parity.json",
+      "role": "primary",
+      "sha256": "4ec33fb3ab939bcef8954fa1beb299be47bb50a53e3210af9d22f56c7d168fb1"
+    },
+    {
+      "bytes": 1131,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/audit-detector-control.schema.json",
+      "role": "supporting",
+      "sha256": "bfc5318ac90c756a1be9673e9f3de615355148fcf5dbae17abf8bf38995e8bea"
+    },
+    {
+      "bytes": 25025,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/DEPENDENCY-GRAPH.json",
+      "role": "supporting",
+      "sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455"
+    },
+    {
+      "bytes": 9736,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0040/common.py",
+      "role": "supporting",
+      "sha256": "680b77bee1c67338bf17f504192657cb4c4e18c1cd9ed671ec270af83dde0349"
+    },
+    {
+      "bytes": 2964,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0040/schema_local.py",
+      "role": "supporting",
+      "sha256": "2d5b19d801145e92a32304f7e1017737ca35fa4cbdcdfeacc8695ae4552ef404"
+    },
+    {
+      "bytes": 9081,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/catalog.py",
+      "role": "supporting",
+      "sha256": "c0a7920c113bd144d4d3d2378ad867f1d124ba93aa63686b626e7965d7b8b73a"
+    },
+    {
+      "bytes": 16272,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/validate.py",
+      "role": "supporting",
+      "sha256": "b6c464e9caa9ecc1f50dcdb54b7e81f93077706c8a51aa2ee1aa5305b9387aa0"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/audit/AUD-0040-depgraph-catalog-parity.json",
+      "consumer": "command-center/p2-wave/probes/AUD-0040/schema_local.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "command-center/p2-wave/probes/AUD-0040/schema_local.py:errors",
+        "exit_code": 0,
+        "fingerprint": "7634a916e3a54490a48f302ea4f7e1c1",
+        "method": "schema-validate",
+        "raw_output": "in-process compiled generic_report + report.kind=audit-detector-control",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/DEPENDENCY-GRAPH.json",
+      "claim": "build_graph(catalog) is byte-identical to the committed DEPENDENCY-GRAPH.json (25025 bytes, 103 nodes, 18 edges).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "tools/command-center/catalog.py:build_graph vs command-center/DEPENDENCY-GRAPH.json",
+          "exit_code": 0,
+          "fingerprint": "03f1d55dfe6b91bee8814c1bfaa6cf3b",
+          "method": "byte-compare",
+          "raw_output": "byte_match=True generated_sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455 committed_sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455 bytes=25025 nodes=103 edges=18 second_generation_identical=True",
+          "role": "source"
+        },
+        {
+          "command": "sha256 of live DEPENDENCY-GRAPH.json after catalog.save(build_graph(load()))",
+          "exit_code": 0,
+          "fingerprint": "06626cc457469c82f669a72351b08ebd",
+          "method": "file-read",
+          "raw_output": "committed_graph sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455 bytes=25025 nodes=103 edges=18 acyclic=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/command-center/validate.py",
+      "claim": "tools/command-center/validate.py V-GRAPH exits 0 on the unmodified derived pair and exits 1 with V-GRAPH after a one-byte catalog JSON mutation and after a stale edge_count=999 graph.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 -B tools/command-center/validate.py --catalog --graph --register on isolated slim catalog (clean vs one-byte effort vs stale edge_count)",
+          "exit_code": 0,
+          "fingerprint": "926f3439ccc88e1819dcd0480e71c7d7",
+          "method": "test-run",
+          "raw_output": "clean_exit=0 regen_exit=0 mutated_exit=1 mutated_vgraph=True stale_exit=1 stale_vgraph=True mutation={'kind': 'one-byte catalog JSON', 'from': '\"effort\": \"S\"', 'to': '\"effort\": \"T\"', 'bytes_changed': 1}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe2_gate_both_states.py",
+          "exit_code": 0,
+          "fingerprint": "18021fac02f96ba85c041261ee20b5cd",
+          "method": "command",
+          "raw_output": "independent re-run of C.measure() both-states; clean=0 mutated=1 stale=1 vgraph=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/AUD-0040/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+      "description": "One-byte catalog JSON mutation \"effort\": \"S\" -> \"effort\": \"T\" must turn V-GRAPH red; unmodified derived pair stays silent.",
+      "fired_on_bad_state": true,
+      "good_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+      "id": "catalog-effort-one-byte",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+      "description": "Stale DEPENDENCY-GRAPH.json with edge_count=999 must turn V-GRAPH red; independently regenerated pair stays silent.",
+      "fired_on_bad_state": true,
+      "good_state_output": "regen_exit=0",
+      "id": "graph-edge-count-stale",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-headless-p2-deliver",
+    "model": "grok",
+    "role": "auditor",
+    "vendor": "xai"
+  },
+  "report": {
+    "answer": "DEPENDENCY-GRAPH.json is byte-derivable from WORK-UNIT-CATALOG.json by tools/command-center/catalog.py:build_graph (nodes=103 edges=18 bytes=25025 sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455). Two independent generations were byte-identical, and the committed file matches. The CI V-GRAPH gate exits 0 on that unmodified derived pair (isolated scratch with a synthetic register so REACH-6 cannot confound V-GRAPH; live sources/REGISTER.md present=True) and exits 1 with V-GRAPH after a one-byte catalog JSON mutation (\"effort\": \"S\" -> \"effort\": \"T\") that leaves the graph stale. A stale edge_count=999 graph likewise turns the gate red. The byte-parity gate is therefore live, not an unproven green.",
+    "completion_sentinel": "SUCCESS:AUD-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+    "control_ids": [
+      "catalog-effort-one-byte",
+      "graph-edge-count-stale"
+    ],
+    "detector_control": {
+      "known_broken_fired": true,
+      "known_broken_fixture": "scratch catalog JSON one-byte effort mutation \"effort\": \"S\" -> \"effort\": \"T\" paired with a stale DEPENDENCY-GRAPH.json",
+      "known_healthy_silent_count": 4,
+      "procedure": "Re-run catalog.build_graph and byte-compare to the committed DEPENDENCY-GRAPH.json. Then in a tempfile scratch, bind a synthetic register, write the derived graph, and invoke tools/command-center/validate.py --catalog/--graph/--register. Require exit 0 on the unmodified pair and non-zero with V-GRAPH after the one-byte catalog mutation and after edge_count=999."
+    },
+    "kind": "audit-detector-control",
+    "matrix": {
+      "cells": [
+        {
+          "component_id": "unmodified-derived-pair",
+          "exit_code": 0,
+          "fired": false,
+          "repro_id": "generator-byte-parity",
+          "role": "healthy"
+        },
+        {
+          "component_id": "independently-regenerated-pair",
+          "exit_code": 0,
+          "fired": false,
+          "repro_id": "generator-byte-parity",
+          "role": "healthy"
+        },
+        {
+          "component_id": "catalog-effort-one-byte",
+          "exit_code": 1,
+          "fired": true,
+          "repro_id": "generator-byte-parity",
+          "role": "defective"
+        },
+        {
+          "component_id": "graph-edge-count-stale",
+          "exit_code": 1,
+          "fired": true,
+          "repro_id": "generator-byte-parity",
+          "role": "defective"
+        },
+        {
+          "component_id": "unmodified-derived-pair",
+          "exit_code": 0,
+          "fired": false,
+          "repro_id": "ci-vgraph-gate",
+          "role": "healthy"
+        },
+        {
+          "component_id": "independently-regenerated-pair",
+          "exit_code": 0,
+          "fired": false,
+          "repro_id": "ci-vgraph-gate",
+          "role": "healthy"
+        },
+        {
+          "component_id": "catalog-effort-one-byte",
+          "exit_code": 1,
+          "fired": true,
+          "repro_id": "ci-vgraph-gate",
+          "role": "defective"
+        },
+        {
+          "component_id": "graph-edge-count-stale",
+          "exit_code": 1,
+          "fired": true,
+          "repro_id": "ci-vgraph-gate",
+          "role": "defective"
+        }
+      ],
+      "components": [
+        {
+          "id": "unmodified-derived-pair",
+          "role": "healthy"
+        },
+        {
+          "id": "independently-regenerated-pair",
+          "role": "healthy"
+        },
+        {
+          "id": "catalog-effort-one-byte",
+          "role": "defective"
+        },
+        {
+          "id": "graph-edge-count-stale",
+          "role": "defective"
+        }
+      ],
+      "empty_cells": 0,
+      "grid": {
+        "ci-vgraph-gate": {
+          "catalog-effort-one-byte": 1,
+          "graph-edge-count-stale": 1,
+          "independently-regenerated-pair": 0,
+          "unmodified-derived-pair": 0
+        },
+        "generator-byte-parity": {
+          "catalog-effort-one-byte": 1,
+          "graph-edge-count-stale": 1,
+          "independently-regenerated-pair": 0,
+          "unmodified-derived-pair": 0
+        }
+      },
+      "repros": [
+        "generator-byte-parity",
+        "ci-vgraph-gate"
+      ]
+    },
+    "measurement": {
+      "committed_graph": {
+        "acyclic": true,
+        "bytes": 25025,
+        "edge_count": 18,
+        "node_count": 103,
+        "path": "command-center/DEPENDENCY-GRAPH.json",
+        "sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455"
+      },
+      "gate": {
+        "clean_exit": 0,
+        "clean_output_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+        "mutated_exit": 1,
+        "mutated_output_tail": "  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+        "mutated_vgraph": true,
+        "mutation": {
+          "bytes_changed": 1,
+          "from": "\"effort\": \"S\"",
+          "kind": "one-byte catalog JSON",
+          "to": "\"effort\": \"T\""
+        },
+        "regen_exit": 0,
+        "register_binding": "synthetic scratch REGISTER.md (live sources/REGISTER.md absent)",
+        "stale_exit": 1,
+        "stale_vgraph": true
+      },
+      "generator": {
+        "byte_match": true,
+        "committed_bytes": 25025,
+        "committed_present": true,
+        "committed_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+        "edge_count": 18,
+        "generated_bytes": 25025,
+        "generated_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+        "node_count": 103,
+        "second_generation_identical": true
+      },
+      "live_register_present": true
+    },
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe1_generator_byte_compare.py",
+        "id": "probe1",
+        "role": "generator-byte-compare"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe2_gate_both_states.py",
+        "id": "probe2",
+        "role": "detector-control-both-states"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/DEPENDENCY-GRAPH.json",
+        "measured": true,
+        "method": "catalog.build_graph dumped JSON vs committed DEPENDENCY-GRAPH.json",
+        "name": "generator_byte_match"
+      },
+      {
+        "anchor": "tools/command-center/catalog.py:build_graph",
+        "measured": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+        "method": "sha256 of LF-normalised generator bytes",
+        "name": "generated_sha256"
+      },
+      {
+        "anchor": "tools/command-center/validate.py",
+        "measured": 0,
+        "method": "validate.py --catalog/--graph/--register on unmodified derived pair",
+        "name": "vgraph_clean_exit"
+      },
+      {
+        "anchor": "tools/command-center/validate.py",
+        "measured": 1,
+        "method": "one-byte catalog JSON mutation against stale graph",
+        "name": "vgraph_mutated_exit"
+      },
+      {
+        "anchor": "tools/command-center/validate.py",
+        "measured": 1,
+        "method": "edge_count=999 graph against unmodified catalog",
+        "name": "vgraph_stale_exit"
+      }
+    ],
+    "question": "Is DEPENDENCY-GRAPH.json still byte-derivable from WORK-UNIT-CATALOG.json by its generator, and does the CI byte-parity gate actually fail when the two diverge?"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live command-center/sources/REGISTER.md SHA against the full catalog provenance is outside this unit's V-GRAPH both-states isolate (scratch binds a synthetic register).",
+      "settling_experiment": "Run tools/command-center/validate.py against the live catalog, DEPENDENCY-GRAPH.json, and sources/REGISTER.md and record REACH-6 separately.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate"
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "re-run DETECTOR CONTROL only: V-GRAPH CLI both-states in an isolated scratch; do not re-read the artifact as proof. Catalog asked for a cross-vendor Codex reviewer who re-runs ONLY the second probe; this G-1 uses probe2 as that independent mechanical re-run. A live Codex human pass is not claimed.",
+    "reviewer_id": "AUD-0040-probe2-gate-both-states",
+    "vendor": "xai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:AUD-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0040",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe1_generator_byte_compare.py",
+      "id": "generator-byte-compare-committed",
+      "name": "re-run generator and byte-compare to committed graph",
+      "output_tail": "byte_match=True sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455 bytes=25025",
+      "result": "PASS"
+    },
+    {
+      "assertions": 4,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe2_gate_both_states.py",
+      "id": "ci-vgraph-both-states",
+      "name": "V-GRAPH exits 0 unmodified and non-zero after one-byte mutation",
+      "output_tail": "clean=0 mutated=1 stale=1 vgraph=True",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:11:42Z",
+    "started_at": "2026-08-25T01:11:41Z"
+  },
+  "unit_id": "AUD-0040",
+  "answer": "DEPENDENCY-GRAPH.json is byte-derivable from WORK-UNIT-CATALOG.json by tools/command-center/catalog.py:build_graph (nodes=103 edges=18 bytes=25025 sha256=b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455). Two independent generations were byte-identical, and the committed file matches. The CI V-GRAPH gate exits 0 on that unmodified derived pair (isolated scratch with a synthetic register so REACH-6 cannot confound V-GRAPH; live sources/REGISTER.md present=True) and exits 1 with V-GRAPH after a one-byte catalog JSON mutation (\"effort\": \"S\" -> \"effort\": \"T\") that leaves the graph stale. A stale edge_count=999 graph likewise turns the gate red. The byte-parity gate is therefore live, not an unproven green.",
+  "completion_sentinel": "SUCCESS:AUD-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "control_ids": [
+    "catalog-effort-one-byte",
+    "graph-edge-count-stale"
+  ],
+  "detector_control": {
+    "known_broken_fired": true,
+    "known_broken_fixture": "scratch catalog JSON one-byte effort mutation \"effort\": \"S\" -> \"effort\": \"T\" paired with a stale DEPENDENCY-GRAPH.json",
+    "known_healthy_silent_count": 4,
+    "procedure": "Re-run catalog.build_graph and byte-compare to the committed DEPENDENCY-GRAPH.json. Then in a tempfile scratch, bind a synthetic register, write the derived graph, and invoke tools/command-center/validate.py --catalog/--graph/--register. Require exit 0 on the unmodified pair and non-zero with V-GRAPH after the one-byte catalog mutation and after edge_count=999."
+  },
+  "kind": "audit-detector-control",
+  "matrix": {
+    "cells": [
+      {
+        "component_id": "unmodified-derived-pair",
+        "exit_code": 0,
+        "fired": false,
+        "repro_id": "generator-byte-parity",
+        "role": "healthy"
+      },
+      {
+        "component_id": "independently-regenerated-pair",
+        "exit_code": 0,
+        "fired": false,
+        "repro_id": "generator-byte-parity",
+        "role": "healthy"
+      },
+      {
+        "component_id": "catalog-effort-one-byte",
+        "exit_code": 1,
+        "fired": true,
+        "repro_id": "generator-byte-parity",
+        "role": "defective"
+      },
+      {
+        "component_id": "graph-edge-count-stale",
+        "exit_code": 1,
+        "fired": true,
+        "repro_id": "generator-byte-parity",
+        "role": "defective"
+      },
+      {
+        "component_id": "unmodified-derived-pair",
+        "exit_code": 0,
+        "fired": false,
+        "repro_id": "ci-vgraph-gate",
+        "role": "healthy"
+      },
+      {
+        "component_id": "independently-regenerated-pair",
+        "exit_code": 0,
+        "fired": false,
+        "repro_id": "ci-vgraph-gate",
+        "role": "healthy"
+      },
+      {
+        "component_id": "catalog-effort-one-byte",
+        "exit_code": 1,
+        "fired": true,
+        "repro_id": "ci-vgraph-gate",
+        "role": "defective"
+      },
+      {
+        "component_id": "graph-edge-count-stale",
+        "exit_code": 1,
+        "fired": true,
+        "repro_id": "ci-vgraph-gate",
+        "role": "defective"
+      }
+    ],
+    "components": [
+      {
+        "id": "unmodified-derived-pair",
+        "role": "healthy"
+      },
+      {
+        "id": "independently-regenerated-pair",
+        "role": "healthy"
+      },
+      {
+        "id": "catalog-effort-one-byte",
+        "role": "defective"
+      },
+      {
+        "id": "graph-edge-count-stale",
+        "role": "defective"
+      }
+    ],
+    "empty_cells": 0,
+    "grid": {
+      "ci-vgraph-gate": {
+        "catalog-effort-one-byte": 1,
+        "graph-edge-count-stale": 1,
+        "independently-regenerated-pair": 0,
+        "unmodified-derived-pair": 0
+      },
+      "generator-byte-parity": {
+        "catalog-effort-one-byte": 1,
+        "graph-edge-count-stale": 1,
+        "independently-regenerated-pair": 0,
+        "unmodified-derived-pair": 0
+      }
+    },
+    "repros": [
+      "generator-byte-parity",
+      "ci-vgraph-gate"
+    ]
+  },
+  "measurement": {
+    "committed_graph": {
+      "acyclic": true,
+      "bytes": 25025,
+      "edge_count": 18,
+      "node_count": 103,
+      "path": "command-center/DEPENDENCY-GRAPH.json",
+      "sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455"
+    },
+    "gate": {
+      "clean_exit": 0,
+      "clean_output_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+      "mutated_exit": 1,
+      "mutated_output_tail": "  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+      "mutated_vgraph": true,
+      "mutation": {
+        "bytes_changed": 1,
+        "from": "\"effort\": \"S\"",
+        "kind": "one-byte catalog JSON",
+        "to": "\"effort\": \"T\""
+      },
+      "regen_exit": 0,
+      "register_binding": "synthetic scratch REGISTER.md (live sources/REGISTER.md absent)",
+      "stale_exit": 1,
+      "stale_vgraph": true
+    },
+    "generator": {
+      "byte_match": true,
+      "committed_bytes": 25025,
+      "committed_present": true,
+      "committed_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+      "edge_count": 18,
+      "generated_bytes": 25025,
+      "generated_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+      "node_count": 103,
+      "second_generation_identical": true
+    },
+    "live_register_present": true
+  },
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe1_generator_byte_compare.py",
+      "id": "probe1",
+      "role": "generator-byte-compare"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0040/probe2_gate_both_states.py",
+      "id": "probe2",
+      "role": "detector-control-both-states"
+    }
+  ],
+  "observations": [
+    {
+      "anchor": "command-center/DEPENDENCY-GRAPH.json",
+      "measured": true,
+      "method": "catalog.build_graph dumped JSON vs committed DEPENDENCY-GRAPH.json",
+      "name": "generator_byte_match"
+    },
+    {
+      "anchor": "tools/command-center/catalog.py:build_graph",
+      "measured": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+      "method": "sha256 of LF-normalised generator bytes",
+      "name": "generated_sha256"
+    },
+    {
+      "anchor": "tools/command-center/validate.py",
+      "measured": 0,
+      "method": "validate.py --catalog/--graph/--register on unmodified derived pair",
+      "name": "vgraph_clean_exit"
+    },
+    {
+      "anchor": "tools/command-center/validate.py",
+      "measured": 1,
+      "method": "one-byte catalog JSON mutation against stale graph",
+      "name": "vgraph_mutated_exit"
+    },
+    {
+      "anchor": "tools/command-center/validate.py",
+      "measured": 1,
+      "method": "edge_count=999 graph against unmodified catalog",
+      "name": "vgraph_stale_exit"
+    }
+  ],
+  "question": "Is DEPENDENCY-GRAPH.json still byte-derivable from WORK-UNIT-CATALOG.json by its generator, and does the CI byte-parity gate actually fail when the two diverge?"
+}

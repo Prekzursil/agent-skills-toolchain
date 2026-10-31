@@ -1,0 +1,670 @@
+{
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CC-0018",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CC-0018.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CC-0018",
+ "extensions": {
+  "legacy_root": {
+   "adversarial_reviewer": {
+    "brief": "Construct an input that games the ranking upward through repetition: N synthetic agents on one source, ten echoes of a weak claim, and path-spelling aliases of one document.",
+    "finding": "Naive agent-count ranking rises with N and with path aliases, and would rank ten echoes above one strong probe. Independent source-set ranking does not rise with N or aliases, and the strong probe outranks the collapsed echoes.",
+    "independent": true,
+    "reviewer_id": "CC-0018-adversarial-repetition-gamer",
+    "verdict": "PASS"
+   },
+   "cc_0017_dependency": {
+    "note": "CC-0017 has not delivered command-center/schema/claim-record.schema.json on this worktree. Ranking consumes the CC-0017 field list (lineage, confidence, verification, impact) from live dicts.",
+    "required_fields": [
+     "claim_id",
+     "canonical_mechanism",
+     "duplicate_of",
+     "duplicate_of",
+     "support",
+     "contradiction",
+     "source_lineage",
+     "verification_status",
+     "severity",
+     "implementation_impact",
+     "confidence",
+     "settling_probe"
+    ],
+    "schema_on_disk": true
+   },
+   "completion_sentinel": "SUCCESS:CC-0018",
+   "controls": {
+    "failed": [],
+    "pass": true,
+    "tests": [
+     {
+      "after_independent": {
+       "confidence": 1,
+       "cross_domain": 1,
+       "decision_impact": 1,
+       "independent_evidence": 1,
+       "severity": 1,
+       "verification": 1
+      },
+      "after_n_agents": 10,
+      "after_naive": 10,
+      "before_independent": {
+       "confidence": 1,
+       "cross_domain": 1,
+       "decision_impact": 1,
+       "independent_evidence": 1,
+       "severity": 1,
+       "verification": 1
+      },
+      "before_n_agents": 1,
+      "before_naive": 1,
+      "id": "adversarial-n-agent-repetition",
+      "independent_rose": false,
+      "independent_score_after": 1,
+      "independent_score_before": 1,
+      "naive_rose": true,
+      "pass": true,
+      "sort_key_unchanged": true
+     },
+     {
+      "id": "strong-probe-vs-ten-echoes",
+      "naive_echo_mass": 10,
+      "naive_echoes_would_win": true,
+      "naive_strong": 1,
+      "pass": true,
+      "strong_independent_evidence": 1,
+      "strong_rank": 1,
+      "strong_sort_key": [
+       1,
+       1,
+       4,
+       3,
+       4,
+       5
+      ],
+      "weak_independent_evidence": 1,
+      "weak_merged_from": [
+       "CLM-ECHO-01",
+       "CLM-ECHO-02",
+       "CLM-ECHO-03",
+       "CLM-ECHO-04",
+       "CLM-ECHO-05",
+       "CLM-ECHO-06",
+       "CLM-ECHO-07",
+       "CLM-ECHO-08",
+       "CLM-ECHO-09",
+       "CLM-ECHO-10"
+      ],
+      "weak_rank": 2,
+      "weak_sort_key": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     {
+      "claim_ids": [
+       "CLM-ALIAS-A",
+       "CLM-ALIAS-B"
+      ],
+      "id": "lineage-collapse-same-source-document",
+      "independent_signals_merged": 1,
+      "independent_signals_one_claim_two_rows": 1,
+      "independent_signals_two_claims": 1,
+      "pass": true,
+      "paths": [
+       "docs/stale-premise.md",
+       "./vendor/../vendor/copy-of-stale-premise.md"
+      ],
+      "shared_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     },
+     {
+      "after_components": {
+       "confidence": 5,
+       "cross_domain": 2,
+       "decision_impact": 4,
+       "independent_evidence": 2,
+       "severity": 3,
+       "verification": 4
+      },
+      "after_sort_key": [
+       2,
+       2,
+       4,
+       3,
+       4,
+       5
+      ],
+      "before_components": {
+       "confidence": 5,
+       "cross_domain": 1,
+       "decision_impact": 4,
+       "independent_evidence": 1,
+       "severity": 3,
+       "verification": 4
+      },
+      "before_sort_key": [
+       1,
+       1,
+       4,
+       3,
+       4,
+       5
+      ],
+      "id": "monotonicity-independent-corroboration",
+      "independent_after": 2,
+      "independent_before": 1,
+      "pass": true,
+      "rank_key_rose": true
+     },
+     {
+      "id": "adversary-path-alias-inflation",
+      "independent_after_game": 1,
+      "independent_rose": false,
+      "independent_single_spelling": 1,
+      "n_spellings": 5,
+      "naive_after_game": 5,
+      "naive_rose": true,
+      "naive_single": 1,
+      "pass": true
+     }
+    ]
+   },
+   "evidence_requirement": "The anti-repetition property must be demonstrated by an executed adversarial run with before-and-after ranks printed, not argued from the formula's shape.",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0018/probe1_adversarial_repetition.py",
+     "id": "probe1",
+     "role": "adversarial-repetition"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0018/probe2_lineage_monotonicity.py",
+     "id": "probe2",
+     "role": "lineage-collapse-monotonicity"
+    }
+   ],
+   "notes": "G-1 for CC-0018: live named probes re-run the ranker. Did not run global unit_manifest.py --write. SUCCESS:CC-0018",
+   "output_schema_declared": "command-center/schema/claim-record.schema.json",
+   "output_schema_present": true,
+   "question": "Rank claims by independent evidence, cross-domain convergence, severity and decision impact — never by how many agents repeated an idea — and prove the anti-repetition property adversarially.",
+   "ranked_claims": [
+    {
+     "canonical_mechanism": "probe-measured-defect-against-live-bytes",
+     "claim_id": "CLM-STRONG-PROBE",
+     "confidence": 5,
+     "cross_domain": 1,
+     "decision_impact": 4,
+     "independent_evidence": 1,
+     "merged_from": [
+      "CLM-STRONG-PROBE"
+     ],
+     "rank": 1,
+     "severity": 3,
+     "source_set": [
+      "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     ],
+     "verification": 4
+    },
+    {
+     "canonical_mechanism": "stale-premise-carried-as-ground-truth",
+     "claim_id": "CLM-ECHO-01",
+     "confidence": 1,
+     "cross_domain": 1,
+     "decision_impact": 1,
+     "independent_evidence": 1,
+     "merged_from": [
+      "CLM-ECHO-01",
+      "CLM-ECHO-02",
+      "CLM-ECHO-03",
+      "CLM-ECHO-04",
+      "CLM-ECHO-05",
+      "CLM-ECHO-06",
+      "CLM-ECHO-07",
+      "CLM-ECHO-08",
+      "CLM-ECHO-09",
+      "CLM-ECHO-10"
+     ],
+     "rank": 2,
+     "severity": 1,
+     "source_set": [
+      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     "verification": 1
+    }
+   ],
+   "ranking_function": {
+    "formula": "independence = |source_set| after lineage collapse (sha256 identity if present, else normalized path/uri); rank_key = (independence, cross_domain, verification, severity, decision_impact, confidence). Agent identity and repetition counts are stripped in ranking_view and are not read by score_components.",
+    "implementation": "command-center/p2-wave/probes/CC-0018/rank.py",
+    "name": "source_set_cardinality_then_severity_impact",
+    "pivot": "source-set cardinality — catalog retry pivot; weights were not tuned. Independence is the cardinality of the collapsed source set, not a weighted agent count."
+   },
+   "ranking_inputs_excluded": [
+    "agent_id",
+    "agent_count",
+    "repetition_count",
+    "echo_count",
+    "n_agents",
+    "authors"
+   ],
+   "ranking_inputs_used": [
+    "source_lineage.source_sha256",
+    "source_lineage.path",
+    "source_lineage.uri",
+    "source_lineage.domain",
+    "verification_status",
+    "severity",
+    "implementation_impact",
+    "confidence",
+    "canonical_mechanism"
+   ],
+   "status": "DELIVERED",
+   "ts": "2026-08-25T00:50:46+00:00"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CC-0018",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CC-0018.json",
+   "bytes": 8128,
+   "sha256": "40c73329ccdbbf2065b811db50ec0d188e426d50ef55d5681d1067e8d0b086d1",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CC-0018 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CC-0018.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CC-0018.json",
+     "raw_output": "bytes=8128 sha256=40c73329ccdbbf2065b811db50ec0d188e426d50ef55d5681d1067e8d0b086d1",
+     "fingerprint": "c5e028c29bc2be09b13fa53bd159f725",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CC-0018",
+     "raw_output": "schema-check",
+     "fingerprint": "e6354fd460f01ee47fbc0d5447f61bbe",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CC-0018 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CC-0018",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CC-0018",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "60cf6a34fb760a15c39068e567c1e6fb",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CC-0018",
+     "raw_output": "schema-valid",
+     "fingerprint": "e64ae783e47dedf26681491c379960a3",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CC-0018/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CC-0018"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CC-0018.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CC-0018.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "964bbc31f18ec724b35ef7eb18ae6f17",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 8128,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CC-0018.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "adversarial_reviewer": {
+  "brief": "Construct an input that games the ranking upward through repetition: N synthetic agents on one source, ten echoes of a weak claim, and path-spelling aliases of one document.",
+  "finding": "Naive agent-count ranking rises with N and with path aliases, and would rank ten echoes above one strong probe. Independent source-set ranking does not rise with N or aliases, and the strong probe outranks the collapsed echoes.",
+  "independent": true,
+  "reviewer_id": "CC-0018-adversarial-repetition-gamer",
+  "verdict": "PASS"
+ },
+ "cc_0017_dependency": {
+  "note": "CC-0017 has not delivered command-center/schema/claim-record.schema.json on this worktree. Ranking consumes the CC-0017 field list (lineage, confidence, verification, impact) from live dicts.",
+  "required_fields": [
+   "claim_id",
+   "canonical_mechanism",
+   "duplicate_of",
+   "duplicate_of",
+   "support",
+   "contradiction",
+   "source_lineage",
+   "verification_status",
+   "severity",
+   "implementation_impact",
+   "confidence",
+   "settling_probe"
+  ],
+  "schema_on_disk": true
+ },
+ "completion_sentinel": "SUCCESS:CC-0018",
+ "controls": {
+  "failed": [],
+  "pass": true,
+  "tests": [
+   {
+    "after_independent": {
+     "confidence": 1,
+     "cross_domain": 1,
+     "decision_impact": 1,
+     "independent_evidence": 1,
+     "severity": 1,
+     "verification": 1
+    },
+    "after_n_agents": 10,
+    "after_naive": 10,
+    "before_independent": {
+     "confidence": 1,
+     "cross_domain": 1,
+     "decision_impact": 1,
+     "independent_evidence": 1,
+     "severity": 1,
+     "verification": 1
+    },
+    "before_n_agents": 1,
+    "before_naive": 1,
+    "id": "adversarial-n-agent-repetition",
+    "independent_rose": false,
+    "independent_score_after": 1,
+    "independent_score_before": 1,
+    "naive_rose": true,
+    "pass": true,
+    "sort_key_unchanged": true
+   },
+   {
+    "id": "strong-probe-vs-ten-echoes",
+    "naive_echo_mass": 10,
+    "naive_echoes_would_win": true,
+    "naive_strong": 1,
+    "pass": true,
+    "strong_independent_evidence": 1,
+    "strong_rank": 1,
+    "strong_sort_key": [
+     1,
+     1,
+     4,
+     3,
+     4,
+     5
+    ],
+    "weak_independent_evidence": 1,
+    "weak_merged_from": [
+     "CLM-ECHO-01",
+     "CLM-ECHO-02",
+     "CLM-ECHO-03",
+     "CLM-ECHO-04",
+     "CLM-ECHO-05",
+     "CLM-ECHO-06",
+     "CLM-ECHO-07",
+     "CLM-ECHO-08",
+     "CLM-ECHO-09",
+     "CLM-ECHO-10"
+    ],
+    "weak_rank": 2,
+    "weak_sort_key": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   {
+    "claim_ids": [
+     "CLM-ALIAS-A",
+     "CLM-ALIAS-B"
+    ],
+    "id": "lineage-collapse-same-source-document",
+    "independent_signals_merged": 1,
+    "independent_signals_one_claim_two_rows": 1,
+    "independent_signals_two_claims": 1,
+    "pass": true,
+    "paths": [
+     "docs/stale-premise.md",
+     "./vendor/../vendor/copy-of-stale-premise.md"
+    ],
+    "shared_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   {
+    "after_components": {
+     "confidence": 5,
+     "cross_domain": 2,
+     "decision_impact": 4,
+     "independent_evidence": 2,
+     "severity": 3,
+     "verification": 4
+    },
+    "after_sort_key": [
+     2,
+     2,
+     4,
+     3,
+     4,
+     5
+    ],
+    "before_components": {
+     "confidence": 5,
+     "cross_domain": 1,
+     "decision_impact": 4,
+     "independent_evidence": 1,
+     "severity": 3,
+     "verification": 4
+    },
+    "before_sort_key": [
+     1,
+     1,
+     4,
+     3,
+     4,
+     5
+    ],
+    "id": "monotonicity-independent-corroboration",
+    "independent_after": 2,
+    "independent_before": 1,
+    "pass": true,
+    "rank_key_rose": true
+   },
+   {
+    "id": "adversary-path-alias-inflation",
+    "independent_after_game": 1,
+    "independent_rose": false,
+    "independent_single_spelling": 1,
+    "n_spellings": 5,
+    "naive_after_game": 5,
+    "naive_rose": true,
+    "naive_single": 1,
+    "pass": true
+   }
+  ]
+ },
+ "evidence_requirement": "The anti-repetition property must be demonstrated by an executed adversarial run with before-and-after ranks printed, not argued from the formula's shape.",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0018/probe1_adversarial_repetition.py",
+   "id": "probe1",
+   "role": "adversarial-repetition"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0018/probe2_lineage_monotonicity.py",
+   "id": "probe2",
+   "role": "lineage-collapse-monotonicity"
+  }
+ ],
+ "notes": "G-1 for CC-0018: live named probes re-run the ranker. Did not run global unit_manifest.py --write. SUCCESS:CC-0018",
+ "output_schema_declared": "command-center/schema/claim-record.schema.json",
+ "output_schema_present": true,
+ "question": "Rank claims by independent evidence, cross-domain convergence, severity and decision impact — never by how many agents repeated an idea — and prove the anti-repetition property adversarially.",
+ "ranked_claims": [
+  {
+   "canonical_mechanism": "probe-measured-defect-against-live-bytes",
+   "claim_id": "CLM-STRONG-PROBE",
+   "confidence": 5,
+   "cross_domain": 1,
+   "decision_impact": 4,
+   "independent_evidence": 1,
+   "merged_from": [
+    "CLM-STRONG-PROBE"
+   ],
+   "rank": 1,
+   "severity": 3,
+   "source_set": [
+    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+   ],
+   "verification": 4
+  },
+  {
+   "canonical_mechanism": "stale-premise-carried-as-ground-truth",
+   "claim_id": "CLM-ECHO-01",
+   "confidence": 1,
+   "cross_domain": 1,
+   "decision_impact": 1,
+   "independent_evidence": 1,
+   "merged_from": [
+    "CLM-ECHO-01",
+    "CLM-ECHO-02",
+    "CLM-ECHO-03",
+    "CLM-ECHO-04",
+    "CLM-ECHO-05",
+    "CLM-ECHO-06",
+    "CLM-ECHO-07",
+    "CLM-ECHO-08",
+    "CLM-ECHO-09",
+    "CLM-ECHO-10"
+   ],
+   "rank": 2,
+   "severity": 1,
+   "source_set": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   ],
+   "verification": 1
+  }
+ ],
+ "ranking_function": {
+  "formula": "independence = |source_set| after lineage collapse (sha256 identity if present, else normalized path/uri); rank_key = (independence, cross_domain, verification, severity, decision_impact, confidence). Agent identity and repetition counts are stripped in ranking_view and are not read by score_components.",
+  "implementation": "command-center/p2-wave/probes/CC-0018/rank.py",
+  "name": "source_set_cardinality_then_severity_impact",
+  "pivot": "source-set cardinality — catalog retry pivot; weights were not tuned. Independence is the cardinality of the collapsed source set, not a weighted agent count."
+ },
+ "ranking_inputs_excluded": [
+  "agent_id",
+  "agent_count",
+  "repetition_count",
+  "echo_count",
+  "n_agents",
+  "authors"
+ ],
+ "ranking_inputs_used": [
+  "source_lineage.source_sha256",
+  "source_lineage.path",
+  "source_lineage.uri",
+  "source_lineage.domain",
+  "verification_status",
+  "severity",
+  "implementation_impact",
+  "confidence",
+  "canonical_mechanism"
+ ],
+ "status": "DELIVERED",
+ "ts": "2026-08-25T00:50:46+00:00"
+}

@@ -1,0 +1,53 @@
+
+def _cnf0120_payload(plan, doc):
+    items = doc.get("items") or []
+    summary = doc.get("summary") or {}
+    report = _class_report(
+        "confirmation-audit",
+        [_obs("corpus items classified three-state", summary.get("item_count", len(items)),
+              "probe1 recount", "command-center/confirmation/CNF-0120-not-checked-integrity.json"),
+         _obs("items correctly recorded NOT-CHECKED", summary.get("not_checked"),
+              "probe1 recount of summary buckets",
+              "command-center/confirmation/CNF-0120-not-checked-integrity.json"),
+         _obs("planted unlabelled item caught as folded_into_pass", summary.get("folded_into_pass"),
+              "detector control (planted item must be caught)",
+              "command-center/confirmation/CNF-0120-not-checked-integrity.json"),
+         _obs("absent vs empty vs genuine-zero kept distinct", True,
+              "probe2 re-implements the classifier on regenerated fixtures",
+              "command-center/confirmation/CNF-0120-not-checked-integrity.json")],
+        ["NC-PLANTED-UNLABELLED", "NC-LABELLED-NOT-FOLDED"],
+        audit_kind="not-checked-integrity")
+    residuals = [
+        {"claim": "The original checker.py/classify.py engine files are absent from this "
+                  "worktree; classifier semantics re-implemented in probe2.",
+         "verdict": "PARTIAL",
+         "settling_experiment": "Restore probes/CNF-0120/checker.py and re-run controls.",
+         },
+    ]
+    return report, residuals
+
+
+def _cnf0157_payload(plan, doc):
+    report = _class_report(
+        "reproduction-matrix",
+        [_obs("matrix cells published", doc.get("cell_count"),
+              "probe1 cell census vs live+fixture arithmetic", "command-center/receipts/CNF-0157.json"),
+         _obs("fixture-level cells re-verified on this worktree", doc.get("fixture_cell_count"),
+              "probe1/probe2 fixture-level both-states controls",
+              "command-center/p2-wave/probes/CNF-0157/"),
+         _obs("live client cells recorded from the original run", doc.get("live_cell_count"),
+              "honest accounting: NOT re-executed on this worktree, never folded",
+              "command-center/receipts/CNF-0157.json"),
+         _obs("full interchangeability REFUTED (fail-silent cell named)", True,
+              "probe2 both-states control", "command-center/receipts/CNF-0157.json")],
+        ["NC-ADAPTER-DISABLE", "NC-FAIL-SILENT"],
+        verdict_headline="Full interchangeability REFUTED (fail-silent Codex CLI hook path recorded)",
+        host_note="linux /opt/p2/ast-integrate (original run); this Windows worktree re-verifies "
+                  "fixture-level controls only")
+    residuals = [
+        {"claim": "Live client executables are not installed on this Windows worktree; all "
+                  "client rows remain NOT-CHECKED with named install prerequisites.",
+         "verdict": "NOT-CHECKED",
+         "settling_experiment": "Install the client CLIs and re-run the adapter matrix live."},
+    ]
+    return report, residuals

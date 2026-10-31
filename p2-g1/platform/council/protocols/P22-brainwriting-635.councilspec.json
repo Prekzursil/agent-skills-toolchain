@@ -1,0 +1,434 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p22-brainwriting-635",
+  "preset": "hundred_idea_brainstorm",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Generate a large idea set by silent parallel writing where every pass must BUILD ON the neighbour's entry rather than restate it.",
+    "charter": "ANONYMOUS family, Rohrbach 6-3-5. Six seats, three ideas each, five passes. No seat ever critiques. A pass that restates its input is not a contribution and is rejected by the overlap detector.",
+    "risk_tier": "low",
+    "desired_output": "idea_set",
+    "success_criteria": [
+      "at least 90 unique ideas survive deduplication",
+      "every chained entry extends its input instead of restating it",
+      "no critique turn occurs during generation"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.6,
+    "evidence_requirements": {
+      "citation_required": false,
+      "anchor_style": "any",
+      "min_independent_sources": 0,
+      "evidence_outranks_votes": false
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 90
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 6
+    },
+    "roster": [
+      {
+        "participant_id": "sheet-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "divergent generation"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "sheet-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "mechanism design"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "sheet-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "analogical transfer"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "sheet-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "constraint relaxation"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "sheet-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "adjacent-domain patterns"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "sheet-6",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "operational feasibility"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "anonymous": true,
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "pseudonymous"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt"
+      ],
+      "max_similarity": 0.8
+    },
+    "conflicts_policy": {
+      "disclosure_required": false,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 0
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "seed-3-each",
+        "rounds": 1,
+        "independent": true,
+        "anonymous": true,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "novel_ideas_per_round": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "chained_build_on_five_passes",
+        "stage_id": "five-passes",
+        "rounds": 5,
+        "anonymous": true,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "novel_ideas_per_round": 3
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:max_ngram_overlap_with_prior",
+              "op": "<=",
+              "value": 0.4,
+              "value_type": "number",
+              "producer": "build_on_overlap_detector",
+              "note": "a chained entry that overlaps its input above 0.4 is a restatement, not a build-on"
+            },
+            {
+              "metric": "no_new_idea_rounds",
+              "op": "<=",
+              "value": 1,
+              "note": "generation is still producing"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "nominal_group",
+        "stage_id": "dedup-and-cluster",
+        "rounds": 1,
+        "quotas": {
+          "novel_ideas_per_round": 1
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "idea-catalog",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 6,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 350
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": false,
+      "cross_examination": false,
+      "rebuttal_required": false,
+      "steelman_before_rebuttal": false,
+      "declare_confidence": false,
+      "declare_conflicts": false,
+      "forced_dissent": false
+    },
+    "critique_intensity": "gentle",
+    "experiments": {
+      "allowed": false,
+      "max_experiments": 0,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "tool_calls": 40,
+    "sources": 5,
+    "turns": 40,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 6,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 0
+  },
+  "targets": {
+    "unique_ideas": 90,
+    "raw_ideas": 108,
+    "categories": 8,
+    "novelty_ratio": 0.7,
+    "diversity_index": 0.6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "quorum": {
+      "min_voters": 6,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": false,
+      "strategic_abstention_check": false
+    },
+    "evidence_gate": {
+      "votes_require_evidence": false,
+      "evidence_outranks_majority": false,
+      "reject_evidence_free_majority": false
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.0,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "unique_ideas >= 90 AND novelty_ratio >= 0.7 AND (no_new_idea_rounds >= 2 OR rounds_elapsed >= 6)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 90
+        },
+        {
+          "metric": "novelty_ratio",
+          "op": ">=",
+          "value": 0.7
+        },
+        {
+          "any_of": [
+            {
+              "metric": "no_new_idea_rounds",
+              "op": ">=",
+              "value": 2
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 6
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 6,
+      "min_independent_positions": 6,
+      "every_participant_spoke": true,
+      "min_evidence_items": 0
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 90,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.8
+    },
+    "resolution": [
+      "rotate_roles",
+      "narrow_scope",
+      "recruit_independent_critic"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "echo_chamber",
+      "participant_dominance",
+      "silence",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "role_rotation",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_ledger",
+      "idea_catalog",
+      "option_cards",
+      "transcript",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P22 brainwriting 6-3-5",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:455-470"
+    ],
+    "notes": "critique_intensity is gentle BY DESIGN - the card says no seat ever critiques - so this is one of two protocols in the lane where cross_examination, rebuttal and steelman are all declared FALSE rather than omitted. The build-on rule is carried by must_respond_to_prior plus the five-passes exit_when custom:max_ngram_overlap_with_prior <= 0.4. The negative snapshot with 108 unique ideas at novelty_ratio 0.35 must evaluate FALSE: that is idea-count gaming by trivial variants, executed as a control."
+  }
+}

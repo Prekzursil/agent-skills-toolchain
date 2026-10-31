@@ -1,0 +1,178 @@
+{
+ "unit_id": "IMP-0342",
+ "id": "IMP-0342",
+ "title": "Owner-intervention channel with recorded interventions",
+ "state": "SUCCESS",
+ "status": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0342",
+ "completion_sentinel": "SUCCESS:IMP-0342",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0342 question_or_target owner-intervention channel",
+ "spec_anchors": [
+  "command-center/WORK-UNIT-CATALOG.json:IMP-0342 question_or_target owner-intervention channel",
+  "command-center/WORK-UNIT-CATALOG.json:57106",
+  "tools/council/owner.py:110",
+  "tools/council/owner.py:127",
+  "tools/council/owner.py:137",
+  "tools/council/owner.py:316",
+  "tools/council/owner.py:330",
+  "tools/council/owner.py:229"
+ ],
+ "phase": "7A",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-owner-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "artifact_paths": [
+  "tools/council/owner.py",
+  "command-center/receipts/IMP-0342.json",
+  "command-center/p2-wave/probes/IMP-0342/probe1_lifecycle.py",
+  "command-center/p2-wave/probes/IMP-0342/probe2_prefix.py"
+ ],
+ "artifacts": [
+  {
+   "path": "tools/council/owner.py",
+   "role": "primary-module",
+   "bytes": 17408,
+   "sha256": "a0259cdf9d8326338bc0d0345481139f17f6921afa5c2ec059d8843081f5c045",
+   "exists": true
+  }
+ ],
+ "evidence": [
+  {
+   "id": "E1-owner-origin-scan",
+   "claim": "Every owner intervention in the final artifact carries origin=owner and origin_marker owner-origin:<owner_id>; participant turns do not.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/council/owner.py:137",
+   "probes": [
+    {
+     "role": "source",
+     "method": "scan_owner_markers on lifecycle artifact",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0342/probe1_lifecycle.py",
+     "raw_output": "distinguishable=True every_intervention_has_owner_marker=True kinds=['owner.pause', 'owner.inject.guidance', 'owner.inject.constraint', 'owner.resume'] markers=['owner-origin:owner-1', 'owner-origin:owner-1', 'owner-origin:owner-1', 'owner-origin:owner-1']"
+    },
+    {
+     "role": "verifier",
+     "method": "intervention vs contribution origin partition",
+     "command": "artifact['interventions'] origin set vs contributions",
+     "raw_output": "intervention_count=4 contribution_count=3 missing_marker=[] origin_confusion=[]"
+    }
+   ]
+  },
+  {
+   "id": "E2-prefix-hash-append-only",
+   "claim": "The event-log prefix hash taken before pause/inject/resume equals the hash of that same prefix afterwards; prior turn texts are byte-identical.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/council/owner.py:110",
+   "probes": [
+    {
+     "role": "source",
+     "method": "prefix_hash(n_before) after intervention",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0342/probe2_prefix.py",
+     "raw_output": "prefix_of_prior_unchanged=True prior_texts_unchanged=True n_before=3 prefix_before=13cc8025b86b212442ebe753c5d20ee401442373019ff04b3f71493749665933"
+    },
+    {
+     "role": "verifier",
+     "method": "check_prefix silent on clean log",
+     "command": "check_prefix(events, snap, n) == intact",
+     "raw_output": "intact_on_clean_log=True"
+    }
+   ]
+  }
+ ],
+ "test_ids": [
+  "unit:pause-inject-resume-lifecycle",
+  "invariant:event-log-prefix-hash-unchanged-by-intervention",
+  "negative:mutate-prior-event-prefix-hash-fires"
+ ],
+ "tests": [
+  {
+   "id": "unit:pause-inject-resume-lifecycle",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0342/probe1_lifecycle.py",
+   "result": "PASS"
+  },
+  {
+   "id": "invariant:event-log-prefix-hash-unchanged-by-intervention",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0342/probe2_prefix.py",
+   "result": "PASS"
+  },
+  {
+   "id": "negative:mutate-prior-event-prefix-hash-fires",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0342/probe2_prefix.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_control_ids": [
+  "NC1-mutate-prior-event-prefix-hash-fires",
+  "NC2-rewrite-api-refused",
+  "NC3-inject-while-running-and-turn-while-paused-refused"
+ ],
+ "negative_controls": [
+  {
+   "id": "NC1-mutate-prior-event-prefix-hash-fires",
+   "kind": "log-tamper",
+   "description": "Overwrite a prior participant payload after a prefix hash was taken; check_prefix must FIRE. The same check is silent on the unmodified log.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "prefix_check_fired=True detail={'n': 2, 'expected': '13ece77dcabe5402b8cd996ee955ffa988e2c48e4b9f6e1bec7ee92fb87ba9a3', 'observed': '773359a64391f05c02671a8a5a86e882ba832579e195c327c3d54dfce6919726', 'fired': True}",
+   "good_state_output": "intact_on_clean_log=True"
+  },
+  {
+   "id": "NC2-rewrite-api-refused",
+   "kind": "append-only-api",
+   "description": "EventLog.rewrite and EventLog.truncate raise AppendOnlyError.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "rewrite_api_refused=True",
+   "good_state_output": "append of a new event is accepted"
+  }
+ ],
+ "reviewer_verdict": "PASS",
+ "reviewer": {
+  "reviewer_id": "IMP-0342-probe2-prefix",
+  "independent": true,
+  "fresh_context": true,
+  "starts_from": "tests (probe2_prefix.py), not author summary",
+  "verdict": "PASS",
+  "did_not_grant_owner_half": true
+ },
+ "owner_sign_off": {
+  "required": true,
+  "granted": false,
+  "grantor": null,
+  "reviewer_granted": false,
+  "reviewer_may_not_grant": true,
+  "status": "PENDING-OWNER",
+  "note": "Catalog owner_approval_required=true. This block records the gate. The independent reviewer PASS does not and cannot grant owner sign-off. Production use of the channel on a live owner-gated council remains owner-gated. The module itself is implemented and probe-green."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "tools/council/kernel.py (IMP-0264) is not on this worktree. LiveCouncil is the intervention surface a future kernel must call; it does not itself own topology/round scheduling.",
+   "settling_experiment": "After IMP-0264 delivers kernel.py, wire pause/inject/resume through LiveCouncil rather than a parallel write path and re-run prefix_hash across a kernel-driven round.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "tools/council/dissent.py (IMP-0312) is not on this worktree. inject_constraint records the constraint as an event; it does not by itself prove dissent survives later synthesis.",
+   "settling_experiment": "Re-run conservation of distinctive dissent strings after IMP-0312 lands, with an owner constraint injected mid-run.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.md is not on this Linux tree; the channel is implemented from the catalog question_or_target and tests_required, not from a byte-identical spec file.",
+   "settling_experiment": "Diff KIND_* and origin_marker rules against the spec file when it is restored.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:59:26Z",
+  "ended_at": "2026-08-25T00:59:26Z"
+ },
+ "module": {
+  "path": "tools/council/owner.py",
+  "bytes": 17408,
+  "sha256": "a0259cdf9d8326338bc0d0345481139f17f6921afa5c2ec059d8843081f5c045",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0342 question_or_target owner-intervention channel"
+ },
+ "falsifiable_answers": {
+  "owner_intervention_distinguishable_from_participant": true,
+  "intervention_can_silently_rewrite_earlier_position": false,
+  "prefix_hash_check_fires_on_prior_event_mutation": true
+ },
+ "owner_approval_required": true,
+ "notes": "G-1 IMP-0342: tools/council/owner.py is the pause/inject/resume channel. Named probes re-run independently. Did not run unit_manifest.py --write. Did not relaunch finish-everything-close. SUCCESS:IMP-0342"
+}

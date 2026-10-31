@@ -1,0 +1,540 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p08-red-blue-team",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Evaluate a proposal by people who are paid to break it as well as people who want it to work, and score only the attacks that actually landed.",
+    "charter": "Red/blue team with a white cell. Blue defends and hardens; red attacks with concrete exploit or failure constructions; the white cell scores landed attacks only and discards any attack with no reproduction path.",
+    "risk_tier": "critical",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "at least one red finding was independently reproduced by the white cell, or red spent its full attack quota with nothing landing",
+      "every discarded attack names the missing reproduction path",
+      "no open P0/P1 finding remains at close"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "production write",
+        "credential rotation"
+      ],
+      "deadline_minutes": 240
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 7,
+      "min": 7,
+      "max": 7
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "white-cell-judge",
+        "display_name": "White cell (reproduces findings, scores landed attacks)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "reproduction",
+          "methodology"
+        ],
+        "role": "judge",
+        "authority": "judge",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        },
+        "source_access": [
+          "repo",
+          "transcripts"
+        ]
+      },
+      {
+        "participant_id": "red-1",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "exploit construction"
+        ],
+        "role": "red_team",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      },
+      {
+        "participant_id": "red-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "failure-mode enumeration"
+        ],
+        "role": "red_team",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      },
+      {
+        "participant_id": "blue-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "hardening",
+          "defensive design"
+        ],
+        "role": "blue_team",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      },
+      {
+        "participant_id": "blue-2",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "mitigation cost"
+        ],
+        "role": "blue_team",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "detector validation",
+          "both-states testing"
+        ],
+        "role": "verifier",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "risk-officer",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "severity grading",
+          "blast radius"
+        ],
+        "role": "risk_officer",
+        "authority": "veto_holder",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "inactivity",
+        "policy_violation"
+      ],
+      "preserve_prior_positions": true
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list",
+      "benchmark_baseline"
+    ]
+  },
+  "topology": {
+    "kind": "red_blue"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "blue-harden",
+        "independent": true,
+        "participants": [
+          "blue-1",
+          "blue-2"
+        ]
+      },
+      {
+        "kind": "war_game",
+        "stage_id": "red-attack",
+        "rounds": 3,
+        "participants": [
+          "red-1",
+          "red-2"
+        ],
+        "quotas": {
+          "counterexamples_per_round": 2,
+          "objections_per_participant": 4
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "white-cell-reproduction",
+        "custom_name": "white_cell_independent_reproduction",
+        "participants": [
+          "white-cell-judge",
+          "methodologist"
+        ],
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "custom:reproduced_red_findings",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number",
+              "producer": "white-cell-judge reproduction log"
+            },
+            {
+              "metric": "custom:red_attack_attempts",
+              "op": ">=",
+              "value": 12,
+              "value_type": "number",
+              "producer": "white-cell-judge attack ledger"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "mitigation-review",
+        "rounds": 1
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 800
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 12,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "max",
+    "time_minutes": 240,
+    "tool_calls": 400,
+    "sources": 40,
+    "experiments": 12,
+    "turns": 60,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "unique_ideas": 12,
+    "novelty_ratio": 0.5,
+    "objections": 12,
+    "counterexamples": 6,
+    "evidence_items": 30,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 2,
+      "on_failure": "escalate_to_owner"
+    },
+    "veto": {
+      "holders": [
+        "risk-officer"
+      ],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.9,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "custom:reproduced_red_findings",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number",
+              "producer": "white-cell-judge reproduction log"
+            },
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0
+            },
+            {
+              "metric": "experiments_passed",
+              "op": ">=",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "all_of": [
+            {
+              "metric": "custom:red_attack_attempts",
+              "op": ">=",
+              "value": 12,
+              "value_type": "number",
+              "producer": "white-cell-judge attack ledger"
+            },
+            {
+              "metric": "counterexamples_found",
+              "op": "==",
+              "value": 0
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 3
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4,
+      "min_evidence_items": 20,
+      "min_objections_addressed": 8
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 240,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every reproduced red finding has a merged mitigation and a regression test"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "strongest_counterexample",
+      "recruit_independent_critic",
+      "judge_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "idea_count_gaming",
+      "role_collapse",
+      "collusion",
+      "consensus_failing_executable_tests",
+      "endless_debate"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "recruit_independent_critic",
+      "blind_re_evaluation",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 180,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release",
+        "production change"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P08 red/blue team",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:220",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:233"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P08",
+      "estate rubric-verifier adversarial lenses"
+    ],
+    "notes": "ADVERSARIAL. Scores LANDED attacks, not argument quality. The card's adoption proof (at least one red finding independently reproduced before close) is the first branch of stopping.expression; the second branch exists so a genuinely clean artifact cannot deadlock the council when red finds nothing.\n\nanti-failure controls, each mapped to the field implementing it:\n  evidence_free_majority -> the white cell scores only ATTACKS THAT LANDED - an attack with no reproduction path is discarded, so custom:reproduced_red_findings (not attack count) is what the stopping rule reads\n  idea_count_gaming -> targets.dedup.trivial_variant_policy=reject plus quotas.counterexamples_per_round; red cannot inflate a score with restated objections\n  role_collapse -> topology.kind=red_blue with assigned sides and participants.replacement.triggers=role_collapse; a red seat that stops attacking is replaced, and blue may not concede on red's behalf\n  collusion -> participants.duplicate_detection across model/vendor/position_similarity and independence.shares_context_with=[] on both sides\n  consensus_failing_executable_tests -> protocol.experiments.required_before_decision=true with runner=ci; the white cell must independently reproduce a red finding before the council can close on it\n  endless_debate -> the second branch of stopping.expression closes the council when red has spent its attack quota with nothing landing, so a genuinely clean artifact does not deadlock"
+  }
+}

@@ -1,0 +1,588 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0107-uninstall-completeness.json",
+   "bytes": 10729,
+   "sha256": "89947254e8a1bf397bb17e6ff42c55a24ecc84f27f54666ddd504660f54aa18e",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0107 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0107-uninstall-completeness.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0107-uninstall-completeness.json",
+     "raw_output": "bytes=10729 sha256=89947254e8a1bf397bb17e6ff42c55a24ecc84f27f54666ddd504660f54aa18e",
+     "fingerprint": "14927bd78640140692db2dd1ced9242a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0107",
+     "raw_output": "schema-check",
+     "fingerprint": "7d92c1fa9f84be579fdc7db7c4618366",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0107 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0107",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0107",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "a73454b68a94b73b071ebf6c6f6110b3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0107",
+     "raw_output": "schema-valid",
+     "fingerprint": "599abb3c8fa02febfe761e7d3136bfac",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0107",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0107-uninstall-completeness.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "CNF-0107",
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:CNF-0107 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three snapshots are attached and the post-uninstall reinstall was attempted and its result recorded. Any other terminal state is FAILED:CNF-0107 <classification> with the diagnostic tail attached.",
+   "diagnostic_tail": "",
+   "findings": {
+    "completeness_ok": true,
+    "data_loss": [],
+    "install_created": [
+     ".ast-plugin/bin/plugin",
+     ".ast-plugin/cache/index.json",
+     ".ast-plugin/hooks/pre-tool.json",
+     ".ast-plugin/install-marker.json",
+     ".ast-plugin/lib/runtime.py",
+     ".ast-plugin/mcp/server.json",
+     ".ast-plugin/user-data/notes.md",
+     ".ast-plugin/user-data/settings.json"
+    ],
+    "non_destruction_ok": true,
+    "orphans": [],
+    "out_of_scope_control_path": "host-app/unrelated-skill.md",
+    "out_of_scope_damage": [],
+    "out_of_scope_intact": true,
+    "uninstall_removed": [
+     ".ast-plugin/bin/plugin",
+     ".ast-plugin/cache/index.json",
+     ".ast-plugin/hooks/pre-tool.json",
+     ".ast-plugin/install-marker.json",
+     ".ast-plugin/lib/runtime.py",
+     ".ast-plugin/mcp/server.json"
+    ]
+   },
+   "operations": [
+    {
+     "detail": "host-app/unrelated-skill.md",
+     "name": "seed-host-out-of-scope",
+     "ok": true
+    },
+    {
+     "detail": "owned projection written",
+     "name": "install",
+     "ok": true
+    },
+    {
+     "detail": "notes.md+settings.json",
+     "name": "seed-user-data",
+     "ok": true
+    },
+    {
+     "detail": "mode=healthy retain user-data",
+     "name": "uninstall",
+     "ok": true
+    },
+    {
+     "detail": "reinstall restored owned projection",
+     "name": "reinstall",
+     "ok": true
+    }
+   ],
+   "question": "Does uninstall remove exactly what it should and nothing more? Run it after a clean install seeded with user data, and answer: what remains that should have been removed, what was removed that should have been kept, and does a subsequent reinstall work from the resulting state?",
+   "reinstall": {
+    "attempted": true,
+    "detail": "reinstall restored owned projection",
+    "exit_code": 0,
+    "owned_paths_restored": [
+     ".ast-plugin/bin/plugin",
+     ".ast-plugin/lib/runtime.py",
+     ".ast-plugin/hooks/pre-tool.json",
+     ".ast-plugin/mcp/server.json",
+     ".ast-plugin/cache/index.json",
+     ".ast-plugin/install-marker.json"
+    ],
+    "poisoned": false,
+    "succeeded": true
+   },
+   "report_kind": "install-report",
+   "reviewers": [
+    {
+     "independent": true,
+     "reviewer_id": "CNF-0107-probe1-three-snapshot",
+     "signal": "filesystem-snapshot-diff",
+     "verdict": "PASS"
+    },
+    {
+     "independent": true,
+     "reviewer_id": "CNF-0107-probe2-detector-control",
+     "signal": "fault-injected-uninstall",
+     "verdict": "PASS"
+    }
+   ],
+   "snapshots": [
+    {
+     "digest": "2f85d4eb0382a2238f17b0e61e2ac39374fa8599a163c1d0556a9b4ca36af53e",
+     "file_count": 2,
+     "files": [
+      {
+       "bytes": 54,
+       "path": "host-app/shared-settings.json",
+       "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+      },
+      {
+       "bytes": 90,
+       "path": "host-app/unrelated-skill.md",
+       "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+      }
+     ],
+     "label": "pre-install"
+    },
+    {
+     "digest": "bfb05c7e5b4e69f29091f0bfe0771b63744f64d56027604241c14a0cf85ee3be",
+     "file_count": 10,
+     "files": [
+      {
+       "bytes": 42,
+       "path": ".ast-plugin/bin/plugin",
+       "sha256": "3e66e16447b902a78d2cb67207c8675b8bd1b89d6d3fa12b3d3d6007d748769b"
+      },
+      {
+       "bytes": 15,
+       "path": ".ast-plugin/cache/index.json",
+       "sha256": "7a0b7943ccd293821e69c3413abdfebf3d74e3d9a2a92c2f362a7fcbab72f8b3"
+      },
+      {
+       "bytes": 35,
+       "path": ".ast-plugin/hooks/pre-tool.json",
+       "sha256": "65c0230b5ea35ffda5ec928e3001093c428a85a5dc369d74c42861c8063fb628"
+      },
+      {
+       "bytes": 41,
+       "path": ".ast-plugin/install-marker.json",
+       "sha256": "745ec229a74d5f43f9fa6af512178e657b9de158305ccc9111db0bbea3dd202f"
+      },
+      {
+       "bytes": 18,
+       "path": ".ast-plugin/lib/runtime.py",
+       "sha256": "49dc6fd020a89e240a2929b9b1f102a05bb14cd018d6d32177cd6ddd8f7e6a98"
+      },
+      {
+       "bytes": 27,
+       "path": ".ast-plugin/mcp/server.json",
+       "sha256": "eac2471243ea9c39757458493ba21e70d4e941ce6d26eb35fc9c570c7926d905"
+      },
+      {
+       "bytes": 100,
+       "path": ".ast-plugin/user-data/notes.md",
+       "sha256": "f7045e329df385f895985ace20a9ee74df652a597a9371398e7cf6ec6072fc68"
+      },
+      {
+       "bytes": 100,
+       "path": ".ast-plugin/user-data/settings.json",
+       "sha256": "c9b979c07753082cfc5470a93a29d1ded87ac8a310385ecdcb13811af6cccb70"
+      },
+      {
+       "bytes": 54,
+       "path": "host-app/shared-settings.json",
+       "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+      },
+      {
+       "bytes": 90,
+       "path": "host-app/unrelated-skill.md",
+       "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+      }
+     ],
+     "label": "post-install"
+    },
+    {
+     "digest": "b0a8457e8d50361d6367ade0a2b78015b09efb0957b8ff2b7013c8aa4130ac5a",
+     "file_count": 4,
+     "files": [
+      {
+       "bytes": 100,
+       "path": ".ast-plugin/user-data/notes.md",
+       "sha256": "f7045e329df385f895985ace20a9ee74df652a597a9371398e7cf6ec6072fc68"
+      },
+      {
+       "bytes": 100,
+       "path": ".ast-plugin/user-data/settings.json",
+       "sha256": "c9b979c07753082cfc5470a93a29d1ded87ac8a310385ecdcb13811af6cccb70"
+      },
+      {
+       "bytes": 54,
+       "path": "host-app/shared-settings.json",
+       "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+      },
+      {
+       "bytes": 90,
+       "path": "host-app/unrelated-skill.md",
+       "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+      }
+     ],
+     "label": "post-uninstall"
+    }
+   ],
+   "subject": {
+    "declared_scope": {
+     "out_of_scope": [
+      "host-app/shared-settings.json",
+      "host-app/unrelated-skill.md"
+     ],
+     "owned": [
+      ".ast-plugin/bin/plugin",
+      ".ast-plugin/cache/index.json",
+      ".ast-plugin/hooks/pre-tool.json",
+      ".ast-plugin/install-marker.json",
+      ".ast-plugin/lib/runtime.py",
+      ".ast-plugin/mcp/server.json"
+     ],
+     "user_data": [
+      ".ast-plugin/user-data/notes.md",
+      ".ast-plugin/user-data/settings.json"
+     ]
+    },
+    "implementation": "command-center/p2-wave/probes/CNF-0107/lifecycle.py (IMP-0027 projection-map contract; tools/plugin is not in this sparse worktree)",
+    "kind": "plugin-lifecycle-uninstall",
+    "worktree_note": "Live tools/plugin CLI is absent from /opt/p2/ast-integrate. This confirmation runs the declared uninstall contract in a throwaway HOME: owned projection-map paths are removed, user-data is retained by default, out-of-scope host files are never touched, then reinstall is attempted from the post-uninstall state."
+   },
+   "title": "Uninstall completeness and non-destruction"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0107",
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0107/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0107"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0107-uninstall-completeness.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0107-uninstall-completeness.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "64cee2809187e7c7ff4da8f754ccd2e7",
+    "exit_code": 0
+   }
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "install-report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 10729,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0107-uninstall-completeness.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0107 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three snapshots are attached and the post-uninstall reinstall was attempted and its result recorded. Any other terminal state is FAILED:CNF-0107 <classification> with the diagnostic tail attached.",
+ "diagnostic_tail": "",
+ "findings": {
+  "completeness_ok": true,
+  "data_loss": [],
+  "install_created": [
+   ".ast-plugin/bin/plugin",
+   ".ast-plugin/cache/index.json",
+   ".ast-plugin/hooks/pre-tool.json",
+   ".ast-plugin/install-marker.json",
+   ".ast-plugin/lib/runtime.py",
+   ".ast-plugin/mcp/server.json",
+   ".ast-plugin/user-data/notes.md",
+   ".ast-plugin/user-data/settings.json"
+  ],
+  "non_destruction_ok": true,
+  "orphans": [],
+  "out_of_scope_control_path": "host-app/unrelated-skill.md",
+  "out_of_scope_damage": [],
+  "out_of_scope_intact": true,
+  "uninstall_removed": [
+   ".ast-plugin/bin/plugin",
+   ".ast-plugin/cache/index.json",
+   ".ast-plugin/hooks/pre-tool.json",
+   ".ast-plugin/install-marker.json",
+   ".ast-plugin/lib/runtime.py",
+   ".ast-plugin/mcp/server.json"
+  ]
+ },
+ "operations": [
+  {
+   "detail": "host-app/unrelated-skill.md",
+   "name": "seed-host-out-of-scope",
+   "ok": true
+  },
+  {
+   "detail": "owned projection written",
+   "name": "install",
+   "ok": true
+  },
+  {
+   "detail": "notes.md+settings.json",
+   "name": "seed-user-data",
+   "ok": true
+  },
+  {
+   "detail": "mode=healthy retain user-data",
+   "name": "uninstall",
+   "ok": true
+  },
+  {
+   "detail": "reinstall restored owned projection",
+   "name": "reinstall",
+   "ok": true
+  }
+ ],
+ "question": "Does uninstall remove exactly what it should and nothing more? Run it after a clean install seeded with user data, and answer: what remains that should have been removed, what was removed that should have been kept, and does a subsequent reinstall work from the resulting state?",
+ "reinstall": {
+  "attempted": true,
+  "detail": "reinstall restored owned projection",
+  "exit_code": 0,
+  "owned_paths_restored": [
+   ".ast-plugin/bin/plugin",
+   ".ast-plugin/lib/runtime.py",
+   ".ast-plugin/hooks/pre-tool.json",
+   ".ast-plugin/mcp/server.json",
+   ".ast-plugin/cache/index.json",
+   ".ast-plugin/install-marker.json"
+  ],
+  "poisoned": false,
+  "succeeded": true
+ },
+ "report_kind": "install-report",
+ "reviewers": [
+  {
+   "independent": true,
+   "reviewer_id": "CNF-0107-probe1-three-snapshot",
+   "signal": "filesystem-snapshot-diff",
+   "verdict": "PASS"
+  },
+  {
+   "independent": true,
+   "reviewer_id": "CNF-0107-probe2-detector-control",
+   "signal": "fault-injected-uninstall",
+   "verdict": "PASS"
+  }
+ ],
+ "snapshots": [
+  {
+   "digest": "2f85d4eb0382a2238f17b0e61e2ac39374fa8599a163c1d0556a9b4ca36af53e",
+   "file_count": 2,
+   "files": [
+    {
+     "bytes": 54,
+     "path": "host-app/shared-settings.json",
+     "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+    },
+    {
+     "bytes": 90,
+     "path": "host-app/unrelated-skill.md",
+     "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+    }
+   ],
+   "label": "pre-install"
+  },
+  {
+   "digest": "bfb05c7e5b4e69f29091f0bfe0771b63744f64d56027604241c14a0cf85ee3be",
+   "file_count": 10,
+   "files": [
+    {
+     "bytes": 42,
+     "path": ".ast-plugin/bin/plugin",
+     "sha256": "3e66e16447b902a78d2cb67207c8675b8bd1b89d6d3fa12b3d3d6007d748769b"
+    },
+    {
+     "bytes": 15,
+     "path": ".ast-plugin/cache/index.json",
+     "sha256": "7a0b7943ccd293821e69c3413abdfebf3d74e3d9a2a92c2f362a7fcbab72f8b3"
+    },
+    {
+     "bytes": 35,
+     "path": ".ast-plugin/hooks/pre-tool.json",
+     "sha256": "65c0230b5ea35ffda5ec928e3001093c428a85a5dc369d74c42861c8063fb628"
+    },
+    {
+     "bytes": 41,
+     "path": ".ast-plugin/install-marker.json",
+     "sha256": "745ec229a74d5f43f9fa6af512178e657b9de158305ccc9111db0bbea3dd202f"
+    },
+    {
+     "bytes": 18,
+     "path": ".ast-plugin/lib/runtime.py",
+     "sha256": "49dc6fd020a89e240a2929b9b1f102a05bb14cd018d6d32177cd6ddd8f7e6a98"
+    },
+    {
+     "bytes": 27,
+     "path": ".ast-plugin/mcp/server.json",
+     "sha256": "eac2471243ea9c39757458493ba21e70d4e941ce6d26eb35fc9c570c7926d905"
+    },
+    {
+     "bytes": 100,
+     "path": ".ast-plugin/user-data/notes.md",
+     "sha256": "f7045e329df385f895985ace20a9ee74df652a597a9371398e7cf6ec6072fc68"
+    },
+    {
+     "bytes": 100,
+     "path": ".ast-plugin/user-data/settings.json",
+     "sha256": "c9b979c07753082cfc5470a93a29d1ded87ac8a310385ecdcb13811af6cccb70"
+    },
+    {
+     "bytes": 54,
+     "path": "host-app/shared-settings.json",
+     "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+    },
+    {
+     "bytes": 90,
+     "path": "host-app/unrelated-skill.md",
+     "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+    }
+   ],
+   "label": "post-install"
+  },
+  {
+   "digest": "b0a8457e8d50361d6367ade0a2b78015b09efb0957b8ff2b7013c8aa4130ac5a",
+   "file_count": 4,
+   "files": [
+    {
+     "bytes": 100,
+     "path": ".ast-plugin/user-data/notes.md",
+     "sha256": "f7045e329df385f895985ace20a9ee74df652a597a9371398e7cf6ec6072fc68"
+    },
+    {
+     "bytes": 100,
+     "path": ".ast-plugin/user-data/settings.json",
+     "sha256": "c9b979c07753082cfc5470a93a29d1ded87ac8a310385ecdcb13811af6cccb70"
+    },
+    {
+     "bytes": 54,
+     "path": "host-app/shared-settings.json",
+     "sha256": "660fdd4ad6fa7658d68f91f16560d06c620159480dabe85f2f21736f67477957"
+    },
+    {
+     "bytes": 90,
+     "path": "host-app/unrelated-skill.md",
+     "sha256": "a8d45ff41153507a09b89833a63623b1503fcfa2d31648dce8d2cee20f561baf"
+    }
+   ],
+   "label": "post-uninstall"
+  }
+ ],
+ "subject": {
+  "declared_scope": {
+   "out_of_scope": [
+    "host-app/shared-settings.json",
+    "host-app/unrelated-skill.md"
+   ],
+   "owned": [
+    ".ast-plugin/bin/plugin",
+    ".ast-plugin/cache/index.json",
+    ".ast-plugin/hooks/pre-tool.json",
+    ".ast-plugin/install-marker.json",
+    ".ast-plugin/lib/runtime.py",
+    ".ast-plugin/mcp/server.json"
+   ],
+   "user_data": [
+    ".ast-plugin/user-data/notes.md",
+    ".ast-plugin/user-data/settings.json"
+   ]
+  },
+  "implementation": "command-center/p2-wave/probes/CNF-0107/lifecycle.py (IMP-0027 projection-map contract; tools/plugin is not in this sparse worktree)",
+  "kind": "plugin-lifecycle-uninstall",
+  "worktree_note": "Live tools/plugin CLI is absent from /opt/p2/ast-integrate. This confirmation runs the declared uninstall contract in a throwaway HOME: owned projection-map paths are removed, user-data is retained by default, out-of-scope host files are never touched, then reinstall is attempted from the post-uninstall state."
+ },
+ "title": "Uninstall completeness and non-destruction"
+}

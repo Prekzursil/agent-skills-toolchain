@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d41-argument-map-10",
+  "preset": "custom",
+  "extends_preset": "root_cause_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Map a re-litigated decision into an explicit argument graph, anchor every node to its transcript span, and find which leaf premise the decision actually rests on.",
+    "charter": "A decision that has been re-argued twice is usually not a disagreement about the conclusion - it is an undetected disagreement about one leaf premise that nobody has isolated. Three mappers build the graph: claims, the premises supporting them, and the evidence under those premises. Every node must carry the transcript span it came from, so the graph cannot contain a premise nobody actually asserted. Four claim adjudicators then rule premise by premise, and a sensitivity sweep flips each leaf premise in turn to find the ones that change the conclusion. Those, and only those, are worth re-arguing.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "every graph node carries the transcript span it was extracted from",
+      "no node is a paraphrase nobody asserted - a node without a span is deleted, not repaired",
+      "a sensitivity sweep is run over every leaf premise",
+      "the report names the specific leaf premises whose truth value flips the conclusion"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 2, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 10 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      { "participant_id": "mapper-1", "display_name": "Mapper 1 (claims layer)", "model": "opus-5", "vendor": "anthropic", "expertise": ["argument mapping"], "role": "custom:argument_mapper", "authority": "contributor", "source_access": ["transcripts", "repo"], "context": { "briefing": "Extract claims verbatim with their span. If you cannot point at where it was said, it is not a node." } },
+      { "participant_id": "mapper-2", "display_name": "Mapper 2 (premises layer)", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["argument mapping", "premise extraction"], "role": "custom:argument_mapper", "authority": "contributor", "source_access": ["transcripts", "repo"] },
+      { "participant_id": "mapper-3", "display_name": "Mapper 3 (evidence layer)", "model": "gemini-3-pro", "vendor": "google", "expertise": ["evidence tracing"], "role": "custom:argument_mapper", "authority": "contributor", "source_access": ["transcripts", "repo"] },
+      { "participant_id": "adjudicator-1", "display_name": "Claim adjudicator 1", "model": "opus-5", "vendor": "anthropic", "expertise": ["claim adjudication"], "role": "custom:claim_adjudicator", "authority": "voter" },
+      { "participant_id": "adjudicator-2", "display_name": "Claim adjudicator 2", "model": "opus-5", "vendor": "anthropic", "expertise": ["claim adjudication"], "role": "custom:claim_adjudicator", "authority": "voter" },
+      { "participant_id": "adjudicator-3", "display_name": "Claim adjudicator 3", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["claim adjudication"], "role": "custom:claim_adjudicator", "authority": "voter" },
+      { "participant_id": "adjudicator-4", "display_name": "Claim adjudicator 4", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["claim adjudication"], "role": "custom:claim_adjudicator", "authority": "voter" },
+      { "participant_id": "methodologist", "display_name": "Methodologist (sensitivity sweep)", "model": "opus-5", "vendor": "anthropic", "expertise": ["sensitivity analysis", "graph validation"], "role": "custom:methodologist", "authority": "voter", "effort": "xhigh", "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }, "context": { "briefing": "Flip each leaf premise in turn and record whether the conclusion moves. A premise nobody's conclusion depends on is not worth a third round of argument." } },
+      { "participant_id": "judge", "display_name": "Judge", "model": "opus-5", "vendor": "anthropic", "expertise": ["adjudication"], "role": "judge", "authority": "judge", "effort": "max" },
+      { "participant_id": "scribe", "display_name": "Scribe", "model": "opus-5", "vendor": "anthropic", "expertise": ["transcript"], "role": "scribe", "authority": "observer", "rights": { "may_speak": false, "may_vote": false } }
+    ],
+    "duplicate_detection": { "enabled": true, "dimensions": ["position_similarity"], "max_similarity": 0.85 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "prep_time_minutes": 30, "required_artifacts": ["evidence_pack", "prior_art_scan"] },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      { "committee_id": "mapping", "mandate": "Build the claim/premise/evidence graph. Every node carries its transcript span; a node without a span is deleted.", "members": ["mapper-1", "mapper-2", "mapper-3"] },
+      { "committee_id": "adjudication", "mandate": "Rule premise by premise on the finished graph. You may not add nodes.", "members": ["adjudicator-1", "adjudicator-2", "adjudicator-3", "adjudicator-4"] }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "build-the-graph", "custom_name": "P42 argument mapping: claims -> premises -> evidence, each node anchored to a transcript span", "rounds": 1, "participants": ["mapper-1", "mapper-2", "mapper-3"] },
+      { "kind": "custom", "stage_id": "premise-by-premise", "custom_name": "P15 claim-by-claim adjudication walked over the graph's leaf premises", "rounds": 1 },
+      { "kind": "custom", "stage_id": "sensitivity-sweep", "custom_name": "flip each leaf premise and record whether the conclusion moves", "rounds": 1, "participants": ["methodologist"] },
+      { "kind": "synthesis", "stage_id": "which-premise-actually-matters" }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": false },
+    "obligations": { "must_cite_evidence": true, "must_respond_to_prior": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 8, "runner": "local" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 180, "turns": 36, "experiments": 8, "max_inactivity_rounds": 2 },
+  "targets": { "evidence_items": 20, "objections": 4 },
+  "voting": {
+    "method": "score",
+    "score_scale": { "min": 0, "max": 3 },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:graph_nodes_anchored_ratio",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number",
+          "producer": "graph linter: counts nodes whose transcript span does not resolve, divided by total nodes, subtracted from 1",
+          "note": "DIAL 1 of 3 - 'every node carries its transcript span'. Must be exactly 1. Lowering this admits paraphrases nobody asserted, which is the failure mode that makes a re-litigated decision unresolvable in the first place."
+        },
+        {
+          "metric": "custom:leaf_premise_sensitivity_run",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "sensitivity sweep: flips each leaf premise and records whether the conclusion changes",
+          "note": "DIAL 2 of 3 - the design's minimum-deliberation floor. Without the sweep the council produces a pretty graph and no ranking of what matters."
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 3 of 3 - every premise carries an explicit ruling. An unruled premise is exactly what gets re-litigated a third time."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 3, "min_minutes": 45, "min_evidence_items": 20, "min_objections_addressed": 4 },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 180, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the argument graph is attached, with the unanchored-node count stated (it must be zero)",
+      "the sensitivity table names which leaf premises flip the conclusion"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true, "vote_oscillation_rounds": 2 },
+    "resolution": ["split_question", "narrow_scope", "run_experiment", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "judge" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["circular_debate", "circular_citation", "instant_unanimity", "evidence_free_majority", "lost_dissent", "minority_suppression", "weak_synthesis", "premature_convergence"],
+    "fast_unanimity_response": ["blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["transcript", "argument_graph", "argument_ledger", "claim_evidence_contradiction_graph", "evidence_map", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d41/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Argument-map council (10 seats) - for a decision re-litigated twice",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: the design is explicit - invoke when a decision has been re-litigated TWICE. The second re-argument is the trigger, not the first. WHEN NOT TO USE: on a fresh decision (there is no transcript to anchor to, so every node fails the anchoring gate) or on an ideation question. The design's named dial is graph_depth. EDITABLE DIALS: /stopping/expression/all_of/0/value (anchoring ratio - keep at 1), /voting/score_scale (graph support strength), /participants/roster (mapper:adjudicator ratio, 3:4 here), /targets/evidence_items, /budgets/time_minutes. STOPPING (human form): custom:graph_nodes_anchored_ratio >= 1 AND custom:leaf_premise_sensitivity_run == true AND every_objection_addressed == true. source_expression absent per the collision proven by _probe_sem_rule_collision.py. PRESET-NAME: `custom` with extends_preset root_cause_council. Argument mapping has no counterpart among the 24 required preset names; root_cause_council is the nearest (it also isolates a cause) but is claimed by the ACH preset in another lane, and evidence_adjudication_jury is claimed by C-D42. Declaring `custom` rather than mislabelling was the deliberate choice.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1737", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:784", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:340", "_USER-PROMPTS.md:11186"],
+    "lineage": ["C-D41 deep-argument-map-10", "P42 argument-mapping", "P15 claim-by-claim-adjudication"]
+  }
+}

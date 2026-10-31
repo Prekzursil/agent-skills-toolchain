@@ -1,0 +1,543 @@
+{
+  "schema_version": 1,
+  "unit_id": "ARC-0014",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0014",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0014]",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "migration-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/migration-plan.schema.json",
+      "bytes": 1091,
+      "sha256": "42139a8cd8a91a399b0020a9b05056965bef52f8a877d19c0d79a830e03b45a5",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/extract.py",
+      "bytes": 11916,
+      "sha256": "e772d8423d6cd036191cf70a269270600478d6fcff523551ad75120029c793e1",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/scenario.py",
+      "bytes": 2090,
+      "sha256": "6d1125aee820951404f9bcc47708736383bc1dff575489cdf01d92db21715e23",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/freeze_hook.py",
+      "bytes": 2971,
+      "sha256": "d9d912ea8f9186fa96c107569d79506fc4b63e584c2244f7f2bbedb114540c89",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/rollback.py",
+      "bytes": 4936,
+      "sha256": "9a2438a6f9185b0befd86c10579bc917c8fe9ce311892a2706e3cd7cacb46ba0",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/probe1_roundtrip.py",
+      "bytes": 4526,
+      "sha256": "482a7906d937b8ee916b0c3347528a1cab78b00012a9bc7033ea014cdb5e7200",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0014/probe2_rollback.py",
+      "bytes": 3398,
+      "sha256": "c2bffde0939045aec512e9eec7324ce2fba09ea6950c84cb151350158236af8d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Extract-then-regenerate on five ARC-0010 registry files is byte-identical for 4/5; live-larger rules/rule.no-secrets.md is queued, not dropped.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0014/extract.py:round_trip_tree",
+      "probes": [
+        {
+          "role": "source",
+          "method": "byte-compare",
+          "command": "sha256(lf(source)) vs sha256(lf(regenerate(extract(source)))) on command-center/p2-wave/probes/ARC-0014/fixtures/live/",
+          "raw_output": "{\"adjudicated\": 1, \"byte_identical\": 4, \"files_checked\": 5, \"live_larger_paths\": [\"rules/rule.no-secrets.md\"], \"negative_control_refused\": true}",
+          "fingerprint": "arc0014:signal1-sha256-roundtrip",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "set(lines_live) - set(lines_regenerated) after LF normalisation; refuse TAKE-REGENERATED while remainder nonempty",
+          "raw_output": "{\"decision\": \"REFUSE-DROP-REMAINDER\", \"live_unique_lines\": [\"<!-- LIVE-ONLY remainder: additional hard-ban commentary not captured by typed body. Do not drop silently. -->\", \"LIVE-ONLY-LINE:synthetic-ARC-0014-live-larger\"], \"refused\": true}",
+          "fingerprint": "arc0014:signal2-line-set-remainder",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Freeze hook rejects live-larger bytes on a still-frozen generated path; rollback restores rules/rule.no-secrets.md to hand-authored and still rejects tamper of a frozen sibling.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0014/rollback.py:rehearse",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe2_rollback.py",
+          "raw_output": "{\"deploy_write_ok\": true, \"freeze_allows_restored_hand_edit\": true, \"freeze_rejected_live_bytes_before_rollback\": true, \"freeze_rejects_sibling_tamper\": true, \"restored_path\": \"rules/rule.no-secrets.md\"}",
+          "fingerprint": "arc0014:freeze-hook-status",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "deploy_write after restore_hand_authored; freeze_hook.check on restored path vs frozen sibling",
+          "raw_output": "{\"deploy_write_ok\": true, \"freeze_allows_restored_hand_edit\": true, \"freeze_rejects_sibling_tamper\": true, \"sibling\": \"skills/skill.council/SKILL.md\"}",
+          "fingerprint": "arc0014:deploy-write-after-restore",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-round-trip-fidelity",
+      "name": "Round-trip fidelity: extract then regenerate reproduces source bytes, or the delta is explicitly adjudicated",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe1_roundtrip.py",
+      "result": "PASS",
+      "assertions": 5
+    },
+    {
+      "id": "T2-rollback-rehearsal",
+      "name": "Rollback rehearsal: restore one file to hand-authored status and prove the deploy path still works",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe2_rollback.py",
+      "result": "PASS",
+      "assertions": 4
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "ARC0014-C1-refuse-drop-remainder",
+      "kind": "known-broken-fixture",
+      "description": "Request TAKE-REGENERATED on rules/rule.no-secrets.md while 'LIVE-ONLY-LINE:synthetic-ARC-0014-live-larger' remains live-unique. Must refuse; must stay silent on the four byte-identical files.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "REFUSE-DROP-REMAINDER",
+      "good_state_output": "ACCEPT-REGISTRY"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ARC-0014-probe1-roundtrip",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe1 re-extracts and byte-compares (sha256 + line-set). Named probe2 rehearses freeze+rollback on a different field (hook rejection / deploy-write). Catalog scoring by a second human migration engineer is independent of G-1 probe-green."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ARC-0014/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/ARC-0014/extract.py:round_trip_tree",
+      "artifact_path": "command-center/p2-wave/probes/ARC-0014/fixtures/live/rules/rule.no-secrets.md",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "byte-compare",
+        "command": "round_trip_tree on fixtures/live; refuse_drop_remainder on the live-larger row",
+        "raw_output": "{\"adjudicated\": 1, \"byte_identical\": 4, \"files_checked\": 5, \"live_larger_paths\": [\"rules/rule.no-secrets.md\"], \"negative_control_refused\": true}",
+        "fingerprint": "arc0014:emit-round-trip-consumer",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "C:/Users/Prekzursil live trees and 09-WORKFLOW-BLUEPRINT-LIBRARY.json were read on this Linux worktree.",
+      "verdict": "REFUTED",
+      "settling_experiment": "Path.exists on those library files and /root/.claude; both absent. Proof surface is the five ARC-0010 files plus one disclosed remainder."
+    },
+    {
+      "claim": "96 workflow blueprints + 48 protocols + 64 presets all round-trip through this extractor.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place the missing libraries on disk, extract typed entries, and re-run extract-then-regenerate with the same two signals."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:09Z",
+    "ended_at": "2026-08-25T00:57:09Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one"
+  },
+  "report": {
+    "kind": "migration-plan",
+    "observations": [
+      {
+        "name": "byte_identical_count",
+        "measured": 4,
+        "method": "sha256(lf(source)) vs sha256(lf(regenerated))",
+        "anchor": "command-center/p2-wave/probes/ARC-0014/extract.py:round_trip"
+      },
+      {
+        "name": "adjudicated_live_larger",
+        "measured": true,
+        "method": "line-set remainder + ADJUDICATE decision",
+        "anchor": "rules/rule.no-secrets.md"
+      },
+      {
+        "name": "rollback_rehearsal_pass",
+        "measured": true,
+        "method": "freeze_hook.check + restore_hand_authored + deploy_write",
+        "anchor": "command-center/p2-wave/probes/ARC-0014/rollback.py:rehearse"
+      }
+    ],
+    "control_ids": [
+      "ARC0014-C1-refuse-drop-remainder"
+    ],
+    "architecture_id": "A2",
+    "title": "A2 extraction of registry entries from hand-authored live trees without dropping live-larger remainder",
+    "question": "Design the migration that converts today's hand-authored live trees into registry entries WITHOUT losing the live-larger files: specify the extraction procedure, the adjudication queue for content-divergent files, the freeze point after which hand-editing a deployed copy is rejected by a hook, and the rollback that restores hand-authorability if the generator proves inadequate.",
+    "completion_sentinel": "SUCCESS:ARC-0014",
+    "source_layout": {
+      "roots": [
+        "command-center/p2-wave/probes/ARC-0010/registry.json (typed SSOT on this tree)",
+        "command-center/p2-wave/probes/ARC-0010/generator.py",
+        "command-center/p2-wave/probes/ARC-0014/fixtures/live/ (hand-authored + live-larger)",
+        "command-center/p2-wave/probes/ARC-0014/fixtures/generated/ (typed projections)"
+      ],
+      "divergence": {
+        "two_directional": true,
+        "catalog_pinned_live_larger": [
+          "rules/rule.no-secrets.md"
+        ],
+        "catalog_pin": "A2 DESIGN.json stop_reason: live-larger comments not captured by typed fields cannot round-trip; this unit demonstrates extract+regenerate on five real ARC-0010 registry files and queues the live-larger remainder instead of adding opaque_body."
+      }
+    },
+    "target_layout": {
+      "root": "command-center/p2-wave/probes/ARC-0010/",
+      "load_order": [
+        "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+        "command-center/p2-wave/probes/ARC-0010/registry.json",
+        "command-center/p2-wave/probes/ARC-0010/generator.py",
+        "generated projections (plugin/skills/hooks/rules/docs/workflows)"
+      ],
+      "mapping": [
+        {
+          "from": "skills/<id>/SKILL.md (live)",
+          "to": "registry entry kind=skill then skills/<id>/SKILL.md (generated)"
+        },
+        {
+          "from": "hooks/<id>.json (live)",
+          "to": "registry entry kind=hook then hooks/<id>.json (generated)"
+        },
+        {
+          "from": "rules/<id>.md (live, including live-larger remainder queued)",
+          "to": "registry entry kind=rule then rules/<id>.md (generated)"
+        }
+      ]
+    },
+    "extraction_procedure": {
+      "opaque_passthrough_forbidden": true,
+      "round_trip_rule": "extract then regenerate must reproduce source bytes, or every source-unique line dropped by the typed projection is held on the adjudication queue (never silently overwritten).",
+      "steps": [
+        "LF-normalise the live file bytes.",
+        "Inverse-parse typed a2-registry/v1 fields (skill frontmatter, markdown title/body until LIVE-ONLY remainder, JSON minus _generated and unknown keys).",
+        "Insert the entry into a mini-registry and regenerate with a2-ssot-generator 1.0.0.",
+        "Compare sha256(source) vs sha256(regenerated) (signal 1) and LF line-set difference (signal 2). If the two readings disagree, report BLOCKED with both numbers.",
+        "If bytes match, ACCEPT-REGISTRY. If live-unique remainder exists, ADJUDICATE and hold those lines. REFUSE TAKE-REGENERATED while remainder is nonempty.",
+        "After accept-or-queue, freeze generated deploy copies; rollback of generator-inadequate files is a ledger exemption, not an opaque registry field."
+      ],
+      "notes": "This worktree has no C:\\Users\\Prekzursil live estate and no 09-WORKFLOW-BLUEPRINT-LIBRARY.json. The five files are the real ARC-0010 registry projections on this tree; one is mutated with a disclosed live-larger remainder."
+    },
+    "provenance_procedure": {
+      "timestamps_do_not_authorise_overwrite": true,
+      "notes": "Signal 1 is a content digest, signal 2 is a line-set remainder. Neither mtime nor 'generated is canonical' authorises dropping live-unique lines.",
+      "signals": [
+        {
+          "id": "signal-1-sha256-roundtrip",
+          "command_or_method": "sha256(lf(source)) vs sha256(lf(regenerate(extract(source))))",
+          "reads": "byte identity of extract-then-regenerate against the live file"
+        },
+        {
+          "id": "signal-2-line-set-remainder",
+          "command_or_method": "set(lines_live) - set(lines_regenerated) after LF normalisation",
+          "reads": "live-unique remainder count and the actual held lines"
+        }
+      ],
+      "decision_table": [
+        {
+          "when": "BYTE-IDENTICAL",
+          "do": "ACCEPT-REGISTRY"
+        },
+        {
+          "when": "LIVE-REMAINDER (live unique, no regen unique)",
+          "do": "ADJUDICATE; hold live-unique lines"
+        },
+        {
+          "when": "REGEN-ONLY",
+          "do": "ADJUDICATE; inspect generator marking vs content loss"
+        },
+        {
+          "when": "BOTH-UNIQUE",
+          "do": "ADJUDICATE; preview is union of unique lines"
+        },
+        {
+          "when": "sha256 mismatch but both line-sets empty (or the reverse)",
+          "do": "BLOCKED with both readings; do not pick a winner"
+        },
+        {
+          "when": "requested TAKE-REGENERATED while live-unique remainder nonempty",
+          "do": "REFUSE-DROP-REMAINDER"
+        }
+      ]
+    },
+    "freeze_point": {
+      "id": "A2-FREEZE-GENERATED",
+      "when": "after extract+regenerate of the sample: byte-identical files are deployed as generated copies; remainder is queued, not deployed",
+      "hook": "command-center/p2-wave/probes/ARC-0014/freeze_hook.py",
+      "rejects": "hand-edit of a frozen generated deploy copy (classify TAMPERED: bytes differ while provenance.registry_entry_sha256 still matches)",
+      "does_not_reject": "paths on the freeze ledger hand_authored_paths after rollback"
+    },
+    "adjudication_queue": [
+      {
+        "path": "rules/rule.no-secrets.md",
+        "classification": "LIVE-REMAINDER",
+        "why_queued": "live-unique remainder is not a typed a2-registry/v1 field; an opaque passthrough would reintroduce drift, so the lines are held for human adjudication instead of being dropped or stuffed",
+        "held_repo_unique_lines": 0,
+        "held_live_unique_lines": 2,
+        "held_live_lines": [
+          "<!-- LIVE-ONLY remainder: additional hard-ban commentary not captured by typed body. Do not drop silently. -->",
+          "LIVE-ONLY-LINE:synthetic-ARC-0014-live-larger"
+        ],
+        "preview_is_union": true
+      }
+    ],
+    "rollback": {
+      "unit": "per-file freeze-ledger exemption restoring hand-authorability when the generator cannot express live remainder without an escape hatch",
+      "steps": [
+        "1. Keep a copy of the live bytes (and the generated projection) before freeze.",
+        "2. Attempting to deploy live-larger bytes onto a still-frozen generated path must be rejected as TAMPERED.",
+        "3. restore_hand_authored(rel): move rel from generated_paths to hand_authored_paths and write the live bytes to the deploy path.",
+        "4. Freeze hook must allow further edits of that path and must still reject tamper of a frozen sibling. Never add opaque_body to the registry to 'save' the remainder."
+      ],
+      "restore_command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe2_rollback.py",
+      "forbids": [
+        "adding opaque_body/passthrough/untyped_blob to a2-registry/v1",
+        "silently deploying regenerate() over a live-larger file",
+        "scripts/sync-from-live.ps1 one-directional overwrite"
+      ]
+    },
+    "sample": [
+      {
+        "path": "skills/skill.council/SKILL.md",
+        "registry_id": "skill.council",
+        "kind": "skill",
+        "classification": "BYTE-IDENTICAL",
+        "decision": "ACCEPT-REGISTRY",
+        "unique_lines_preserved": true,
+        "live_larger": false,
+        "byte_identical": true,
+        "source_bytes": 530,
+        "regenerated_bytes": 530,
+        "source_sha256": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+        "regenerated_sha256": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+        "signal1_sha256_compare": {
+          "source": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+          "regenerated": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+          "match": true
+        },
+        "signal2_line_diff": {
+          "live_unique_count": 0,
+          "regen_unique_count": 0,
+          "live_unique_lines": [],
+          "independent_of_sha": true
+        },
+        "reason": "extract-then-regenerate reproduced source bytes"
+      },
+      {
+        "path": "hooks/hook.pre-tool.json",
+        "registry_id": "hook.pre-tool",
+        "kind": "hook",
+        "classification": "BYTE-IDENTICAL",
+        "decision": "ACCEPT-REGISTRY",
+        "unique_lines_preserved": true,
+        "live_larger": false,
+        "byte_identical": true,
+        "source_bytes": 408,
+        "regenerated_bytes": 408,
+        "source_sha256": "90a02ca6b2b29feddfc61919bc612009663d230ffca4ecd8f0150a8267fc1909",
+        "regenerated_sha256": "90a02ca6b2b29feddfc61919bc612009663d230ffca4ecd8f0150a8267fc1909",
+        "signal1_sha256_compare": {
+          "source": "90a02ca6b2b29feddfc61919bc612009663d230ffca4ecd8f0150a8267fc1909",
+          "regenerated": "90a02ca6b2b29feddfc61919bc612009663d230ffca4ecd8f0150a8267fc1909",
+          "match": true
+        },
+        "signal2_line_diff": {
+          "live_unique_count": 0,
+          "regen_unique_count": 0,
+          "live_unique_lines": [],
+          "independent_of_sha": true
+        },
+        "reason": "extract-then-regenerate reproduced source bytes"
+      },
+      {
+        "path": "rules/rule.no-secrets.md",
+        "registry_id": "rule.no-secrets",
+        "kind": "rule",
+        "classification": "LIVE-REMAINDER",
+        "decision": "ADJUDICATE",
+        "unique_lines_preserved": true,
+        "live_larger": true,
+        "byte_identical": false,
+        "source_bytes": 562,
+        "regenerated_bytes": 405,
+        "source_sha256": "35826ba450f87e9961ffdf07e71f07a8cc7b61ed7583f7b857775171428b69d1",
+        "regenerated_sha256": "6290510a924d72f06ea66a5c0f080a6433bc7ce06e82805f76fb5d789159ef1a",
+        "signal1_sha256_compare": {
+          "source": "35826ba450f87e9961ffdf07e71f07a8cc7b61ed7583f7b857775171428b69d1",
+          "regenerated": "6290510a924d72f06ea66a5c0f080a6433bc7ce06e82805f76fb5d789159ef1a",
+          "match": false
+        },
+        "signal2_line_diff": {
+          "live_unique_count": 2,
+          "regen_unique_count": 0,
+          "live_unique_lines": [
+            "<!-- LIVE-ONLY remainder: additional hard-ban commentary not captured by typed body. Do not drop silently. -->",
+            "LIVE-ONLY-LINE:synthetic-ARC-0014-live-larger"
+          ],
+          "independent_of_sha": true
+        },
+        "reason": "typed projection dropped live-unique remainder; queued, not dropped"
+      },
+      {
+        "path": "docs/doc.a2-overview.md",
+        "registry_id": "doc.a2-overview",
+        "kind": "doc",
+        "classification": "BYTE-IDENTICAL",
+        "decision": "ACCEPT-REGISTRY",
+        "unique_lines_preserved": true,
+        "live_larger": false,
+        "byte_identical": true,
+        "source_bytes": 442,
+        "regenerated_bytes": 442,
+        "source_sha256": "fc8d41cdf9635072804d7626741f30d8f5b2afe50abfe61db68460ed1084c7e1",
+        "regenerated_sha256": "fc8d41cdf9635072804d7626741f30d8f5b2afe50abfe61db68460ed1084c7e1",
+        "signal1_sha256_compare": {
+          "source": "fc8d41cdf9635072804d7626741f30d8f5b2afe50abfe61db68460ed1084c7e1",
+          "regenerated": "fc8d41cdf9635072804d7626741f30d8f5b2afe50abfe61db68460ed1084c7e1",
+          "match": true
+        },
+        "signal2_line_diff": {
+          "live_unique_count": 0,
+          "regen_unique_count": 0,
+          "live_unique_lines": [],
+          "independent_of_sha": true
+        },
+        "reason": "extract-then-regenerate reproduced source bytes"
+      },
+      {
+        "path": "workflows/wf.catalog-class.discovery-only.json",
+        "registry_id": "wf.catalog-class.discovery-only",
+        "kind": "workflow_blueprint",
+        "classification": "BYTE-IDENTICAL",
+        "decision": "ACCEPT-REGISTRY",
+        "unique_lines_preserved": true,
+        "live_larger": false,
+        "byte_identical": true,
+        "source_bytes": 810,
+        "regenerated_bytes": 810,
+        "source_sha256": "e5267fe4ffdbfc69d5276dd557a155197e1a0de1c0ac10f4d8da3c30ca2882b4",
+        "regenerated_sha256": "e5267fe4ffdbfc69d5276dd557a155197e1a0de1c0ac10f4d8da3c30ca2882b4",
+        "signal1_sha256_compare": {
+          "source": "e5267fe4ffdbfc69d5276dd557a155197e1a0de1c0ac10f4d8da3c30ca2882b4",
+          "regenerated": "e5267fe4ffdbfc69d5276dd557a155197e1a0de1c0ac10f4d8da3c30ca2882b4",
+          "match": true
+        },
+        "signal2_line_diff": {
+          "live_unique_count": 0,
+          "regen_unique_count": 0,
+          "live_unique_lines": [],
+          "independent_of_sha": true
+        },
+        "reason": "extract-then-regenerate reproduced source bytes"
+      }
+    ],
+    "tests": {
+      "round_trip_fidelity": {
+        "pass": true,
+        "files_checked": 5,
+        "byte_identical": 4,
+        "adjudicated": 1,
+        "files_failed": []
+      },
+      "rollback_rehearsal": {
+        "pass": true,
+        "restored_path": "rules/rule.no-secrets.md",
+        "deploy_write_ok": true,
+        "freeze_rejects_sibling_tamper": true,
+        "freeze_allows_restored_hand_edit": true
+      },
+      "negative_control": {
+        "id": "ARC0014-C1-refuse-drop-remainder",
+        "live_unique_line": "LIVE-ONLY-LINE:synthetic-ARC-0014-live-larger",
+        "classification": "LIVE-REMAINDER",
+        "requested": "TAKE-REGENERATED",
+        "refused": true,
+        "decision": "REFUSE-DROP-REMAINDER",
+        "reason": "live-unique remainder must be queued; regenerated bytes may not silently overwrite the live-larger file",
+        "pass": true
+      }
+    },
+    "scope": {
+      "live_estate_present": false,
+      "a2_registry_present": true,
+      "repo_rules_present": true,
+      "proof_surface": "executable extract+regenerate on five ARC-0010 files including one disclosed live-larger remainder; freeze hook and rollback rehearsal in tempfile/fixtures. Not a claim that the Windows live estate was read.",
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "C:/Users/Prekzursil live trees were read on this host",
+        "96 workflow blueprints + 48 protocols + 64 presets round-tripped",
+        "control-plane/A2/ exists on this worktree"
+      ]
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "round-trip-fidelity",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe1_roundtrip.py"
+      },
+      {
+        "id": "probe2",
+        "role": "rollback-rehearsal",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0014/probe2_rollback.py"
+      }
+    ]
+  }
+}

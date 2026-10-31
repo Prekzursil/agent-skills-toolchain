@@ -1,0 +1,238 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0454.json",
+   "bytes": 5553,
+   "sha256": "3e750404be1455a0f9f966746f9fce798ef19c2908519ac81cf1fdadae005e09",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "IMP-0454 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0454.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0454.json",
+     "raw_output": "bytes=5553 sha256=3e750404be1455a0f9f966746f9fce798ef19c2908519ac81cf1fdadae005e09",
+     "fingerprint": "173c79a1c9e8c73dfcc014dd552ac774",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0454",
+     "raw_output": "schema-check",
+     "fingerprint": "2790dc4017709e1b309b4236e8fe0076",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0454 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0454",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0454",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "167b9f575151ba624d3ef1cfd3771758",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0454",
+     "raw_output": "schema-valid",
+     "fingerprint": "da28dcb741d654809dda36e83e9ffd6e",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0454.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "IMP-0454",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Via RegisteringWriter.emit: no. After a full writer run the mechanical set difference disk-minus-manifest is the empty set (unregistered_count=0). Via a direct file open that skips the writer: yes, and the read-only reconciliation sweep reports that path as unregistered (count=1, path='sneak-bypass.txt'). Registration is performed inside emit() (manifest re-read from disk before reconcile). The sweep detects; it does not register.",
+   "bypass": {
+    "both_states": true,
+    "in_memory_misses_bypass": true,
+    "path": "sneak-bypass.txt",
+    "sweep_did_not_register": true,
+    "unregistered_count_after": 1,
+    "writer_only_empty": true
+   },
+   "bypass_caught": true,
+   "can_artifact_reach_disk_without_manifest_via_writer": false,
+   "cloud_ok": false,
+   "completion_line": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+   "completion_sentinel": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+   "computed_at": "2026-08-25T00:59:20Z",
+   "construction": {
+    "derivation": "registering_writer.emit (not unit_manifest.py --write)",
+    "reconcile_is_read_only": true,
+    "registered_at_emit_not_sweep": true
+   },
+   "emit_manifest": "command-center/p2-wave/probes/IMP-0454/EMIT-MANIFEST.json",
+   "id": "IMP-0454",
+   "inputs_note": "Catalog input command-center/ARTIFACT-MANIFEST.json is the charter thirteen-file index (absent on this tree). Condition 11 for unit outputs is emit-time registration into a writer-owned manifest, not a later tools/command-center/unit_manifest.py --write sweep. Dependency receipts IMP-0434/IMP-0415 are absent; this unit ships the registering writer rather than wrapping a missing IMP-0434 module.",
+   "library": "tools/command-center/registering_writer.py",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "question": "Wire artifact-manifest registration into the writer so completion condition 11 (output registered in the artifact manifest) is satisfied by construction rather than by a later sweep. Exact question: can any artifact reach disk without a manifest entry, and what is the count of unregistered artifacts after a full run?",
+   "set_difference_after_full_run": {
+    "agree": true,
+    "empty": true,
+    "independent": [],
+    "library": [],
+    "orphan_rows": [],
+    "unregistered": []
+   },
+   "status": "DELIVERED",
+   "tests_raw": "PASS test_full_run_set_difference_empty\nPASS test_bypass_direct_open_is_unregistered\nPASS test_reconcile_does_not_register\nPASS test_emit_row_sha_matches_file\nPASS test_in_memory_claim_misses_bypass\nPASS test_failed_emit_is_noop\nSUCCESS:registering_writer 6/6",
+   "title": "Automatic artifact-manifest registration at emit time",
+   "unregistered_count_after_full_run": 0,
+   "unregistered_count_via_writer_full_run": 0
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0454",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0454/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0454"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0454.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0454.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "d4df157259f22d075e698f6598797478",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 5553,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0454.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Via RegisteringWriter.emit: no. After a full writer run the mechanical set difference disk-minus-manifest is the empty set (unregistered_count=0). Via a direct file open that skips the writer: yes, and the read-only reconciliation sweep reports that path as unregistered (count=1, path='sneak-bypass.txt'). Registration is performed inside emit() (manifest re-read from disk before reconcile). The sweep detects; it does not register.",
+ "bypass": {
+  "both_states": true,
+  "in_memory_misses_bypass": true,
+  "path": "sneak-bypass.txt",
+  "sweep_did_not_register": true,
+  "unregistered_count_after": 1,
+  "writer_only_empty": true
+ },
+ "bypass_caught": true,
+ "can_artifact_reach_disk_without_manifest_via_writer": false,
+ "cloud_ok": false,
+ "completion_line": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+ "completion_sentinel": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+ "computed_at": "2026-08-25T00:59:20Z",
+ "construction": {
+  "derivation": "registering_writer.emit (not unit_manifest.py --write)",
+  "reconcile_is_read_only": true,
+  "registered_at_emit_not_sweep": true
+ },
+ "emit_manifest": "command-center/p2-wave/probes/IMP-0454/EMIT-MANIFEST.json",
+ "id": "IMP-0454",
+ "inputs_note": "Catalog input command-center/ARTIFACT-MANIFEST.json is the charter thirteen-file index (absent on this tree). Condition 11 for unit outputs is emit-time registration into a writer-owned manifest, not a later tools/command-center/unit_manifest.py --write sweep. Dependency receipts IMP-0434/IMP-0415 are absent; this unit ships the registering writer rather than wrapping a missing IMP-0434 module.",
+ "library": "tools/command-center/registering_writer.py",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Wire artifact-manifest registration into the writer so completion condition 11 (output registered in the artifact manifest) is satisfied by construction rather than by a later sweep. Exact question: can any artifact reach disk without a manifest entry, and what is the count of unregistered artifacts after a full run?",
+ "set_difference_after_full_run": {
+  "agree": true,
+  "empty": true,
+  "independent": [],
+  "library": [],
+  "orphan_rows": [],
+  "unregistered": []
+ },
+ "status": "DELIVERED",
+ "tests_raw": "PASS test_full_run_set_difference_empty\nPASS test_bypass_direct_open_is_unregistered\nPASS test_reconcile_does_not_register\nPASS test_emit_row_sha_matches_file\nPASS test_in_memory_claim_misses_bypass\nPASS test_failed_emit_is_noop\nSUCCESS:registering_writer 6/6",
+ "title": "Automatic artifact-manifest registration at emit time",
+ "unregistered_count_after_full_run": 0,
+ "unregistered_count_via_writer_full_run": 0
+}

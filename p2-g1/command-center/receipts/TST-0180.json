@@ -1,0 +1,647 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0180",
+ "title": "Case-distinct JSON keys colliding under a case-insensitive parser are detected",
+ "question_or_target": "Do two keys differing only in case produce a detected collision rather than last-key-wins? PASS requires our emitter to never produce case-colliding keys AND our validator to reject an incoming document that has them.",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0180",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0180",
+ "min_bytes_threshold": 1024,
+ "output_path": "command-center/receipts/TST-0180.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+ "completion_sentinel": "SUCCESS:TST-0180",
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+   "bytes": 1688,
+   "sha256": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+   "bytes": 2781,
+   "sha256": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/receipts/TST-0180.json",
+   "bytes": 25727,
+   "sha256": "79a958cba4ac792c621ea1bf5fa3642892fe91a5fa7cd1c52b7f28876141de53",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0180/SUBAGENT-RETURN.json",
+   "bytes": 2575,
+   "sha256": "a57e5bd3c1d9acfa779711268a8c003e13a7fe66f3ff9bab6f564101ca8c1222",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json",
+   "bytes": 1397,
+   "sha256": "27701131383aed886dffba5cc7452f23062c4605406fdff9bf3821d2e6eb93a0",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Independent reviewer verified the artifact at command-center/receipts/TST-0180.json exists on disk (25727 LF-normalized bytes), parses as JSON, carried the builder terminal state=BLOCKED with failure.classification=[reviewer-absent] and reviewer=null (no self-certification) at review time, and its report.kind=parser_report matches the catalog output_schema pin.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0180.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "python -I -c json.load(command-center/receipts/TST-0180.json)",
+     "raw_output": "parsed OK; builder state=BLOCKED; classification=[reviewer-absent]; reviewer=null",
+     "fingerprint": "w3s22-parse:TST-0180:79a958cba4ac792c"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+     "raw_output": "SUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']",
+     "exit_code": 0,
+     "fingerprint": "w3s22-probe1-live:TST-0180:rc0"
+    }
+   ]
+  },
+  {
+   "claim": "Independent reviewer re-ran both named probes live for 3 rounds each under the ambient environment; all exited 0 with the unit SUCCESS sentinel (probe1_case_collision.py=3/3 rounds rc0; probe2_folded_set_size.py=3/3 rounds rc0); live sentinels match the builder-recorded raw_output lines (consistent=True).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0180/",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py ; python -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+     "raw_output": "SUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks'] | SUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True",
+     "exit_code": 0,
+     "fingerprint": "w3s22-rerun:TST-0180:3x2rc0"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare live SUCCESS sentinel lines against SUBAGENT-RETURN.json named_probes[].raw_output",
+     "raw_output": "sentinel-consistency=True",
+     "fingerprint": "w3s22-sentinel-cmp:TST-0180"
+    }
+   ]
+  },
+  {
+   "claim": "UNIT-ARTIFACT-MANIFEST.json registered command-center/receipts/TST-0180.json with a sha256 row matching the live artifact (CRLF normalized to LF before hashing; program digest mode sha256+length over LF-normalized bytes). Reviewer recomputed the digest independently.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "byte-compare",
+     "command": "hashlib.sha256(bytes(command-center/receipts/TST-0180.json).replace(CRLF, LF))",
+     "raw_output": "live LF-normalized sha256=79a958cba4ac792c621ea1bf5fa3642892fe91a5fa7cd1c52b7f28876141de53",
+     "fingerprint": "w3s22-lfsha:TST-0180:79a958cba4ac792c"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "json.load(command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json) artifacts[path==command-center/receipts/TST-0180.json].sha256",
+     "raw_output": "manifest row sha256=79a958cba4ac792c621ea1bf5fa3642892fe91a5fa7cd1c52b7f28876141de53",
+     "fingerprint": "w3s22-manrow-read:TST-0180"
+    }
+   ]
+  },
+  {
+   "claim": "The closure receipt validates against BOTH the program gate (platform/schema/receipt.schema.json $defs/receipt_core, 0 errors) and the catalog output_schema pointer (command-center/schema/receipt.schema.json#/$defs/parser_report, 0 errors via the platform schema resolver), and the 12-condition completion predicate evaluates COMPLETE with filesystem verification on.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "platform/lib/receipt_schema_gate.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "receipt_schema_gate.validate_receipt + schema_resolver.validate_artifact(profile pointer)",
+     "raw_output": "0 errors (receipt_core) + 0 errors (catalog profile)",
+     "fingerprint": "w3s22-schemacore:TST-0180"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0180.json",
+     "raw_output": "admission ACCEPT on the closure and REJECT naming the reviewer rule on the independent-flipped mutation copy",
+     "exit_code": 0,
+     "fingerprint": "w3s22-admission-cmd:TST-0180"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "t1-probe1_case_collision",
+   "name": "probe1_case_collision",
+   "command": "python -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+   "result": "PASS",
+   "output_tail": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+  },
+  {
+   "id": "t2-probe2_folded_set_size",
+   "name": "probe2_folded_set_size",
+   "command": "python -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+   "result": "PASS",
+   "output_tail": ") / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "json-last-key-wins",
+   "kind": "mutation",
+   "description": "The known-broken baseline (plain json parsing, last-key-wins; case-insensitive consumers folding keys) silently drops one of the colliding pair - the exact regression the validator exists to catch.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "last_wins_confirmed=true ({hooks:1,hooks:2} -> {hooks:2})",
+   "good_state_output": "validate_strict raises CaseCollisionError naming both keys"
+  },
+  {
+   "id": "MUT-TST-0180-reviewer-independent-flip",
+   "kind": "mutation",
+   "description": "Independent-reviewer mutation control: reviewer.independent flipped to false on a COMPLETE copy of the SUCCESS closure receipt (identical in every other field); receipt_validate.py must REJECT naming the reviewer rule (receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true) while accepting the unmutated closure.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "REJECT:TST-0180 C2 schema-invalid (1): reviewer/independent: True was expected",
+   "good_state_output": "ACCEPT:TST-0180 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "w3-shard22-independent-reviewer-20261026",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude-code",
+  "reviewed_at": "2026-10-26T04:32:10Z",
+  "notes": "Wave-3 shard-22 independent reviewer closure. Reviewer did not build this unit; re-derived every contract check live in a fresh context: artifact predicate on the builder BLOCKED pointer, both named probes re-run for 3 stability rounds each (all exit 0, SUCCESS sentinels match the builder record), manifest sha256 recomputed (CRLF-to-LF digest mode), receipt_core + catalog output_schema validation, 12-condition predicate COMPLETE, and a reviewer mutation control (receipt_core must reject a copy whose reviewer.independent is false). Receipt rewritten from the builder BLOCKED pointer into receipt-core shape; the original builder document is preserved verbatim under extensions.builder_receipt_original. The receipt self-row is role=supporting and carries the PRE-closure builder bytes sha256; the authoritative post-closure registration is the UNIT-ARTIFACT-MANIFEST row, refreshed by the reviewer to the final closure bytes (see extensions.reviewer_manifest_refresh)."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+   "artifact_path": "command-center/receipts/TST-0180.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0180.json",
+    "raw_output": "ACCEPT:TST-0180 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "exit_code": 0,
+    "fingerprint": "w3s22-validate:TST-0180:rc0"
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "timestamps": {
+  "started_at": "2026-10-26T04:32:09Z",
+  "ended_at": "2026-10-26T04:32:10Z",
+  "duration_seconds": 1
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "report": {
+  "kind": "parser_report",
+  "observations": [
+   {
+    "name": "artifact_lf_bytes",
+    "measured": 25727,
+    "method": "digest_lf",
+    "anchor": "command-center/receipts/TST-0180.json"
+   },
+   {
+    "name": "named_probes_live_rounds",
+    "measured": "3x2 all rc0",
+    "method": "subprocess re-run, ambient env",
+    "anchor": "command-center/p2-wave/probes/TST-0180/"
+   },
+   {
+    "name": "manifest_lf_sha_match",
+    "measured": true,
+    "method": "sha256 CRLF-normalized byte-compare",
+    "anchor": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json"
+   },
+   {
+    "name": "schema_dual_validation",
+    "measured": "receipt_core+profile 0 errors",
+    "method": "receipt_schema_gate + schema_resolver",
+    "anchor": "platform/schema/receipt.schema.json"
+   }
+  ],
+  "control_ids": [
+   "json-last-key-wins",
+   "MUT-TST-0180-reviewer-independent-flip"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "wave3-shard22-builder",
+  "execution_substrate": "local-windows-pwsh7"
+ },
+ "extensions": {
+  "reviewer_shard": "wave3-shard22",
+  "builder_receipt_original": {
+   "schema_version": 1,
+   "report_kind": "parser_report",
+   "unit_id": "TST-0180",
+   "id": "TST-0180",
+   "state": "BLOCKED",
+   "sentinel": "FAILED:TST-0180 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent. Artifact completion sentinel on file: SUCCESS:TST-0180",
+   "completion_sentinel": "SUCCESS:TST-0180",
+   "completion_marker": "UNIT-COMPLETE:TST-0180",
+   "title": "Case-distinct JSON keys colliding under a case-insensitive parser are detected",
+   "question": "Do two keys differing only in case produce a detected collision rather than last-key-wins? PASS requires our emitter to never produce case-colliding keys AND our validator to reject an incoming document that has them.",
+   "question_or_target": "Do two keys differing only in case produce a detected collision rather than last-key-wins? PASS requires our emitter to never produce case-colliding keys AND our validator to reject an incoming document that has them.",
+   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0180",
+   "output_path": "command-center/receipts/TST-0180.json",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+   "output_schema_present": true,
+   "min_bytes_threshold": 128,
+   "registered": true,
+   "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+   },
+   "timestamps": {
+    "started_at": "2026-10-26T02:32:14Z",
+    "ended_at": "2026-10-26T02:32:14Z"
+   },
+   "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt"
+   },
+   "failure": {
+    "classification": [
+     "reviewer-absent"
+    ],
+    "reason": "Build and live probes complete; state is BLOCKED only because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true. The prior builder attempt died mid-flight and left a receipt claiming SUCCESS with probe-named reviewer entries and NO probe files on disk; this rebuild replaced the fabricated probe records with real probe files, real runs and real outputs. Only the independent reviewer closes."
+   },
+   "reviewer": null,
+   "builder": {
+    "shard": "wave3-shard22-builder",
+    "role": "schema-conformance-tester",
+    "resume_of": "prior builder attempt died mid-flight (host session ended); receipts existed without probe files"
+   },
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+    "role": "probe1 case-collision",
+    "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+    "exit_code": 0,
+    "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+    "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+    "role": "probe2 folded-set-size",
+    "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+    "exit_code": 0,
+    "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+    "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+   },
+   "tests": [
+    {
+     "id": "TST-0180-PROBE1",
+     "name": "probe1 case-collision",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "both_keys_named_in_error": [
+      "hooks",
+      "Hooks"
+     ],
+     "colliding_keys_rejected": true,
+     "distinct_keys_validate": true,
+     "error_text": "case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'"
+    },
+    {
+     "id": "TST-0180-PROBE2",
+     "name": "probe2 folded-set-size",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "detector_control": {
+      "known_broken": "json last-key-wins dedup (exact) / case-insensitive consumer (fold)",
+      "last_wins_confirmed": true
+     },
+     "emitter": {
+      "clean_over_300_generated": true,
+      "refuses_constructed_collision": true
+     },
+     "folded_set_comparison": {
+      "casefolded_distinct": 3,
+      "delta_is_collision_count": 2,
+      "raw_distinct": 5
+     }
+    }
+   ],
+   "negative_controls": [
+    {
+     "id": "json-last-key-wins",
+     "kind": "mutation",
+     "description": "The known-broken baseline (plain json parsing, last-key-wins; case-insensitive consumers folding keys) silently drops one of the colliding pair - the exact regression the validator exists to catch.",
+     "fired_on_bad_state": true,
+     "silent_on_good_state": true,
+     "bad_state_output": "last_wins_confirmed=true ({hooks:1,hooks:2} -> {hooks:2})",
+     "good_state_output": "validate_strict raises CaseCollisionError naming both keys"
+    }
+   ],
+   "evidence": [
+    {
+     "id": "E-collision-rejected-naming-both",
+     "anchor": "command-center/p2-wave/probes/TST-0180/case_guard.py:validate_strict",
+     "claim": "Two keys differing only in case produce a DETECTED collision (not last-key-wins): the validator rejects the document and the error names both colliding keys (hooks vs Hooks).",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+      "role": "probe1 case-collision",
+      "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+      "exit_code": 0,
+      "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+      "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+      "role": "probe2 folded-set-size",
+      "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+      "exit_code": 0,
+      "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+       "role": "probe1 case-collision",
+       "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+       "exit_code": 0,
+       "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+       "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+       "role": "probe2 folded-set-size",
+       "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+       "exit_code": 0,
+       "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+      }
+     ]
+    },
+    {
+     "id": "E-distinct-validates",
+     "anchor": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py:main",
+     "claim": "Both-states control: a document with genuinely distinct case-folded keys validates cleanly.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+      "role": "probe2 folded-set-size",
+      "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+      "exit_code": 0,
+      "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+     },
+     "verifier_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+      "role": "probe1 case-collision",
+      "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+      "exit_code": 0,
+      "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+      "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+     },
+     "probes": [
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+       "role": "probe2 folded-set-size",
+       "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+       "exit_code": 0,
+       "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+      },
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+       "role": "probe1 case-collision",
+       "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+       "exit_code": 0,
+       "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+       "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+      }
+     ]
+    },
+    {
+     "id": "E-folded-set-size",
+     "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py:main",
+     "claim": "Independent case-folded key-set size vs raw key-set size: over {hooks, Hooks, HOOKS, commands, agents} the raw distinct count is 5 and the case-folded count is 3 (delta = 2 = collision count), providing a mechanically different second signal from the validator verdict.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+      "role": "probe1 case-collision",
+      "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+      "exit_code": 0,
+      "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+      "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+      "role": "probe2 folded-set-size",
+      "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+      "exit_code": 0,
+      "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+       "role": "probe1 case-collision",
+       "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+       "exit_code": 0,
+       "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+       "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+       "role": "probe2 folded-set-size",
+       "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+       "exit_code": 0,
+       "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+      }
+     ]
+    },
+    {
+     "id": "E-emitter-never-collides",
+     "anchor": "command-center/p2-wave/probes/TST-0180/case_guard.py:emit_safe",
+     "claim": "The emitter never produces case-colliding keys: clean across 300 generated field permutations and refuses a constructed collision at authoring time.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+      "role": "probe2 folded-set-size",
+      "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+      "exit_code": 0,
+      "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+     },
+     "verifier_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+      "role": "probe1 case-collision",
+      "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+      "exit_code": 0,
+      "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+      "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+     },
+     "probes": [
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+       "role": "probe2 folded-set-size",
+       "fingerprint": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+       "exit_code": 0,
+       "live_result_digest": "ffc4d632fa29aaf27a98863545c1763cc7b7e5cb61c6bc7da7dfa11901945329",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"json last-key-wins dedup (exact) / case-insensitive consumer (fold)\", \"last_wins_confirmed\": true}, \"emitter\": {\"clean_over_300_generated\": true, \"refuses_constructed_collision\": true}, \"folded_set_comparison\": {\"casefolded_distinct\": 3, \"delta_is_collision_count\": 2, \"raw_distinct\": 5}, \"pass\": true, \"probe\": \"probe2-folded-set-size\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 fold_delta=2 emitter_clean=True last_wins=True"
+      },
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+       "role": "probe1 case-collision",
+       "fingerprint": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+       "exit_code": 0,
+       "live_result_digest": "3f2f34482ee9562ebbd96079a3ed56174c6964f723e80f5bd4eb3e22ca1f13e0",
+       "raw_output": "{\"both_keys_named_in_error\": [\"hooks\", \"Hooks\"], \"colliding_keys_rejected\": true, \"distinct_keys_validate\": true, \"error_text\": \"case-insensitive key collision under a case-folding parser: 'hooks' vs 'Hooks'\", \"pass\": true, \"probe\": \"probe1-case-collision\", \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe1 distinct=valid collision=rejected named=['hooks', 'Hooks']"
+      }
+     ]
+    }
+   ],
+   "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0180/case_guard.py",
+    "detector": "casefold key-set comparison; collisions raise CaseCollisionError(colliding=[both])",
+    "emitter": "emit_safe refuses case-colliding key sets",
+    "regression_seed": "_USER-PROMPTS.md:11309 case-insensitive parser collision on case-distinct JSON keys"
+   },
+   "downstream_consumers": [
+    {
+     "artifact_path": "command-center/receipts/TST-0180.json",
+     "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+     "executed": false,
+     "read_ok": true,
+     "probe": {
+      "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0180",
+      "method": "command",
+      "role": "verifier",
+      "note": "run by the independent reviewer after closing state=SUCCESS (a BLOCKED receipt is not self-delivering by design)"
+     }
+    }
+   ],
+   "residual_unknowns": [
+    {
+     "claim": "The validator is the probe-local strict receiver; if a shipping parser consumes these manifests case-insensitively elsewhere in the estate, its exact folding rules may differ from Python casefold.",
+     "settling_experiment": "Bind validate_strict's folding to the real consumer's rules and re-run.",
+     "verdict": "NOT-CHECKED"
+    }
+   ],
+   "defects": [],
+   "artifacts": [
+    {
+     "unit_id": "TST-0180",
+     "path": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py",
+     "bytes": 1688,
+     "sha256": "dd74b4af2a4045a5e622ec1bbab7b349857a8e41ee73aed44fcbe2e05bbb8db0",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0180/SUBAGENT-RETURN.json"
+    },
+    {
+     "unit_id": "TST-0180",
+     "path": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py",
+     "bytes": 2781,
+     "sha256": "4a544c9c748eff2f791eeaeac557fe02ccae00ac4912561ba6b6ccc468c9043c",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0180/SUBAGENT-RETURN.json"
+    }
+   ],
+   "report": {
+    "kind": "parser_report",
+    "observations": [
+     {
+      "name": "collision detection naming both keys",
+      "measured": "['hooks', 'Hooks']",
+      "method": "validate_strict on a colliding document",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py"
+     },
+     {
+      "name": "case-folded vs raw key-set size",
+      "measured": "raw=5 folded=3 delta=2",
+      "method": "independent set-size comparison (mechanically different from the validator verdict)",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py"
+     },
+     {
+      "name": "emitter collision-freedom",
+      "measured": "300/300 generated clean; constructed collision refused",
+      "method": "random field permutations + constructed-collision refusal",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py"
+     }
+    ],
+    "control_ids": [
+     "TST-0180-PROBE1",
+     "TST-0180-PROBE2",
+     "json-last-key-wins"
+    ]
+   },
+   "notes": "G-1 for TST-0180: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+  },
+  "reviewer_probe_stability": {
+   "rounds": 3,
+   "per_script": {
+    "probe1_case_collision.py": "3/3 rc0",
+    "probe2_folded_set_size.py": "3/3 rc0"
+   }
+  },
+  "reviewer_manifest_refresh": {
+   "why": "closure rewrites the receipt bytes, so the manifest receipt row is refreshed post-final-write to the closure bytes; the pre-closure builder digest is preserved here",
+   "pre_closure_sha256": "79a958cba4ac792c621ea1bf5fa3642892fe91a5fa7cd1c52b7f28876141de53",
+   "pre_closure_bytes": 25727,
+   "digest_mode": "sha256 over CRLF-normalized-to-LF bytes"
+  }
+ }
+}

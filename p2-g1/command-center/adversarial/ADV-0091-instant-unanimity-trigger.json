@@ -1,0 +1,289 @@
+{
+ "answer": "Live CNL-0080 (the executable CNL-0059 overlay on the council stopping runtime) fires instant_unanimity_trigger on a primed round-1 unanimous council with zero independent briefs and relabels the outcome from AGREEMENT to AGREEMENT_HELD_FOR_REVALUATION. A trigger-disabled overlay-off control of the same ballots ships AGREEMENT, so the trigger is not purely ceremonial for finalization. It does not execute blind re-evaluation, forced dissent, counterexample generation, role rotation, or critic recruitment: those listed interventions are absent from the live engine. A council that reaches unanimity at round 4 after independent briefs and disagreement does not fire the trigger. Timer exhaustion and contested ballots also stay silent. SUCCESS:ADV-0091 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0091 <reason>.",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0091-instant-unanimity-trigger.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/council-pathology-sim.schema.json",
+   "role": "schema"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0091/harness.py",
+   "role": "instrument"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:ADV-0091 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0091 <reason>.",
+ "controls": [
+  {
+   "description": "Unanimity after independent briefs and disagreement must stay silent; primed round-1 zero-brief must fire.",
+   "fired_on_bad_state": true,
+   "id": "CTRL-LATE-UNANIMITY",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Timer exhaustion and contested ballots must not fire the instant-unanimity trigger.",
+   "fired_on_bad_state": true,
+   "id": "CTRL-TIMER-AND-CONTESTED",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Trigger-disabled overlay of the same primed ballots must ship AGREEMENT, proving the live hold is an outcome change.",
+   "fired_on_bad_state": true,
+   "id": "CTRL-OVERLAY-OFF-CEREMONIAL",
+   "silent_on_good_state": true
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNL-0080 evaluate_fixture on instant-unanimity-round-1.",
+   "detail": "{\"consumer_key\": [\"AGREEMENT_HELD_FOR_REVALUATION\", true, \"UNANIMITY\"], \"executed_intervention\": \"hold_for_revaluation\", \"hold_for_revaluation\": true, \"instant_unanimity_trigger\": true, \"listed_interventions\": {\"blind_reevaluation\": false, \"counterexample_generation\": false, \"critic_recruitment\": false, \"forced_dissent\": false, \"role_rotation\": false}, \"outcome_kind\": \"AGREEMENT_HELD_FOR_REVALUATION\", \"stop_reason\": \"UNANIMITY\"}",
+   "kind": "live-engine",
+   "path": "command-center/p2-wave/probes/CNL-0080/engine.py"
+  },
+  {
+   "claim": "Parser-free trigger-disabled decision for the same ballots.",
+   "detail": "{\"instant_unanimity_trigger\": false, \"outcome_kind\": \"AGREEMENT\", \"shipped_as_final_agreement\": true}",
+   "kind": "overlay-off",
+   "path": "command-center/p2-wave/probes/ADV-0091/harness.py"
+  },
+  {
+   "claim": "fire-unanimity (round 4, 3 independent briefs) stays silent.",
+   "detail": "{\"instant_unanimity_trigger\": false, \"outcome_kind\": \"AGREEMENT\"}",
+   "kind": "late-control",
+   "path": "command-center/p2-wave/probes/CNL-0080/fixtures/fire-unanimity.json"
+  }
+ ],
+ "facts": {
+  "contested_silent": true,
+  "late_kind_agreement": true,
+  "late_silent": true,
+  "late_unchanged": true,
+  "primed_hold": true,
+  "primed_listed_interventions_any": false,
+  "primed_outcome_changed": true,
+  "primed_trigger": true,
+  "timer_silent": true
+ },
+ "honest_scope": {
+  "claim": "G-1 audits the live CNL-0080 stopping evaluator on pinned fixtures plus scripted transcripts. It does not claim a live multi-model council session.",
+  "runtime": {
+   "control": "CNL-0059 instant-unanimity overlay on CNL-0080 stopping evaluator",
+   "module": "command-center/p2-wave/probes/CNL-0080/engine.py",
+   "overlay_off": "parser-free; unanimity ships AGREEMENT with no CNL-0059 hold"
+  }
+ },
+ "late_legitimate_run": {
+  "council_id": "late-legitimate",
+  "disagreement_rounds": 2,
+  "fixture_id": "fire-unanimity",
+  "independent_briefs": 3,
+  "live": {
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "AGREEMENT"
+  },
+  "outcome_changed_vs_disabled": false,
+  "overlay_off": {
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "AGREEMENT"
+  },
+  "round_index": 4,
+  "transcript": [
+   {
+    "ballot": "accept",
+    "independent_brief": true,
+    "round": 1,
+    "seat": "architect",
+    "text": "ship now; residual risk is operationally acceptable"
+   },
+   {
+    "ballot": "reject",
+    "independent_brief": true,
+    "round": 1,
+    "seat": "skeptic",
+    "text": "reject; the safety case is incomplete"
+   },
+   {
+    "ballot": "hold",
+    "independent_brief": true,
+    "round": 1,
+    "seat": "pragmatist",
+    "text": "hold; need a cheaper rollback path"
+   },
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 3,
+    "seat": "skeptic",
+    "text": "the added rollback drill removes my objection; accept"
+   },
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 3,
+    "seat": "pragmatist",
+    "text": "cost of the drill is bounded; accept"
+   },
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 4,
+    "seat": "architect",
+    "text": "unanimous accept after independent briefs and dissent"
+   }
+  ]
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0091/probe1_primed_transcript.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"delta\": {\"ballot_recommendation_unchanged\": true, \"consumer_key_live\": [\"AGREEMENT_HELD_FOR_REVALUATION\", true, \"UNANIMITY\"], \"hold_for_revaluation_live\": true, \"listed_interventions_any\": false, \"outcome_kind_live\": \"AGREEMENT_HELD_FOR_REVALUATION\", \"outcome_kind_overlay_off\": \"AGREEMENT\", \"shipped_overlay_off\": true}, \"independent_briefs\": 0, \"late_silent\": true, \"listed_any\": false, \"outcome_kind\": \"AGREEMENT_HELD_FOR_REVALUATION\", \"probe\": \"probe1-primed-transcript\", \"transcript_n\": 3, \"trigger_fired\": true, \"which\": \"hold_for_revaluation\"}\nSUCCESS:ADV-0091-probe1 primed trigger=hold_for_revaluation late-control silent listed-interventions absent"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0091/probe2_outcome_delta.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"ceremonial\": false, \"late_changed\": false, \"late_live_kind\": \"AGREEMENT\", \"late_off_kind\": \"AGREEMENT\", \"primed_changed\": true, \"primed_live_kind\": \"AGREEMENT_HELD_FOR_REVALUATION\", \"primed_off_kind\": \"AGREEMENT\", \"probe\": \"probe2-outcome-delta\"}\nSUCCESS:ADV-0091-probe2 primed HOLD vs overlay-off AGREEMENT; late control unchanged"
+  }
+ ],
+ "outcome_delta": {
+  "ceremonial_for_shipping": false,
+  "late_changed": false,
+  "late_live_kind": "AGREEMENT",
+  "late_off_kind": "AGREEMENT",
+  "listed_interventions_executed": {
+   "blind_reevaluation": false,
+   "counterexample_generation": false,
+   "critic_recruitment": false,
+   "forced_dissent": false,
+   "role_rotation": false
+  },
+  "primed_changed": true,
+  "primed_live_kind": "AGREEMENT_HELD_FOR_REVALUATION",
+  "primed_off_kind": "AGREEMENT"
+ },
+ "output_path": "command-center/adversarial/ADV-0091-instant-unanimity-trigger.json",
+ "output_schema": "command-center/schema/council-pathology-sim.schema.json",
+ "overall_verdict": "PARTIAL",
+ "primed_run": {
+  "council_id": "primed-instant",
+  "delta": {
+   "ballot_recommendation_unchanged": true,
+   "consumer_key_live": [
+    "AGREEMENT_HELD_FOR_REVALUATION",
+    true,
+    "UNANIMITY"
+   ],
+   "hold_for_revaluation_live": true,
+   "listed_interventions_any": false,
+   "outcome_kind_live": "AGREEMENT_HELD_FOR_REVALUATION",
+   "outcome_kind_overlay_off": "AGREEMENT",
+   "shipped_overlay_off": true
+  },
+  "fixture_id": "instant-unanimity-round-1",
+  "independent_briefs": 0,
+  "live": {
+   "consumer_key": [
+    "AGREEMENT_HELD_FOR_REVALUATION",
+    true,
+    "UNANIMITY"
+   ],
+   "executed_intervention": "hold_for_revaluation",
+   "hold_for_revaluation": true,
+   "instant_unanimity_trigger": true,
+   "listed_interventions": {
+    "blind_reevaluation": false,
+    "counterexample_generation": false,
+    "critic_recruitment": false,
+    "forced_dissent": false,
+    "role_rotation": false
+   },
+   "outcome_kind": "AGREEMENT_HELD_FOR_REVALUATION",
+   "stop_reason": "UNANIMITY"
+  },
+  "outcome_changed_vs_disabled": true,
+  "overlay_off": {
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "AGREEMENT",
+   "shipped_as_final_agreement": true
+  },
+  "round_index": 1,
+  "transcript": [
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 1,
+    "seat": "architect",
+    "text": "accept the proposal immediately"
+   },
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 1,
+    "seat": "skeptic",
+    "text": "accept the proposal immediately"
+   },
+   {
+    "ballot": "accept",
+    "independent_brief": false,
+    "round": 1,
+    "seat": "pragmatist",
+    "text": "accept the proposal immediately"
+   }
+  ]
+ },
+ "produced_at": "2026-08-28T03:20:30Z",
+ "question": "When a council reaches unanimity in the first round with no independent briefs, does the runtime actually trigger blind re-evaluation, forced dissent, counterexample generation, role rotation or critic recruitment?",
+ "report_kind": "council-pathology-sim",
+ "reviewer": {
+  "independent": true,
+  "method": "Parser-free overlay-off decision tuple, not a rerun of the transcript inspection in probe 1.",
+  "reviewer_id": "ADV-0091-probe2-outcome-delta",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:ADV-0091",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0091/probe1_primed_transcript.py",
+   "id": "probe1_primed_transcript",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0091/probe2_outcome_delta.py",
+   "id": "probe2_outcome_delta",
+   "result": "PASS"
+  }
+ ],
+ "title": "Instant-unanimity trigger: does suspiciously fast agreement force re-evaluation?",
+ "unit_id": "ADV-0091",
+ "verdicts": [
+  {
+   "claim": "A primed round-1 unanimous council with zero independent briefs fires CNL-0059 instant_unanimity_trigger.",
+   "id": "T-TRIGGER-FIRES-ON-PRIMED",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Live runtime executes blind re-evaluation, forced dissent, counterexample generation, role rotation, or critic recruitment when instant unanimity is detected.",
+   "id": "T-LISTED-INTERVENTIONS-EXECUTE",
+   "verdict": "REFUTED"
+  },
+  {
+   "claim": "The triggered run's final decision differs from a trigger-disabled control of the same ballots (not ceremonial).",
+   "id": "T-OUTCOME-CHANGES-VS-DISABLED",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Unanimity after independent briefs and disagreement rounds does not fire the instant-unanimity trigger.",
+   "id": "T-CONTROL-LEGITIMATE-LATE-UNANIMITY",
+   "verdict": "CONFIRMED"
+  }
+ ]
+}

@@ -1,0 +1,489 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1096,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/security-report.schema.json",
+   "role": "supporting",
+   "sha256": "c2851c905da5476eb7876efd5800dbe09a726f8dfb1de2d1a9fabe34d847e575"
+  },
+  {
+   "bytes": 11537,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0113/validator.py",
+   "role": "supporting",
+   "sha256": "3fdce07bfb62f5800995f95001968a086a4ae44a6a69d1b6a0d9c4b3ff80f496"
+  },
+  {
+   "bytes": 1991,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0113/scenario.py",
+   "role": "supporting",
+   "sha256": "037921f0a817c902e75f00edfef34a5c4f94170106d2516a812650d741fb2c0b"
+  },
+  {
+   "bytes": 191,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0113/fixtures/registry.json",
+   "role": "supporting",
+   "sha256": "2bf110488fa150c01aa395fc1618076f1cd19fdae1794c904b8ecd85d75bb627"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0113-malicious-plugin-fixtures.json",
+   "consumer": "emit_report.schema_errors (Draft7Validator, on-disk $ref store)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/emit_report.py",
+    "exit_code": 0,
+    "fingerprint": "cnf0113-consumer-schema",
+    "method": "schema-validate",
+    "raw_output": "0 schema errors on in-memory receipt",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0113/probe1_hostile_verdicts.py:1",
+   "claim": "Every hostile fixture received a named firing rule and the benign control passed in the same validator invocation.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe1_hostile_verdicts.py",
+     "exit_code": 0,
+     "fingerprint": "cnf0113-src-hostile-verdicts",
+     "method": "command",
+     "raw_output": "{\"dispositions\": {\"benign-control\": \"pass\", \"excessive-permissions\": \"reject\", \"path-traversal\": \"reject\", \"postinstall-network\": \"reject\", \"typosquat-harness\": \"reject\", \"unsigned-publisher\": \"warn\"}, \"exits\": {\"benign-control\": 0, \"excessive-permissions\": 20, \"path-traversal\": 20, \"postinstall-network\": 20, \"typosquat-harness\": 20, \"unsigned-publisher\": 10}, \"rules\": {\"benign-control\": null, \"excessive-permissions\": \"MP-PERM-EXCESSIVE\", \"path-traversal\": \"MP-PATH-TRAVERSAL\", \"postinstall-network\": \"MP-POSTINSTALL-NETWORK\", \"typosquat-harness\": \"MP-TYPOSQUAT\", \"unsigned-publisher\": \"MP-UNSIGNED-PUBLISHER\"}}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/emit_report.py",
+     "exit_code": 0,
+     "fingerprint": "cnf0113-ver-schema-validate",
+     "method": "schema-validate",
+     "raw_output": "in-memory Draft7Validator with on-disk $ref store: 0 errors",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0113/probe2_sandbox_warning_split.py:1",
+   "claim": "Warn exit 10 is distinct from reject exit 20, and the path-traversal fixture did not write outside the sandbox.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe2_sandbox_warning_split.py",
+     "exit_code": 0,
+     "fingerprint": "cnf0113-src-sandbox-warning-split",
+     "method": "command",
+     "raw_output": "warn=10 reject=20 path-traversal refused ../CNF-0113-ESCAPE-CANARY.txt",
+     "role": "source"
+    },
+    {
+     "command": "stat command-center/p2-wave/probes/CNF-0113/CNF-0113-ESCAPE-CANARY.txt ; echo absent-ok",
+     "exit_code": 0,
+     "fingerprint": "cnf0113-ver-escape-canary-absent",
+     "method": "file-read",
+     "raw_output": "escape canary is absent beside the fixture tree; write gate refused the traversal path",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "CNF-0113",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0113/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "excessive-permissions disposition=reject exit=20",
+   "description": "unsigned-publisher must warn (exit 10); excessive-permissions must reject (exit 20). A collapsed warn==reject fails.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unsigned-publisher disposition=warn exit=10",
+   "id": "NC-unsigned-is-warn-not-reject",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "MP-PATH-TRAVERSAL refuse ../CNF-0113-ESCAPE-CANARY.txt",
+   "description": "path-traversal must be rejected and must not materialize ../CNF-0113-ESCAPE-CANARY.txt outside the sandbox.",
+   "fired_on_bad_state": true,
+   "good_state_output": "benign-control pass exit=0; ok.txt in sandbox only",
+   "id": "NC-path-traversal-write-gate",
+   "kind": "adversarial-payload",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutated benign -> reject MP-PERM-EXCESSIVE",
+   "description": "Adding network:* to the benign control must reject; stripping the publisher signature must warn.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unmutated benign-control pass",
+   "id": "NC-benign-perm-mutation",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "opus",
+  "role": "marketplace-security-engineer",
+  "vendor": "anthropic"
+ },
+ "profile": "malicious-plugin-fixture-rejection",
+ "report": {
+  "answer": "Rejected: excessive-permissions (MP-PERM-EXCESSIVE, exit 20), postinstall-network (MP-POSTINSTALL-NETWORK, exit 20; script inspected not executed), path-traversal (MP-PATH-TRAVERSAL, exit 20; write gate refused ../CNF-0113-ESCAPE-CANARY.txt and wrote nothing outside the sandbox), typosquat-harness name 'harnass' vs registry 'harness' (MP-TYPOSQUAT, exit 20). Warned, not rejected: unsigned-publisher (MP-UNSIGNED-PUBLISHER, exit 10). Passed: benign-control (exit 0). A warning is not a rejection: exit 10 != exit 20 and the two lists are separate. SUCCESS:CNF-0113 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every hostile fixture has a verdict with the firing rule named and the benign control passed. Any other terminal state is FAILED:CNF-0113 <classification> with the diagnostic tail attached.",
+  "benign_control_passed": true,
+  "buckets": {
+   "passed": [
+    "cnf0113-benign-control"
+   ],
+   "rejected": [
+    "cnf0113-excessive-permissions",
+    "cnf0113-postinstall-network",
+    "cnf0113-path-traversal",
+    "harnass"
+   ],
+   "warned": [
+    "cnf0113-unsigned-publisher"
+   ]
+  },
+  "completion_sentinel": "SUCCESS:CNF-0113 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every hostile fixture has a verdict with the firing rule named and the benign control passed. Any other terminal state is FAILED:CNF-0113 <classification> with the diagnostic tail attached.",
+  "control_ids": [
+   "benign-control"
+  ],
+  "exit_code_contract": {
+   "pass": 0,
+   "reject": 20,
+   "warn": 10,
+   "warning_is_not_rejection": true
+  },
+  "fixtures": [
+   {
+    "disposition": "reject",
+    "exit_code": 20,
+    "expected_disposition": "reject",
+    "expected_rule": "MP-PERM-EXCESSIVE",
+    "findings": [
+     {
+      "message": "excessive permissions: credentials:read, network:*, process:spawn",
+      "rule": "MP-PERM-EXCESSIVE",
+      "severity": "reject"
+     }
+    ],
+    "firing_rule": "MP-PERM-EXCESSIVE",
+    "id": "excessive-permissions",
+    "kind": "hostile",
+    "name": "cnf0113-excessive-permissions",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/excessive-permissions",
+    "refused_writes": [],
+    "rejections": [
+     {
+      "message": "excessive permissions: credentials:read, network:*, process:spawn",
+      "rule": "MP-PERM-EXCESSIVE",
+      "severity": "reject"
+     }
+    ],
+    "scripts_executed": false,
+    "warnings": [],
+    "wrote_outside_sandbox": false
+   },
+   {
+    "disposition": "reject",
+    "exit_code": 20,
+    "expected_disposition": "reject",
+    "expected_rule": "MP-POSTINSTALL-NETWORK",
+    "findings": [
+     {
+      "message": "install-time script reaches the network",
+      "rule": "MP-POSTINSTALL-NETWORK",
+      "severity": "reject"
+     }
+    ],
+    "firing_rule": "MP-POSTINSTALL-NETWORK",
+    "id": "postinstall-network",
+    "kind": "hostile",
+    "name": "cnf0113-postinstall-network",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/postinstall-network",
+    "refused_writes": [],
+    "rejections": [
+     {
+      "message": "install-time script reaches the network",
+      "rule": "MP-POSTINSTALL-NETWORK",
+      "severity": "reject"
+     }
+    ],
+    "scripts_executed": false,
+    "warnings": [],
+    "wrote_outside_sandbox": false
+   },
+   {
+    "disposition": "reject",
+    "exit_code": 20,
+    "expected_disposition": "reject",
+    "expected_rule": "MP-PATH-TRAVERSAL",
+    "findings": [
+     {
+      "message": "path escapes package root: ../CNF-0113-ESCAPE-CANARY.txt",
+      "rule": "MP-PATH-TRAVERSAL",
+      "severity": "reject"
+     }
+    ],
+    "firing_rule": "MP-PATH-TRAVERSAL",
+    "id": "path-traversal",
+    "kind": "hostile",
+    "name": "cnf0113-path-traversal",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/path-traversal",
+    "refused_writes": [
+     "../CNF-0113-ESCAPE-CANARY.txt"
+    ],
+    "rejections": [
+     {
+      "message": "path escapes package root: ../CNF-0113-ESCAPE-CANARY.txt",
+      "rule": "MP-PATH-TRAVERSAL",
+      "severity": "reject"
+     }
+    ],
+    "scripts_executed": false,
+    "warnings": [],
+    "wrote_outside_sandbox": false
+   },
+   {
+    "disposition": "reject",
+    "exit_code": 20,
+    "expected_disposition": "reject",
+    "expected_rule": "MP-TYPOSQUAT",
+    "findings": [
+     {
+      "message": "edit-distance-1 collision with 'harness'",
+      "rule": "MP-TYPOSQUAT",
+      "severity": "reject"
+     }
+    ],
+    "firing_rule": "MP-TYPOSQUAT",
+    "id": "typosquat-harness",
+    "kind": "hostile",
+    "name": "harnass",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/typosquat-harness",
+    "refused_writes": [],
+    "rejections": [
+     {
+      "message": "edit-distance-1 collision with 'harness'",
+      "rule": "MP-TYPOSQUAT",
+      "severity": "reject"
+     }
+    ],
+    "scripts_executed": false,
+    "warnings": [],
+    "wrote_outside_sandbox": false
+   },
+   {
+    "disposition": "warn",
+    "exit_code": 10,
+    "expected_disposition": "warn",
+    "expected_rule": "MP-UNSIGNED-PUBLISHER",
+    "findings": [
+     {
+      "message": "publisher is unsigned or signature is missing",
+      "rule": "MP-UNSIGNED-PUBLISHER",
+      "severity": "warn"
+     }
+    ],
+    "firing_rule": "MP-UNSIGNED-PUBLISHER",
+    "id": "unsigned-publisher",
+    "kind": "hostile",
+    "name": "cnf0113-unsigned-publisher",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/unsigned-publisher",
+    "refused_writes": [],
+    "rejections": [],
+    "scripts_executed": false,
+    "warnings": [
+     {
+      "message": "publisher is unsigned or signature is missing",
+      "rule": "MP-UNSIGNED-PUBLISHER",
+      "severity": "warn"
+     }
+    ],
+    "wrote_outside_sandbox": false
+   },
+   {
+    "disposition": "pass",
+    "exit_code": 0,
+    "expected_disposition": "pass",
+    "expected_rule": null,
+    "findings": [],
+    "firing_rule": null,
+    "id": "benign-control",
+    "kind": "control",
+    "name": "cnf0113-benign-control",
+    "path": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/benign-control",
+    "refused_writes": [],
+    "rejections": [],
+    "scripts_executed": false,
+    "warnings": [],
+    "wrote_outside_sandbox": false
+   }
+  ],
+  "hostile_all_named": true,
+  "kind": "security-report",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe1_hostile_verdicts.py",
+    "id": "probe1",
+    "role": "hostile-verdicts"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe2_sandbox_warning_split.py",
+    "id": "probe2",
+    "role": "sandbox-and-warning-split"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/excessive-permissions",
+    "measured": "reject",
+    "method": "validator.validate_package",
+    "name": "excessive-permissions"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/postinstall-network",
+    "measured": "reject",
+    "method": "validator.validate_package",
+    "name": "postinstall-network"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/path-traversal",
+    "measured": "reject",
+    "method": "validator.validate_package",
+    "name": "path-traversal"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/typosquat-harness",
+    "measured": "reject",
+    "method": "validator.validate_package",
+    "name": "typosquat-harness"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/unsigned-publisher",
+    "measured": "warn",
+    "method": "validator.validate_package",
+    "name": "unsigned-publisher"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0113/fixtures/packages/benign-control",
+    "measured": "pass",
+    "method": "validator.validate_package",
+    "name": "benign-control"
+   }
+  ],
+  "passed": [
+   {
+    "exit_code": 0,
+    "firing_rule": null,
+    "id": "benign-control",
+    "name": "cnf0113-benign-control"
+   }
+  ],
+  "path_traversal_write_gate": {
+   "fixture": "path-traversal",
+   "refused_writes": [
+    "../CNF-0113-ESCAPE-CANARY.txt"
+   ],
+   "wrote_outside_sandbox": false
+  },
+  "question": "Does the validator stop a hostile package? Submit a fixture set - excessive permissions, a post-install script reaching the network, a path-traversal entry, a name typosquatting an existing package, and an unsigned publisher - and answer: which are rejected, which are merely warned about, and which pass?",
+  "rejected": [
+   {
+    "exit_code": 20,
+    "firing_rule": "MP-PERM-EXCESSIVE",
+    "id": "excessive-permissions",
+    "name": "cnf0113-excessive-permissions"
+   },
+   {
+    "exit_code": 20,
+    "firing_rule": "MP-POSTINSTALL-NETWORK",
+    "id": "postinstall-network",
+    "name": "cnf0113-postinstall-network"
+   },
+   {
+    "exit_code": 20,
+    "firing_rule": "MP-PATH-TRAVERSAL",
+    "id": "path-traversal",
+    "name": "cnf0113-path-traversal"
+   },
+   {
+    "exit_code": 20,
+    "firing_rule": "MP-TYPOSQUAT",
+    "id": "typosquat-harness",
+    "name": "harnass"
+   }
+  ],
+  "validator_notes": "No product-wide marketplace validator existed on this worktree. This unit authored a named-rule validator and confirmed it against the hostile fixture set plus a benign control.",
+  "validator_path": "command-center/p2-wave/probes/CNF-0113/validator.py",
+  "warned": [
+   {
+    "exit_code": 10,
+    "firing_rule": "MP-UNSIGNED-PUBLISHER",
+    "id": "unsigned-publisher",
+    "name": "cnf0113-unsigned-publisher"
+   }
+  ]
+ },
+ "residual_unknowns": [],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanical re-run: filesystem probe that the escape canary is absent outside the sandbox, plus exit-code inequality proving warn!=reject, plus both-states mutation of the benign control (add network:* -> reject; strip signature -> warn). Did not author validator.py.",
+  "reviewer_id": "CNF-0113-probe2-sandbox-and-warning-split",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0113 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every hostile fixture has a verdict with the firing rule named and the benign control passed. Any other terminal state is FAILED:CNF-0113 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0113",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe1_hostile_verdicts.py",
+   "id": "T1-hostile-named-rules",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe2_sandbox_warning_split.py",
+   "id": "T2-warning-not-rejection",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe2_sandbox_warning_split.py",
+   "id": "T3-path-traversal-sandbox",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0113/probe1_hostile_verdicts.py",
+   "id": "T4-benign-control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.008392,
+  "ended_at": "2026-08-25T00:58:06Z",
+  "started_at": "2026-08-25T00:58:06Z"
+ },
+ "unit_id": "CNF-0113"
+}

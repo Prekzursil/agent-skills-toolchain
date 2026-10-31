@@ -1,0 +1,839 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "measurement-instrument-validation",
+  "name": "Measurement-instrument validation pass (four self-defeating shapes)",
+  "description": "Before any number is read, validate the INSTRUMENT that produced it. This is not a detector fixture and needs no broken state to be constructed: it inspects the instrument's own construction for four shapes that are known to defeat themselves - a run that reports two things which cannot both be true; a probe whose pattern matches its OWN command line; a comparator comparing two different things; and a harness that does not suit its target. Only then does it run a known-present control, because a zero from an unvalidated instrument is not a measurement. An invalid instrument means the measurement is DISCARDED, never adjusted.",
+  "version": "1.0.0",
+  "kind": "subworkflow",
+  "categories": [
+    "data-science-knowledge-and-creative",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "bp-dat-03",
+    "detector-discipline",
+    "instrument",
+    "checklist",
+    "no-fixture"
+  ],
+  "flagship": true,
+  "params": {
+    "measurement": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The number or verdict about to drive a decision, verbatim as reported."
+    },
+    "instrument_command": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The exact command, query or code that produced the measurement. The four shape checks read THIS, not the number."
+    },
+    "instrument_output": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The instrument's full output including exit code, so a self-contradiction inside one run is visible."
+    },
+    "expected_range": {
+      "type": "object",
+      "description": "Optional prior. A measurement outside it is not wrong, but it raises the bar on the control.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "known_present_item": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "An item the instrument MUST find. Without this a zero is uninterpretable."
+    },
+    "consequence": {
+      "type": "enum",
+      "enum": [
+        "trivial",
+        "decision-driving",
+        "disruptive-action"
+      ],
+      "default": "decision-driving",
+      "description": "Contraindication switch: at 'trivial' the pass is skipped, since validating a number nobody acts on is waste."
+    }
+  },
+  "roles": {
+    "instrument-auditor": {
+      "description": "Reads the instrument's construction - not its result - looking for the four known self-defeating shapes.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "control-runner": {
+      "description": "Runs the instrument against a known-present item and, where a broken state can be built, against that too.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Grep",
+      "Read",
+      "Write(command-center/measurement/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "write_paths": [
+      "command-center/measurement/instrument-validation/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "not-self-contradictory": {
+      "predicate": "custom-expression",
+      "expression": "self_contradiction_found == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "zero-needs-a-control": {
+      "predicate": "custom-expression",
+      "expression": "known_present_control_found_it == true OR measurement_is_zero == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "verdict-emitted": {
+      "predicate": "custom-expression",
+      "expression": "instrument_verdict_recorded == true AND exit_code_decoded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "shape-self-contradiction",
+      "title": "Shape 1 - does ONE run report two things that cannot both be true",
+      "kind": "task",
+      "role": "instrument-auditor",
+      "when": "consequence != trivial",
+      "timeout_seconds": 600,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7401",
+        "title": "Detect a self-contradiction inside a single instrument run",
+        "phase": "2B",
+        "question_or_target": "Read the instrument's own output for two claims that cannot both hold - the measured archetype is `grep -c pat || echo 0`, which prints 0 AND exits 1 so the fallback also fires, yielding '0\\n0' that compares unequal to '0'.",
+        "inputs": [
+          "params.instrument_command",
+          "params.instrument_output"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-auditor",
+          "basis": "reading a construction for a known defect shape is judgement work, not a regex"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/measurement/instrument-validation/shape-1-self-contradiction.json",
+        "output_schema": "command-center/schema/audit-detector-control.schema.json",
+        "evidence_requirement": "the two mutually exclusive claims quoted verbatim from the one run, with the construct that produced them",
+        "tests_required": [
+          "the `grep -c pat || echo 0` construct is FLAGGED",
+          "both-states control: a plain `grep -c pat` with the exit code handled is NOT flagged, proving the check discriminates rather than flagging every grep"
+        ],
+        "reviewer_requirement": "the control-runner, who must be able to reproduce the contradiction from the recorded construct",
+        "completion_sentinel": "SUCCESS:DAT-7401 emitted only when a verdict of self-contradictory or clean is recorded with the quoted evidence; otherwise FAILED:DAT-7401 <reason>",
+        "retry_policy": "none: a shape check is a read, and re-reading the same text is not a second signal",
+        "failure_classification": [
+          "detector-failure",
+          "instrument-self-contradiction"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "static inspection of one run's output for mutually exclusive claims"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/shape-1-self-contradiction.json",
+          "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7401",
+          "consumers": [
+            "halt-on-self-contradiction",
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "halt-on-self-contradiction",
+      "title": "A self-contradicting run halts the analysis - fix the instrument first",
+      "kind": "gate",
+      "depends_on": [
+        "shape-self-contradiction"
+      ],
+      "gate_ref": "not-self-contradictory"
+    },
+    {
+      "id": "shape-self-match",
+      "title": "Shape 2 - does the probe's pattern appear in its OWN command line",
+      "kind": "task",
+      "depends_on": [
+        "halt-on-self-contradiction"
+      ],
+      "role": "instrument-auditor",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7402",
+        "title": "Detect a probe that matches itself",
+        "phase": "2B",
+        "question_or_target": "Check whether the search pattern occurs in the probe's own command line, which makes a dead process report ACTIVE. The decisive tell is that the reported CreationDate equals the probe's own run time.",
+        "inputs": [
+          "params.instrument_command",
+          "params.instrument_output"
+        ],
+        "dependencies": [
+          "DAT-7401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-auditor",
+          "basis": "the tell is a timestamp coincidence a human reads at a glance and a regex misses"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/measurement/instrument-validation/shape-2-self-match.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "the pattern, the probe's own command line, and a comparison of the reported creation time against the probe's start time",
+        "tests_required": [
+          "a process probe whose pattern is in its own command line is FLAGGED, citing the equal timestamps",
+          "both-states control: a probe that excludes its own pid is NOT flagged"
+        ],
+        "reviewer_requirement": "the control-runner",
+        "completion_sentinel": "SUCCESS:DAT-7402 emitted only when a self-match verdict is recorded with the timestamp comparison shown; otherwise FAILED:DAT-7402 <reason>",
+        "retry_policy": "none: a shape check reads a construction, and re-reading the same text is not a second signal",
+        "failure_classification": [
+          "detector-failure",
+          "probe-self-match"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "pattern-in-own-command-line detection with the timestamp-coincidence tell"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/shape-2-self-match.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7402",
+          "consumers": [
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shape-comparator",
+      "title": "Shape 3 - is the comparator comparing like with like",
+      "kind": "task",
+      "depends_on": [
+        "shape-self-match"
+      ],
+      "role": "instrument-auditor",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7403",
+        "title": "Detect a comparator that compares two different things",
+        "phase": "2B",
+        "question_or_target": "Establish that the two sides of the comparison are the same kind of object - the measured failure compared record.py against stubscan.py and reported DRIFT, which of course they exhibit because they are different files.",
+        "inputs": [
+          "params.instrument_command",
+          "params.instrument_output"
+        ],
+        "dependencies": [
+          "DAT-7402"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-auditor",
+          "basis": "deciding whether two operands are comparable requires knowing what each IS"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/measurement/instrument-validation/shape-3-comparator.json",
+        "output_schema": "command-center/schema/similarity-report.schema.json",
+        "evidence_requirement": "both operands named with their type and provenance, and a statement of why they are or are not the same kind of object",
+        "tests_required": [
+          "comparing two differently-named source files and calling the difference DRIFT is FLAGGED",
+          "both-states control: comparing the same logical file across two revisions is NOT flagged"
+        ],
+        "reviewer_requirement": "the control-runner",
+        "completion_sentinel": "SUCCESS:DAT-7403 emitted only when both operands are typed and a comparability verdict is recorded; otherwise FAILED:DAT-7403 <reason>",
+        "retry_policy": "none: an operand-identity check is a read, not an operation that can transiently fail",
+        "failure_classification": [
+          "detector-failure",
+          "wrong-comparator"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "operand-identity check on the comparison's two sides"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/shape-3-comparator.json",
+          "schema_ref": "command-center/schema/similarity-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7403",
+          "consumers": [
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shape-harness-fit",
+      "title": "Shape 4 - does the harness suit the target, and is the exit code DECODED",
+      "kind": "task",
+      "depends_on": [
+        "shape-comparator"
+      ],
+      "role": "instrument-auditor",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7404",
+        "title": "Detect a harness mismatch and an undecoded exit code",
+        "phase": "2B",
+        "question_or_target": "Check the runner suits the target and that every exit code is decoded rather than assumed - a standalone script under pytest yields `INTERNALERROR: SystemExit: 0` which reads as a failing suite, and 127 (command not found) is not 1 (assertion failed).",
+        "inputs": [
+          "params.instrument_command",
+          "params.instrument_output"
+        ],
+        "dependencies": [
+          "DAT-7403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-auditor",
+          "basis": "mapping an exit code to a meaning needs the tool's contract, not a convention"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/measurement/instrument-validation/shape-4-harness-fit.json",
+        "output_schema": "command-center/schema/conformance-report.schema.json",
+        "evidence_requirement": "the runner, the target's own entry point, and a decode table mapping each observed exit code to its documented meaning",
+        "tests_required": [
+          "a standalone script invoked through pytest is FLAGGED as a harness mismatch",
+          "exit code 127 is decoded as command-not-found and NOT reported as a test failure",
+          "both-states control: a real pytest suite under pytest is NOT flagged"
+        ],
+        "reviewer_requirement": "the control-runner",
+        "completion_sentinel": "SUCCESS:DAT-7404 emitted only when the harness verdict and a full exit-code decode table are recorded; otherwise FAILED:DAT-7404 <reason>",
+        "retry_policy": "none: an exit-code decode either has the tool contract or it does not; retrying cannot supply it",
+        "failure_classification": [
+          "detector-failure",
+          "wrong-harness",
+          "exit-code-undecoded"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "runner/target fit check plus explicit exit-code decoding"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/shape-4-harness-fit.json",
+          "schema_ref": "command-center/schema/conformance-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7404",
+          "consumers": [
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "known-present-control",
+      "title": "Run the instrument against something it MUST find",
+      "kind": "task",
+      "depends_on": [
+        "shape-harness-fit"
+      ],
+      "role": "control-runner",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7405",
+        "title": "Prove the instrument can find a known-present item, and where possible that it fires on a known-broken one",
+        "phase": "2B",
+        "question_or_target": "Run the unmodified instrument against known_present_item and require a hit; where a broken state can be constructed, also run it there and require the instrument to FIRE. A probe silent in both states measures nothing.",
+        "inputs": [
+          "params.instrument_command",
+          "params.known_present_item"
+        ],
+        "dependencies": [
+          "DAT-7401",
+          "DAT-7402",
+          "DAT-7403",
+          "DAT-7404"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "control-runner",
+          "basis": "executing the control is mechanical, but deciding what a valid broken state IS is judgement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/measurement/instrument-validation/known-present-control.json",
+        "output_schema": "command-center/schema/detector-control-audit.schema.json",
+        "evidence_requirement": "the control command, its output, and its exit code for the known-present run and, when constructible, for the known-broken run",
+        "tests_required": [
+          "the instrument finds the known-present item",
+          "where a broken state exists the instrument FIRES on it; where none can be built the run records NOT-CHECKED rather than claiming a both-states control"
+        ],
+        "reviewer_requirement": "the instrument-auditor, cross-examining whether the control input really is known-present",
+        "completion_sentinel": "SUCCESS:DAT-7405 emitted only when the known-present run produced a hit, and the broken-state arm is either PASS or an explicit NOT-CHECKED; otherwise FAILED:DAT-7405 <reason>",
+        "retry_policy": "fixed, two attempts: a control that fails twice means the instrument is broken, which is the finding",
+        "failure_classification": [
+          "detector-failure",
+          "control-unavailable",
+          "instrument-blind"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "known-present control plus an optional both-states arm that records NOT-CHECKED when no broken state can be built"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/known-present-control.json",
+          "schema_ref": "command-center/schema/detector-control-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7405",
+          "consumers": [
+            "zero-control-gate",
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zero-control-gate",
+      "title": "A zero is never accepted without a known-present control",
+      "kind": "gate",
+      "depends_on": [
+        "known-present-control"
+      ],
+      "gate_ref": "zero-needs-a-control"
+    },
+    {
+      "id": "emit-verdict",
+      "title": "Emit the typed instrument verdict; an invalid instrument DISCARDS the number",
+      "kind": "task",
+      "depends_on": [
+        "zero-control-gate"
+      ],
+      "role": "instrument-auditor",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/measurement/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7406",
+        "title": "Emit instrument_verdict and either the corrected measurement or a discard",
+        "phase": "2B",
+        "question_or_target": "Reduce the four shape verdicts and the control to exactly one of VALID, SELF-CONTRADICTORY, SELF-MATCHING, WRONG-COMPARATOR or WRONG-HARNESS, and on anything but VALID DISCARD the measurement rather than adjusting it.",
+        "inputs": [
+          "command-center/measurement/instrument-validation/shape-1-self-contradiction.json",
+          "command-center/measurement/instrument-validation/shape-2-self-match.json",
+          "command-center/measurement/instrument-validation/shape-3-comparator.json",
+          "command-center/measurement/instrument-validation/shape-4-harness-fit.json",
+          "command-center/measurement/instrument-validation/known-present-control.json"
+        ],
+        "dependencies": [
+          "DAT-7401",
+          "DAT-7402",
+          "DAT-7403",
+          "DAT-7404",
+          "DAT-7405"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-auditor",
+          "basis": "the reduction carries the veto and must be authored by the role that holds it"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/measurement/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/measurement/instrument-validation/instrument-verdict.json",
+        "output_schema": "command-center/schema/measurement-run.schema.json",
+        "evidence_requirement": "the five inputs cited by path, the chosen verdict token, and for a non-VALID verdict the explicit statement that the measurement was discarded and not adjusted",
+        "tests_required": [
+          "a SELF-CONTRADICTORY shape forces a non-VALID verdict even when the other three shapes are clean",
+          "a non-VALID verdict never emits corrected_measurement - discarding is not correcting",
+          "a checklist miss is recorded honestly: the verdict names the four shapes checked, so a novel instrument failure is visible as out-of-scope rather than as clean"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who re-reads the instrument and can overturn a VALID verdict",
+        "completion_sentinel": "SUCCESS:DAT-7406 emitted only when exactly one verdict token is recorded, with the discard-or-proceed consequence stated; otherwise FAILED:DAT-7406 <reason>",
+        "retry_policy": "none: a verdict is a conclusion, not an operation",
+        "failure_classification": [
+          "overclaim",
+          "detector-failure",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "five-way typed reduction with discard-not-adjust semantics",
+        "not_a_duplicate_because": "BP-DBG-02 CONSTRUCTS a broken state to test a detector; this reads the instrument's construction and needs no fixture"
+      },
+      "produces": [
+        {
+          "path": "command-center/measurement/instrument-validation/instrument-verdict.json",
+          "schema_ref": "command-center/schema/measurement-run.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7406",
+          "consumers": [
+            "verdict-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verdict-gate",
+      "title": "A pass that emits no verdict has validated nothing",
+      "kind": "gate",
+      "depends_on": [
+        "emit-verdict"
+      ],
+      "gate_ref": "verdict-emitted"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "verdict-emitted",
+      "expression": "instrument_verdict_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "shapes_checked >= 4",
+      "on_stop": "complete"
+    },
+    {
+      "id": "self-contradiction-halts",
+      "expression": "self_contradiction_found == true",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "trivial-consequence-skips",
+      "expression": "consequence == trivial",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "detector-failure",
+      "instrument-self-contradiction",
+      "control-unavailable"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "halt-on-self-contradiction",
+    "quarantine_path": "command-center/measurement/instrument-validation/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/measurement/instrument-validation/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/measurement/instrument-validation/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/measurement/instrument-validation/dry-run-plan.json",
+    "forbid_tools": [
+      "Write(command-center/measurement/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.05,
+      "max": 0.3
+    },
+    "wallclock_seconds": {
+      "expected": 240,
+      "max": 1200
+    },
+    "tokens": {
+      "expected": 25000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "reads the instrument and writes only under command-center/measurement/instrument-validation/**; runs no destructive action",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/measurement/instrument-validation/export/measurement-instrument-validation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md#four-detector-shapes",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tool-detector-self-test",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "instrument_verdict": {
+      "path": "command-center/measurement/instrument-validation/instrument-verdict.json",
+      "schema_ref": "command-center/schema/measurement-run.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "hermetic-eval-registry-run"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DAT-03",
+      "card_index_in_library": 74,
+      "family": "D14-data",
+      "primary_category": "data-science-knowledge-and-creative",
+      "mechanism_signature": [
+        "static-inspection-of-instrument-construction",
+        "four-named-self-defeating-shapes",
+        "exit-code-decoding",
+        "known-present-control-before-a-zero",
+        "discard-not-adjust-on-invalid"
+      ],
+      "worked_example": {
+        "scenario": "A sweep reports '0 of 7 PRs contain the fix' AND 'the intersection is empty' in one run. The next action would be to re-apply the fix to all seven.",
+        "params": {
+          "measurement": "0 of 7 PRs contain the fix; intersection empty",
+          "instrument_command": "for p in $PRS; do git log --oneline $p | grep -c 'the-fix' || echo 0; done",
+          "instrument_output": "0\\n0\\n0\\n0\\n0\\n0\\n0\\n(exit 1)",
+          "known_present_item": "PR #121, which is known to contain the fix",
+          "consequence": "disruptive-action"
+        },
+        "expected_trace": [
+          "shape-self-contradiction -> FLAGGED: `grep -c || echo 0` prints 0 and exits 1, so the fallback also fires and the field is '0\\n0', which compares unequal to '0' - the run reports both all-hit and empty",
+          "halt-on-self-contradiction -> gate FAILS, on_fail escalate-to-human, analysis stops here",
+          "the remaining shapes and the control are not reached; the seven PRs are NOT re-patched",
+          "SECOND STATE - the instrument is repaired to `c=$(grep -c pat || true)` and the pass is re-run: shape-self-contradiction CLEAN; shape-self-match CLEAN because the pattern is not in the probe command line; shape-comparator CLEAN because both sides are PR head refs; shape-harness-fit decodes exit 1 as no-match rather than as failure",
+          "known-present-control -> PR #121 IS found, so the zero-control gate passes and a zero is finally interpretable",
+          "emit-verdict -> VALID, and the corrected measurement is 1 of 7 rather than 0 of 7: the original number was an artifact of the instrument, not a fact about the PRs"
+        ],
+        "expected_terminal_state": "FAILED:DAT-7401 instrument-self-contradiction (the correct outcome - the instrument, not the PRs, was broken)"
+      },
+      "unverified": "UNVERIFIED how much of the real failure surface four shapes cover; a checklist cannot see a novel instrument failure. Settling experiment = apply the checklist to the last ten load-bearing measurements in this program and count how many trip a shape and how many failed for a fifth reason.",
+      "distinct_from": {
+        "BP-DBG-02": "that one constructs a broken STATE to test a detector; this reads the instrument's own CONSTRUCTION and needs no fixture",
+        "bp-dat-05": "that one measures whether behaviour got BETTER on a fixed case set; this asks whether the measuring device is trustworthy at all",
+        "bp-dat-02": "no corpus, no budget, no streaming - the subject here is a command string"
+      },
+      "flagship_test": "platform/lib/workflows/test_measurement_instrument_validation.py"
+    }
+  }
+}

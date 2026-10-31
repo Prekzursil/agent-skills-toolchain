@@ -1,0 +1,116 @@
+{
+  "artifacts": [
+    {
+      "bytes": 7884,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/IMP-0116.json",
+      "role": "primary",
+      "sha256": "see-manifest"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0116.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": false,
+      "note": "Measure runs after this receipt is written.",
+      "read_ok": false
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/marketplace/scaffolder.py + tools/marketplace/package_linter.py",
+      "claim": "Each of the four scaffold kinds generates a package that the package linter reports with zero findings.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0116/probe1_scaffold_lints_clean.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"probe\": \"probe1\",\n  \"unit\": \"IMP-0116\",\n  \"results\": [\n    {\n      \"kind\": \"skill\",\n      \"path\": \"/tmp/imp-0116-p1-p8xq5swm/live-skill\",\n      \"ok\": true,\n      \"finding_count\": 0,\n      \"findings\": [],\n      \"files\": [\n        \"LICENSE\",\n        \"README.md\",\n        \"package.json\",\n        \"skills/live-skill/SKILL.md\"\n      ]\n    },\n    {\n      \"kind\": \"hook\",\n      \"path\": \"/tmp/imp-0116-p1-p8xq5swm/live-hook\",\n      \"ok\": true,\n      \"finding_count\": 0,\n      \"findings\": [],\n      \"files\": [\n        \"LICENSE\",\n        \"README.md\",\n        \"hooks/live-hook.json\",\n        \"hooks/live-hook.py\",\n        \"package.json\"\n      ]\n    },\n    {\n      \"kind\": \"workflow\",\n      \"path\": \"/tmp/imp-0116-p1-p8xq5swm/live-workflow\",\n      \"ok\": true,\n      \"finding_count\": 0,\n      \"findings\": [],\n      \"files\": [\n        \"LICENSE\",\n        \"README.md\",\n        \"package.json\",\n        \"workflows/live-workflow.json\"\n      ]\n    },\n    {\n      \"kind\": \"council-preset\",\n      \"path\": \"/tmp/imp-0116-p1-p8xq5swm/live-council-preset\",\n      \"ok\": true,\n      \"finding_count\": 0,\n      \"findings\": [],\n      \"files\": [\n        \"LICENSE\",\n        \"README.md\",\n        \"council/presets/live-council-preset.json\",\n        \"package.json\"\n      ]\n    }\n  ],\n  \"all_ok\": true\n}\nSUCCESS:IMP-0116-probe1 four kinds lint-clean",
+          "role": "source"
+        },
+        {
+          "command": "python3 -B tools/marketplace/tests/test_scaffolder.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "test_broken_template_goes_red (__main__.ScaffolderTests.test_broken_template_goes_red) ... ok\ntest_council_preset_lints_clean (__main__.ScaffolderTests.test_council_preset_lints_clean) ... ok\ntest_generated_artifact_passes_conformance (__main__.ScaffolderTests.test_generated_artifact_passes_conformance) ... ok\ntest_hook_lints_clean (__main__.ScaffolderTests.test_hook_lints_clean) ... ok\ntest_skill_lints_clean (__main__.ScaffolderTests.test_skill_lints_clean) ... ok\ntest_workflow_lints_clean (__main__.ScaffolderTests.test_workflow_lints_clean) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.015s\n\nOK",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/marketplace/conformance.py",
+      "claim": "The same generated artifacts pass a conformance validator whose rules are not the linter's rules (entry exists, kind payload, README Usage, dir/name match, no TODO).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0116/probe2_conformance_and_break.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"probe\": \"probe2\",\n  \"unit\": \"IMP-0116\",\n  \"conformance\": [\n    {\n      \"kind\": \"skill\",\n      \"ok\": true,\n      \"violations\": [],\n      \"detail\": []\n    },\n    {\n      \"kind\": \"hook\",\n      \"ok\": true,\n      \"violations\": [],\n      \"detail\": []\n    },\n    {\n      \"kind\": \"workflow\",\n      \"ok\": true,\n      \"violations\": [],\n      \"detail\": []\n    },\n    {\n      \"kind\": \"council-preset\",\n      \"ok\": true,\n      \"violations\": [],\n      \"detail\": []\n    }\n  ],\n  \"conformance_all_ok\": true,\n  \"broken_template\": {\n    \"lint_ok\": false,\n    \"lint_rules\": [\n      \"spdx-license\"\n    ],\n    \"conformance_ok\": true,\n    \"goes_red\": true\n  },\n  \"usage_stripped\": {\n    \"lint_ok\": true,\n    \"conformance_ok\": false,\n    \"conformance_checks\": [\n      \"readme-usage\"\n    ],\n    \"goes_red\": true\n  },\n  \"surfaces_independent\": true\n}\nSUCCESS:IMP-0116-probe2 conformance and negative control",
+          "role": "source"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0116/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "license field rewritten to NOT-A-LICENSE; linter must go red on spdx-license.",
+      "fired_on_bad_state": true,
+      "id": "broken-spdx-template",
+      "kind": "template-mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "## Usage renamed to ## Notes; conformance fails readme-usage while linter stays clean \u2014 surfaces are independent.",
+      "fired_on_bad_state": true,
+      "id": "readme-usage-stripped",
+      "kind": "payload-mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "Implemented `new <skill|hook|workflow|council-preset>` in tools/marketplace. Default generated packages lint clean and also pass a distinct conformance validator. Did not run unit_manifest.py --write. Did not git commit.",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0113 has not delivered a separate package-linter receipt on this worktree; IMP-0116 ships tools/marketplace/package_linter.py as the live oracle the scaffolder is measured against, not as a claim that IMP-0113 is complete.",
+      "settling_experiment": "When IMP-0113 lands its composition report, re-run test_scaffolder.py against that linter.",
+      "verdict": "DISCLOSED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "reviewer_id": "IMP-0116-probe2-conformance-mutation",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0116",
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0116; new <skill|hook|workflow|council-preset>",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "python3 -B tools/marketplace/tests/test_scaffolder.py",
+      "id": "test_scaffolder.py",
+      "raw_output": "test_broken_template_goes_red (__main__.ScaffolderTests.test_broken_template_goes_red) ... ok\ntest_council_preset_lints_clean (__main__.ScaffolderTests.test_council_preset_lints_clean) ... ok\ntest_generated_artifact_passes_conformance (__main__.ScaffolderTests.test_generated_artifact_passes_conformance) ... ok\ntest_hook_lints_clean (__main__.ScaffolderTests.test_hook_lints_clean) ... ok\ntest_skill_lints_clean (__main__.ScaffolderTests.test_skill_lints_clean) ... ok\ntest_workflow_lints_clean (__main__.ScaffolderTests.test_workflow_lints_clean) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.015s\n\nOK",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:59:10Z",
+    "started_at": "2026-08-25T00:59:10Z"
+  },
+  "unit_id": "IMP-0116"
+}

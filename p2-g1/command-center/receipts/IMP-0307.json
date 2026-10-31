@@ -1,0 +1,212 @@
+{
+  "id": "IMP-0307",
+  "unit_id": "IMP-0307",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0307",
+  "completion_sentinel": "SUCCESS:IMP-0307",
+  "report_kind": "council-vote-module",
+  "title": "Evidence gate overriding popularity",
+  "question_or_target": "Implement tools/council/vote/evidence_gate.py so a majority with no evidence anchors cannot produce a binding decision (spec 11198: agreement is not proof). Falsifiable question: does the gate distinguish a real evidence anchor from a plausible-looking citation that does not resolve?",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0307 (catalog-cited _USER-PROMPTS.md:11198 agreement-is-not-proof; :11235 vote-without-evidence). Harness files are absent on this Linux worktree; the load-bearing rule is the live module plus POLICY in the artifact.",
+  "artifact_paths": [
+    "command-center/receipts/IMP-0307.json",
+    "tools/council/vote/evidence_gate.py",
+    "command-center/p2-wave/probes/IMP-0307/probe1_evidence_free_majority.py",
+    "command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py"
+  ],
+  "test_ids": [
+    "IMP-0307-evidence-free-majority-blocked",
+    "IMP-0307-all-backed-ordinary-tally",
+    "IMP-0307-fabricated-citation-unresolved"
+  ],
+  "negative_control_ids": [
+    "IMP-0307-NC-well-anchored-minority-not-blocked",
+    "IMP-0307-NC-fabricated-anchors-must-not-satisfy"
+  ],
+  "reviewer_verdict": "PASS",
+  "policy": {
+    "agreement_is_not_proof": true,
+    "votes_require_evidence": true,
+    "reject_evidence_free_majority": true,
+    "evidence_outranks_majority": true,
+    "unresolved_is_not_evidence": true,
+    "empty_citation_is_not_evidence": true,
+    "empty_file_is_not_evidence": true,
+    "plausible_looking_citation_is_not_evidence": true,
+    "http_url_is_not_resolved_hermetically": true,
+    "silence_policy": "silence (no citation) is not consent and is not evidence"
+  },
+  "implementation": {
+    "path": "tools/council/vote/evidence_gate.py",
+    "entry": "evaluate_gate",
+    "resolution": "anchor_resolution_pass / resolve_citation (os.stat or file:// fetch; HTTP unresolved hermetically)",
+    "plausible_heuristic_consulted": false
+  },
+  "evidence": [
+    {
+      "signal": "anchor-resolution-pass",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py",
+      "verbatim": "cited=9 resolved=2 unresolved=7 unresolved_listed=['ev-7f3a9c2b-looks-registered', 'https://doi.org/10.1000/fabricated-council-cite', '/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/node-hold-1-missing-sibling.json', 'file:///opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/no-such-anchor.json', 'ev-7f3a9c2b-looks-registered', 'ev-7f3a9c2b-looks-registered', 'ev-7f3a9c2b-looks-registered']",
+      "unresolved": [
+        "ev-7f3a9c2b-looks-registered",
+        "https://doi.org/10.1000/fabricated-council-cite",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/node-hold-1-missing-sibling.json",
+        "file:///opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/no-such-anchor.json",
+        "ev-7f3a9c2b-looks-registered",
+        "ev-7f3a9c2b-looks-registered",
+        "ev-7f3a9c2b-looks-registered"
+      ],
+      "resolved_count": 2,
+      "cited_count": 9
+    },
+    {
+      "signal": "evidence-free-majority-blocked",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe1_evidence_free_majority.py",
+      "verbatim": "raw_winner=ship-it gated_winner=hold blocked=True reason=BLOCK_EVIDENCE_FREE_MAJORITY"
+    },
+    {
+      "signal": "fabricated-citation-caught",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py",
+      "verbatim": "fabricated_any_resolved=False gated_winner=hold independent_stat_missing=True"
+    }
+  ],
+  "evidence_anchors": [
+    {
+      "path": "tools/council/vote/evidence_gate.py",
+      "claim": "evaluate_gate stats every citation; unresolved cites do not back a ballot"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0307/fixtures/evidence/node-hold-1.json",
+      "claim": "real minority evidence file that independently os.stat's non-empty"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py",
+      "claim": "DOI-shaped URL, registered-looking missing path, and file:// miss do not resolve"
+    }
+  ],
+  "tests": [
+    {
+      "id": "IMP-0307-evidence-free-majority-blocked",
+      "name": "7 unbacked ship-it vs 2 backed hold: majority blocked, gated winner is hold",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe1_evidence_free_majority.py",
+      "raw_winner": "ship-it",
+      "gated_winner": "hold",
+      "evidence_free_majority_blocked": true
+    },
+    {
+      "id": "IMP-0307-all-backed-ordinary-tally",
+      "name": "when every ballot is backed, gated winner equals raw plurality",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe1_evidence_free_majority.py",
+      "all_backed_winner": "ship-it"
+    },
+    {
+      "id": "IMP-0307-fabricated-citation-unresolved",
+      "name": "plausible-looking fabricated anchors do not satisfy the gate",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py",
+      "fabricated_any_resolved": false
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP-0307-NC-well-anchored-minority-not-blocked",
+      "kind": "known-good-fixture",
+      "description": "Two ballots citing files that stat must remain in backed_tally even when numerically outvoted.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "well_anchored_minority_blocked=False backed_tally.hold=2",
+      "well_anchored_minority_blocked": false
+    },
+    {
+      "id": "IMP-0307-NC-fabricated-anchors-must-not-satisfy",
+      "kind": "known-broken-fixture",
+      "description": "DOI / ev- id / missing sibling / file:// URI that look like anchors but do not stat.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "fabricated_any_resolved=False",
+      "census_unresolved_count": 7
+    }
+  ],
+  "anchor_resolution_pass": {
+    "probe1_unresolved_count": 7,
+    "probe2_unresolved_count": 7,
+    "live_cited_count": 9,
+    "live_resolved_count": 2,
+    "live_unresolved_count": 7,
+    "live_unresolved": [
+      "ev-7f3a9c2b-looks-registered",
+      "https://doi.org/10.1000/fabricated-council-cite",
+      "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/node-hold-1-missing-sibling.json",
+      "file:///opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0307/fixtures/evidence/no-such-anchor.json",
+      "ev-7f3a9c2b-looks-registered",
+      "ev-7f3a9c2b-looks-registered",
+      "ev-7f3a9c2b-looks-registered"
+    ]
+  },
+  "reviewer": {
+    "reviewer_id": "IMP-0307-probe2-fabricated-citation",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 does not consume probe 1 state. It independently os.stat's planted-missing paths, asserts each fabricated cite looks plausible via citation_looks_plausible (not used by the gate), and requires resolve_citation.resolved is False."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Catalog inputs _USER-PROMPTS.md:11198/:11235 and 11-COUNCIL-SPECIFICATION.md/.schema.json are absent on this worktree (same finding as CNL-0001). The gate implements the catalog question, not a byte-copy of those files.",
+      "settling_experiment": "When the harness files are present, re-bind POLICY keys to quoted spec lines and re-run the two named probes.",
+      "verdict": "DISCLOSED"
+    },
+    {
+      "claim": "Catalog dependencies IMP-0301 (quota targets) and IMP-0310 (deadlock detector) have no artifacts on this worktree. evaluate_gate is a pure function of ballots plus filesystem stats and does not import those modules.",
+      "settling_experiment": "After IMP-0301/IMP-0310 exist, confirm evidence_gate still does not call them (no new import).",
+      "verdict": "DISCLOSED"
+    }
+  ],
+  "scope": {
+    "proof_surface": "Hermetic 7-vs-2 ballot fixtures. Real anchors are non-empty files under probes/IMP-0307/fixtures/evidence/. Fabricated cites are a registered-looking missing path, a DOI URL, a missing sibling json, and a file:// URI. HTTP is unresolved without a network fetch.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "tools/council/vote/tally.py exists",
+      "harness-restore _USER-PROMPTS.md is present"
+    ]
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "evidence-free-majority",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe1_evidence_free_majority.py"
+    },
+    {
+      "id": "probe2",
+      "role": "fabricated-citation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0307/probe2_fabricated_citation.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0307.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/council/vote/evidence_gate.py",
+      "exists": true,
+      "role": "implementation"
+    }
+  ],
+  "output_path": "command-center/receipts/IMP-0307.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "min_bytes_threshold": 2048,
+  "notes": "G-1 for IMP-0307: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0307"
+}

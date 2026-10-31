@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h57-re-offset-drift-council",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide whether a pinned binary offset may still be trusted after a version bump, on an independent fresh-context re-derivation plus a cited AOB signature or cross-version diff.",
+    "charter": "MANDATE. A load-bearing value that has been relied on for many steps must be re-derived in a context that cannot inherit the reasoning which produced it. That is the entire point of this council: the danger is not an obviously wrong offset, it is an offset that is wrong-but-consistent, because every downstream step was built on it and each one appears to confirm it. So the derivation seat and the re-derivation seat are kept independent and anonymous through the first pass, and the council stops only when a second, MECHANICALLY DIFFERENT derivation agrees - an AOB wildcard signature match or a cross-version binary diff, not a re-run of the same lookup. Two derivations from one method is one signal, not two.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "the offset is re-derived in a fresh context that never saw the original derivation",
+      "the corroborating method is mechanically different from the original, and named",
+      "an AOB signature or a cross-version diff is cited, not merely mentioned",
+      "at least two independent positions exist before the verdict"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "re-run the original derivation and report it as a second signal",
+        "trust a fixed RVA across a relink without a signature or diff"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "model_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 4, "min": 4, "max": 4 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - holds the currently pinned offset",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["binary offsets", "runtime hooking"],
+        "role": "custom:implementer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "conflicts": [{ "kind": "prior_verdict", "detail": "pinned the offset originally", "recused": false }]
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - enforces mechanical independence",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["independence of measurement", "detector control"],
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max",
+        "context": {
+          "briefing": "Reject any corroboration that reuses the original method. Independence is a property of a PAIR: name what produced the claim and what checked it, and if the source probe is undeclared you have zero signals, not one."
+        }
+      },
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk - re-derives in a fresh context",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["AOB signatures", "cross-version diffing"],
+        "role": "custom:evidence_clerk",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false },
+        "context": {
+          "briefing": "You must not be told the pinned value before you derive one. Produce the offset from a wildcard signature scan or a version-to-version diff, then compare."
+        }
+      },
+      {
+        "participant_id": "critic",
+        "display_name": "Critic - argues the offset has drifted",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["relink effects", "falsification"],
+        "role": "critic",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      }
+    ],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["hallucinated_expertise"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack", "position_memo"]
+  },
+  "topology": { "kind": "delphi" },
+  "protocol": {
+    "sequence": [
+      { "kind": "delphi_round", "stage_id": "independent-derivation", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "custom", "stage_id": "signature-or-diff", "custom_name": "cite an AOB signature match or a cross-version diff", "rounds": 1 },
+      { "kind": "delphi_round", "stage_id": "reconcile", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "verdict", "rounds": 1 }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 6, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 16, "experiments": 6 },
+  "targets": { "evidence_items": 4 },
+  "voting": {
+    "method": "consent_no_objection",
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:offset_rederived_in_fresh_context == true AND custom:aob_signature_or_diff_cited == true AND independent_positions >= 2",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:offset_rederived_in_fresh_context", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:aob_signature_or_diff_cited", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "independent_positions", "op": ">=", "value": 2 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 2, "min_evidence_items": 3 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": ["the offset is re-verified against the next binary build"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "circular_citation_check": true },
+    "resolution": ["run_experiment", "blind_re_evaluation", "recruit_independent_critic", "chair_ruling"],
+    "escalation": { "after_attempts": 2, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "circular_citation",
+      "premature_convergence",
+      "hallucinated_expertise",
+      "consensus_failing_executable_tests"
+    ],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "evidence_map",
+      "experiments",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["re-pinning the offset in shipped tooling"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h57", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "RE offset-drift council (advisory)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H57", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P51,P40"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1985", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H57 `re-offset-drift-council`, global ordinal 57, tier standard, protocols P51/P40, 4 seats, 2 rounds, default binding ADVISORY, OWNER-DECISION NO. || EDITABLE DIALS: (1) binary_version -> the signature-or-diff stage and the evidence-clerk seat's briefing; point it at the version pair being compared. Secondary dials: budgets.time_minutes (45), participants.anonymity.reveal_after_round (1 - the clerk must derive before seeing the pinned value), consensus.threshold, protocol.experiments.max_experiments. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `fresh_context_rederivation` is not a ballot at all, and forcing it into one would misdescribe the council. It is encoded as (a) topology.kind `delphi` with anonymity blind_to_peers, (b) the evidence-clerk seat carrying independence.fresh_context true and sees_peers_before_first_position false, (c) voting.method `consent_no_objection` - the verdict is that nobody objects after independent re-derivation - and (d) the independent_positions >= 2 stopping clause. Anyone reading only voting.method will miss the mechanism; the independence fields are the load-bearing part. roles `implementer` -> custom:implementer, `methodologist` -> custom:methodologist as chair, `evidence_clerk` -> custom:evidence_clerk, `critic` -> critic (enum). `default binding: advisory` -> outcomes.allowed includes decision but audit.safety.owner_approval_for retains re-pinning, so the council recommends and the owner lands it. `evidence standard: executable_receipt` -> anchor_style `command_output` plus outputs.receipt_schema. || CUSTOM METRICS AND THEIR PRODUCERS: custom:offset_rederived_in_fresh_context (boolean; produced by the evidence clerk, valid only if the clerk never received the pinned value first) and custom:aob_signature_or_diff_cited (boolean; produced by the signature-or-diff stage, requiring an actual signature match or diff hunk, not a claim that one exists). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY independent_positions >= 2 IS NOT REDUNDANT WITH THE FIRST CLAUSE: the first clause asserts a fresh-context derivation happened; the third asserts the council actually HOLDS two positions to compare. A fresh derivation that silently reproduces the original because the clerk was briefed with it satisfies the first and fails the third."
+  }
+}

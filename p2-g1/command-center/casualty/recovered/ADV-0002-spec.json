@@ -1,0 +1,51 @@
+{
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+    "model": "gpt-5-codex",
+    "role": "adversarial-refuter",
+    "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0002 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0002 <reason>.",
+  "dependencies": [
+    "B07",
+    "ADV-0001"
+  ],
+  "evidence_requirement": "Probe 1: import each call site's reducer and run the 200-outcome corpus through all of them, emitting a verdict matrix. Probe 2 (mechanically different): static call-graph extraction proving each site actually reaches the shared symbol rather than a local copy - a site that agrees on all 200 but does not call the shared symbol is a latent fork and must be reported.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+    "detector-failure",
+    "single-signal",
+    "dependency-blocked"
+  ],
+  "id": "ADV-0002",
+  "inputs": [
+    "every call site that computes completion, located by grep for the predicate symbol rather than by reading the design doc",
+    "a frozen corpus of 200 real unit outcomes spanning PASS, partial, sentinel-missing, schema-invalid and timeout",
+    "_USER-PROMPTS.md:11314 (known failure class: two completion predicates disagree)"
+  ],
+  "mechanism": "cross-implementation differential over a frozen outcome corpus plus a call-graph reachability control",
+  "not_a_duplicate_because": "ADV-0001 asks whether the predicate is right; this asks whether there is only ONE of it. Different failure, different artifact.",
+  "output_path": "command-center/adversarial/ADV-0002-predicate-crosssite-differential.json",
+  "output_schema": "command-center/schema/refutation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Do the reducer implementations embedded in the local runner, cloud dispatcher, monitor, harvester, workflow fan-in, cross-vendor adapter and final synthesis return byte-identical verdicts for the same 200 recorded unit outcomes, or has the 'one shared predicate' rule already forked?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10648, 11314",
+  "tests_required": [
+    "mutate the shared reducer to invert condition 7 and require EVERY site's verdict to change; a site whose verdict is unchanged is running its own copy"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Differential run of every completion-predicate implementation over one shared outcome corpus",
+  "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write",
+    "Edit"
+  ]
+}

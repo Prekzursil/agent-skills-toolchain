@@ -1,0 +1,149 @@
+{
+  "artifacts": [
+    {
+      "bytes": 4743,
+      "exists": true,
+      "path": "tools/command-center/artifact_writer.py",
+      "role": "implementation",
+      "sha256": "c34afb344eba69a24e10f5fa3fb060bf5933ee3f7cf30fa8a591b42f8626b337"
+    },
+    {
+      "bytes": 11219,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0202/scenario.py",
+      "role": "probe",
+      "sha256": "0f93ff3abe0bb1fdd5ab2b8b1fbec6593df139929f6daf51fac499df130396f9"
+    },
+    {
+      "bytes": 1859,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0202/probe1_both_states.py",
+      "role": "probe",
+      "sha256": "2766ef554ea9412e48bfb30a64170c2bd3d04fd15cce18cbf937d9a9ffa57b7b"
+    },
+    {
+      "bytes": 2471,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0202/probe2_negative_alias.py",
+      "role": "probe",
+      "sha256": "0294f52a17d8fb05dc7490eee31f6e7500cc48bb290c2858e6aa4a23d2c1427c"
+    }
+  ],
+  "budget": {
+    "applied_to": "resolved path (pathlib.Path.resolve)",
+    "comparison": "measured_length <= budget is admitted",
+    "name": "WINDOWS_MAX_PATH",
+    "value": 260
+  },
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0202",
+  "defects": [],
+  "evidence": [
+    {
+      "alias_length": 44,
+      "api": "pathlib.Path.resolve via tools/command-center/artifact_writer.py",
+      "claim": "Production write_artifact records measured_length of the resolved path and refuses when that length exceeds 260.",
+      "id": "E1-writer-measured-length",
+      "kind": "live-tree",
+      "production_refused": true,
+      "resolved_length": 287,
+      "signal": 1,
+      "writer_measured_length": 287
+    },
+    {
+      "api": "GNU coreutils readlink -f (not pathlib)",
+      "bash_length": 287,
+      "bash_path": "/tmp/tst0202-neg-lzmw76_g/over/real/seg01xxxxxxxxxxxxxxxxxxxxxxxx/seg02xxxxxxxxxxxxxxxxxxxxxxxx/seg03xxxxxxxxxxxxxxxxxxxxxxxx/seg04xxxxxxxxxxxxxxxxxxxxxxxx/seg05xxxxxxxxxxxxxxxxxxxxxxxx/seg06xxxxxxxxxxxxxxxxxxxxxxxx/seg07xxxxxxxxxxxxxxxxxxxxxxxx/seg08xxxxxxxxxxxxxxxxxxxxxxxx/payload.bin",
+      "claim": "Independent resolution length equals the writer's recorded measured_length.",
+      "id": "E2-independent-readlink-f",
+      "independent_length": 287,
+      "independent_path": "/tmp/tst0202-neg-lzmw76_g/over/real/seg01xxxxxxxxxxxxxxxxxxxxxxxx/seg02xxxxxxxxxxxxxxxxxxxxxxxx/seg03xxxxxxxxxxxxxxxxxxxxxxxx/seg04xxxxxxxxxxxxxxxxxxxxxxxx/seg05xxxxxxxxxxxxxxxxxxxxxxxx/seg06xxxxxxxxxxxxxxxxxxxxxxxx/seg07xxxxxxxxxxxxxxxxxxxxxxxx/seg08xxxxxxxxxxxxxxxxxxxxxxxx/payload.bin",
+      "kind": "live-tree",
+      "lengths_agree": true,
+      "signal": 2
+    }
+  ],
+  "evidence_requirement": "two independent signals: (a) the measured length recorded by the writer, and (b) an independent resolution of the same path by a different API",
+  "host": {
+    "junction_analog": "POSIX directory symlink (NTFS junction unavailable on Linux)",
+    "os": "Linux",
+    "python": "3.12.3",
+    "release": "6.8.0-136-generic"
+  },
+  "id": "TST-0202",
+  "negative_controls": [
+    {
+      "description": "write_measuring_alias applies the budget to the short symlink alias and therefore writes a file whose resolved path exceeds WINDOWS_MAX_PATH",
+      "fired_on_bad_state": true,
+      "id": "NC-alias-measurement",
+      "result": "PASS",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 TST-0202: production artifact writer measures resolved path length through a directory symlink (POSIX analog of a junction). The alias-length writer is the named defect and is shown to admit an over-limit write. cloud_ok is not delivery. SUCCESS:TST-0202",
+  "output_path": "command-center/receipts/TST-0202.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "phase": "10",
+  "question": "When the target is reached through a junction/symlink, is the length budget applied to the resolved path rather than the short alias? PASS requires the resolved measurement; measuring the alias is the defect being tested.",
+  "registered": true,
+  "report": {
+    "control_ids": [
+      "TST-0202-BOTH-STATES",
+      "TST-0202-NEGATIVE-ALIAS"
+    ],
+    "kind": "portability_report",
+    "observations": [
+      {
+        "anchor": "tools/command-center/artifact_writer.py",
+        "measured": 287,
+        "method": "pathlib.Path.resolve via write_artifact",
+        "name": "writer_measured_resolved_length"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0202/scenario.py",
+        "measured": 287,
+        "method": "GNU coreutils readlink -f",
+        "name": "independent_readlink_f_length"
+      }
+    ]
+  },
+  "report_kind": "portability_report",
+  "reviewer": {
+    "divergence": null,
+    "independent": true,
+    "notes": "Catalog asks for pwsh7 and Git Bash. This Linux worktree has /bin/bash (Git Bash analog) and no pwsh; powershell was not substituted. bash readlink -f agreed with GNU readlink -f and with the writer's pathlib.Path.resolve length.",
+    "pwsh7_present": false,
+    "reviewer_id": "TST-0202-probe2-readlink-f-and-bash",
+    "second_shell": "/bin/bash",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:TST-0202",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0202/probe1_both_states.py",
+      "direct_over_measured": 288,
+      "id": "TST-0202-BOTH-STATES",
+      "identical_in_budget": true,
+      "identical_over_budget": true,
+      "junction_over_measured": 288,
+      "name": "both-states control: a direct (non-junction) path of equal resolved length behaves identically",
+      "over_direct_resolved_length": 288,
+      "over_resolved_length": 288,
+      "result": "PASS"
+    },
+    {
+      "alias_admits_over_limit_write": true,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0202/probe2_negative_alias.py",
+      "defect_measure": "alias",
+      "defect_measured_length": 44,
+      "id": "TST-0202-NEGATIVE-ALIAS",
+      "name": "negative control: measuring the alias must be shown to admit an over-limit write",
+      "production_refused": true,
+      "result": "PASS"
+    }
+  ],
+  "title": "Length is measured on the RESOLVED path, through junctions and symlinks",
+  "ts": "2026-08-25T00:59:41Z",
+  "unit_id": "TST-0202"
+}

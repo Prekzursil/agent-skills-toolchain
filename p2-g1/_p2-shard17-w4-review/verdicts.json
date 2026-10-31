@@ -1,0 +1,57 @@
+{
+  "reviewer": "claude-opus-5-5-independent-reviewer-w4-shard17-2026-10-26",
+  "wave": 4,
+  "shard": 17,
+  "reviewed_at_utc": "2026-10-26",
+  "units_assigned": 12,
+  "verdict_PASS": 0,
+  "verdict_FAIL": 12,
+  "receipts_modified": "NONE (per contract: ANY fails -> verdict FAIL, receipt unchanged)",
+  "method": [
+    "catalog entries verified for all 12 (output_path, output_schema, deps all TST-*, owner_approval_required=false for all - no owner-gated units in this shard)",
+    "artifact: exists + non-empty + parses + top-level state not BLOCKED/FAILED for all 12 (all state=SUCCESS)",
+    "sha256 CRLF->LF normalized recomputed live: per-unit probes/<id>/UNIT-ARTIFACT-MANIFEST.json PRIMARY rows match for all 12, and ALL rows (incl. supporting probe/fixture files) match for all 12",
+    "named probes re-run live from SUBAGENT-RETURN.json commands (24 probes): 22/24 exit 0 on first run (TST-0060 probe2 and TST-0068 probe2 exit 1 via uncaught subprocess.TimeoutExpired on bare ['bash',...])",
+    "runner-env forensics on the two exit-1s: CreateProcess resolves bare 'bash' to C:\\Windows\\System32\\bash.exe (WSL launcher) BEFORE PATH, and the WSL distro is wedged (System32 bash -c echo hangs, killed rc 143; reproduced from python with stdin=DEVNULL, from CWD=shim-dir with NoDefaultCurrentDirectoryInExePath=1, and under a venv python) - a RUNNER-ENV artifact of the review transport, not artifact content",
+    "repaired-transport re-run (Popen-layer argv rewrite bash->Git Bash via PYTHONPATH sitecustomize; probe files untouched): TST-0060 probe2 exit 0 + SUCCESS sentinel, TST-0068 probe2 exit 0 + SUCCESS sentinel, artifacts unmutated (probe_rerun2.json) - live-probe check HOLDS for all 12",
+    "mutation guard: pre/post sha equal for every unit across both probe runs",
+    "output_schema validated via the program's blessed fail-closed resolver platform/lib/schema_resolver.validate_artifact: ALL 12 FAIL with 2-64 violations each",
+    "instrument both-states proof: 15/15 control units from the shard-2 control set + prior-conforming set validate CLEAN (0 violations); 13/13 same-class peers (TST-0101/0102/0103/0105/0106/0107/0108/0110/0122/0123/0126/0127 test-receipt class, AUD-0035) validate CLEAN - the 12 failures are real content nonconformance, not instrument drift",
+    "receipt_core fields present (state=SUCCESS + reviewer.verdict=PASS + independent=true) for all 12, but prior closure reviewer identities are PROBE-DERIVED (e.g. reviewer_id='TST-0032-probe2-green-claim-blocked', 'schema-resolver', 'TST-0090-probe2-timeout-only-mutant') - a probe is not an independent reviewer; the reviewer-absent pattern the program forbids"
+  ],
+  "failing_check_schema": {
+    "instrument": "platform/lib/schema_resolver.validate_artifact (blessed; fail-closed; no network)",
+    "both_states_proven": "detector returns 0 violations on 15 controls and 13 same-class peers; returns >0 on these 12",
+    "control_sample_0_violations": ["ADV-0005", "ADV-0006", "ADV-0010", "ADV-0014", "IMP-0095", "ARC-0066", "AUD-0020", "ARC-0022", "ARC-0036", "ARC-0050", "ARC-0057", "ARC-0028", "ARC-0049", "ADV-0121", "ADV-0122"],
+    "same_class_conforming_peers": ["TST-0101", "TST-0102", "TST-0103", "TST-0105", "TST-0106", "TST-0107", "TST-0108", "TST-0110", "TST-0122", "TST-0123", "TST-0126", "TST-0127", "AUD-0035"],
+    "common_envelope_gap": "CLEAN peers carry the class envelope (report, downstream_consumers, residual_unknowns, negative_controls, defects, extensions); the 12 shard-17 receipts omit report/downstream_consumers (+residual_unknowns on fault-injection class) and add non-schema keys (e.g. TST-0088: 12 extra top-level keys incl. both_states/named_probes/question), plus per-field shape violations (evidence probes method-enum, artifacts role-enum, tests[].command required)",
+    "timing": "11/12 receipts were bulk-rewritten 2026-10-24T08:50:00-04, i.e. 50-90s AFTER platform/schema/ARTIFACT-CLASS-REGISTRY.json regen (2026-10-24T08:49:10), and still violate - the rewrite did not apply the class envelope; TST-0085 was rewritten 2026-10-25T18:14 (shard22 resume-verify repair) and still carries 25 violations"
+  },
+  "units": {
+    "TST-0032": {"verdict": "FAIL", "failing": ["output_schema: 32 violations via schema_resolver (e.g. 'downstream_consumers' required, 'report' required, evidence/0/probes/1/method 'independent-ratio-recompute' not in method enum)"], "holding": "artifact 17,435 B parses, state=SUCCESS; sha 3ec55f97a078a5a3... matches manifest ALL rows; probe1+probe2 exit 0 (no SUCCESS sentinel in JSON output - non-gating note)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted by this verdict)"},
+    "TST-0057": {"verdict": "FAIL", "failing": ["output_schema: 44 violations (report/downstream_consumers envelope + field shapes)"], "holding": "artifact 53,663 B parses, state=SUCCESS; sha 801ab6f374629087... matches manifest ALL rows; both probes exit 0 (no sentinel printed - non-gating note)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0060": {"verdict": "FAIL", "failing": ["output_schema: 2 violations (tests/1: 'command' required; tests/1: additional property 'verdict' not allowed)"], "holding": "sha cdf7810a3e7c076c... matches manifest ALL rows (primary + 2 supporting); probe1 exit 0 + sentinel; probe2 exit 0 + sentinel on repaired transport after runner-env WSL-wedge artifact documented (probe_rerun2.json)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0066": {"verdict": "FAIL", "failing": ["output_schema: 64 violations (report/downstream_consumers envelope + field shapes)"], "holding": "sha 73eee855a653ce89... matches manifest ALL 5 rows; both probes exit 0 + sentinels incl. live detector control on a real GetShortPathNameW alias", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0067": {"verdict": "FAIL", "failing": ["output_schema: 19 violations (downstream_consumers entries missing 'probe', evidence method 'child-process-json' not in enum, report envelope)"], "holding": "sha 72d50fbb9c7562ee... matches manifest ALL rows; both probes exit 0 (no sentinel printed - non-gating note)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0068": {"verdict": "FAIL", "failing": ["output_schema: 17 violations (report envelope + field shapes)"], "holding": "sha 7417cb231cdb4907... matches manifest ALL 11 rows; probe1 exit 0 + sentinel; probe2 exit 0 + sentinel on repaired transport after runner-env WSL-wedge artifact documented (probe_rerun2.json)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0070": {"verdict": "FAIL", "failing": ["output_schema: 23 violations (report/downstream_consumers envelope + field shapes)"], "holding": "sha 35da616c8644108c... matches manifest ALL 10 rows; both probes exit 0 + sentinels (clean-install into empty profile + 3 golden journeys, corrupt-output control fires)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0081": {"verdict": "FAIL", "failing": ["output_schema: 23 violations (report/downstream_consumers envelope + field shapes)"], "holding": "sha 72f50b3f9573766c... matches manifest ALL rows; both probes exit 0 + sentinels (census drift quantified+disclosed; polluted-gate battery with rule-mutation control)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0085": {"verdict": "FAIL", "failing": ["output_schema: 25 violations (report envelope + field shapes)"], "holding": "sha 7647f123eecf0d14... matches manifest ALL rows; both probes exit 0 + sentinels (repaired variance band re-derives from raw_runs)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0088": {"verdict": "FAIL", "failing": ["output_schema: 40 violations (report/downstream_consumers/residual_unknowns required; 12 extra top-level keys; artifacts/0/role 'implementation' not in enum)"], "holding": "sha 0bbcdf4ad26d564e... matches manifest ALL rows; both probes exit 0 + sentinels (live SIGKILL atomicity both-states)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0090": {"verdict": "FAIL", "failing": ["output_schema: 20 violations (report envelope + field shapes)"], "holding": "sha baac1d3a156bd23d... matches manifest ALL rows; both probes exit 0 + sentinels (fencing re-derive + timeout-only mutant control)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"},
+    "TST-0091": {"verdict": "FAIL", "failing": ["output_schema: 18 violations (report/timestamps required; artifacts role enum)"], "holding": "sha 393b2a959677b17b... matches manifest ALL rows; both probes exit 0 + sentinels (live cohort replay; hung-unit attribution)", "receipt_state_left": "SUCCESS (unchanged; prior PASS closure contradicted)"}
+  },
+  "non_gating_observations": [
+    "TST-0032, TST-0057, TST-0067 probes exit 0 but print no SUCCESS:<uid> terminal marker (JSON output with empty red arrays) - exit-0 holds per contract; sentinel absence noted for the repair lane",
+    "no owner-gated units in this shard (owner_approval_required=false x12); no unknown-token dependencies (all deps TST-*); blanket owner directive not needed here",
+    "per-unit manifests all match on BOTH normalized and raw hashes (artifacts stored LF-stable); the program-wide command-center/UNIT-ARTIFACT-MANIFEST.json was NOT re-checked (contract gate names the per-unit manifest)",
+    "RUNNER-ENV note for the program: with WSL wedged, bare ['bash',...] from Windows python resolves to System32 WSL bash and hangs - any wave-4 shard re-running probes containing bash children must pin Git Bash absolute path in transport (shim kept at _p2-shard17-w4-review/shim/sitecustomize.py)",
+    "repair lane for all 12: emit receipts in the class-envelope shape the conforming same-class peers use (TST-0101 etc. - see failing_check_schema.common_envelope_gap), then re-submit for review"
+  ],
+  "artifacts_of_this_review": [
+    "C:/Users/Prekzursil/p2-g1/_p2-shard17-w4-review/battery_results.json",
+    "C:/Users/Prekzursil/p2-g1/_p2-shard17-w4-review/probe_rerun.json",
+    "C:/Users/Prekzursil/p2-g1/_p2-shard17-w4-review/probe_rerun2.json",
+    "C:/Users/Prekzursil/p2-g1/_p2-shard17-w4-review/verdicts.json"
+  ]
+}

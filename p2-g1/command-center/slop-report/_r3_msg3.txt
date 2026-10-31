@@ -1,0 +1,63 @@
+fix(slop): widen the published-command gate to platform/ -- it found 7 more one-disk files
+
+`platform/` sat OUTSIDE this gate's corpus. That is not incidental to the 14
+files committed in 26155108, it is the MECHANISM: a committed report could
+publish `python platform/.../_probe_x.py` against a gitignored file and no gate
+would ever notice.
+
+Measured before proposing, by monkeypatching the SHIPPED module's prefixes and
+calling its own scan() rather than reimplementing the resolver (5 controls,
+including strict-superset and a uuid target that must resolve UNRUNNABLE):
+
+  corpus 288 -> 815 documents, 19 NEW unrunnable citations
+
+9 of those 19 were FALSE POSITIVES, all from
+platform/routing/fixtures/home/.agents/skills/**/SKILL.md -- a fixture HOME tree
+of third-party skill docs used as INPUT to the routing tests. Their
+`python scripts/foo.py` lines are relative to a deployed skill's own home, not to
+this repo, so resolving them here is a category error. This is the "third path
+root the resolver does not model" that INTEGRATE-R1 4.2 predicted. Added to
+EXCLUDE_PREFIXES, the same treatment command-center/harvest/ already gets.
+
+After that: corpus 290 -> 321 documents, 10 genuine NEW rows.
+
+  7 targets EXIST on disk -- bucket (b), a clone could not run one of them.
+    All 7 committed BYTE-UNCHANGED.
+  1 target does not exist at all -- platform/lib/ssot/verify.py, cited by
+    platform/architecture/generated-ssot.md. Not bucket (b): a published command
+    naming a file nobody has. Carried as a baseline row with an owner and a
+    settling action, because whether it was never written or was renamed is a
+    judgement only the owning lane can make.
+
+The 7 needed two exemptions. Both are NARROWER than the precedent they follow,
+and both are controlled in the failing direction:
+
+  .gitignore EXCEPTION 3 negates exactly the 7 cited scripts, mirroring
+  EXCEPTION 2's argument for command-center/. Control, both halves: of the 52
+  `platform/**/_probe_*.py` on disk, the 7 negated are visible 7/7 and all 46
+  uncited siblings are STILL IGNORED 46/46. A rule that had accidentally
+  un-ignored the tree would look identical without that second half.
+
+  ruff.toml gains a [format] exclude for the 6 of 7 that fail
+  `ruff format --check` (all 7 pass `ruff check`). Format-only is strictly
+  narrower than the extend-exclude the repo uses for command-center/_*.py,
+  because `ruff check` STAYS LIVE on them. Control: the exclusion applies to
+  DISCOVERY, so naming the files explicitly on the command line bypasses it --
+  the check that matters is CI's own `ruff format --check .`, and in that mode
+  the 6 are excluded while the same run still reports 59 other would-reformat
+  files. A global disable would have reported 0.
+
+The lint per-file-ignore from the previous commit and this [format] block are
+deliberately different mechanisms: one file has a lint error, six have format
+differences, and each gets the narrowest tool for its own problem.
+
+THE BASELINE BEHAVED LIKE A RATCHET, which is worth recording because that is
+what it was built for. Committing the 14 made both inherited rows STALE, so the
+gate went RED and told me to delete them rather than let the floor drift into
+slack. Deleted; floor 2 -> 0, then back to 1 for the genuinely-missing target
+above. Their settling_action had proposed deleting the unused binding at
+_p12_refute_predicate.py:107 -- NOT done, because that edits another lane's
+evidence bytes. The per-file ignore removes the reason instead of re-recording it.
+
+Gate now: 344 commands / 321 documents / 1 unrunnable (1 baselined) / 0 NEW /
+0 stale, rc 0. Self-test rc 0 including both marker controls.

@@ -1,0 +1,835 @@
+{
+ "SUCCESS:ADV-0128": true,
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+   "role": "primary",
+   "bytes": 24792,
+   "sha256": "733866d8d52ff070ad24054971d52e4ff81301396452deda19579f407ab163d1"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/fault-injection-run.schema.json",
+   "role": "supporting",
+   "bytes": 1156,
+   "sha256": "417eb53a87403fea191c6345f5509a42ef48d66815faceb3d1a11d6d1991cbab"
+  }
+ ],
+ "cases": [
+  {
+   "fault": "fixture unreachable after a prior online fill",
+   "id": "full-offline-naive-cache",
+   "outcome": "naive client served the unlabelled cache as a live result on all four paths",
+   "typed_classification": "silent-cache-as-live"
+  },
+  {
+   "fault": "same unreachability with a labelling contract client",
+   "id": "full-offline-contract-label",
+   "outcome": "cache served only as cached, with cached_at and age_seconds",
+   "typed_classification": "labelled-cache-degrade"
+  },
+  {
+   "fault": "stall after step-1 request, before step-2 body",
+   "id": "mid-partition-naive-loss",
+   "outcome": "naive client deleted the partial artifact and restarted from zero",
+   "typed_classification": "lost-in-flight-unit"
+  },
+  {
+   "fault": "same stall against the contract client",
+   "id": "mid-partition-contract-resume",
+   "outcome": "explicit degrade, step-1 bytes kept, resume completed the artifact",
+   "typed_classification": "partial-preserved-resume"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:ADV-0128 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0128 <reason>.",
+ "controls": {
+  "contract_offline_labelled_paths": [
+   "registry",
+   "research",
+   "cloud-dispatch",
+   "cross-vendor-mcp"
+  ],
+  "empty_contract_explicit": true,
+  "empty_naive_not_silent": true,
+  "fixture_loopback_only": true,
+  "labelled_cache_not_presented_as_live": true,
+  "naive_offline_silent_success_paths": [
+   "registry",
+   "research",
+   "cloud-dispatch",
+   "cross-vendor-mcp"
+  ],
+  "online_paths_succeed": true,
+  "partition_contract_partial_survives_partition": true,
+  "partition_contract_resume_completes_without_dropping_step1": true,
+  "partition_fixture_loopback_only": true,
+  "partition_naive_loses_partial_on_partition": true,
+  "probe_fingerprints_differ": true,
+  "production_gap": false,
+  "unlabelled_cache_detector_fires": true
+ },
+ "detector_live": true,
+ "enumerated_targets": [
+  {
+   "claim": "registry: unlabelled cache presented as live while fully offline, and/or mid-partition drops the partial artifact",
+   "id": "registry",
+   "labelled_ok": true,
+   "name": "registry",
+   "offline_contract": "cached-and-labelled",
+   "offline_naive": "silent-success",
+   "partition_contract_kept_step1": true,
+   "partition_naive_lost_partial": true,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "research: unlabelled cache presented as live while fully offline, and/or mid-partition drops the partial artifact",
+   "id": "research",
+   "labelled_ok": true,
+   "name": "research",
+   "offline_contract": "cached-and-labelled",
+   "offline_naive": "silent-success",
+   "partition_contract_kept_step1": true,
+   "partition_naive_lost_partial": true,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "cloud-dispatch: unlabelled cache presented as live while fully offline, and/or mid-partition drops the partial artifact",
+   "id": "cloud-dispatch",
+   "labelled_ok": true,
+   "name": "cloud-dispatch",
+   "offline_contract": "cached-and-labelled",
+   "offline_naive": "silent-success",
+   "partition_contract_kept_step1": true,
+   "partition_naive_lost_partial": true,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "cross-vendor-mcp: unlabelled cache presented as live while fully offline, and/or mid-partition drops the partial artifact",
+   "id": "cross-vendor-mcp",
+   "labelled_ok": true,
+   "name": "cross-vendor-mcp",
+   "offline_contract": "cached-and-labelled",
+   "offline_naive": "silent-success",
+   "partition_contract_kept_step1": true,
+   "partition_naive_lost_partial": true,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "cache_labelling_hits": [
+    "tools/candidates/freshness.py",
+    "command-center/catalog-slices/_adv_data3.py",
+    "command-center/slop-report/_slop_verify_regen.py"
+   ],
+   "claim": "Production tools/ and command-center/ (excluding probes) lack a labelled-cache offline handler for the four remote-dependent paths",
+   "http_clients": [
+    "tools/crcp/crcp/auth.py",
+    "tools/crcp/crcp/auth_broker.py",
+    "tools/crcp/crcp/auth_sso.py",
+    "tools/crcp/crcp/bridge.py",
+    "tools/crcp/crcp/bus.py",
+    "tools/crcp/crcp/http_secure.py",
+    "tools/crcp/crcp/sentinel.py",
+    "tools/crcp/crcp/write_path.py",
+    "tools/crcp/databricks/crcp_chatgpt_relay.py",
+    "tools/crcp/scripts/apply_durable.py",
+    "tools/crcp/scripts/inject_all_main_profiles.py",
+    "tools/crcp/scripts/investigate_write_path.py",
+    "tools/crcp/scripts/probe_sentinel_send.py",
+    "tools/crcp/scripts/prove_agent_mail_bus_http.py",
+    "tools/crcp/tests/test_credential_egress_transport.py",
+    "tools/crcp/tests/test_reliability_regressions.py",
+    "tools/detectors/adapters.py",
+    "tools/lib/registry_fetch.py",
+    "tools/marketplace/fetch.py",
+    "tools/marketplace/fixtures/permission-kits/dispatch-kit/run.py",
+    "tools/marketplace/fixtures/permission-kits/undeclared-kit/run.py",
+    "tools/marketplace/package_download.py",
+    "tools/marketplace/permission_analysis.py",
+    "tools/marketplace/permission_scan.py",
+    "tools/marketplace/pr_only_audit.py",
+    "tools/marketplace/spdx.py",
+    "tools/marketplace/testdata/imp0475/malicious/plugin.py",
+    "tools/mcp/cloud-hub/biomni-mcp/autostart.py",
+    "tools/mcp/cloud-hub/biomni-mcp/broker.py",
+    "tools/mcp/cloud-hub/biomni-mcp/refresher.py",
+    "tools/mcp/cloud-hub/biomni-mcp/server.py",
+    "tools/mcp/cloud-hub/compute-mcp/providers/_http.py",
+    "tools/mcp/cloud-hub/tests/test_biomni_broker.py",
+    "tools/mcp/cloud-hub/tests/test_biomni_refresher.py",
+    "tools/mcp/fb-messenger-mcp/fbmcp/backends/fbchat_v2_backend.py",
+    "tools/mcp/fb-messenger-mcp/fbmcp/graph.py",
+    "tools/mcp/fb-messenger-mcp/tests/test_dm_e2ee_proxy.py",
+    "tools/mcp/fb-messenger-mcp/tests/test_graph.py",
+    "tools/mcp/hexstrike-ai/scripts/hexstrike_mcp_launcher.py",
+    "tools/mcp/linkedin-mcp/linkedin_core.py",
+    "tools/mcp/linkedin-mcp/tests/test_linkedin_core.py",
+    "tools/mcp/mcp-http-host/tests/test_mcp_http_host.py",
+    "tools/mcp/patent-search-mcp/patent_api.py",
+    "tools/mcp/patent-search-mcp/tests/test_patent_api.py",
+    "tools/mcp/reverse-engineering-mcp-bundle/wrappers/hexstrike_mcp_launcher.py",
+    "tools/mcp/schrodinger-mcp/server.py",
+    "tools/mcp/search-hub/usage.py",
+    "tools/mcp/social-hub/fb_timeline.py",
+    "tools/mcpapply/tests/test_server.py",
+    "tools/omniaudit-mcp/packages/omniaudit/modules/github/auth.py",
+    "tools/omniaudit-mcp/packages/omniaudit/modules/github/client.py",
+    "tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py",
+    "tools/omniaudit-mcp/packages/omniaudit/observability/tracing.py",
+    "tools/omniaudit-mcp/tests/unit/test_cov_github.py",
+    "tools/omniaudit-mcp/tests/unit/test_cov_scanner.py",
+    "tools/plugin/static_audit.py",
+    "tools/scholarly-access-mcp/scholarly_access/logic.py",
+    "tools/scholarly-access-mcp/scholarly_access/sources.py",
+    "tools/scholarly-access-mcp/tests/test_sources.py",
+    "tools/search-expansion/searxng_regional.py",
+    "tools/taskwatch_monitor/core/adapters.py",
+    "command-center/lib/evidence_snapshot/__init__.py",
+    "command-center/research/blueprints/citation.py",
+    "command-center/telemetry/netaudit.py"
+   ],
+   "id": "production-estate",
+   "name": "production-estate",
+   "verdict": "REFUTED"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Artifact command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json exists, parses as JSON, is not self-declared BLOCKED/FAILED; named probe probe1_full_offline.py re-ran exit 0 on the live tree and the per-unit manifest row matches the live CRLF-normalized sha256 (733866d8d52f...).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe1_full_offline.py",
+     "raw_output": "{\"contract_labelled\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"naive_silent\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"offline_naive\": [{\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"registry\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"research\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cloud-dispatch\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cross-vendor-mcp\", \"served_as_live\": true}], \"online_ok\": true, \"pass\": true, \"probe\": \"probe1-full-offline\", \"unit_id\": \"ADV-0128\"}\nnc_unlabelled_cache fired_bad=True silent_good=True\nSUCCESS:ADV-0128-probe1 offline: naive silent-success x4, contract labelled x4",
+     "fingerprint": "d52dcba335ee1fb7e99aa843b824cdfc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "python -I -c \"import hashlib;print(hashlib.sha256(open(r'command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json','rb').read().replace(b'\\r\\n',b'\\n')).hexdigest())\"",
+     "raw_output": "733866d8d52ff070ad24054971d52e4ff81301396452deda19579f407ab163d1",
+     "fingerprint": "1495b841bd1be54513dc113aa98e6b76",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Negative-control probe probe2_mid_partition.py fired on the internally planted bad state and stayed silent on the real artifact (both-states rule), rc=0.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py",
+     "raw_output": "{\"contract_kept_all\": true, \"contract_resume_all\": true, \"explicit_step2_all\": true, \"fixture_loopback_only\": true, \"naive_lost_all\": true, \"pass\": true, \"probe\": \"probe2-mid-partition\", \"rows\": [{\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"registry\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"research\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cloud-dispatch\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cross-vendor-mcp\", \"step2_failed_explicitly\": true}], \"unit_id\": \"ADV-0128\"}\nSUCCESS:ADV-0128-probe2 mid-partition lost naive partial x4; contract kept step-1 and resumed",
+     "fingerprint": "404c43b40b2da562f2d1cac613f57290",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py ADV-0128",
+     "raw_output": "e_silent\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"offline_naive\": [{\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"registry\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"research\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cloud-dispatch\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cross-vendor-mcp\", \"served_as_live\": true}], \"online_ok\": true, \"pass\": true, \"probe\": \"probe1-full-offline\", \"unit_id\": \"ADV-0128\"}\n  nc_unlabelled_cache fired_bad=True silent_good=True\n  SUCCESS:ADV-0128-probe1 offline: naive silent-success x4, contract labelled x4\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py\n  {\"contract_kept_all\": true, \"contract_resume_all\": true, \"explicit_step2_all\": true, \"fixture_loopback_only\": true, \"naive_lost_all\": true, \"pass\": true, \"probe\": \"probe2-mid-partition\", \"rows\": [{\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"registry\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"research\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cloud-dispatch\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cross-vendor-mcp\", \"step2_failed_explicitly\": true}], \"unit_id\": \"ADV-0128\"}\n  SUCCESS:ADV-0128-probe2 mid-partition lost naive partial x4; contract kept step-1 and resumed\nFAILED:delivered ADV-0128 manifest-sha-mismatch",
+     "fingerprint": "2dd305804825cd254c89354eca4061f0",
+     "exit_code": 1
+    }
+   ]
+  }
+ ],
+ "fault_class": "uncontrolled-silence",
+ "id": "ADV-0128",
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe1_full_offline.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "{\"contract_labelled\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"naive_silent\": [\"cloud-dispatch\", \"cross-vendor-mcp\", \"registry\", \"research\"], \"offline_naive\": [{\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"registry\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"research\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cloud-dispatch\", \"served_as_live\": true}, {\"classification\": \"silent-success\", \"labelled\": false, \"path_id\": \"cross-vendor-mcp\", \"served_as_live\": true}], \"online_ok\": true, \"pass\": true, \"probe\": \"probe1-full-offline\", \"unit_id\": \"ADV-0128\"}\nnc_unlabelled_cache fired_bad=True silent_good=True\nSUCCESS:ADV-0128-probe1 offline: naive silent-success x4, contract labelled x4",
+   "finished_at": "2026-10-24T23:38:56Z",
+   "started_at": "2026-10-24T23:38:37Z"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "{\"contract_kept_all\": true, \"contract_resume_all\": true, \"explicit_step2_all\": true, \"fixture_loopback_only\": true, \"naive_lost_all\": true, \"pass\": true, \"probe\": \"probe2-mid-partition\", \"rows\": [{\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"registry\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"research\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cloud-dispatch\", \"step2_failed_explicitly\": true}, {\"after_cut_contract_has_step1\": true, \"contract_resume_complete\": true, \"fixture_loopback_only\": true, \"naive_lost_partial\": true, \"path_id\": \"cross-vendor-mcp\", \"step2_failed_explicitly\": true}], \"unit_id\": \"ADV-0128\"}\nSUCCESS:ADV-0128-probe2 mid-partition lost naive partial x4; contract kept step-1 and resumed",
+   "finished_at": "2026-10-24T23:39:01Z",
+   "started_at": "2026-10-24T23:38:56Z"
+  }
+ ],
+ "negative_controls": [
+  {
+   "fired_on_bad_state": true,
+   "id": "NC-UNLABELLED-CACHE",
+   "kind": "planted-unlabelled-cache",
+   "silent_on_good_state": true
+  },
+  {
+   "fired_on_bad_state": true,
+   "id": "NC-RESTART-FROM-ZERO",
+   "kind": "naive-partial-drop",
+   "silent_on_good_state": true
+  },
+  {
+   "fired_on_bad_state": true,
+   "id": "NC-ONLINE-SUCCESS",
+   "kind": "healthy-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for ADV-0128. Fixture endpoints only. No ADV rebuild of registry/research/cloud-dispatch/MCP production clients.",
+ "offline_campaign": {
+  "fixture_host": "127.0.0.1",
+  "offline_contract": [
+   {
+    "age_seconds": 0,
+    "classification": "cached-and-labelled",
+    "labelled": true,
+    "path_id": "registry"
+   },
+   {
+    "age_seconds": 0,
+    "classification": "cached-and-labelled",
+    "labelled": true,
+    "path_id": "research"
+   },
+   {
+    "age_seconds": 0,
+    "classification": "cached-and-labelled",
+    "labelled": true,
+    "path_id": "cloud-dispatch"
+   },
+   {
+    "age_seconds": 0,
+    "classification": "cached-and-labelled",
+    "labelled": true,
+    "path_id": "cross-vendor-mcp"
+   }
+  ],
+  "offline_naive": [
+   {
+    "cache_keys": [
+     "live",
+     "ok",
+     "payload"
+    ],
+    "classification": "silent-success",
+    "labelled": false,
+    "path_id": "registry",
+    "served_as_live": true
+   },
+   {
+    "cache_keys": [
+     "live",
+     "ok",
+     "payload"
+    ],
+    "classification": "silent-success",
+    "labelled": false,
+    "path_id": "research",
+    "served_as_live": true
+   },
+   {
+    "cache_keys": [
+     "live",
+     "ok",
+     "payload"
+    ],
+    "classification": "silent-success",
+    "labelled": false,
+    "path_id": "cloud-dispatch",
+    "served_as_live": true
+   },
+   {
+    "cache_keys": [
+     "live",
+     "ok",
+     "payload"
+    ],
+    "classification": "silent-success",
+    "labelled": false,
+    "path_id": "cross-vendor-mcp",
+    "served_as_live": true
+   }
+  ],
+  "request_hosts": [
+   "127.0.0.1"
+  ]
+ },
+ "output_path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+ "output_schema": "command-center/schema/fault-injection-run.schema.json",
+ "p1_finding": "P1-silent-unlabelled-cache",
+ "partition_campaign": {
+  "controls": {
+   "contract_partial_survives_partition": true,
+   "contract_resume_completes_without_dropping_step1": true,
+   "fixture_loopback_only": true,
+   "naive_loses_partial_on_partition": true
+  },
+  "fixture_host": "127.0.0.1",
+  "request_hosts": [
+   "127.0.0.1"
+  ],
+  "rows": [
+   {
+    "after_cut_contract_has_step1": true,
+    "after_cut_naive_artifact_missing": true,
+    "cut_contract": {
+     "classification": "explicit",
+     "degraded": true,
+     "partial_kept": true,
+     "steps_done": [
+      1
+     ]
+    },
+    "cut_naive": {
+     "classification": "other",
+     "partial_kept": false,
+     "restarted_from_zero": true
+    },
+    "partial_contract_present": true,
+    "partial_naive_present": true,
+    "path_id": "registry",
+    "pre_contract_steps": [
+     1
+    ],
+    "pre_naive_steps": [
+     1
+    ],
+    "resume_contract": {
+     "complete": true,
+     "kept_step1_chunk": true,
+     "outcome": "live-success",
+     "resumed": true,
+     "steps_done": [
+      1,
+      2
+     ]
+    },
+    "resume_naive": {
+     "complete": true,
+     "outcome": "live-success",
+     "restarted_from_zero": true
+    }
+   },
+   {
+    "after_cut_contract_has_step1": true,
+    "after_cut_naive_artifact_missing": true,
+    "cut_contract": {
+     "classification": "explicit",
+     "degraded": true,
+     "partial_kept": true,
+     "steps_done": [
+      1
+     ]
+    },
+    "cut_naive": {
+     "classification": "other",
+     "partial_kept": false,
+     "restarted_from_zero": true
+    },
+    "partial_contract_present": true,
+    "partial_naive_present": true,
+    "path_id": "research",
+    "pre_contract_steps": [
+     1
+    ],
+    "pre_naive_steps": [
+     1
+    ],
+    "resume_contract": {
+     "complete": true,
+     "kept_step1_chunk": true,
+     "outcome": "live-success",
+     "resumed": true,
+     "steps_done": [
+      1,
+      2
+     ]
+    },
+    "resume_naive": {
+     "complete": true,
+     "outcome": "live-success",
+     "restarted_from_zero": true
+    }
+   },
+   {
+    "after_cut_contract_has_step1": true,
+    "after_cut_naive_artifact_missing": true,
+    "cut_contract": {
+     "classification": "explicit",
+     "degraded": true,
+     "partial_kept": true,
+     "steps_done": [
+      1
+     ]
+    },
+    "cut_naive": {
+     "classification": "other",
+     "partial_kept": false,
+     "restarted_from_zero": true
+    },
+    "partial_contract_present": true,
+    "partial_naive_present": true,
+    "path_id": "cloud-dispatch",
+    "pre_contract_steps": [
+     1
+    ],
+    "pre_naive_steps": [
+     1
+    ],
+    "resume_contract": {
+     "complete": true,
+     "kept_step1_chunk": true,
+     "outcome": "live-success",
+     "resumed": true,
+     "steps_done": [
+      1,
+      2
+     ]
+    },
+    "resume_naive": {
+     "complete": true,
+     "outcome": "live-success",
+     "restarted_from_zero": true
+    }
+   },
+   {
+    "after_cut_contract_has_step1": true,
+    "after_cut_naive_artifact_missing": true,
+    "cut_contract": {
+     "classification": "explicit",
+     "degraded": true,
+     "partial_kept": true,
+     "steps_done": [
+      1
+     ]
+    },
+    "cut_naive": {
+     "classification": "other",
+     "partial_kept": false,
+     "restarted_from_zero": true
+    },
+    "partial_contract_present": true,
+    "partial_naive_present": true,
+    "path_id": "cross-vendor-mcp",
+    "pre_contract_steps": [
+     1
+    ],
+    "pre_naive_steps": [
+     1
+    ],
+    "resume_contract": {
+     "complete": true,
+     "kept_step1_chunk": true,
+     "outcome": "live-success",
+     "resumed": true,
+     "steps_done": [
+      1,
+      2
+     ]
+    },
+    "resume_naive": {
+     "complete": true,
+     "outcome": "live-success",
+     "restarted_from_zero": true
+    }
+   }
+  ]
+ },
+ "production": {
+  "cache_labelling_hits": [
+   "tools/candidates/freshness.py",
+   "command-center/catalog-slices/_adv_data3.py",
+   "command-center/slop-report/_slop_verify_regen.py"
+  ],
+  "has_http_client": true,
+  "has_labelled_offline_cache": true,
+  "loud_degrade_hits": [
+   "tools/cross_vendor/parity_bench.py",
+   "command-center/_cnl_build.py",
+   "command-center/_imp2_data1.py",
+   "command-center/catalog-slices/_adv_data3.py",
+   "command-center/catalog-slices/_bld_data1.py",
+   "command-center/catalog-slices/_gen_TST_2.py",
+   "command-center/catalog-slices/_gen_imp3.py",
+   "command-center/catalog-slices/_gen_tst1.py",
+   "command-center/catalog-slices/_wfa_part2.py"
+  ],
+  "note": "Production tools/ and command-center/ (excluding p2-wave probes) were scanned. ADV-0128 does not rebuild missing clients.",
+  "production_http_clients": [
+   "tools/crcp/crcp/auth.py",
+   "tools/crcp/crcp/auth_broker.py",
+   "tools/crcp/crcp/auth_sso.py",
+   "tools/crcp/crcp/bridge.py",
+   "tools/crcp/crcp/bus.py",
+   "tools/crcp/crcp/http_secure.py",
+   "tools/crcp/crcp/sentinel.py",
+   "tools/crcp/crcp/write_path.py",
+   "tools/crcp/databricks/crcp_chatgpt_relay.py",
+   "tools/crcp/scripts/apply_durable.py",
+   "tools/crcp/scripts/inject_all_main_profiles.py",
+   "tools/crcp/scripts/investigate_write_path.py",
+   "tools/crcp/scripts/probe_sentinel_send.py",
+   "tools/crcp/scripts/prove_agent_mail_bus_http.py",
+   "tools/crcp/tests/test_credential_egress_transport.py",
+   "tools/crcp/tests/test_reliability_regressions.py",
+   "tools/detectors/adapters.py",
+   "tools/lib/registry_fetch.py",
+   "tools/marketplace/fetch.py",
+   "tools/marketplace/fixtures/permission-kits/dispatch-kit/run.py",
+   "tools/marketplace/fixtures/permission-kits/undeclared-kit/run.py",
+   "tools/marketplace/package_download.py",
+   "tools/marketplace/permission_analysis.py",
+   "tools/marketplace/permission_scan.py",
+   "tools/marketplace/pr_only_audit.py",
+   "tools/marketplace/spdx.py",
+   "tools/marketplace/testdata/imp0475/malicious/plugin.py",
+   "tools/mcp/cloud-hub/biomni-mcp/autostart.py",
+   "tools/mcp/cloud-hub/biomni-mcp/broker.py",
+   "tools/mcp/cloud-hub/biomni-mcp/refresher.py",
+   "tools/mcp/cloud-hub/biomni-mcp/server.py",
+   "tools/mcp/cloud-hub/compute-mcp/providers/_http.py",
+   "tools/mcp/cloud-hub/tests/test_biomni_broker.py",
+   "tools/mcp/cloud-hub/tests/test_biomni_refresher.py",
+   "tools/mcp/fb-messenger-mcp/fbmcp/backends/fbchat_v2_backend.py",
+   "tools/mcp/fb-messenger-mcp/fbmcp/graph.py",
+   "tools/mcp/fb-messenger-mcp/tests/test_dm_e2ee_proxy.py",
+   "tools/mcp/fb-messenger-mcp/tests/test_graph.py",
+   "tools/mcp/hexstrike-ai/scripts/hexstrike_mcp_launcher.py",
+   "tools/mcp/linkedin-mcp/linkedin_core.py",
+   "tools/mcp/linkedin-mcp/tests/test_linkedin_core.py",
+   "tools/mcp/mcp-http-host/tests/test_mcp_http_host.py",
+   "tools/mcp/patent-search-mcp/patent_api.py",
+   "tools/mcp/patent-search-mcp/tests/test_patent_api.py",
+   "tools/mcp/reverse-engineering-mcp-bundle/wrappers/hexstrike_mcp_launcher.py",
+   "tools/mcp/schrodinger-mcp/server.py",
+   "tools/mcp/search-hub/usage.py",
+   "tools/mcp/social-hub/fb_timeline.py",
+   "tools/mcpapply/tests/test_server.py",
+   "tools/omniaudit-mcp/packages/omniaudit/modules/github/auth.py",
+   "tools/omniaudit-mcp/packages/omniaudit/modules/github/client.py",
+   "tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py",
+   "tools/omniaudit-mcp/packages/omniaudit/observability/tracing.py",
+   "tools/omniaudit-mcp/tests/unit/test_cov_github.py",
+   "tools/omniaudit-mcp/tests/unit/test_cov_scanner.py",
+   "tools/plugin/static_audit.py",
+   "tools/scholarly-access-mcp/scholarly_access/logic.py",
+   "tools/scholarly-access-mcp/scholarly_access/sources.py",
+   "tools/scholarly-access-mcp/tests/test_sources.py",
+   "tools/search-expansion/searxng_regional.py",
+   "tools/taskwatch_monitor/core/adapters.py",
+   "command-center/lib/evidence_snapshot/__init__.py",
+   "command-center/research/blueprints/citation.py",
+   "command-center/telemetry/netaudit.py"
+  ],
+  "scanned_py": 2815
+ },
+ "question": "With no network, or with a partition that fails midway through a multi-step remote operation, does the program report a clear degraded state and preserve partial work - or does it report success from a cache, hang, or lose the in-flight unit?",
+ "question_or_target": "With no network, or with a partition that fails midway through a multi-step remote operation, does the program report a clear degraded state and preserve partial work - or does it report success from a cache, hang, or lose the in-flight unit?",
+ "report_kind": "fault-injection-run",
+ "reviewer": {
+  "verdict": "PENDING",
+  "reviewer_id": "claude-opus-5-5-ind-reviewer-w2-shard2-2026-10-26",
+  "independent": false
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ADV-0128",
+ "spec_anchor": "_USER-PROMPTS.md:11007, 10983",
+ "state": "SUCCESS",
+ "target_verdicts": [
+  {
+   "id": "registry",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "research",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "cloud-dispatch",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "cross-vendor-mcp",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "production-estate",
+   "verdict": "REFUTED"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-ONLINE-CONTROL",
+   "name": "same paths succeed against the live fixture",
+   "result": "PASS"
+  },
+  {
+   "id": "T-OFFLINE-UNLABELLED-CACHE",
+   "name": "unlabelled offline cache is presented as live (defect)",
+   "result": "PASS"
+  },
+  {
+   "id": "T-OFFLINE-LABELLED-CACHE",
+   "name": "contract path labels cached results with age",
+   "result": "PASS"
+  },
+  {
+   "id": "T-PARTITION-PARTIAL-SURVIVES",
+   "name": "contract keeps step-1 bytes across a mid-flight stall",
+   "result": "PASS"
+  },
+  {
+   "id": "T-PARTITION-RESUME",
+   "name": "contract resume completes without dropping step-1",
+   "result": "PASS"
+  },
+  {
+   "id": "T-PARTITION-NAIVE-LOSS",
+   "name": "naive client loses the partial artifact on partition",
+   "result": "PASS"
+  },
+  {
+   "id": "T-DETECTOR-UNLABELLED",
+   "name": "planted unlabelled cache fires; labelled cache is not live",
+   "result": "PASS"
+  },
+  {
+   "id": "T-FIXTURE-LOOPBACK",
+   "name": "partitions applied to 127.0.0.1 fixture endpoints only",
+   "result": "PASS"
+  },
+  {
+   "id": "T-EXPLICIT-EMPTY-CONTRACT",
+   "name": "contract with no cache degrades explicitly offline",
+   "result": "PASS"
+  },
+  {
+   "id": "T-PROBE-FINGERPRINTS",
+   "name": "named probe scripts are mechanically different",
+   "result": "PASS"
+  }
+ ],
+ "title": "Offline and network-partition behaviour must degrade loudly",
+ "ts": "2026-08-28T03:23:30Z",
+ "unit_id": "ADV-0128",
+ "verdict": "CONFIRMED",
+ "extensions": {
+  "prev_closure": [
+   {
+    "demoted_by": "shard2 wave-2 builder 2026-10-25: builder-authored probe closure is not an independent review; only the independent reviewer closes (program contract, receipt state=BLOCKED with failure.classification reviewer-absent)",
+    "independent": true,
+    "notes": "Probe 2 re-derives partial-artifact survival and resume from a live fixture stall, not from probe 1's offline cache table. Did not rebuild production network clients.",
+    "reviewer_id": "ADV-0128-probe2-mid-partition-resume",
+    "verdict": "PASS"
+   }
+  ],
+  "artifact_roles_preserved": {
+   "command-center/schema/fault-injection-run.schema.json": "schema"
+  },
+  "reviewer_extras_preserved": {
+   "catalog_reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+  },
+  "original_evidence_preserved": [
+   {
+    "claim": "Probe 1: every remote-dependent path fully offline served an unlabelled cache as a live success under the estate-faithful naive client.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim": "Probe 2: a mid-operation stall after the request was sent destroyed the naive partial artifact; the contract client kept step-1 and resumed to completion.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim": "Production tools/ and command-center/ (excluding p2-wave) have no HTTP client that labels cache age on offline hits.",
+    "verdict": "REFUTED"
+   }
+  ],
+  "shard1_w4_artifact_reanchor": {
+   "date": "2026-10-26T17:45:23Z",
+   "changes": [
+    "reviewer trio from formal receipt"
+   ]
+  },
+  "previous_downstream_consumers_preserved": [
+   {
+    "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+    "artifact_path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+    "executed": true,
+    "read_ok": true,
+    "exit_code": 0,
+    "probe": {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "python -I -c \"import json;d=json.load(open(r'command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+     "raw_output": "reader ok keys= 42",
+     "fingerprint": "bf9db15b19588e2b5bcd0e5aa6678191",
+     "exit_code": 0
+    }
+   }
+  ]
+ },
+ "report": {
+  "kind": "fault-injection-run",
+  "observations": [
+   {
+    "name": "probe1_full_offline (ADV-0128)",
+    "measured": "rc=0 SUCCESS:ADV-0128-probe1 offline: naive silent-success x4, contract labelled x4",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ADV-0128/probe1_full_offline.py"
+   },
+   {
+    "name": "probe2_mid_partition (ADV-0128)",
+    "measured": "rc=0 SUCCESS:ADV-0128-probe2 mid-partition lost naive partial x4; contract kept step-1 and resumed",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ADV-0128/probe2_mid_partition.py"
+   }
+  ],
+  "control_ids": [
+   "NC-UNLABELLED-CACHE",
+   "NC-RESTART-FROM-ZERO",
+   "NC-ONLINE-SUCCESS"
+  ]
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+ },
+ "residual_unknowns": [],
+ "timestamps": {
+  "started_at": "2026-10-24T23:42:18Z",
+  "ended_at": "2026-10-25T15:22:41Z"
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0128/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0128"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+   "artifact_path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "python -I -c \"import json;d=json.load(open(r'command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+    "raw_output": "reader ok keys= 42",
+    "fingerprint": "bf9db15b19588e2b5bcd0e5aa6678191",
+    "exit_code": 0
+   }
+  }
+ ]
+}

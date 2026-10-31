@@ -1,0 +1,409 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p44-postmortem-5whys-causal",
+  "preset": "postmortem_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reconstruct an incident from artifacts only, drive why-chains to a systemic cause, and remediate the whole blast radius.",
+    "charter": "Blameless. Every link in the causal chain cites a timestamped artifact; a link with no artifact is marked UNVERIFIED inline. The milestone supersedes the prior failure entry so the dead end is retired, not re-walked.",
+    "risk_tier": "high",
+    "desired_output": "root_cause",
+    "success_criteria": [
+      "timeline reconstructed from artifacts only",
+      "every causal link cites a timestamped artifact",
+      "blast radius enumerated: files, commits, index entries, downstream consumers",
+      "remediation covers the whole set, not the first symptom",
+      "the prior failure ledger entry superseded by this milestone"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5
+    },
+    "roster": [
+      {
+        "participant_id": "timeline-clerk",
+        "role": "scribe",
+        "expertise": [
+          "artifact forensics",
+          "event ledger"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "tools": [
+          "event_ledger"
+        ],
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "juror-1",
+        "role": "juror",
+        "expertise": [
+          "systems failure"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "juror-2",
+        "role": "juror",
+        "expertise": [
+          "tooling and CI"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "juror-3",
+        "role": "juror",
+        "expertise": [
+          "human factors"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "blast-radius-auditor",
+        "role": "verifier",
+        "expertise": [
+          "blast radius",
+          "downstream consumers"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "tools": [
+          "blast_radius_enumerator"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "topology": {
+    "kind": "jury"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "timeline",
+        "custom_name": "artifact-only-timeline-reconstruction",
+        "rounds": 1,
+        "participants": [
+          "timeline-clerk",
+          "blast-radius-auditor"
+        ]
+      },
+      {
+        "kind": "socratic",
+        "stage_id": "why-chain",
+        "rounds": 5,
+        "quotas": {
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "blast-radius",
+        "custom_name": "blast-radius-enumeration-and-remediation",
+        "rounds": 1,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:causal_links_without_artifact",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "event_ledger.link_auditor",
+              "note": "Card failure mode: a 5-why chain can be a just-so story. One artifact per link, or the link is UNVERIFIED inline."
+            },
+            {
+              "metric": "custom:blast_radius_items_unremediated",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "blast_radius_enumerator",
+              "note": "Remediate the WHOLE set, not the first symptom."
+            },
+            {
+              "metric": "custom:prior_failure_entry_superseded",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "event_ledger.note",
+              "note": "A milestone that contradicts a failure entry must supersede it so the dead end is retired."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "jury",
+        "stage_id": "adjudicate",
+        "rounds": 2
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "root-cause"
+      }
+    ],
+    "speaking_order": "reverse_seniority",
+    "rounds": {
+      "min": 3,
+      "max": 7
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 5,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "turns": 35,
+    "sources": 25,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 2
+  },
+  "targets": {
+    "evidence_items": 10,
+    "objections": 6,
+    "coverage_score": 0.85,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "juror",
+    "quorum": {
+      "min_voters": 3,
+      "min_fraction": 0.6,
+      "on_failure": "extend_rounds"
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "evidence_items >= 10 AND every_objection_addressed == true AND (verdict == CONFIRMED OR verdict == PARTIAL)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 10
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "any_of": [
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "CONFIRMED"
+            },
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "PARTIAL"
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 3,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 7,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "each UNVERIFIED causal link either evidenced or removed",
+      "every blast-radius item remediated or explicitly accepted"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "split_question",
+      "recruit_independent_critic",
+      "judge_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "premature_convergence",
+      "sycophancy",
+      "participant_dominance",
+      "instant_unanimity",
+      "circular_citation",
+      "lost_dissent",
+      "weak_synthesis",
+      "silence"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "blind_re_evaluation",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "evidence_map",
+      "claim_evidence_contradiction_graph",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "action_plan",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P44 postmortem-5whys-causal",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:816-830",
+      "_USER-PROMPTS.md:10927"
+    ],
+    "lineage": [
+      "P44 postmortem-5whys-causal",
+      "blameless postmortem",
+      "5 whys",
+      "AGENTS.md 3 event ledger",
+      "AGENTS.md 9b blast radius"
+    ],
+    "notes": "speaking_order is reverse_seniority: the blame-framing failure mode is countered structurally by letting the least senior seat speak first, before an authority position exists to agree with. The verdict branch accepts PARTIAL so an honestly-scoped root cause is a terminal state and an overclaimed one is not. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

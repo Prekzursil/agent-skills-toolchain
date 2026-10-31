@@ -1,0 +1,506 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "execution-consensus-patch-select",
+  "name": "Cross-vendor candidate patches selected by executed behaviour, never by model opinion",
+  "description": "Blueprint 40 of 96 (BP-IMP-03). Several independent vendors each produce a candidate patch; the winner is chosen by EXECUTION on synthesised distinguishing inputs, not by asking a model which patch is best (model-opinion rerank measures about chance on JudgeBench). Candidates are clustered by observed behaviour, crashers and timeouts are knocked out, and the selection signal is agreement between a Claude candidate and a Codex candidate - two SAME-vendor candidates agreeing is not independence and explicitly does not count. When no distinguishing input exists the workflow declares behavioural EQUIVALENCE rather than manufacturing a winner.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "collective-intelligence-and-meta"],
+  "tags": ["execution-consensus", "cross-vendor", "behavioural-diff", "no-llm-judge"],
+  "flagship": false,
+
+  "params": {
+    "task": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "The contested defect or work unit the candidates all address"
+    },
+    "vendors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 2,
+      "max_items": 6,
+      "required": true,
+      "description": "Independent generators. At least two DIFFERENT vendors - a same-vendor pair cannot supply independence."
+    },
+    "test_harness": {
+      "type": "path",
+      "required": true,
+      "description": "The executable harness. Without it this blueprint is contraindicated - there is nothing to select on."
+    },
+    "distinguishing_input_budget": {
+      "type": "integer",
+      "default": 64,
+      "minimum": 1,
+      "maximum": 1024,
+      "description": "Upper bound on synthesised inputs before equivalence is declared"
+    },
+    "sandbox": {
+      "type": "enum",
+      "enum": ["wsl2", "docker", "modal", "none"],
+      "default": "wsl2",
+      "description": "Executing N unreviewed candidate patches is an execution risk; Windows has no native process sandbox, so `none` is only for read-only candidates"
+    }
+  },
+
+  "roles": {
+    "candidate-generator": {
+      "description": "Produces ONE candidate patch with no knowledge of the sibling candidates - contamination would destroy the independence the selection depends on",
+      "model": "opus",
+      "vendor": "mixed",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Edit", "mcp__codex__codex"],
+      "speaking_rights": "silent"
+    },
+    "input-synthesiser": {
+      "description": "Synthesises inputs that reach the lines where the candidates DIVERGE; scores nothing and ranks nothing",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:python"],
+      "speaking_rights": "always"
+    },
+    "executor": {
+      "description": "Runs every candidate on every synthesised input inside the sandbox and records observed behaviour only",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "Bash:docker"],
+      "speaking_rights": "always"
+    },
+    "aspect-juror": {
+      "description": "Ranks WITHIN the winning behavioural cluster on declared aspects; may never overturn the execution result",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "mcp__codex__codex"],
+      "speaking_rights": "rebuttal-only"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Edit", "Bash:python", "Bash:docker", "mcp__codex__codex"],
+    "deny": ["WebFetch", "WebSearch", "Write"],
+    "network": "none",
+    "write_paths": ["command-center/selection/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json", "platform/**"]
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == aspect-juror",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the jury must not share a vendor with the candidate it is ranking"
+      },
+      {
+        "when": "stage_role == executor",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "low" },
+        "reason": "execution is mechanical; effort buys nothing and costs quota"
+      }
+    ],
+    "fallbacks": [{ "model": "gpt-5-codex", "vendor": "openai" }],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "execution-is-the-signal": {
+      "predicate": "custom-expression",
+      "expression": "selection_basis == EXECUTION AND model_opinion_used_for_selection == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "independence-real": {
+      "predicate": "custom-expression",
+      "expression": "agreeing_pair_vendors_distinct == true AND same_vendor_pair_counted_as_consensus == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "sandbox-required": {
+      "predicate": "custom-expression",
+      "expression": "candidates_executed_in_sandbox == true OR candidates_are_read_only == true",
+      "blocking": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "generate-candidates",
+      "title": "S0 GENERATE one candidate per vendor, mutually blind",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "vendors",
+        "item_var": "vendor",
+        "key_field": "vendor"
+      },
+      "max_concurrency": 4,
+      "max_items": 6,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "one-candidate",
+          "title": "One vendor, one patch, no sibling context",
+          "kind": "task",
+          "role": "candidate-generator",
+          "work_unit_ref": "WFA-0105",
+          "timeout_seconds": 5400,
+          "produces": [
+            {
+              "path": "command-center/selection/candidates.json",
+              "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:WFA-0105",
+              "consumers": ["synthesise-distinguishing-inputs"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.5,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "sandbox-gate",
+      "title": "Unreviewed candidate code does not execute on the host",
+      "kind": "gate",
+      "depends_on": ["generate-candidates"],
+      "gate_ref": "sandbox-required"
+    },
+    {
+      "id": "synthesise-distinguishing-inputs",
+      "title": "S1 SYNTHESISE inputs that reach the lines where candidates DIVERGE",
+      "kind": "task",
+      "role": "input-synthesiser",
+      "depends_on": ["sandbox-gate"],
+      "timeout_seconds": 7200,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "TST-0274",
+        "title": "Synthesise inputs on which the candidate patches must behave differently, and settle the dispute by executing them",
+        "phase": "10",
+        "question_or_target": "Diff the candidate patches, find every line where their behaviour can differ, and synthesise concrete inputs that REACH those lines - including rare branches - up to the declared budget. Emit the inputs plus, for each, which candidates it is predicted to separate. Rank nothing.",
+        "inputs": ["params.task", "params.test_harness", "command-center/selection/candidates.json"],
+        "dependencies": ["WFA-0105"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "input-synthesiser",
+          "basis": "reaching a rare divergent branch is the hardest step in the blueprint; max effort is justified"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:python"],
+        "execution_substrate": "sandbox-wsl2",
+        "timeout_seconds": 7200,
+        "output_path": "command-center/selection/distinguishing-inputs.json",
+        "output_schema": "command-center/schema/divergence-report.schema.json",
+        "evidence_requirement": "for every synthesised input, the executed trace showing the divergent line was actually reached - a predicted-but-unreached input is not a distinguishing input",
+        "tests_required": [
+          "two candidates differing only in a rare branch: the synthesiser must produce an input that reaches it, or report the branch as unreachable within budget",
+          "two byte-identical candidates: the synthesiser must return zero inputs and the workflow must declare equivalence, not rank them",
+          "both-states control: a seeded subtly-wrong candidate must be separated from a correct one; if the input set separates nothing on a KNOWN difference, the synthesiser is broken"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-executes the input set against the same candidates and reproduces the separation, without reading the synthesiser's rationale",
+        "completion_sentinel": "SUCCESS:TST-0274 emitted only when distinguishing-inputs.json exists, parses, and every listed input carries an execution trace proving the divergent line was reached; otherwise FAILED:TST-0274 <reason>",
+        "retry_policy": "two strikes then pivot: after two budget exhaustions, enumerate at least two alternative separation strategies (property-based generation, symbolic reach, targeted mutation) before a third attempt",
+        "failure_classification": ["no-distinguishing-input", "unreachable-branch", "harness-missing"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/selection/distinguishing-inputs.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0274",
+          "consumers": ["execute-matrix"]
+        }
+      ]
+    },
+    {
+      "id": "execute-matrix",
+      "title": "S2 EXECUTE every candidate on every synthesised input, inside the sandbox",
+      "kind": "fanout",
+      "depends_on": ["synthesise-distinguishing-inputs"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/selection/distinguishing-inputs.json",
+        "item_var": "probe_input",
+        "key_field": "input_id"
+      },
+      "max_concurrency": 16,
+      "max_items": 1024,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "run-one-input",
+          "title": "Observed behaviour only - exit status, output, timing, crash",
+          "kind": "task",
+          "role": "executor",
+          "work_unit_ref": "ADV-0002",
+          "timeout_seconds": 600
+        }
+      ],
+      "barrier": {
+        "mode": "first_n",
+        "n": 8,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "cluster-and-knockout",
+      "title": "S3 CLUSTER by observed behaviour; KNOCK OUT crashers and timeouts",
+      "kind": "task",
+      "role": "executor",
+      "depends_on": ["execute-matrix"],
+      "work_unit_ref": "ADV-0114",
+      "timeout_seconds": 3600,
+      "produces": [
+        {
+          "path": "command-center/selection/behaviour-clusters.json",
+          "schema_ref": "command-center/schema/similarity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0114",
+          "consumers": ["execution-signal-gate", "aspect-jury"]
+        }
+      ]
+    },
+    {
+      "id": "execution-signal-gate",
+      "title": "The selection signal is EXECUTION; an opinion may not enter here",
+      "kind": "gate",
+      "depends_on": ["cluster-and-knockout"],
+      "gate_ref": "execution-is-the-signal"
+    },
+    {
+      "id": "independence-gate",
+      "title": "The agreeing pair must span two vendors - same-vendor agreement is not consensus",
+      "kind": "gate",
+      "depends_on": ["execution-signal-gate"],
+      "gate_ref": "independence-real"
+    },
+    {
+      "id": "aspect-jury",
+      "title": "S4 RANK within the winning cluster only; the jury cannot overturn execution",
+      "kind": "council",
+      "depends_on": ["independence-gate"],
+      "council_spec_ref": "platform/schema/councilspec.schema.json",
+      "participants_min": 3,
+      "participants_max": 5,
+      "stopping_rules": [
+        {
+          "id": "execution-settled-the-dispute",
+          "expression": "executable_test_settled == true AND objections_open == 0",
+          "applies_to": "council",
+          "on_stop": "complete"
+        },
+        {
+          "id": "jury-deadlocked-within-cluster",
+          "expression": "consensus >= 0.8 OR max_rounds == 4",
+          "applies_to": "council",
+          "on_stop": "emit-partial"
+        }
+      ]
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "one-cluster-wins",
+      "expression": "winning_cluster_declared == true AND knocked_out_candidates_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "distinguishing_inputs_executed >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "behavioural-equivalence-declared",
+      "expression": "distinguishing_inputs_found == 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "weighted-selection-quality",
+      "expression": {
+        "weighted": {
+          "terms": [
+            { "expr": "cross_vendor_agreement_observed == true", "weight": 0.5 },
+            { "expr": "divergent_lines_reached_ratio >= 0.8", "weight": 0.3 },
+            { "expr": { "not": "any_candidate_crashed_undetected" }, "weight": 0.2 }
+          ],
+          "threshold": 0.8
+        }
+      },
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": ["sandbox-transient", "quota-429-storm"],
+    "no_retry_on": ["harness-missing", "no-distinguishing-input"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "aspect-jury"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["no-distinguishing-input", "harness-missing", "sandbox-unavailable", "candidate-crashed"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "aspect-jury",
+    "quarantine_path": "command-center/selection/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/execution-consensus-patch-select",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 172800,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/execution-consensus-patch-select.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["stage_id", "item_key", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/execution-consensus",
+    "ttl_seconds": 259200,
+    "verify_integrity": true,
+    "invalidate_on": ["harness-change", "candidate-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "graph"],
+    "plan_artifact": "command-center/dry-run/execution-consensus-patch-select-plan.json",
+    "forbid_tools": ["Bash:python", "Bash:docker", "Edit", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": { "currency": "USD", "min": 2.0, "expected": 14.0, "max": 60.0 },
+    "wallclock_seconds": { "min": 1200, "expected": 9000, "max": 36000 },
+    "tokens": { "min": 200000, "expected": 1400000, "max": 5000000 },
+    "tool_calls": { "expected": 400, "max": 2200 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "candidate patches are executed only inside the declared sandbox and are never applied to the working tree by this workflow",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "replay-journal", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/execution-consensus-patch-select.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/execution-grounded-bon",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/multi-ai-mingle#codex-fanout-rail",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/execution-grounded-bon@shadow-mode"]
+  },
+
+  "outputs": {
+    "selection-record": {
+      "path": "command-center/selection/behaviour-clusters.json",
+      "schema_ref": "command-center/schema/similarity-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/CLAIM-REGISTRY.json"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A boundary defect with 3 candidate patches: A (Claude, off-by-one fixed), B (Codex, off-by-one fixed identically in behaviour), C (Claude, fixed the symptom but crashes on an empty input).",
+      "step_1": "vendors=[anthropic, openai, anthropic] -> 3 candidates, mutually blind",
+      "step_2": "the synthesiser diffs them and produces 41 inputs, of which 4 reach the empty-input branch where C differs",
+      "step_3": "execution: A and B agree on all 41; C raises IndexError on the 4 empty-input cases -> knocked out as a crasher",
+      "step_4": "clusters = {A,B} and {C}. The agreeing pair spans anthropic and openai -> independence-gate passes and {A,B} wins",
+      "counter_case_same_vendor": "had the surviving pair been A and C (both anthropic), independence-gate FAILS on agreeing_pair_vendors_distinct == false and no winner is declared on that basis",
+      "counter_case_equivalence": "if A and B are byte-identical, the synthesiser returns 0 inputs and behavioural-equivalence-declared fires with on_stop=emit-partial - the workflow refuses to rank them"
+    },
+    "distinctive_mechanism": "selection by executed behaviour on synthesised divergence inputs, with cross-vendor agreement as the signal and an explicit equivalence verdict instead of a manufactured winner",
+    "contraindications": [
+      "NOT when candidates cannot be executed - with no harness there is no signal and this degenerates into the LLM-judge it exists to replace",
+      "NOT for style choices - there is no behaviour to diverge",
+      "NOT when one candidate is obviously correct - the machinery costs more than the decision"
+    ],
+    "not_a_duplicate_because": "BP-ARC-01 tournaments DESIGNS on a rubric and BP-CNC-06 scores artifacts on weights; this one never scores - it executes, and its jury may only order the survivors of that execution."
+  }
+}

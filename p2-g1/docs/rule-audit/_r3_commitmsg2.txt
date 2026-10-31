@@ -1,0 +1,35 @@
+docs(rule-audit): the parity gate proves consistency, so measure completeness separately
+
+The obvious attack on r3_corpus_parity_gate.py is that it binds the sweep to
+rule_audit.TREES, so if the DECLARED corpus were itself missing a tree both
+sides would agree and the gate would report parity on an incomplete corpus.
+Three trees had been inherited unquestioned since round 1 -- which is exactly
+the shape of the defect this round exists to fix, one level up.
+
+MEASURED, not asserted. An exhaustive find on both roots returns 6 rules/
+directories in the repo and 101 under ~/.claude. Verdict: three is right, and
+the discriminator is named rather than assumed.
+
+  - The four skill-bundled dirs hold 82 markdown files with a DIFFERENT
+    frontmatter schema: title / impact / impactDescription / tags, a security
+    catalogue. The rule corpus vocabulary is paths:, the key that gates lazy
+    injection. Presence of frontmatter is NOT the discriminator -- 78 of the 82
+    have it, so a presence check would have misclassified all 78. The schema is.
+  - They are not deployed to the rule tree: find ~/.claude/rules -name
+    code-injection.md returns nothing, and ~/.claude/rules holds README.md plus
+    14 language dirs and nothing else.
+  - First-party negative evidence: my turn-0 context carried the 8
+    no-frontmatter live rules and no skill rule, and the 16 path-scoped rules
+    injected after I read .py files were all from ~/.claude/rules.
+  - Of the 101 ~/.claude hits exactly one is the live tree; the other 100 are
+    agent-worktrees, salvage, scratch and dated backups -- the same conclusion
+    this repo's CLAUDE.md SSOT block reaches about the 25 checkouts on this box.
+
+Scoped honestly as a SNAPSHOT, not a gate: a fifth tree added tomorrow fires
+nothing. Automating it (walk for rules/ dirs, classify by frontmatter schema,
+fail on an unrecognised one) is listed as residual 6b, and the confidence band
+says the claim applies to this commit rather than to the future.
+
+Gates re-run after the edit: r2_control_count_gate 4 prose == tool 19 rc=0,
+ruff check clean, ruff format --check 20 files already formatted. Scope
+unchanged: git status --short -- rules/ AGENTS.md agent-self/ is empty.

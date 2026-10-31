@@ -1,0 +1,249 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0437.json",
+  "tools/command-center/validate.py",
+  "tools/command-center/vfields_ci.py",
+  "tools/command-center/tests/test_vfields_ci.py",
+  ".github/workflows/quality.yml",
+  "command-center/p2-wave/probes/IMP-0437/probe1_defaults_deletion.py",
+  "command-center/p2-wave/probes/IMP-0437/probe2_single_field_review.py"
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0437.json",
+   "bytes": 12017,
+   "sha256": "389cb6b573184ad0ee8ca82f713f3a7946fc34b14ead5b710721dc935886a1d3",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "bytes": 19954,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/command-center/validate.py",
+   "role": "primary",
+   "sha256": "30b7c330493c26d3576b77ccfd4c04d1abe8b529218034ef9338e41d14129b32"
+  },
+  {
+   "bytes": 6404,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/command-center/vfields_ci.py",
+   "role": "supporting",
+   "sha256": "956524d2056e79c2020ff42f195cb6f30d965af6f5cb9becb5409fb0c476e37d"
+  },
+  {
+   "bytes": 3878,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/command-center/tests/test_vfields_ci.py",
+   "role": "supporting",
+   "sha256": "5bd770c8a5a48bf2a4a578a846ce05be9d91a691ba2b5b371e9c04f7b2298a41"
+  },
+  {
+   "bytes": 1036,
+   "eol": "LF",
+   "exists": true,
+   "path": ".github/workflows/quality.yml",
+   "role": "supporting",
+   "sha256": "4967e4e064d54ec0490fe7a8e9fecfc4a670979eae02ce96f0485a64a7f6aa80"
+  },
+  {
+   "bytes": 2197,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0437/probe1_defaults_deletion.py",
+   "role": "supporting",
+   "sha256": "9f251d0f9a0443b3710564d58333aa3c736e10e4cd167dfe5581bd84373cc612"
+  },
+  {
+   "bytes": 4018,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0437/probe2_single_field_review.py",
+   "role": "supporting",
+   "sha256": "a5541a02081055147305c9356012a3ec1156d2737a012c21ef925b2f50bbe026"
+  }
+ ],
+ "before_after": {
+  "command_line": "python tools/command-center/validate.py --catalog <sandbox>/catalog.json --graph <sandbox>/graph.json --register <sandbox>/REGISTER.md",
+  "defaults_deleted_armed_exit": 1,
+  "defaults_deleted_bare_cli_exit": 1,
+  "defaults_deleted_disarmed_exit": 0,
+  "single_field": "timeout_seconds",
+  "single_field_deleted_armed_exit": 1,
+  "unmutated_armed_exit": 0
+ },
+ "completion_sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+ "evidence": [
+  {
+   "anchor": "tools/command-center/validate.py:main",
+   "claim": "Deleting the entire catalog defaults block exits 0 under --no-require-complete and exits nonzero with V-FIELDS under --require-complete (and under the bare CLI, whose default is now True). The unmutated catalog stays silent when armed.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe1_defaults_deletion.py",
+     "exit_code": 0,
+     "fingerprint": "8b4614ee04364a5280b2a238b5043ac1ba4495ed1969d5ae61286b954a7fb95a",
+     "method": "command",
+     "raw_output": "{\"ci_flag\": \"--require-complete\", \"ci_workflow\": \".github/workflows/quality.yml\", \"defaults_deleted_armed_exit\": 1, \"defaults_deleted_bare_exit\": 1, \"defaults_deleted_disarmed_exit\": 0, \"pass\": true, \"probe\": \"probe1-defaults-deletion\", \"unit_id\": \"IMP-0437\", \"unmutated_armed_exit\": 0, \"vfields_on_armed_mutation\": true}\nunmutated_armed=0 deleted_disarmed=0 deleted_armed=1 deleted_bare=1 V-FIELDS=True\nSUCCESS:IMP-0437-probe1 defaults-deletion both-states under CI invocation",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_vfields_ci.py",
+     "exit_code": 0,
+     "fingerprint": "54cf045518dcbb392a5bcefdd5e37fa96feba56859e4af47c6a937d37f9fbf00",
+     "method": "command",
+     "raw_output": "PASS test_workflow_invokes_validate_with_require_complete\nPASS test_unmutated_catalog_silent_when_armed\nPASS test_defaults_deletion_exits_nonzero_when_armed\nPASS test_defaults_deletion_exits_zero_when_disarmed\nPASS test_single_field_deletion_exits_nonzero_when_armed\nSUCCESS:IMP-0437-tests",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": ".github/workflows/quality.yml",
+   "claim": "CI invokes tools/command-center/validate.py with --require-complete. An independent reviewer also showed that deleting one defaulted field (timeout_seconds) trips V-FIELDS when armed and stays silent when disarmed.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe2_single_field_review.py",
+     "exit_code": 0,
+     "fingerprint": "e21580a230d97135b89a1f9326b61bfe5e7624634c3a0e3fac30aeaa676c7618",
+     "method": "command",
+     "raw_output": "{\"independent\": true, \"pass\": true, \"probe\": \"probe2-single-field-review\", \"reviewer_id\": \"IMP-0437-probe2-single-field-review\", \"single_field\": \"timeout_seconds\", \"single_field_armed_exit\": 1, \"single_field_disarmed_exit\": 0, \"unit_id\": \"IMP-0437\", \"unmutated_armed_exit\": 0, \"whole_defaults_armed_exit\": 1, \"whole_defaults_disarmed_exit\": 0}\nsingle_field=timeout_seconds one_armed=1 one_disarmed=0 whole_armed=1 whole_disarmed=0\nSUCCESS:IMP-0437-probe2 single-field mutation and independent both-states review",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_vfields_ci.py",
+     "exit_code": 0,
+     "fingerprint": "54cf045518dcbb392a5bcefdd5e37fa96feba56859e4af47c6a937d37f9fbf00",
+     "method": "command",
+     "raw_output": "PASS test_workflow_invokes_validate_with_require_complete\nPASS test_unmutated_catalog_silent_when_armed\nPASS test_defaults_deletion_exits_nonzero_when_armed\nPASS test_defaults_deletion_exits_zero_when_disarmed\nPASS test_single_field_deletion_exits_nonzero_when_armed\nSUCCESS:IMP-0437-tests",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0437",
+ "implementation": {
+  "ci_invocation": "python tools/command-center/validate.py --require-complete",
+  "ci_workflow": ".github/workflows/quality.yml",
+  "cli_default": true,
+  "cli_flag": "--require-complete",
+  "in_process_default_unchanged": true,
+  "module": "tools/command-center/validate.py",
+  "opt_out": "--no-require-complete"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0437/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "defaults-block-deleted-disarmed-exits-0",
+  "unmutated-catalog-silent-when-armed"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "FAILED:cc-validate violations=11 V-FIELDS",
+   "description": "[original kind: historical-disarmed-ci] Same defaults-block deletion under --no-require-complete exits 0 with work_unit_fields_unresolved=11 and no V-FIELDS violations.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unmutated_armed_exit=0 V-FIELDS absent",
+   "id": "defaults-block-deleted-disarmed-exits-0",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "V-FIELDS timeout_seconds unresolved",
+   "description": "[original kind: false-positive-control] Armed invocation against the unmutated real catalog (isolated register/graph) exits 0 and emits no V-FIELDS.",
+   "fired_on_bad_state": true,
+   "good_state_output": "SUCCESS:cc-validate reachable=all",
+   "id": "unmutated-catalog-silent-when-armed",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0437: CLI default require_complete=True, CI passes --require-complete, both-states mutation recorded. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "question": "Arm tools/command-center/validate.py field completeness: require_complete defaulted to False and CI invoked the tool bare, so deleting the ENTIRE defaults block exited 0. After this unit, that same deletion must turn CI red.",
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0437-probe2-single-field-review",
+  "verdict": "PASS",
+  "notes": " [method: Rebuilt the sandbox from the live catalog without importing probe1. Confirmed whole-defaults deletion and timeout_seconds deletion both trip V-FIELDS when armed and stay silent when disarmed.]"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0437",
+ "state": "SUCCESS",
+ "test_ids": [
+  "test_workflow_invokes_validate_with_require_complete",
+  "test_defaults_deletion_exits_nonzero_when_armed",
+  "test_defaults_deletion_exits_zero_when_disarmed",
+  "named-probe1",
+  "named-probe2"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_vfields_ci.py",
+   "id": "test_defaults_deletion_exits_nonzero_when_armed",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe1_defaults_deletion.py",
+   "id": "named-probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe2_single_field_review.py",
+   "id": "named-probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:03:44Z",
+  "started_at": "2026-08-25T01:03:43Z"
+ },
+ "title": "Arm the disarmed work-unit field-completeness check in CI",
+ "unit_id": "IMP-0437",
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+   "artifact_path": "command-center/receipts/IMP-0437.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0437.json",
+    "raw_output": "ACCEPT:IMP-0437 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "fingerprint": "05e74991cffba22df72b657b9a688c66",
+    "exit_code": 0
+   }
+  },
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+   "artifact_path": "command-center/receipts/IMP-0437.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0437",
+    "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe1_defaults_deletion.py\n    \"after_armed_intact_exit\": 0,\n    \"after_armed_deletion_exit\": 1,\n    \"vfields_fired\": true,\n    \"ci_arms_flag\": true,\n    \"ci_step_command\": \"python tools/command-center/validate.py --require-complete\",\n    \"sentinel\": \"SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED\"\n  }\n  SUCCESS:IMP-0437-probe1 defaults deletion exits 0 disarmed, nonzero armed\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0437/probe2_single_field_review.py\n        \"armed_exit\": 1,\n        \"armed_vfields\": true,\n        \"disarmed_exit\": 0\n      }\n    },\n    \"sentinel\": \"SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED\"\n  }\n  SUCCESS:IMP-0437-probe2 single-field deletion trips the armed gate; disarmed stays silent\nartifact command-center/receipts/IMP-0437.json bytes=10238 sha256=b8260ff63e0b26c1ed3cd662b654ac5b85b077b3c9a2b73140dd1e69f9baaab4\nSUCCESS:delivered IMP-0437",
+    "fingerprint": "e3e08dfe04b4e1419eae65830812fa98",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": []
+}

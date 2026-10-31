@@ -1,0 +1,17 @@
+import hashlib
+prior05 = """ADV-0016 ADV-0033 ADV-0066 ADV-0091 ADV-0111 ADV-0143 ARC-0037 ARC-0085
+AUD-0018 ARC-0050 AUD-0086 BLD-0027 CC-0001 CNF-0009 CNF-0064 CNF-0104
+CNF-0145 ADV-0142 CNL-0063 CNL-0113 IMP-0018 IMP-0040 IMP-0064 IMP-0088
+IMP-0113 IMP-0138 IMP-0161 IMP-0204 IMP-0230 IMP-0259 IMP-0283 IMP-0308
+IMP-0331 IMP-0357 IMP-0396 IMP-0423 IMP-0412 IMP-0480 RES-0031 RES-0102
+RES-0149 RES-0171 SYN-0015 SYN-0037 TST-0046 SYN-0047 TST-0131 TST-0162
+TST-0193 TST-0225 TST-0258 TST-0287 TST-0314 WFA-0003 WFA-0072 WFA-0118
+WFA-0006""".split()
+algos = ["md5", "sha1", "sha256", "sha512"]
+for algo in algos:
+    vals = {}
+    consistent = True
+    for uid in prior05:
+        v = int(hashlib.new(algo, uid.encode()).hexdigest(), 16) % 6
+        vals.setdefault(v, []).append(uid)
+    print(algo, {k: (len(v), v[:6]) for k, v in sorted(vals.items())})

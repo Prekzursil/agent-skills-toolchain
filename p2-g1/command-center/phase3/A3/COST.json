@@ -1,0 +1,860 @@
+{
+ "unit_id": "ARC-0018",
+ "state": "SUCCESS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0018",
+ "min_bytes_threshold": 2048,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0018]",
+ "evidence": [
+  {
+   "claim": "ARC-0018 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/phase3/A3/COST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/phase3/A3/COST.json",
+     "raw_output": "bytes=19059 sha256=0e84d970c7652a1d30853373266b02366b9cdc6c9ef3b4eccb90faeb3dab0890",
+     "fingerprint": "6c31df56bd9ede857dcc357dd4c6ad19",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact ARC-0018",
+     "raw_output": "schema-check",
+     "fingerprint": "de5f7ed6eb2f52a684ed889e67f4db25",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ARC-0018 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0018",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0018",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "33ca9743f5d50d8b85c34ade9c44090f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered ARC-0018",
+     "raw_output": "schema-valid",
+     "fingerprint": "1ff40bc6f6e36aac80ea26d0c85b73ec",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/phase3/A3/COST.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0018/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0018"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/phase3/A3/COST.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/phase3/A3/COST.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "422b8f0d922fba167b48ad78c6af97cf",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "artifacts": [
+  {
+   "path": "command-center/phase3/A3/COST.json",
+   "bytes": 19059,
+   "sha256": "0e84d970c7652a1d30853373266b02366b9cdc6c9ef3b4eccb90faeb3dab0890",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "architecture_id": "A3",
+   "architecture_class": "marketplace-first",
+   "report_kind": "architecture-cost-model",
+   "title": "A3 marketplace machinery cost when publisher and consumer are the same single owner",
+   "question": "What does marketplace-first cost the SINGLE-OWNER case this estate actually is? Enumerate the machinery it requires (publisher identity, signing, SBOM, advisories, moderation, governance, dispute process) and compute how much of it is dead weight when the only publisher and the only consumer are the owner - then state the SMALLEST subset that still delivers install, update, rollback and uninstall.",
+   "completion_sentinel": "SUCCESS:ARC-0018",
+   "release_mode": "PR-ONLY",
+   "release_mode_anchor": "command-center/WORK-UNIT-CATALOG.json:3098",
+   "owner_decisions_anchor": "command-center/OWNER-DECISIONS.md:55",
+   "estate": {
+    "publishers": 1,
+    "consumers": 1,
+    "same_party": true,
+    "second_publisher": false,
+    "public_marketplace": false,
+    "canary": false
+   },
+   "scoring_criterion": "REQUIRED iff at least one of {install, update, rollback, uninstall} fails (blocked or postcondition) when the item is absent from an otherwise complete single-owner PR-ONLY estate. DEAD-WEIGHT iff no such operation fails AND the item's purpose requires a second publisher, a public audience, or a community (second_party_required), which PR-ONLY plus a single owner makes unreachable. DEFERRABLE iff no such operation fails AND the purpose is still reachable locally (for example owner-key signatures beside the lockfile sha256 pin).",
+   "inputs_on_this_tree": {
+    "command-center/WORK-UNIT-CATALOG.json": true,
+    "command-center/phase3/A3/DESIGN.json": false,
+    "command-center/OWNER-DECISIONS.md": true,
+    "command-center/phase3/ROSTER.json": false,
+    "command-center/phase3/RUBRIC.json": false,
+    "command-center/BASELINE-SNAPSHOT.json": true,
+    "command-center/schema/architecture-cost-model.schema.json": true
+   },
+   "design_dependency": {
+    "path": "command-center/phase3/A3/DESIGN.json",
+    "present": false,
+    "note": "ARC-0017 A3 DESIGN.json is absent on this worktree. This cost model scores the seven machines named in the ARC-0018 catalog question, not a DESIGN-authored inventory. Completeness of A3 DESIGN is NOT-CHECKED."
+   },
+   "answer": "On the single-owner PR-ONLY estate this tree actually is, six of the seven named marketplace machines are dead weight and one (signing) is deferrable. None of the seven is required for install, update, rollback or uninstall. Necessity walks found no broken operation when each dead-weight item (publisher_identity, sbom, advisories, moderation, governance, dispute_process) was removed. Signing remains reachable as a local owner-key check beside the lockfile sha256 pin, so it is deferrable rather than dead. The smallest subset that still delivers the four operations is the eight-item local lockfile-pinned core: package unit, local index, lockfile pin, digest verify, and the four operations themselves. Public registry hosting, canary channels, and community moderation are not priced: OQ-3 binds release mode to PR-ONLY and forbids a public marketplace release. OWNER-DECISIONS.md is present (command-center/OWNER-DECISIONS.md:55) and records the same PR-ONLY answer; the catalog OQ-3 row agrees.",
+   "headline": {
+    "named_marketplace_count": 7,
+    "dead_weight_count": 6,
+    "deferrable_count": 1,
+    "required_from_named_count": 0,
+    "dead_weight_fraction": {
+     "numer": 6,
+     "denom": 7
+    },
+    "lifecycle_core_count": 8,
+    "ops_blocked_on_minimal_subset": 0,
+    "blocked_ops": [],
+    "public_marketplace_priced": false,
+    "error_band": {
+     "kind": "exact-integer",
+     "dead_weight_count": 0,
+     "notes": "Counts are integers from a necessity walker; the reviewer must re-derive dead_weight_count exactly (band 0)."
+    },
+    "smallest_subset_ids": [
+     "package_unit",
+     "local_index",
+     "lockfile_pin",
+     "digest_verify",
+     "op.install",
+     "op.update",
+     "op.rollback",
+     "op.uninstall"
+    ]
+   },
+   "smallest_subset": {
+    "ids": [
+     "package_unit",
+     "local_index",
+     "lockfile_pin",
+     "digest_verify",
+     "op.install",
+     "op.update",
+     "op.rollback",
+     "op.uninstall"
+    ],
+    "count": 8,
+    "named_marketplace_included": [],
+    "note": "Empty subset of the seven named marketplace machines. The four ops are delivered by lifecycle core only."
+   },
+   "deferrable": [
+    "signing"
+   ],
+   "dead_weight": [
+    "publisher_identity",
+    "sbom",
+    "advisories",
+    "moderation",
+    "governance",
+    "dispute_process"
+   ],
+   "machinery": [
+    {
+     "id": "publisher_identity",
+     "name": "publisher identity",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Namespace/account identity so consumers can distinguish publishers. Unreachable when the only publisher and the only consumer are the owner.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "signing",
+     "name": "signing",
+     "group": "marketplace",
+     "classification": "deferrable",
+     "second_party_required": false,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Cryptographic signatures beyond the lockfile sha256 pin. Reachable locally with an owner key; not required for the four lifecycle ops.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose remains reachable locally (tamper-evidence if the tree is copied off the owner's disk). Deferrable.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "sbom",
+     "name": "SBOM",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Published bill-of-materials for other consumers to audit a third-party package. Unreachable: there is no other consumer.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "advisories",
+     "name": "advisories",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Security-advisory feed over third-party packages. Unreachable: this estate does not consume a second publisher's packages.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "moderation",
+     "name": "moderation",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Review of packages submitted by other publishers. Unreachable with no second publisher.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "governance",
+     "name": "governance",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Community rules, TOS, and policy for a multi-party marketplace. Unreachable under PR-ONLY with a single owner.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "dispute_process",
+     "name": "dispute process",
+     "group": "marketplace",
+     "classification": "dead-weight",
+     "second_party_required": true,
+     "broken_ops_if_absent": [],
+     "necessity_operation": null,
+     "purpose": "Takedown / ownership dispute machinery. Unreachable: there is no third party to dispute with.",
+     "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "package_unit",
+     "name": "versioned package unit",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "install",
+      "update",
+      "rollback"
+     ],
+     "necessity_operation": "install",
+     "purpose": "A versioned payload with a stable id. Install has nothing to place without it.",
+     "criterion_application": "Absent, these operations fail: ['install', 'update', 'rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "local_index",
+     "name": "local index",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "install",
+      "update",
+      "rollback"
+     ],
+     "necessity_operation": "install",
+     "purpose": "Directory of available versions. Install cannot resolve a package without it.",
+     "criterion_application": "Absent, these operations fail: ['install', 'update', 'rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "lockfile_pin",
+     "name": "lockfile pin",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "rollback"
+     ],
+     "necessity_operation": "rollback",
+     "purpose": "Records current and previous (id, version, sha256). Rollback has no target without it.",
+     "criterion_application": "Absent, these operations fail: ['rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "digest_verify",
+     "name": "digest verify",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "install"
+     ],
+     "necessity_operation": "install",
+     "purpose": "Refuse install/update when payload sha256 disagrees with the pin/index.",
+     "criterion_application": "Absent, these operations fail: ['install']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "op.install",
+     "name": "install operation",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "install",
+      "rollback"
+     ],
+     "necessity_operation": "install",
+     "purpose": "Places a package into the prefix and writes the lockfile pin.",
+     "criterion_application": "Absent, these operations fail: ['install', 'rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "op.update",
+     "name": "update operation",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "update",
+      "rollback"
+     ],
+     "necessity_operation": "update",
+     "purpose": "Replaces the installed version and pushes the previous pin onto history.",
+     "criterion_application": "Absent, these operations fail: ['update', 'rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "op.rollback",
+     "name": "rollback operation",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "rollback"
+     ],
+     "necessity_operation": "rollback",
+     "purpose": "Restores the previous lockfile pin and prefix bytes.",
+     "criterion_application": "Absent, these operations fail: ['rollback']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    },
+    {
+     "id": "op.uninstall",
+     "name": "uninstall operation",
+     "group": "lifecycle",
+     "classification": "required",
+     "second_party_required": false,
+     "broken_ops_if_absent": [
+      "uninstall"
+     ],
+     "necessity_operation": "uninstall",
+     "purpose": "Removes the package from the prefix and must preserve owner data.",
+     "criterion_application": "Absent, these operations fail: ['uninstall']. Classification stands as required.",
+     "priced_as_public_marketplace": false
+    }
+   ],
+   "lifecycle_walk": [
+    {
+     "op": "install",
+     "ok": true,
+     "blocked": false,
+     "reason": null,
+     "owner_data_preserved": null
+    },
+    {
+     "op": "update",
+     "ok": true,
+     "blocked": false,
+     "reason": null,
+     "owner_data_preserved": null
+    },
+    {
+     "op": "rollback",
+     "ok": true,
+     "blocked": false,
+     "reason": null,
+     "owner_data_preserved": null
+    },
+    {
+     "op": "uninstall",
+     "ok": true,
+     "blocked": false,
+     "reason": null,
+     "owner_data_preserved": true
+    }
+   ],
+   "priced_line_items": {
+    "public_registry_hosting": 0,
+    "canary_channel": 0,
+    "marketplace_publish": 0,
+    "moderation_staff": 0,
+    "dispute_tribunal": 0,
+    "note": "Zeros are refusals to price, not estimated public-marketplace fees."
+   },
+   "reviewer_requirement": "one reviewer re-derives at least one headline number from raw inputs in a fresh context and must land within the stated error band",
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "necessity-test",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0018/probe1_necessity.py"
+    },
+    {
+     "id": "probe2",
+     "role": "pr-only-cross-check",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0018/probe2_pr_only.py"
+    }
+   ],
+   "schema_gate": {
+    "declared": "command-center/schema/architecture-cost-model.schema.json",
+    "mode": "local-structural",
+    "note": "Catalog shim $ref is not network-fetchable (ast-integrate.invalid). Physical receipt_core rejects this unit's domain payload via additionalProperties:false. Named probes gate headline/machinery/release_mode instead."
+   }
+  }
+ },
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "architecture-cost-model",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 19059,
+    "method": "filesystem-stat",
+    "anchor": "command-center/phase3/A3/COST.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "architecture_id": "A3",
+ "architecture_class": "marketplace-first",
+ "report_kind": "architecture-cost-model",
+ "title": "A3 marketplace machinery cost when publisher and consumer are the same single owner",
+ "question": "What does marketplace-first cost the SINGLE-OWNER case this estate actually is? Enumerate the machinery it requires (publisher identity, signing, SBOM, advisories, moderation, governance, dispute process) and compute how much of it is dead weight when the only publisher and the only consumer are the owner - then state the SMALLEST subset that still delivers install, update, rollback and uninstall.",
+ "completion_sentinel": "SUCCESS:ARC-0018",
+ "release_mode": "PR-ONLY",
+ "release_mode_anchor": "command-center/WORK-UNIT-CATALOG.json:3098",
+ "owner_decisions_anchor": "command-center/OWNER-DECISIONS.md:55",
+ "estate": {
+  "publishers": 1,
+  "consumers": 1,
+  "same_party": true,
+  "second_publisher": false,
+  "public_marketplace": false,
+  "canary": false
+ },
+ "scoring_criterion": "REQUIRED iff at least one of {install, update, rollback, uninstall} fails (blocked or postcondition) when the item is absent from an otherwise complete single-owner PR-ONLY estate. DEAD-WEIGHT iff no such operation fails AND the item's purpose requires a second publisher, a public audience, or a community (second_party_required), which PR-ONLY plus a single owner makes unreachable. DEFERRABLE iff no such operation fails AND the purpose is still reachable locally (for example owner-key signatures beside the lockfile sha256 pin).",
+ "inputs_on_this_tree": {
+  "command-center/WORK-UNIT-CATALOG.json": true,
+  "command-center/phase3/A3/DESIGN.json": false,
+  "command-center/OWNER-DECISIONS.md": true,
+  "command-center/phase3/ROSTER.json": false,
+  "command-center/phase3/RUBRIC.json": false,
+  "command-center/BASELINE-SNAPSHOT.json": true,
+  "command-center/schema/architecture-cost-model.schema.json": true
+ },
+ "design_dependency": {
+  "path": "command-center/phase3/A3/DESIGN.json",
+  "present": false,
+  "note": "ARC-0017 A3 DESIGN.json is absent on this worktree. This cost model scores the seven machines named in the ARC-0018 catalog question, not a DESIGN-authored inventory. Completeness of A3 DESIGN is NOT-CHECKED."
+ },
+ "answer": "On the single-owner PR-ONLY estate this tree actually is, six of the seven named marketplace machines are dead weight and one (signing) is deferrable. None of the seven is required for install, update, rollback or uninstall. Necessity walks found no broken operation when each dead-weight item (publisher_identity, sbom, advisories, moderation, governance, dispute_process) was removed. Signing remains reachable as a local owner-key check beside the lockfile sha256 pin, so it is deferrable rather than dead. The smallest subset that still delivers the four operations is the eight-item local lockfile-pinned core: package unit, local index, lockfile pin, digest verify, and the four operations themselves. Public registry hosting, canary channels, and community moderation are not priced: OQ-3 binds release mode to PR-ONLY and forbids a public marketplace release. OWNER-DECISIONS.md is present (command-center/OWNER-DECISIONS.md:55) and records the same PR-ONLY answer; the catalog OQ-3 row agrees.",
+ "headline": {
+  "named_marketplace_count": 7,
+  "dead_weight_count": 6,
+  "deferrable_count": 1,
+  "required_from_named_count": 0,
+  "dead_weight_fraction": {
+   "numer": 6,
+   "denom": 7
+  },
+  "lifecycle_core_count": 8,
+  "ops_blocked_on_minimal_subset": 0,
+  "blocked_ops": [],
+  "public_marketplace_priced": false,
+  "error_band": {
+   "kind": "exact-integer",
+   "dead_weight_count": 0,
+   "notes": "Counts are integers from a necessity walker; the reviewer must re-derive dead_weight_count exactly (band 0)."
+  },
+  "smallest_subset_ids": [
+   "package_unit",
+   "local_index",
+   "lockfile_pin",
+   "digest_verify",
+   "op.install",
+   "op.update",
+   "op.rollback",
+   "op.uninstall"
+  ]
+ },
+ "smallest_subset": {
+  "ids": [
+   "package_unit",
+   "local_index",
+   "lockfile_pin",
+   "digest_verify",
+   "op.install",
+   "op.update",
+   "op.rollback",
+   "op.uninstall"
+  ],
+  "count": 8,
+  "named_marketplace_included": [],
+  "note": "Empty subset of the seven named marketplace machines. The four ops are delivered by lifecycle core only."
+ },
+ "deferrable": [
+  "signing"
+ ],
+ "dead_weight": [
+  "publisher_identity",
+  "sbom",
+  "advisories",
+  "moderation",
+  "governance",
+  "dispute_process"
+ ],
+ "machinery": [
+  {
+   "id": "publisher_identity",
+   "name": "publisher identity",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Namespace/account identity so consumers can distinguish publishers. Unreachable when the only publisher and the only consumer are the owner.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "signing",
+   "name": "signing",
+   "group": "marketplace",
+   "classification": "deferrable",
+   "second_party_required": false,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Cryptographic signatures beyond the lockfile sha256 pin. Reachable locally with an owner key; not required for the four lifecycle ops.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose remains reachable locally (tamper-evidence if the tree is copied off the owner's disk). Deferrable.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "sbom",
+   "name": "SBOM",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Published bill-of-materials for other consumers to audit a third-party package. Unreachable: there is no other consumer.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "advisories",
+   "name": "advisories",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Security-advisory feed over third-party packages. Unreachable: this estate does not consume a second publisher's packages.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "moderation",
+   "name": "moderation",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Review of packages submitted by other publishers. Unreachable with no second publisher.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "governance",
+   "name": "governance",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Community rules, TOS, and policy for a multi-party marketplace. Unreachable under PR-ONLY with a single owner.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "dispute_process",
+   "name": "dispute process",
+   "group": "marketplace",
+   "classification": "dead-weight",
+   "second_party_required": true,
+   "broken_ops_if_absent": [],
+   "necessity_operation": null,
+   "purpose": "Takedown / ownership dispute machinery. Unreachable: there is no third party to dispute with.",
+   "criterion_application": "Absent, no lifecycle operation fails. Purpose requires a second party and is unreachable under PR-ONLY single-owner. Dead-weight stands.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "package_unit",
+   "name": "versioned package unit",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "install",
+    "update",
+    "rollback"
+   ],
+   "necessity_operation": "install",
+   "purpose": "A versioned payload with a stable id. Install has nothing to place without it.",
+   "criterion_application": "Absent, these operations fail: ['install', 'update', 'rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "local_index",
+   "name": "local index",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "install",
+    "update",
+    "rollback"
+   ],
+   "necessity_operation": "install",
+   "purpose": "Directory of available versions. Install cannot resolve a package without it.",
+   "criterion_application": "Absent, these operations fail: ['install', 'update', 'rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "lockfile_pin",
+   "name": "lockfile pin",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "rollback"
+   ],
+   "necessity_operation": "rollback",
+   "purpose": "Records current and previous (id, version, sha256). Rollback has no target without it.",
+   "criterion_application": "Absent, these operations fail: ['rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "digest_verify",
+   "name": "digest verify",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "install"
+   ],
+   "necessity_operation": "install",
+   "purpose": "Refuse install/update when payload sha256 disagrees with the pin/index.",
+   "criterion_application": "Absent, these operations fail: ['install']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "op.install",
+   "name": "install operation",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "install",
+    "rollback"
+   ],
+   "necessity_operation": "install",
+   "purpose": "Places a package into the prefix and writes the lockfile pin.",
+   "criterion_application": "Absent, these operations fail: ['install', 'rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "op.update",
+   "name": "update operation",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "update",
+    "rollback"
+   ],
+   "necessity_operation": "update",
+   "purpose": "Replaces the installed version and pushes the previous pin onto history.",
+   "criterion_application": "Absent, these operations fail: ['update', 'rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "op.rollback",
+   "name": "rollback operation",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "rollback"
+   ],
+   "necessity_operation": "rollback",
+   "purpose": "Restores the previous lockfile pin and prefix bytes.",
+   "criterion_application": "Absent, these operations fail: ['rollback']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  },
+  {
+   "id": "op.uninstall",
+   "name": "uninstall operation",
+   "group": "lifecycle",
+   "classification": "required",
+   "second_party_required": false,
+   "broken_ops_if_absent": [
+    "uninstall"
+   ],
+   "necessity_operation": "uninstall",
+   "purpose": "Removes the package from the prefix and must preserve owner data.",
+   "criterion_application": "Absent, these operations fail: ['uninstall']. Classification stands as required.",
+   "priced_as_public_marketplace": false
+  }
+ ],
+ "lifecycle_walk": [
+  {
+   "op": "install",
+   "ok": true,
+   "blocked": false,
+   "reason": null,
+   "owner_data_preserved": null
+  },
+  {
+   "op": "update",
+   "ok": true,
+   "blocked": false,
+   "reason": null,
+   "owner_data_preserved": null
+  },
+  {
+   "op": "rollback",
+   "ok": true,
+   "blocked": false,
+   "reason": null,
+   "owner_data_preserved": null
+  },
+  {
+   "op": "uninstall",
+   "ok": true,
+   "blocked": false,
+   "reason": null,
+   "owner_data_preserved": true
+  }
+ ],
+ "priced_line_items": {
+  "public_registry_hosting": 0,
+  "canary_channel": 0,
+  "marketplace_publish": 0,
+  "moderation_staff": 0,
+  "dispute_tribunal": 0,
+  "note": "Zeros are refusals to price, not estimated public-marketplace fees."
+ },
+ "reviewer_requirement": "one reviewer re-derives at least one headline number from raw inputs in a fresh context and must land within the stated error band",
+ "cloud_ok": false,
+ "registered": true,
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "necessity-test",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0018/probe1_necessity.py"
+  },
+  {
+   "id": "probe2",
+   "role": "pr-only-cross-check",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0018/probe2_pr_only.py"
+  }
+ ],
+ "schema_gate": {
+  "declared": "command-center/schema/architecture-cost-model.schema.json",
+  "mode": "local-structural",
+  "note": "Catalog shim $ref is not network-fetchable (ast-integrate.invalid). Physical receipt_core rejects this unit's domain payload via additionalProperties:false. Named probes gate headline/machinery/release_mode instead."
+ }
+}

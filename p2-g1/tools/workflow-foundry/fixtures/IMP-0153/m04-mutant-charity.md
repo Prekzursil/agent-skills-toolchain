@@ -1,0 +1,1 @@
+A planted mutant that the detector was tuned to catch is charity, not calibration. The mutation control must be able to fail; a mutant chosen after reading the detector is a mistake that manufactures a green band.

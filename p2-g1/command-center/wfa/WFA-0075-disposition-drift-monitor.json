@@ -1,0 +1,596 @@
+{
+ "unit_id": "WFA-0075",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0075",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0075-disposition-drift-monitor.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0075 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0075-disposition-drift-monitor.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0075-disposition-drift-monitor.json",
+     "raw_output": "bytes=12264 sha256=5dddfed663db88fbd283ef489032d700cfb1979f0753924dc542ec3776d27188",
+     "fingerprint": "d8efb1f153b5619f963919840f0c2e47",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0075",
+     "raw_output": "schema-check",
+     "fingerprint": "e34053073b2c9bf4e9c5ff785eeda659",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0075 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0075",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0075",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "6e05c248bb971a05cacec781e154b0d6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0075",
+     "raw_output": "schema-valid",
+     "fingerprint": "3fbb809a1178eb06dc00789b8d42508a",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "record_type": "RegressionFixture",
+   "id": "WFA-0075",
+   "completion_sentinel": "SUCCESS:WFA-0075",
+   "title": "Monitor that fails when a disposition changes without an evidence delta and a recorded reason",
+   "question": "Implementation target: a monitor that compares the disposition set between two registry versions and fails when any candidate's disposition changed without an accompanying evidence delta and a written reason, so dispositions cannot silently drift between waves.",
+   "produced_at": "2026-08-25T00:44:54Z",
+   "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+   "schema_pack": {
+    "path": "command-center/wfa/schema/wfa-schema-pack.json",
+    "present": true,
+    "note": "schema pack present; fragment not separately re-validated here"
+   },
+   "monitor": {
+    "module": "command-center/p2-wave/probes/WFA-0075/monitor.py",
+    "rule": "After applying the id migration map, a classification change is SILENT_DRIFT (fail) unless at least one named evidence field changed AND a non-empty disposition_change_reason is written on the v2 record. The finding lists the evidence field names, not a boolean that something moved. A rename that preserves classification is RENAME_ONLY, not a disposition change."
+   },
+   "silent_pair": {
+    "v1": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+    "v2": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json",
+    "fail": true,
+    "silent_drift_ids": [
+     "wf-silent-both",
+     "wf-silent-evidence-hole",
+     "wf-silent-reason-hole"
+    ],
+    "documented_ids": [],
+    "findings": [
+     {
+      "canonical_id": "wf-silent-both",
+      "v1_id": "wf-silent-both",
+      "v2_id": "wf-silent-both",
+      "v1_classification": "ADOPT-AS-IS",
+      "v2_classification": "RETIRE",
+      "kind": "SILENT_DRIFT",
+      "evidence_fields_changed": [],
+      "has_reason": false,
+      "reason": "",
+      "fail": true
+     },
+     {
+      "canonical_id": "wf-silent-evidence-hole",
+      "v1_id": "wf-silent-evidence-hole",
+      "v2_id": "wf-silent-evidence-hole",
+      "v1_classification": "UNKNOWN-NEEDS-PROBE",
+      "v2_classification": "ADOPT-WITH-WRAPPER",
+      "kind": "SILENT_DRIFT",
+      "evidence_fields_changed": [],
+      "has_reason": true,
+      "reason": "wrapper added after an unrecorded hallway conversation",
+      "fail": true
+     },
+     {
+      "canonical_id": "wf-silent-reason-hole",
+      "v1_id": "wf-silent-reason-hole",
+      "v2_id": "wf-silent-reason-hole",
+      "v1_classification": "DISTILL",
+      "v2_classification": "ADOPT-AS-IS",
+      "kind": "SILENT_DRIFT",
+      "evidence_fields_changed": [
+       "named_probe"
+      ],
+      "has_reason": false,
+      "reason": "",
+      "fail": true
+     }
+    ]
+   },
+   "documented_pair": {
+    "v1": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+    "v2": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json",
+    "fail": false,
+    "silent_drift_ids": [],
+    "documented_ids": [
+     "wf-doc-preserve",
+     "wf-doc-smoke"
+    ],
+    "rename_only_ids": [
+     "wf-rename-new"
+    ],
+    "findings": [
+     {
+      "canonical_id": "wf-doc-preserve",
+      "v1_id": "wf-doc-preserve",
+      "v2_id": "wf-doc-preserve",
+      "v1_classification": "ADOPT-AS-IS",
+      "v2_classification": "RETIRE",
+      "kind": "DOCUMENTED",
+      "evidence_fields_changed": [
+       "preservation_proof"
+      ],
+      "has_reason": true,
+      "reason": "Content exported to a named preservation location before RETIRE.",
+      "fail": false
+     },
+     {
+      "canonical_id": "wf-doc-smoke",
+      "v1_id": "wf-doc-smoke",
+      "v2_id": "wf-doc-smoke",
+      "v1_classification": "UNKNOWN-NEEDS-PROBE",
+      "v2_classification": "ADOPT-AS-IS",
+      "kind": "DOCUMENTED",
+      "evidence_fields_changed": [
+       "smoke_run"
+      ],
+      "has_reason": true,
+      "reason": "Smoke case constructed and passed; ADOPT-AS-IS is no longer an untested assertion.",
+      "fail": false
+     },
+     {
+      "canonical_id": "wf-rename-new",
+      "v1_id": "wf-rename-old",
+      "v2_id": "wf-rename-new",
+      "v1_classification": "REPAIR",
+      "v2_classification": "REPAIR",
+      "kind": "RENAME_ONLY",
+      "evidence_fields_changed": [],
+      "has_reason": false,
+      "reason": "",
+      "fail": false
+     }
+    ]
+   },
+   "without_map_rename": {
+    "rename_only_ids": [],
+    "kinds": {
+     "wf-rename-new": "ADDED",
+     "wf-rename-old": "REMOVED"
+    }
+   },
+   "mutants": {
+    "skip_reason_misses": [
+     "wf-silent-both",
+     "wf-silent-evidence-hole"
+    ],
+    "skip_evidence_misses": [
+     "wf-silent-both",
+     "wf-silent-reason-hole"
+    ]
+   },
+   "both_states": {
+    "fires_on": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json (three planted silent classification changes)",
+    "silent_on": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json (classification changes with named evidence-field deltas and reasons)",
+    "verbatim_fire": "fail=True silent_drift_ids=['wf-silent-both', 'wf-silent-evidence-hole', 'wf-silent-reason-hole']",
+    "verbatim_silent": "fail=False silent_drift_ids=[] documented_ids=['wf-doc-preserve', 'wf-doc-smoke'] rename_only_ids=['wf-rename-new'] smoke_fields=['smoke_run'] preserve_fields=['preservation_proof']"
+   },
+   "claims": [
+    {
+     "id": "C1",
+     "claim": "Three planted silent classification changes against the synthetic v1 baseline are all caught.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:130"
+    },
+    {
+     "id": "C2",
+     "claim": "Documented classification changes with evidence-field deltas and written reasons are not flagged, and the monitor names the evidence fields that moved.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:98"
+    },
+    {
+     "id": "C3",
+     "claim": "A renamed candidate joined through the id migration map is RENAME_ONLY, not a disposition change.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:60"
+    }
+   ],
+   "inputs_measured": [
+    {
+     "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+     "present": true,
+     "sha256": "2785d5bba41546b292081ea69509fdb7329e2e462e97539da6e0589f3d133a89",
+     "bytes": 4156
+    },
+    {
+     "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json",
+     "present": true,
+     "sha256": "bdb47e3d026a7648336b28495b6a404a4e8fdcb31e1b93cccec106776933fe3c",
+     "bytes": 4260
+    },
+    {
+     "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json",
+     "present": true,
+     "sha256": "0dbca8e7b9c2c377584fae920fa0c597b9736d51810de92eba5e75aa56f1e929",
+     "bytes": 4452
+    },
+    {
+     "path": "command-center/p2-wave/probes/WFA-0075/fixtures/id_migration_map.json",
+     "present": true,
+     "sha256": "e9aee824075e0eeca7375d07b64ae5085ca8776cb5b09580086e7ddd37557e82",
+     "bytes": 343
+    },
+    {
+     "path": "command-center/wfa/WFA-0010-id-stability-and-migration-map.json",
+     "present": false
+    },
+    {
+     "path": "command-center/wfa/WFA-0068-disposition-decision-procedure.json",
+     "present": false
+    },
+    {
+     "path": "command-center/wfa/schema/wfa-schema-pack.json",
+     "present": true,
+     "sha256": "62da7b223802168a4ab511ef5bff2da23dc66d0112ed2e508b3dd9624e1004cd",
+     "bytes": 5793
+    }
+   ],
+   "live_v1_baseline_hits": [],
+   "named_probes": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0075/probe1_silent_plants.py"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0075/probe2_documented_rename_fields.py"
+    }
+   ],
+   "adv_rebuild_circle": false,
+   "cloud_ok": false
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0075",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0075-disposition-drift-monitor.json",
+   "bytes": 12264,
+   "sha256": "5dddfed663db88fbd283ef489032d700cfb1979f0753924dc542ec3776d27188",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0075/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0075"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0075-disposition-drift-monitor.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0075-disposition-drift-monitor.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "ec963335dddf48cd9a2b69a90a9b69a0",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "RegressionFixture",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 12264,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0075-disposition-drift-monitor.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "record_type": "RegressionFixture",
+ "id": "WFA-0075",
+ "completion_sentinel": "SUCCESS:WFA-0075",
+ "title": "Monitor that fails when a disposition changes without an evidence delta and a recorded reason",
+ "question": "Implementation target: a monitor that compares the disposition set between two registry versions and fails when any candidate's disposition changed without an accompanying evidence delta and a written reason, so dispositions cannot silently drift between waves.",
+ "produced_at": "2026-08-25T00:44:54Z",
+ "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+ "schema_pack": {
+  "path": "command-center/wfa/schema/wfa-schema-pack.json",
+  "present": true,
+  "note": "schema pack present; fragment not separately re-validated here"
+ },
+ "monitor": {
+  "module": "command-center/p2-wave/probes/WFA-0075/monitor.py",
+  "rule": "After applying the id migration map, a classification change is SILENT_DRIFT (fail) unless at least one named evidence field changed AND a non-empty disposition_change_reason is written on the v2 record. The finding lists the evidence field names, not a boolean that something moved. A rename that preserves classification is RENAME_ONLY, not a disposition change."
+ },
+ "silent_pair": {
+  "v1": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+  "v2": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json",
+  "fail": true,
+  "silent_drift_ids": [
+   "wf-silent-both",
+   "wf-silent-evidence-hole",
+   "wf-silent-reason-hole"
+  ],
+  "documented_ids": [],
+  "findings": [
+   {
+    "canonical_id": "wf-silent-both",
+    "v1_id": "wf-silent-both",
+    "v2_id": "wf-silent-both",
+    "v1_classification": "ADOPT-AS-IS",
+    "v2_classification": "RETIRE",
+    "kind": "SILENT_DRIFT",
+    "evidence_fields_changed": [],
+    "has_reason": false,
+    "reason": "",
+    "fail": true
+   },
+   {
+    "canonical_id": "wf-silent-evidence-hole",
+    "v1_id": "wf-silent-evidence-hole",
+    "v2_id": "wf-silent-evidence-hole",
+    "v1_classification": "UNKNOWN-NEEDS-PROBE",
+    "v2_classification": "ADOPT-WITH-WRAPPER",
+    "kind": "SILENT_DRIFT",
+    "evidence_fields_changed": [],
+    "has_reason": true,
+    "reason": "wrapper added after an unrecorded hallway conversation",
+    "fail": true
+   },
+   {
+    "canonical_id": "wf-silent-reason-hole",
+    "v1_id": "wf-silent-reason-hole",
+    "v2_id": "wf-silent-reason-hole",
+    "v1_classification": "DISTILL",
+    "v2_classification": "ADOPT-AS-IS",
+    "kind": "SILENT_DRIFT",
+    "evidence_fields_changed": [
+     "named_probe"
+    ],
+    "has_reason": false,
+    "reason": "",
+    "fail": true
+   }
+  ]
+ },
+ "documented_pair": {
+  "v1": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+  "v2": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json",
+  "fail": false,
+  "silent_drift_ids": [],
+  "documented_ids": [
+   "wf-doc-preserve",
+   "wf-doc-smoke"
+  ],
+  "rename_only_ids": [
+   "wf-rename-new"
+  ],
+  "findings": [
+   {
+    "canonical_id": "wf-doc-preserve",
+    "v1_id": "wf-doc-preserve",
+    "v2_id": "wf-doc-preserve",
+    "v1_classification": "ADOPT-AS-IS",
+    "v2_classification": "RETIRE",
+    "kind": "DOCUMENTED",
+    "evidence_fields_changed": [
+     "preservation_proof"
+    ],
+    "has_reason": true,
+    "reason": "Content exported to a named preservation location before RETIRE.",
+    "fail": false
+   },
+   {
+    "canonical_id": "wf-doc-smoke",
+    "v1_id": "wf-doc-smoke",
+    "v2_id": "wf-doc-smoke",
+    "v1_classification": "UNKNOWN-NEEDS-PROBE",
+    "v2_classification": "ADOPT-AS-IS",
+    "kind": "DOCUMENTED",
+    "evidence_fields_changed": [
+     "smoke_run"
+    ],
+    "has_reason": true,
+    "reason": "Smoke case constructed and passed; ADOPT-AS-IS is no longer an untested assertion.",
+    "fail": false
+   },
+   {
+    "canonical_id": "wf-rename-new",
+    "v1_id": "wf-rename-old",
+    "v2_id": "wf-rename-new",
+    "v1_classification": "REPAIR",
+    "v2_classification": "REPAIR",
+    "kind": "RENAME_ONLY",
+    "evidence_fields_changed": [],
+    "has_reason": false,
+    "reason": "",
+    "fail": false
+   }
+  ]
+ },
+ "without_map_rename": {
+  "rename_only_ids": [],
+  "kinds": {
+   "wf-rename-new": "ADDED",
+   "wf-rename-old": "REMOVED"
+  }
+ },
+ "mutants": {
+  "skip_reason_misses": [
+   "wf-silent-both",
+   "wf-silent-evidence-hole"
+  ],
+  "skip_evidence_misses": [
+   "wf-silent-both",
+   "wf-silent-reason-hole"
+  ]
+ },
+ "both_states": {
+  "fires_on": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json (three planted silent classification changes)",
+  "silent_on": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json (classification changes with named evidence-field deltas and reasons)",
+  "verbatim_fire": "fail=True silent_drift_ids=['wf-silent-both', 'wf-silent-evidence-hole', 'wf-silent-reason-hole']",
+  "verbatim_silent": "fail=False silent_drift_ids=[] documented_ids=['wf-doc-preserve', 'wf-doc-smoke'] rename_only_ids=['wf-rename-new'] smoke_fields=['smoke_run'] preserve_fields=['preservation_proof']"
+ },
+ "claims": [
+  {
+   "id": "C1",
+   "claim": "Three planted silent classification changes against the synthetic v1 baseline are all caught.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:130"
+  },
+  {
+   "id": "C2",
+   "claim": "Documented classification changes with evidence-field deltas and written reasons are not flagged, and the monitor names the evidence fields that moved.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:98"
+  },
+  {
+   "id": "C3",
+   "claim": "A renamed candidate joined through the id migration map is RENAME_ONLY, not a disposition change.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/WFA-0075/monitor.py:60"
+  }
+ ],
+ "inputs_measured": [
+  {
+   "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v1_baseline.json",
+   "present": true,
+   "sha256": "2785d5bba41546b292081ea69509fdb7329e2e462e97539da6e0589f3d133a89",
+   "bytes": 4156
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_silent.json",
+   "present": true,
+   "sha256": "bdb47e3d026a7648336b28495b6a404a4e8fdcb31e1b93cccec106776933fe3c",
+   "bytes": 4260
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0075/fixtures/v2_documented.json",
+   "present": true,
+   "sha256": "0dbca8e7b9c2c377584fae920fa0c597b9736d51810de92eba5e75aa56f1e929",
+   "bytes": 4452
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0075/fixtures/id_migration_map.json",
+   "present": true,
+   "sha256": "e9aee824075e0eeca7375d07b64ae5085ca8776cb5b09580086e7ddd37557e82",
+   "bytes": 343
+  },
+  {
+   "path": "command-center/wfa/WFA-0010-id-stability-and-migration-map.json",
+   "present": false
+  },
+  {
+   "path": "command-center/wfa/WFA-0068-disposition-decision-procedure.json",
+   "present": false
+  },
+  {
+   "path": "command-center/wfa/schema/wfa-schema-pack.json",
+   "present": true,
+   "sha256": "62da7b223802168a4ab511ef5bff2da23dc66d0112ed2e508b3dd9624e1004cd",
+   "bytes": 5793
+  }
+ ],
+ "live_v1_baseline_hits": [],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0075/probe1_silent_plants.py"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0075/probe2_documented_rename_fields.py"
+  }
+ ],
+ "adv_rebuild_circle": false,
+ "cloud_ok": false
+}

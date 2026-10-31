@@ -1,0 +1,375 @@
+{
+  "report": "mcp-s4-evidence",
+  "schema_version": 1,
+  "purpose": "The fourth signal (a REAL call succeeded) as DATA the producer reads, keyed by (server, backend). It used to be a dict literal inside rank_disposition.py -- a claim living inside the thing that certifies it. Backend-keyed rows exist because a proxy row's server-level verdict cannot express 'the server is up and this backend is not'.",
+  "verdict_vocabulary": {
+    "live": "the call returned a successful, non-degraded answer -- the capability answered",
+    "degraded": "the tool EXECUTED and reported its own backing resource unavailable; the call succeeded, the capability did not",
+    "auth-dead": "the backend answered and rejected the credential",
+    "dead": "the backend could not answer at all",
+    "hang": "no terminal state inside the 600s MCP tool timeout -- worse than a clean failure, and invisible to any health ping",
+    "not-dispatchable": "the tool is advertised in the committed surface AND resolvable in the live client namespace, yet the server refuses to dispatch it and no backend is ever reached",
+    "no-credential": "the call was refused locally for lack of usable key material; the backend was never contacted (distinct from auth-dead, where a credential was presented and rejected)"
+  },
+  "scope_warning": "A record proves what its result sentence says and no more. 'The server executed a tool' is NOT 'the server can do its job' -- that gap is why the backend rows exist. Records are dated: a verdict here is a measurement, not a standing property.",
+  "records": [
+    {
+      "server": "agent-mail",
+      "backend": null,
+      "tool": "health_check",
+      "verdict": "live",
+      "result": "health_check returned status=ok -- the server answered; this proves the mailbox process is up, not that message delivery works",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "basic-memory",
+      "backend": null,
+      "tool": "list_memory_projects",
+      "verdict": "live",
+      "result": "2 projects, default=main",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "figma",
+      "backend": null,
+      "tool": "whoami",
+      "verdict": "live",
+      "result": "handle + Full seat returned",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "huggingface",
+      "backend": null,
+      "tool": "hf_whoami",
+      "verdict": "live",
+      "result": "status=anonymous (server answered)",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "github",
+      "backend": null,
+      "tool": "get_me",
+      "verdict": "live",
+      "result": "authenticated login returned",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "codex",
+      "backend": null,
+      "tool": "codex",
+      "verdict": "live",
+      "result": "returned PONG with a threadId",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "qlty",
+      "backend": null,
+      "tool": "qlty",
+      "verdict": "live",
+      "result": "returned PASS -- the round-1 lane recorded no detail beyond the verdict, so this proves the call completed and nothing about which check ran",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-12",
+      "measured_by": "mcp-audit lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "angr",
+      "backend": null,
+      "tool": "list_projects",
+      "verdict": "live",
+      "result": "count=0 -- the server executed the tool and returned a valid empty project list; this proves tool execution, NOT that a binary can be loaded and analysed",
+      "backing_resource": null,
+      "response_body": "{\"count\":0,\"projects\":[]}",
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "frida-mcp",
+      "backend": null,
+      "tool": "enumerate_devices",
+      "verdict": "live",
+      "result": "3 devices returned (local, socket, barebone) -- the server executed the tool and enumerated real host state; this proves tool execution and device enumeration, NOT that a process can be attached and instrumented",
+      "backing_resource": null,
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "searxng",
+      "backend": null,
+      "tool": "searxng_instance_info",
+      "verdict": "degraded",
+      "result": "the tool EXECUTED and returned available=false -- its only configured instance did not answer capability discovery",
+      "backing_resource": "http://127.0.0.1:8890",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "searxng",
+      "backend": "searxng-instance",
+      "tool": "searxng_instance_info",
+      "verdict": "dead",
+      "result": "SearXNG /config is unavailable; no configured instances answered capability discovery",
+      "backing_resource": "http://127.0.0.1:8890",
+      "response_body": "{\n  \"available\": false,\n  \"message\": \"SearXNG /config is unavailable; no configured instances answered capability discovery.\",\n  \"instancesUnreachable\": [\n    {\n      \"sourceUrl\": \"http://127.0.0.1:8890\",\n      \"message\": \"SearXNG /config is unavailable; instance capability discovery could not complete.\"\n    }\n  ]\n}",
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "search-hub",
+      "backend": "searxng-instance",
+      "tool": "searxng_instance_info",
+      "verdict": "dead",
+      "result": "SearXNG /config is unavailable; no configured instances answered capability discovery -- the response is BYTE-IDENTICAL to searxng's, against the same instance",
+      "backing_resource": "http://127.0.0.1:8890",
+      "response_body": "{\n  \"available\": false,\n  \"message\": \"SearXNG /config is unavailable; no configured instances answered capability discovery.\",\n  \"instancesUnreachable\": [\n    {\n      \"sourceUrl\": \"http://127.0.0.1:8890\",\n      \"message\": \"SearXNG /config is unavailable; instance capability discovery could not complete.\"\n    }\n  ]\n}",
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "rclone",
+      "tool": "core_version",
+      "verdict": "dead",
+      "result": "backend 'rclone (rclone-mcp over rcd)' is unavailable: initialize failed: deadline exceeded -- cloud-hub itself reports that its other tools stay listed",
+      "backing_resource": "rclone rcd",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
+      "corroboration": {
+        "utc_date": "2026-08-13",
+        "by": "mcp-audit grounding lane round 2, recorded in _g3_backend_liveness.BACKEND_PROBES",
+        "agreed": true
+      }
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "runpod",
+      "tool": "list-gpu-types",
+      "verdict": "dead",
+      "result": "backend unavailable: initialize failed: deadline exceeded",
+      "backing_resource": "RunPod API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "modal",
+      "tool": "modal_whoami",
+      "verdict": "hang",
+      "result": "tool timed out after 600s -- no terminal state at all. NOT re-probed by the build lane: a re-probe costs the full 600s timeout and cannot change a hang verdict into a cheaper one",
+      "backing_resource": "Modal API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "databricks",
+      "tool": "dbx_current_user",
+      "verdict": "auth-dead",
+      "result": "PermissionDenied: invalid access token (the PAT is expired). OWNER ACTION -- no credential was read, printed, or rotated",
+      "backing_resource": "Databricks workspace API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "biomni",
+      "tool": "bm_whoami",
+      "verdict": "dead",
+      "result": "local broker refused connection (WinError 10061)",
+      "backing_resource": "local biomni cookie-broker",
+      "response_body": null,
+      "measured_utc_date": "2026-08-13",
+      "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "kaggle",
+      "tool": "competitions_list",
+      "verdict": "dead",
+      "result": "cloud-hub reported backend 'Kaggle (kaggle-mcp-server)' unavailable: initialize failed: CHILD EXITED -- a different failure mode from the deadline-exceeded backends, and the proxy states in the same breath that its other tools stay listed",
+      "backing_resource": "kaggle-mcp-server child process",
+      "response_body": "[cloud-hub] backend 'Kaggle (kaggle-mcp-server)' is unavailable: initialize failed: child exited. Its other tools stay listed; fix the credentials/login for that backend and restart the session.",
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "aws",
+      "tool": "aws___list_regions",
+      "verdict": "not-dispatchable",
+      "result": "the server answered \"Unknown tool: 'aws___list_regions'\" although that name IS in the committed tools/list surface and IS resolvable in this session's client namespace. Corroborated as a FAMILY failure rather than a typo: aws_account_current on the SAME server returned ok:true in the same batch, so cloud-hub is up and dispatching. All 9 aws___* tools are advertised; none was reachable.",
+      "backing_resource": "cloud-hub tool router (mcp-proxy-for-aws family; no backend reached)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "azure",
+      "tool": "azmcp_subscription_list",
+      "verdict": "not-dispatchable",
+      "result": "'The tool azmcp_subscription_list was not found'. TWO different azmcp_ tools were tried (azmcp_subscription_list, azmcp_bestpractices_get) and both failed identically, while az_account_current on the same server returned ok:true -- so the whole 14-tool azmcp_ family is undispatchable rather than one name being wrong. UNVERIFIED which layer emits this string (client registry vs proxy router); the two families' error wording differs and that was not chased. Settling experiment: an MCP tools/list capture compared against the client's deferred-tool catalogue.",
+      "backing_resource": "cloud-hub tool router (@azure/mcp family; no backend reached)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "gcloud",
+      "tool": "run_gcloud_command",
+      "verdict": "live",
+      "result": "a real Cloud Resource Manager read (projects list, limit 1) returned lifecycleState=ACTIVE. The output was projected to lifecycleState ONLY, so no project identifier was read into the transcript or recorded here.",
+      "backing_resource": "Google Cloud Resource Manager API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "lightning",
+      "tool": "lightning_machine_types",
+      "verdict": "live",
+      "result": "returned ok:true with 45 Studio machine types (A100/H100/H200/B200/L40S/T4/CPU families) -- a real SDK read that returns fleet-specific data, not a health ping",
+      "backing_resource": "Lightning AI SDK",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "ovh",
+      "tool": "ovh_api_catalog",
+      "verdict": "live",
+      "result": "returned the 52-category OVH API catalog. Recorded LIVE DELIBERATELY: the first OVH probe (ovh_services) failed, and marking the backend dead on that alone would have counted ~30 working tools as dead surface. What is established is that ovh_services reached something answering in OVH's OWN error envelope (class Client::NotFound), so the module dispatches and surfaces real API errors. UNVERIFIED whether the catalog itself is fetched or served from a local static list; settling experiment: a tool that must transit the network (e.g. ovh_vps_list) compared on latency and error shape.",
+      "backing_resource": "OVH API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null,
+      "known_tool_defects": [
+        {
+          "tool": "ovh_services",
+          "error": "OVH API GET /me/service -> 404 {class: Client::NotFound, message: Got an invalid (or empty) URL}. The catalog this backend returns lists /me, /service AND /services, so the path this tool builds looks wrong; not chased further because it does not change any disposition."
+        }
+      ]
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "compute-unified",
+      "tool": "compute_catalog",
+      "verdict": "live",
+      "result": "compute_catalog(provider=lightning) returned ok:true with 45 items. Cross-checked: that 45-item list is EXACTLY EQUAL as a sequence to lightning_machine_types' own output, so two independent tool paths to the same backend agree. The JSON envelopes differ (provider/kind/items vs machine_types), so this is list equality and explicitly NOT byte identity.",
+      "backing_resource": "cloud-hub unified compute layer (over Lightning AI for this probe)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "cloud-hub",
+      "backend": "cloud-hub-account-layer",
+      "tool": "aws_account_current",
+      "verdict": "live",
+      "result": "ok:true, mode=env. Probed FOUR times across families whose backends are in different states -- aws (not-dispatchable), runpod (dead), kaggle (dead), azure (not-dispatchable) -- and all four returned ok:true. Three of the four sit over a backend measured non-functional in this same session, which is what establishes this layer as hub-local bookkeeping rather than backend-dependent. No credential VALUE was read or printed; the shim reports env-var NAMES only.",
+      "backing_resource": "cloud-hub local account store (env-var / CLI profile bookkeeping)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "search-hub",
+      "backend": "exa",
+      "tool": "web_search_exa",
+      "verdict": "live",
+      "result": "a real 1-result search returned a titled result with URL and highlights -- the capability answered, not merely the server. search_usage separately reports 11 Exa key slots of which 9 report usable=true; the slot labels are account identifiers and are deliberately not reproduced. NOTE: a PostToolUse sentinel flagged this successful call as an infra failure by matching the word 'Timeout' inside the RESULT CONTENT (a page about MCP ping timeouts) -- a use-vs-mention failure in that hook, not a failed call.",
+      "backing_resource": "Exa search API",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "search-hub",
+      "backend": "tavily",
+      "tool": "tavily_search",
+      "verdict": "no-credential",
+      "result": "search-hub refused LOCALLY: 'no usable Tavily API key: set TAVILY_API_KEY (and optional TAVILY_API_KEY_2.. backups) or add one via tv_account_add'. The backend was never contacted. This also SETTLES the semantics of search_usage's usable:false flag, which until this call was an inference: both Tavily slots report usable:false and the call fails for want of key material.",
+      "backing_resource": "Tavily API (never contacted -- refused at the local key store)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    },
+    {
+      "server": "search-hub",
+      "backend": "firecrawl",
+      "tool": "firecrawl_scrape",
+      "verdict": "no-credential",
+      "result": "search-hub refused LOCALLY: 'no usable Firecrawl API key: set FIRECRAWL_API_KEY (and optional FIRECRAWL_API_KEY_2.. backups) or add one via fc_account_add'. Measured rather than carried over from the usable:false flag on purpose: that flag's meaning was confirmed on Tavily by a separate call, and generalising from one confirmed instance is exactly the step this lane exists to avoid.",
+      "backing_resource": "Firecrawl API (never contacted -- refused at the local key store)",
+      "response_body": null,
+      "measured_utc_date": "2026-08-14",
+      "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+      "corroboration": null
+    }
+  ],
+  "unprobed": {
+    "cloud-hub": {
+      "backends": [],
+      "status": "CLOSED 2026-08-14 -- every cloud-hub backend now carries a first-hand read-only call. Round 1 listed 7 unmeasured backends; this round probed all 7, and split out the account layer the map had been folding into them.",
+      "settling_experiment": "n/a -- closed"
+    },
+    "search-hub": {
+      "backends": [],
+      "status": "CLOSED 2026-08-14 -- all four backends (exa, tavily, firecrawl, searxng-instance) carry a first-hand call.",
+      "settling_experiment": "n/a -- closed"
+    }
+  }
+}

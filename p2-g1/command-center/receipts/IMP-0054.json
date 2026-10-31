@@ -1,0 +1,281 @@
+{
+ "artifacts": [
+  {
+   "eol": "LF",
+   "exists": true,
+   "note": "sha256 is recorded in the per-unit UNIT-ARTIFACT-MANIFEST.json after this file is written; embedding the digest here would change the digest",
+   "path": "command-center/receipts/IMP-0054.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 15760,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/degrade_loudly.py",
+   "role": "supporting",
+   "sha256": "689b9266b7ef52f10f65125728358f73453d0d62d4e1ce6f2d36d70649cdd765"
+  },
+  {
+   "bytes": 871,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/schema/warning-record.schema.json",
+   "role": "supporting",
+   "sha256": "0a31d7ee68eff1c18421b1e69a528e3b7b94a32b74ac08056ff04a48ff0fcea1"
+  },
+  {
+   "bytes": 9483,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_degrade_loudly.py",
+   "role": "supporting",
+   "sha256": "10f4979c59fa972a0d3123028216bba882da4f22cdedfed5837ad08b0e306059"
+  },
+  {
+   "bytes": 3355,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0054/probe1_discarded_return_persists.py",
+   "role": "supporting",
+   "sha256": "5abc0648ded6f6954bd29f53aa598dad9f0c506bf471eef1940bc1de0335b5f4"
+  },
+  {
+   "bytes": 6668,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0054/probe2_health_and_bounds.py",
+   "role": "supporting",
+   "sha256": "b178a4eae87fb897ec97ab706fecff52700927c7054c7c00fe8506759e27c17c"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/plugin/degrade_loudly.py",
+   "consumer": "command-center/p2-wave/probes/IMP-0054/probe1_discarded_return_persists.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe1_discarded_return_persists.py",
+    "exit_code": 0,
+    "fingerprint": "ce2b66cc8f507209e82da7d5ca777da7",
+    "method": "command",
+    "raw_output": "{\"discarded_return\": true, \"durable_record_after_process_exit\": true, \"empty_sibling_explicit\": true, \"pass\": true, \"planted_code\": \"IMP-0054.PROBE1.SWALLOWED\", \"probe\": \"probe1-discarded-return-persists\", \"unit_id\": \"IMP-0054\", \"writer_exit\": 0}\nSUCCESS:IMP-0054-probe1 discarded return still persists on disk",
+    "role": "source"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "tools/plugin/degrade_loudly.py",
+   "consumer": "command-center/p2-wave/probes/IMP-0054/probe2_health_and_bounds.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe2_health_and_bounds.py",
+    "exit_code": 0,
+    "fingerprint": "50cbd56de33a67087f3be331a3110875",
+    "method": "command",
+    "raw_output": "{\"bounded_bytes\": 772, \"bounded_files\": 2, \"ceiling_bytes\": 900, \"empty_and_warned_reports_differ\": true, \"empty_sink_explicit\": true, \"hard_ceiling_below_774kib_pathology\": true, \"later_process_surfaced_prior_record\": true, \"pass\": true, \"probe\": \"probe2-health-and-bounds\", \"unbounded_bytes\": 7710, \"unit_id\": \"IMP-0054\"}\nSUCCESS:IMP-0054-probe2 health-check surfaces sink; rotation is bounded",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/degrade_loudly.py:warn",
+   "claim": "A caller that deliberately discards the warning return value still produces a durable warning record on disk, measured after the writer process has exited.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe1_discarded_return_persists.py",
+     "exit_code": 0,
+     "fingerprint": "ce2b66cc8f507209e82da7d5ca777da7",
+     "method": "command",
+     "raw_output": "{\"discarded_return\": true, \"durable_record_after_process_exit\": true, \"empty_sibling_explicit\": true, \"pass\": true, \"planted_code\": \"IMP-0054.PROBE1.SWALLOWED\", \"probe\": \"probe1-discarded-return-persists\", \"unit_id\": \"IMP-0054\", \"writer_exit\": 0}\nSUCCESS:IMP-0054-probe1 discarded return still persists on disk",
+     "role": "source"
+    },
+    {
+     "command": "read tools/plugin/degrade_loudly.py after writer process exit",
+     "exit_code": 0,
+     "fingerprint": "333e1f048360b9c38ab78dfd51e07b17",
+     "method": "file-read",
+     "raw_output": "bytes=15760 sha256=689b9266b7ef52f10f65125728358f73453d0d62d4e1ce6f2d36d70649cdd765 fsync=True rotate=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/degrade_loudly.py:health_check",
+   "claim": "A later, separate process running health_check surfaces that record. An empty sink is declared NO_WARNINGS explicitly, and the warned report is not identical to the empty report. The sink rotates and stays under a hard ceiling below the 774 KiB unbounded-log pathology.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe2_health_and_bounds.py",
+     "exit_code": 0,
+     "fingerprint": "50cbd56de33a67087f3be331a3110875",
+     "method": "command",
+     "raw_output": "{\"bounded_bytes\": 772, \"bounded_files\": 2, \"ceiling_bytes\": 900, \"empty_and_warned_reports_differ\": true, \"empty_sink_explicit\": true, \"hard_ceiling_below_774kib_pathology\": true, \"later_process_surfaced_prior_record\": true, \"pass\": true, \"probe\": \"probe2-health-and-bounds\", \"unbounded_bytes\": 7710, \"unit_id\": \"IMP-0054\"}\nSUCCESS:IMP-0054-probe2 health-check surfaces sink; rotation is bounded",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_degrade_loudly.py",
+     "exit_code": 0,
+     "fingerprint": "edefa78c5d18a27d1d2f00755bedb89f",
+     "method": "command",
+     "raw_output": "PASS test_ignored_warning_still_persists\nPASS test_empty_sink_health_is_explicit\nPASS test_warned_health_is_not_identical_to_empty\nPASS test_sink_rotates_and_cannot_grow_without_limit\nPASS test_message_truncated_to_bound\nPASS test_health_surfaces_record_from_separate_process\nPASS test_atexit_stderr_names_the_count\nSUCCESS:IMP-0054 tests 7/7\ndegrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-trunc-t5o_ea3p\ndegrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-bound-q0fczq8e/unbounded\ndegrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-bound-q0fczq8e/bounded\ndegrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-diff-qknk0518/warn\ndegrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-persist-nlxzz3jn",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "classification": [],
+  "reason": "none \u2014 both catalog signals held on a live re-run"
+ },
+ "implementation": {
+  "api": [
+   "warn",
+   "health_check",
+   "Sink",
+   "discard-warn CLI"
+  ],
+  "bounds": {
+   "ceiling_below_pathology": true,
+   "default_hard_ceiling_bytes": 524288,
+   "default_max_file_bytes": 65536,
+   "default_max_files": 8,
+   "messages_truncated_at": 2048,
+   "pathology_reference_bytes": 792576
+  },
+  "bytes": 15760,
+  "durability": "JSONL append + flock + fsync before return",
+  "exit_surface": "atexit writes exit-surface.json and prints a count to stderr",
+  "module": "tools/plugin/degrade_loudly.py",
+  "sha256": "689b9266b7ef52f10f65125728358f73453d0d62d4e1ce6f2d36d70649cdd765"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0054/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "a missing verdict would look like a healthy run",
+   "description": "A run with no warnings must leave an empty sink and the health-check must say so explicitly (verdict=NO_WARNINGS, empty_sink_declared=true, explicit text contains 'no warnings'). Omission of the field is the uncontrolled-silence defect.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"empty_sink_declared\": true, \"explicit\": \"no warnings recorded; sink empty\", \"verdict\": \"NO_WARNINGS\"}",
+   "id": "IMP0054-C1-empty-sink-explicit",
+   "kind": "known-good-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "unbounded_bytes=7710",
+   "description": "The same flood with rotate=False must exceed the 900-byte test ceiling, proving the bound detector can fail. Bounded mode stayed at 772B / 2 files; unbounded reached 7710B.",
+   "fired_on_bad_state": true,
+   "good_state_output": "bounded_bytes=772 files=2",
+   "id": "IMP0054-C2-unbounded-grows-past-ceiling",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Implement a warning surface that survives to the user even when the calling code ignores return values: warnings are written to a durable sink, counted, and surfaced in the next health-check and at process exit \u2014 closing the 'uncontrolled silence' class where a degraded path looks identical to a healthy one.",
+ "report": {
+  "kind": "degrade-loudly-channel",
+  "probe1": {
+   "discarded_return": true,
+   "durable_record_after_process_exit": true,
+   "empty_sibling_explicit": true,
+   "pass": true,
+   "planted_code": "IMP-0054.PROBE1.SWALLOWED",
+   "probe": "probe1-discarded-return-persists",
+   "unit_id": "IMP-0054",
+   "writer_exit": 0
+  },
+  "probe2": {
+   "bounded_bytes": 772,
+   "bounded_files": 2,
+   "ceiling_bytes": 900,
+   "empty_and_warned_reports_differ": true,
+   "empty_sink_explicit": true,
+   "hard_ceiling_below_774kib_pathology": true,
+   "later_process_surfaced_prior_record": true,
+   "pass": true,
+   "probe": "probe2-health-and-bounds",
+   "unbounded_bytes": 7710,
+   "unit_id": "IMP-0054"
+  },
+  "tests_tail": [
+   "PASS test_empty_sink_health_is_explicit",
+   "PASS test_warned_health_is_not_identical_to_empty",
+   "PASS test_sink_rotates_and_cannot_grow_without_limit",
+   "PASS test_message_truncated_to_bound",
+   "PASS test_health_surfaces_record_from_separate_process",
+   "PASS test_atexit_stderr_names_the_count",
+   "SUCCESS:IMP-0054 tests 7/7",
+   "degrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-trunc-t5o_ea3p",
+   "degrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-bound-q0fczq8e/unbounded",
+   "degrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-bound-q0fczq8e/bounded",
+   "degrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-diff-qknk0518/warn",
+   "degrade-loudly exit-surface: 0 warning(s) in durable sink /tmp/imp0054-persist-nlxzz3jn"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0051 taxonomy codes and IMP-0056 JSONL redaction are declared dependencies and are not delivered in this worktree. This unit accepts any string code and does not redact; a later IMP-0056 pass should wrap the same sink rather than replace it.",
+   "settling_experiment": "After IMP-0056 lands, plant a synthetic credential in a warning message and grep the sink for the secret body.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0054-probe2-health-and-bounds",
+  "scope": "Confirm the sink is bounded: live flood stayed under the test ceiling (900 B, 3 files) while the rotate=False twin exceeded it. Default production ceiling is 512 KiB, below the 774 KiB pathology.",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0054",
+ "spec_anchor": "_USER-PROMPTS.md:10983; _USER-PROMPTS.md:11316; AGENTS.md#4",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_degrade_loudly.py::test_ignored_warning_still_persists",
+   "id": "test_ignored_warning_still_persists",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_degrade_loudly.py::test_empty_sink_health_is_explicit",
+   "id": "test_empty_sink_health_is_explicit",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_degrade_loudly.py::test_sink_rotates_and_cannot_grow_without_limit",
+   "id": "test_sink_rotates_and_cannot_grow_without_limit",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe1_discarded_return_persists.py",
+   "id": "probe1_discarded_return_persists",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0054/probe2_health_and_bounds.py",
+   "id": "probe2_health_and_bounds",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:17Z",
+  "started_at": "2026-08-25T00:59:12Z"
+ },
+ "title": "Degrade-loudly channel that cannot be silently swallowed",
+ "unit_id": "IMP-0054"
+}

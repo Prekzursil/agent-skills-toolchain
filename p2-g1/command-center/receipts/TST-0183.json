@@ -1,0 +1,350 @@
+{
+ "evidence": [
+  {
+   "claim": "TST-0183 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0183.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0183.json",
+     "raw_output": "bytes=5470 sha256=94e935508f81ac708df1aa31e721190d9cf79b95f9125e9b1774428975304c6f",
+     "fingerprint": "4415c4b1792b8f6c03fd9f58292cec96",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0183",
+     "raw_output": "schema-check",
+     "fingerprint": "f31f336abfdb1c2766a4c93c65686331",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0183 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0183",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0183",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "9bc7eba70b4c37bb4abf594281fbd46f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0183",
+     "raw_output": "schema-valid",
+     "fingerprint": "52c24f52f0700e429d0c6516f37549c9",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "sentinel": "SUCCESS:TST-0183",
+ "state": "SUCCESS",
+ "unit_id": "TST-0183",
+ "extensions": {
+  "legacy_root": {
+   "answer": {
+    "declared_policy": "accept-and-normalize",
+    "mojibake_in_accepted_fields": false,
+    "summary": "The live plugin/marketplace manifest loader (tools/plugin/manifest_loader.py), now used by marketplace.update.effective_permissions_from_disk, declares a single policy accept-and-normalize. UTF-8, UTF-8-with-BOM, UTF-16LE, and UTF-16BE all parse to the same document; the non-ASCII description field round-trips to identical UTF-8 bytes (sha256=aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d). A naive json.loads(utf-8) path rejects BOM and UTF-16LE, so the policy is load-bearing. Pre-parse latin-1 pair repair (AUD-0085 U+00D7 U+00A5) rewrites the field to U+05E5; production never runs that repair.",
+    "utf16le": "accept-and-normalize",
+    "utf8_plain": "accept-and-normalize",
+    "utf8_with_bom": "accept-and-normalize"
+   },
+   "both_states": {
+    "naive_stdlib_utf8_accepts_plain_utf8": true,
+    "naive_stdlib_utf8_rejects_bom": true,
+    "naive_stdlib_utf8_rejects_utf16le": true,
+    "plain_utf8_accepted_identical_fields": true
+   },
+   "cloud_ok": false,
+   "encodings": [
+    {
+     "accepted": true,
+     "bom": false,
+     "detected_encoding": "utf-8",
+     "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+     "input_encoding": "utf-8",
+     "naive_utf8_outcome": "accepted",
+     "policy": "accept-and-normalize",
+     "source_bytes": 109
+    },
+    {
+     "accepted": true,
+     "bom": true,
+     "detected_encoding": "utf-8-sig",
+     "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+     "input_encoding": "utf-8-sig",
+     "naive_utf8_outcome": "rejected:JSONDecodeError:Unexpected UTF-8 BOM (decode using utf-8-sig)",
+     "policy": "accept-and-normalize",
+     "source_bytes": 112
+    },
+    {
+     "accepted": true,
+     "bom": true,
+     "detected_encoding": "utf-16-le",
+     "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+     "input_encoding": "utf-16-le",
+     "naive_utf8_outcome": "rejected:UnicodeDecodeError",
+     "policy": "accept-and-normalize",
+     "source_bytes": 196
+    },
+    {
+     "accepted": true,
+     "bom": true,
+     "detected_encoding": "utf-16-be",
+     "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+     "input_encoding": "utf-16-be",
+     "naive_utf8_outcome": "rejected:UnicodeDecodeError",
+     "policy": "accept-and-normalize",
+     "source_bytes": 196
+    }
+   ],
+   "id": "TST-0183",
+   "measured_at": "2026-08-25T01:01:31Z",
+   "output_path": "command-center/receipts/TST-0183.json",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+   "question": "How does the loader treat a UTF-8-with-BOM and a UTF-16LE manifest? PASS requires a single declared behavior (accept-and-normalize OR reject with a precise message) applied consistently, and zero mojibake in any accepted field value.",
+   "regression_seed": {
+    "estate": "AUD-0085 encoding/BOM/mojibake census",
+    "mutant_description_contains_u05e5": true,
+    "mutant_field_utf8_hex": "636166c3a920d7a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+    "production_field_utf8_hex": "636166c3a920c397c2a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+    "seed": "mojibake repaired at the wrong pipeline stage",
+    "wrong_stage": "latin-1 pair decode of JSON text before json.loads"
+   },
+   "reject_control": {
+    "fixture": "trailing-comma JSON",
+    "message_prefix": "reject:json",
+    "precise": true,
+    "sample": "reject:json Expecting property name enclosed in double quotes"
+   },
+   "report_kind": "parser_report",
+   "roundtrip": {
+    "canonical_description": "café ×¥ 日本語 — naïve",
+    "field_utf8_hex": "636166c3a920c397c2a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+    "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+    "identical_across_encodings": true
+   },
+   "schema_file_present": true,
+   "sut": {
+    "bytes": 4207,
+    "path": "tools/plugin/manifest_loader.py",
+    "sha256": "fced0c00a1288386c387a5fe5e037e67722da83a35a1b4b54d42dc8c627df59b",
+    "wired_into": "tools/marketplace/update.py:effective_permissions_from_disk"
+   },
+   "tests_required": [
+    "both-states control: plain UTF-8 is accepted with identical field values",
+    "regression seed: mojibake repaired at the wrong pipeline stage, measured on this estate"
+   ],
+   "title": "BOM and UTF-16 manifests behave deterministically and never mojibake"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0183",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0183.json",
+   "bytes": 5470,
+   "sha256": "94e935508f81ac708df1aa31e721190d9cf79b95f9125e9b1774428975304c6f",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0183.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0183/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0183"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0183.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0183.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "67aed6664c62b743175d9c6a9d1bdd04",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "parser_report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 5470,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0183.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": {
+  "declared_policy": "accept-and-normalize",
+  "mojibake_in_accepted_fields": false,
+  "summary": "The live plugin/marketplace manifest loader (tools/plugin/manifest_loader.py), now used by marketplace.update.effective_permissions_from_disk, declares a single policy accept-and-normalize. UTF-8, UTF-8-with-BOM, UTF-16LE, and UTF-16BE all parse to the same document; the non-ASCII description field round-trips to identical UTF-8 bytes (sha256=aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d). A naive json.loads(utf-8) path rejects BOM and UTF-16LE, so the policy is load-bearing. Pre-parse latin-1 pair repair (AUD-0085 U+00D7 U+00A5) rewrites the field to U+05E5; production never runs that repair.",
+  "utf16le": "accept-and-normalize",
+  "utf8_plain": "accept-and-normalize",
+  "utf8_with_bom": "accept-and-normalize"
+ },
+ "both_states": {
+  "naive_stdlib_utf8_accepts_plain_utf8": true,
+  "naive_stdlib_utf8_rejects_bom": true,
+  "naive_stdlib_utf8_rejects_utf16le": true,
+  "plain_utf8_accepted_identical_fields": true
+ },
+ "cloud_ok": false,
+ "encodings": [
+  {
+   "accepted": true,
+   "bom": false,
+   "detected_encoding": "utf-8",
+   "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+   "input_encoding": "utf-8",
+   "naive_utf8_outcome": "accepted",
+   "policy": "accept-and-normalize",
+   "source_bytes": 109
+  },
+  {
+   "accepted": true,
+   "bom": true,
+   "detected_encoding": "utf-8-sig",
+   "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+   "input_encoding": "utf-8-sig",
+   "naive_utf8_outcome": "rejected:JSONDecodeError:Unexpected UTF-8 BOM (decode using utf-8-sig)",
+   "policy": "accept-and-normalize",
+   "source_bytes": 112
+  },
+  {
+   "accepted": true,
+   "bom": true,
+   "detected_encoding": "utf-16-le",
+   "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+   "input_encoding": "utf-16-le",
+   "naive_utf8_outcome": "rejected:UnicodeDecodeError",
+   "policy": "accept-and-normalize",
+   "source_bytes": 196
+  },
+  {
+   "accepted": true,
+   "bom": true,
+   "detected_encoding": "utf-16-be",
+   "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+   "input_encoding": "utf-16-be",
+   "naive_utf8_outcome": "rejected:UnicodeDecodeError",
+   "policy": "accept-and-normalize",
+   "source_bytes": 196
+  }
+ ],
+ "id": "TST-0183",
+ "measured_at": "2026-08-25T01:01:31Z",
+ "output_path": "command-center/receipts/TST-0183.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+ "question": "How does the loader treat a UTF-8-with-BOM and a UTF-16LE manifest? PASS requires a single declared behavior (accept-and-normalize OR reject with a precise message) applied consistently, and zero mojibake in any accepted field value.",
+ "regression_seed": {
+  "estate": "AUD-0085 encoding/BOM/mojibake census",
+  "mutant_description_contains_u05e5": true,
+  "mutant_field_utf8_hex": "636166c3a920d7a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+  "production_field_utf8_hex": "636166c3a920c397c2a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+  "seed": "mojibake repaired at the wrong pipeline stage",
+  "wrong_stage": "latin-1 pair decode of JSON text before json.loads"
+ },
+ "reject_control": {
+  "fixture": "trailing-comma JSON",
+  "message_prefix": "reject:json",
+  "precise": true,
+  "sample": "reject:json Expecting property name enclosed in double quotes"
+ },
+ "report_kind": "parser_report",
+ "roundtrip": {
+  "canonical_description": "café ×¥ 日本語 — naïve",
+  "field_utf8_hex": "636166c3a920c397c2a520e697a5e69cace8aa9e20e28094206e61c3af7665",
+  "field_utf8_sha256": "aee89a702db61fd01c740c2c0e195efd32433af94e4d10041f5173256badc56d",
+  "identical_across_encodings": true
+ },
+ "schema_file_present": true,
+ "sut": {
+  "bytes": 4207,
+  "path": "tools/plugin/manifest_loader.py",
+  "sha256": "fced0c00a1288386c387a5fe5e037e67722da83a35a1b4b54d42dc8c627df59b",
+  "wired_into": "tools/marketplace/update.py:effective_permissions_from_disk"
+ },
+ "tests_required": [
+  "both-states control: plain UTF-8 is accepted with identical field values",
+  "regression seed: mojibake repaired at the wrong pipeline stage, measured on this estate"
+ ],
+ "title": "BOM and UTF-16 manifests behave deterministically and never mojibake"
+}

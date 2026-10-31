@@ -1,0 +1,54 @@
+feat(casualty): wire the recovered lane into CI, with the proof it can go red
+
+Rounds 1 and 2 shipped two recovered receipts and six instruments, all correct and none of
+them reachable: nothing in this repo called any of them, so the only thing keeping the lane
+from rotting was somebody remembering it existed. This wires it in three places and proves
+each wire by breaking it.
+
+WHAT IS NOW REACHABLE
+  * .github/workflows/quality.yml runs `python -m pytest command-center/casualty/tests`,
+    `casualty_guard.py` and `integration_redproof.py` inside the existing
+    `gate-tests-coverage command-center` step. Deliberately NOT a new `gate-<slug>` step, so
+    .quality/charter.yml stays a closed set -- charter_check.sh re-run and still reports
+    "OK -- 6 gates consistent".
+  * tools/measure-guard/suitefloor.py registers a `casualty` suite (32 collected, floor 28)
+    and quality.yml enforces it. The registry entry is the enrolment; the floor is what makes
+    a collapse to the green-state-only half of the suite fail rather than pass quietly.
+  * casualty_guard.py is the hermetic subset a runner can execute: six probes covering the CI
+    wiring, a two-directional instrument inventory, both receipts' published elided sha256 and
+    byte count, the location-agnostic no-lost-work invariant, the _DO_NOT_CITE banners on the
+    two superseded round-1 outputs, and -- the launchpath lesson -- actually RUNNING two
+    instruments rather than checking their bytes.
+
+THE RED-PROOF, which is the part worth reading
+  Before the wiring existed the guard already said so: `FAILED:casualty-guard P1-wiring`,
+  exit 1, captured verbatim in integration-proof/RED-before-wiring.txt. integration_redproof.py
+  reruns that on demand -- same command, two trees, GREEN on this one and RED on a mirror with
+  the invocation line deleted and the path left behind in a COMMENT. It also proves the suite
+  floor can fail, by raising it above the observed count and by pointing it at an empty tests
+  directory. 4/4 controls discriminate.
+
+FOUR DEFECTS FOUND AND FIXED IN MY OWN WORK, recorded rather than quietly patched
+  1. Four instruments hardcoded C:/Users/Prekzursil/source/ast-integrate as the repo root, so
+     none of them could run on a runner or in a fresh clone -- the exact defect class this lane
+     exists to catch. Now derived from __file__, with CASUALTY_REPO to aim them at a mutated
+     copy. Behaviour-preserving on this box: both selftests re-run identical to their baseline.
+  2. The wiring probe reported the index within its comment-stripped list as if it were a file
+     line -- "line 176" for an invocation at line 430. A gate that prints a plausible-but-wrong
+     locator costs the debugging it exists to save.
+  3. The anti-rot check "every EXECUTED instrument has a real call site" was VACUOUS: every
+     instrument name is also a key of the INSTRUMENTS dict, so the matcher returned True for
+     all eight. Counting the document instead of the field, reproduced inside the check written
+     to prevent it. Fixed by excluding the registry, and test_the_call_site_matcher_discriminates
+     is the control that keeps it honest (liveness_v2.py in, census_v2.py out).
+  4. P4 imported the scorer from a `_`-prefixed file it did not gate, so deleting that file
+     crashed the guard -- and a traceback in a CI log reads as an infrastructure hiccup, not a
+     finding. Now a named REQUIRED_DEPS failure.
+
+The two-directional inventory gate also fired on real work mid-build: integration_redproof.py
+arrived undispositioned and P2 refused it until a disposition was written.
+
+Scope: only the lane, quality.yml and suitefloor.py are touched. Five lane JSON outputs are
+modified in the working tree by a SIBLING's run of r2_verify_all.py and are deliberately NOT
+staged -- verified with a control that my own P6 instruments leave all three sampled files
+byte-identical.

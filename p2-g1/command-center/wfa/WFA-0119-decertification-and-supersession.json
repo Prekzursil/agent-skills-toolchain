@@ -1,0 +1,218 @@
+{
+ "certified": true,
+ "conditions": {
+  "capability_superset": {
+   "extraction_rule": "credit a mechanism only when it appears in definition.stages; documenting a mechanism in notes does not count (use-versus-mention)",
+   "missing": [],
+   "pass": true,
+   "replacement_mechanisms": [
+    "mech.audit",
+    "mech.notify",
+    "mech.parse",
+    "mech.persist",
+    "mech.validate"
+   ],
+   "retired_mechanisms": [
+    "mech.notify",
+    "mech.parse",
+    "mech.persist",
+    "mech.validate"
+   ],
+   "signal": "A"
+  },
+  "owner_visible": {
+   "decision_id": "owner-signoff-intake-v1-retire",
+   "pass": true,
+   "required": true
+  },
+  "preservation_before_terminal": {
+   "pass": true,
+   "sha256": "876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00"
+  },
+  "retired_benchmarks_rerun": {
+   "cases_failed": [],
+   "cases_run": 5,
+   "pass": true,
+   "signal": "B"
+  }
+ },
+ "decision": "CERTIFY-SUCCESSOR-AND-SUPERSEDE",
+ "dependencies": {
+  "WFA-0001": {
+   "path": "command-center/wfa/schema/wfa-schema-pack.json",
+   "present": true,
+   "role": "CertificationRecord schema pack"
+  },
+  "WFA-0076": {
+   "path": "command-center/wfa/WFA-0076-terminal-disposition-reversibility.json",
+   "present": true,
+   "role": "preserve-before-terminal",
+   "stand_in": "content-hash store + retrieval rehearsal in this unit"
+  },
+  "WFA-0118": {
+   "path": "command-center/wfa/WFA-0118-certification-gate.json",
+   "present": true,
+   "role": "certification gate",
+   "stand_in": "fixture workflows already marked CERTIFIED"
+  }
+ },
+ "evidence": [
+  {
+   "claim": "Replacement mechanism set is a superset of the retired set, computed over the fixture incidence matrix extracted from definition.stages.",
+   "id": "A",
+   "line": 66,
+   "path": "command-center/p2-wave/probes/WFA-0119/supersession.py",
+   "result": {
+    "extra": [
+     "mech.audit"
+    ],
+    "extraction_rule": "credit a mechanism only when it appears in definition.stages; documenting a mechanism in notes does not count (use-versus-mention)",
+    "matrix_id": "WFA-0119-fixture-incidence",
+    "missing": [],
+    "pass": true,
+    "replacement_id": "wf-certified-intake-v2",
+    "replacement_mechanisms": [
+     "mech.audit",
+     "mech.notify",
+     "mech.parse",
+     "mech.persist",
+     "mech.validate"
+    ],
+    "retired_id": "wf-certified-intake-v1",
+    "retired_mechanisms": [
+     "mech.notify",
+     "mech.parse",
+     "mech.persist",
+     "mech.validate"
+    ],
+    "signal": "A-incidence-superset"
+   },
+   "snippet": "def signal_a_superset(matrix: dict, retired_id: str, replacement_id: str)"
+  },
+  {
+   "claim": "Retired workflow benchmark cases re-run against the replacement; execution uses behavior_pack callables, not the matrix row.",
+   "id": "B",
+   "line": 177,
+   "path": "command-center/p2-wave/probes/WFA-0119/supersession.py",
+   "result": {
+    "cases_failed": [],
+    "cases_run": 5,
+    "independence": "Benchmark execution uses behavior_pack callables, not the incidence matrix row. A mechanism id present in the matrix does not make a case pass.",
+    "pass": true,
+    "replacement_id": "wf-certified-intake-v2",
+    "signal": "B-retired-benchmarks-rerun"
+   },
+   "snippet": "def signal_b_benchmarks(replacement: dict, cases: list[dict])"
+  }
+ ],
+ "generated_at": "2026-09-02T01:04:49Z",
+ "id": "cert.wfa-0119.supersession.intake-v1-to-v2",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0119/probe1_benchmark_refuse.py",
+   "id": "probe1",
+   "role": "benchmark-refuse-and-signal-divergence"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0119/probe2_preserve_owner.py",
+   "id": "probe2",
+   "role": "preservation-retrieval-and-owner-gate"
+  }
+ ],
+ "negative_controls": [
+  {
+   "accepted": false,
+   "id": "disconnected-notify",
+   "note": "Matrix superset with disconnected notify behaviour: A pass, B fail, refuse.",
+   "refusals": [
+    "benchmark-fail"
+   ],
+   "replacement_id": "wf-matrix-only",
+   "retired_status_after": "CERTIFIED",
+   "signal_a_pass": true,
+   "signal_b_pass": false
+  },
+  {
+   "accepted": false,
+   "id": "lossy-missing-notify",
+   "missing_mechanisms": [
+    "mech.notify"
+   ],
+   "note": "Notify absent from incidence row: capability-loss refuse.",
+   "refusals": [
+    "capability-loss",
+    "benchmark-fail"
+   ],
+   "replacement_id": "wf-lossy-intake",
+   "retired_status_after": "CERTIFIED",
+   "signal_a_pass": false
+  },
+  {
+   "accepted": false,
+   "id": "owner-relied-without-signoff",
+   "note": "Owner-relied capability cannot be retired by the lane.",
+   "refusals": [
+    "owner-blocked"
+   ],
+   "retired_status_after": "CERTIFIED"
+  },
+  {
+   "accepted": true,
+   "id": "non-owner-relied-without-signoff",
+   "note": "Helper not owner-relied may supersede without owner sign-off.",
+   "owner_required": false,
+   "retired_status_after": "SUPERSEDED"
+  }
+ ],
+ "owner_approval_required": true,
+ "production_retirement": "not-executed",
+ "record_type": "CertificationRecord",
+ "reviewer": {
+  "independent": true,
+  "notes": "Named probes re-run the engine live. Probe 1 is the benchmark/superset control; probe 2 is the retrieval and owner-visibility control.",
+  "reviewer_id": "WFA-0119-probe1-probe2",
+  "verdict": "PASS"
+ },
+ "schema_ref": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/CertificationRecord",
+ "schema_status": "declared-pack-present",
+ "scope": "Fixture rehearsal of the supersession path. No live-estate workflow was retired. Owner sign-off in this record applies to the fixture retired id wf-certified-intake-v1 only.",
+ "sentinel": "SUCCESS:WFA-0119",
+ "state": "SUCCESS",
+ "supersession": {
+  "edge": {
+   "kind": "certified-successor",
+   "superseded": "wf-certified-intake-v1",
+   "superseded_by": "wf-certified-intake-v2"
+  },
+  "edge_recorded": true,
+  "preservation": {
+   "bytes": 138,
+   "path": "fixtures/preserve-store/876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00.json",
+   "sha256": "876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00",
+   "stored": true,
+   "workflow_id": "wf-certified-intake-v1"
+  },
+  "retired_id": "wf-certified-intake-v1",
+  "retired_status_after": "SUPERSEDED",
+  "retrieval": {
+   "bytes": 138,
+   "ok": true,
+   "path": "fixtures/preserve-store/876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00.json",
+   "reason": "match",
+   "retrieved_sha256": "876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00",
+   "sha256": "876a438129d345965fd0ca4505f14a0d0079ac418b7b6d0fe6a425f2ecbeeb00"
+  },
+  "superseded_by": "wf-certified-intake-v2"
+ },
+ "tests": {
+  "capability_loss_refused": true,
+  "failed_retired_benchmark_refused": true,
+  "non_owner_relied_without_signoff_accepted": true,
+  "owner_relied_without_signoff_refused": true,
+  "refusal_writes_no_edge": true,
+  "retired_definition_retrievable": true,
+  "signals_a_and_b_diverge_on_disconnected": true
+ },
+ "unit_id": "WFA-0119",
+ "workflow_id": "wf-certified-intake-v2"
+}

@@ -1,0 +1,270 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s15-arch-review-board-5",
+  "preset": "architecture_review_board",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Approve, conditionally approve, or refuse an architecture decision, and carry forward the conditions register from prior submissions until every open condition is closed.",
+    "charter": "A STANDING board: it remembers. Conditions attached to an earlier submission are re-checked here, so a conditional approval cannot quietly become an approval by resubmission. Supermajority 0.8 with a security veto on safety grounds; the owner decides, the board advises. A proof that the decision is impossible as scoped is a legitimate and terminal outcome.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "the conditions register from prior submissions is loaded and every open condition is marked closed or still open",
+      "two full rounds elapsed with a premortem between them",
+      "0.8 of voters agree, or an explicit minority report is filed",
+      "every claim carries a file:line or command-output anchor"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.85,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 3, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": true, "deadline_minutes": 40 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "expertise_ranked", "vendor_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 2, "min_distinct_expertise": 5, "max_share_per_vendor": 0.6 },
+    "roster": [
+      {
+        "participant_id": "architect",
+        "display_name": "Principal architect (chair of the board)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["system architecture", "migration design"],
+        "role": "architect",
+        "authority": "chair",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_recruit": true, "may_call_experiment": true },
+        "effort": "xhigh",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security architect (safety veto)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["threat modelling", "blast radius"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true, "may_call_experiment": true },
+        "effort": "xhigh",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE (operability, rollback, failure tails)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["operations", "rollback design"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst (build, run, and complexity cost)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["cost modelling", "complexity"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "product",
+        "display_name": "Product (what the decision buys the user)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["product value"],
+        "role": "product_manager",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      }
+    ],
+    "role_templates": ["architect", "security_reviewer", "custom:sre", "custom:cost_analyst", "product_manager"],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "deadlock", "fast_unanimity"], "max_recruits": 2 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse", "conflict_of_interest", "dominance"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "prep_time_minutes": 10,
+    "required_artifacts": ["position_memo", "risk_list", "prior_art_scan"]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "architect",
+    "committees": [
+      { "committee_id": "safety", "mandate": "threat model, blast radius, rollback", "members": ["security", "sre"] },
+      { "committee_id": "economics", "mandate": "build/run cost against product value", "members": ["cost-analyst", "product"] }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "custom_name": "conditions-register-review", "stage_id": "conditions", "rounds": 1 },
+      { "kind": "blind_independent_first_pass", "stage_id": "openings", "independent": true },
+      { "kind": "cross_examination", "stage_id": "xexam", "rounds": 1 },
+      { "kind": "premortem", "stage_id": "premortem", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "ruling" }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 2, "max": 6, "divergence_before_convergence": true },
+    "turn": { "max_words": 800 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 3, "runner": "ci" }
+  },
+  "budgets": {
+    "effort": "xhigh",
+    "time_minutes": 40,
+    "tokens": 250000,
+    "tool_calls": 250,
+    "sources": 30,
+    "experiments": 3,
+    "turns": 30,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 3
+  },
+  "targets": { "objections": 8, "counterexamples": 3, "evidence_items": 20, "coverage_score": 0.9 },
+  "voting": {
+    "method": "supermajority",
+    "supermajority_threshold": 0.8,
+    "quorum": { "min_voters": 4, "min_fraction": 0.8, "on_failure": "extend_rounds" },
+    "veto": { "holders": ["security"], "scope": "safety_only", "must_justify": true, "overridable_by_owner": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "belief_aggregation": { "method": "calibration_weighted", "require_confidence_per_vote": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 2, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "(objections_open == 0 AND rounds_elapsed >= 2) OR proof_of_impossibility == true",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            { "metric": "objections_open", "op": "==", "value": 0 },
+            { "metric": "rounds_elapsed", "op": ">=", "value": 2 }
+          ]
+        },
+        { "metric": "proof_of_impossibility", "op": "==", "value": true }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 5,
+      "min_minutes": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": { "max_rounds": 6, "max_minutes": 40, "max_tokens": 250000, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "each open condition is closed within the condition SLA and re-checked by the seat that raised it",
+      "the rollback path is rehearsed before the change reaches a shared branch"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true, "vote_oscillation_rounds": 2 },
+    "resolution": ["run_experiment", "strongest_counterexample", "rotate_roles", "recruit_independent_critic", "split_question", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "instant_unanimity",
+      "sycophancy",
+      "participant_dominance",
+      "role_collapse",
+      "missing_expertise",
+      "strategic_voting",
+      "strategic_abstention",
+      "evidence_free_majority",
+      "premature_convergence",
+      "endless_debate",
+      "lost_dissent",
+      "minority_suppression",
+      "moderator_capture",
+      "hidden_conflict_of_interest",
+      "prompt_injection",
+      "consensus_failing_executable_tests"
+    ],
+    "fast_unanimity_response": ["role_rotation", "blind_re_evaluation", "forced_dissent", "strongest_counterexample"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "option_cards",
+      "argument_graph",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "final_recommendation",
+      "decision_lineage",
+      "action_plan"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 365, "pii_policy": "redact" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["migration start", "schema change", "deploy"] },
+    "persistence": { "store": "both", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "C-S15 arch-review-board-5",
+    "notes": "HUMAN-STOP: (objections_open == 0 AND rounds_elapsed >= 2) OR proof_of_impossibility == true | EDITABLE-DIALS: participants.roster (standing_seats) . outcomes.conditional_decision_requires and audit.privacy.retain_days (condition_sla) . voting.supermajority_threshold | METRIC-MAP: the design's open_conditions == 0 maps to the registered numeric objections_open == 0, since the conditions register is carried as open objections across submissions | SEM-009: the proof_of_impossibility LEAF forces proof_of_impossibility into outcomes.allowed - the semantic layer rejects a spec that can terminate on a metric whose outcome is not permitted, so these two edits move together | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . IRREDUCIBLE_DISAGREEMENT -> irreducible_disagreement . PROOF_OF_IMPOSSIBILITY -> proof_of_impossibility . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | OWNER-DECISION: YES - objective.owner_constraints.approval_required is true and voting.tie_break is owner; the board is advisory even at 0.8 supermajority | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11200-11225",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1359-1371"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-S15 arch-review-board-5",
+      "protocol P46 architecture-review-board",
+      "protocol P43 premortem"
+    ]
+  }
+}

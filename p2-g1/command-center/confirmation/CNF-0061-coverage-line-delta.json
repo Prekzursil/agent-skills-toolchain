@@ -1,0 +1,472 @@
+{
+  "artifacts": [
+    {
+      "bytes": 17326,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/confirmation/CNF-0061-coverage-line-delta.json",
+      "role": "primary",
+      "sha256": "1bd793976d1832fb6726b0462cc136da06e0f01aaca6ad4c95704617333ca9ff"
+    },
+    {
+      "bytes": 1027,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/coverage-delta.schema.json",
+      "role": "supporting",
+      "sha256": "a5e8bdbfe556ea9ccc4d901a149a1749beb924a50aabb2231b438ceb8eab1c36"
+    },
+    {
+      "bytes": 17111,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0061/coverage_delta.py",
+      "role": "supporting",
+      "sha256": "b03dabaeae42938419eacf9ea42f77315721ddddc83df5e99aafdac56cbf60b1"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0061-coverage-line-delta.json",
+      "consumer": "CNF-0061 named probe1 (line-set delta)",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe1_line_set_delta.py",
+        "exit_code": 0,
+        "fingerprint": "0460e2c51958e960ddeeb77d2af84a76dd903c9629c705b3f278a2d10c9ccf28",
+        "method": "command",
+        "raw_output": "artifact consumed by probe1 after emit",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0061/coverage_delta.py:397",
+      "claim": "The covered LINE SET moved while the percentage stayed 72.7273% on both sides; newly uncovered lines include security-path hits ['auth.py:8', 'auth.py:9', 'auth.py:10', 'auth.py:11', 'auth.py:12', 'auth.py:13'].",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/coverage_delta.py",
+          "exit_code": 0,
+          "fingerprint": "b4061ffe168f584d34cdbc95ed825ded7c9f058c505a7b92b0839ce3164f882e",
+          "method": "test-run",
+          "raw_output": "coverage_both=True traced_before=28 traced_after=28 percent before=72.7273 after=72.7273 unchanged=True newly_uncovered=auth.py:10 auth.py:11 auth.py:12 auth.py:13 auth.py:8 auth.py:9 control_uncovered=rollback.py:10 rollback.py:11 rollback.py:12 rollback.py:8 rollback.py:9 threshold=NOT-CHECKED",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe1_line_set_delta.py",
+          "exit_code": 0,
+          "fingerprint": "87cfbd308e106898ad6aaacfcc6733839a59f443f69182c434f42f86c26e0f3c",
+          "method": "command",
+          "raw_output": "named probe1 re-runs the line-set delta with coverage enabled and diffs the artifact",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0061/probe2_delete_one_test.py:1",
+      "claim": "The delete-one-test detector control, run with coverage enabled, produced a non-empty newly-uncovered set (5 lines, rollback path hit). The same comparison without coverage is blind.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe2_delete_one_test.py",
+          "exit_code": 0,
+          "fingerprint": "91e909faf13f9aa81f7347903302bf6a7c2917bc0a986b964923b158fa802d28",
+          "method": "test-run",
+          "raw_output": "deleted_test=test_rollback newly_uncovered_count=5 control_uncovered=rollback.py:10 rollback.py:11 rollback.py:12 rollback.py:8 rollback.py:9",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,pathlib; json.loads(pathlib.Path('command-center/confirmation/CNF-0061-coverage-line-delta.json').read_text())\"",
+          "exit_code": 0,
+          "fingerprint": "7b6ae6b8536b5a876b3873f42b72c6134f05f31a54af45df88c65c740124fe70",
+          "method": "file-read",
+          "raw_output": "artifact JSON parsed",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "CNF-0061",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0061/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "rollback.py:10 rollback.py:11 rollback.py:12 rollback.py:8 rollback.py:9",
+      "description": "Drop test_rollback from the fixture suite. The line-set delta must report a non-empty newly-uncovered set on rollback.py. The full suite compared with itself is silent.",
+      "fired_on_bad_state": true,
+      "good_state_output": "newly_uncovered_count=0 on full-vs-full",
+      "id": "delete-one-test",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "coverage_enabled=False newly_uncovered_count=0",
+      "description": "The same delete-one-test comparison with coverage disabled must not invent a newly-uncovered set. A run without coverage cannot see a coverage regression.",
+      "fired_on_bad_state": true,
+      "good_state_output": "coverage_enabled=True newly_uncovered_count=5",
+      "id": "without-coverage-blind",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "coverage-analyst",
+    "vendor": "xai"
+  },
+  "report": {
+    "after": {
+      "coverage_enabled": true,
+      "covered_line_count": 16,
+      "covered_lines": [
+        "extra.py:8",
+        "extra.py:9",
+        "extra.py:10",
+        "extra.py:11",
+        "extra.py:12",
+        "extra.py:13",
+        "ledger.py:4",
+        "ledger.py:5",
+        "ledger.py:6",
+        "ledger.py:9",
+        "ledger.py:10",
+        "rollback.py:8",
+        "rollback.py:9",
+        "rollback.py:10",
+        "rollback.py:11",
+        "rollback.py:12"
+      ],
+      "executable_line_count": 22,
+      "percent": 72.7273,
+      "tests": [
+        "test_rollback",
+        "test_ledger",
+        "test_ledger_extra"
+      ],
+      "traced_events": 28
+    },
+    "answer": "Yes: the covered line set moved while the percentage stayed 72.7273% on both sides. Newly uncovered (6): auth.py:10, auth.py:11, auth.py:12, auth.py:13, auth.py:8, auth.py:9. Security-path hits: auth.py:8, auth.py:9, auth.py:10, auth.py:11, auth.py:12, auth.py:13. Rollback-path hits in the trade: none. Delete-one-test control newly-uncovered (5): rollback.py:10, rollback.py:11, rollback.py:12, rollback.py:8, rollback.py:9. Coverage was enabled for both trade runs and both control runs. A run without coverage produced an empty newly-uncovered set (blind).",
+    "before": {
+      "coverage_enabled": true,
+      "covered_line_count": 16,
+      "covered_lines": [
+        "auth.py:8",
+        "auth.py:9",
+        "auth.py:10",
+        "auth.py:11",
+        "auth.py:12",
+        "auth.py:13",
+        "ledger.py:4",
+        "ledger.py:5",
+        "ledger.py:6",
+        "ledger.py:9",
+        "ledger.py:10",
+        "rollback.py:8",
+        "rollback.py:9",
+        "rollback.py:10",
+        "rollback.py:11",
+        "rollback.py:12"
+      ],
+      "executable_line_count": 22,
+      "percent": 72.7273,
+      "tests": [
+        "test_auth",
+        "test_rollback",
+        "test_ledger"
+      ],
+      "traced_events": 28
+    },
+    "control_ids": [
+      "delete-one-test",
+      "without-coverage-blind"
+    ],
+    "coverage_enabled_both_runs": true,
+    "coverage_instrument": "sys.settrace line tracer over fixtures/subject/",
+    "coverage_moved_without_percentage_moving": true,
+    "detector_control": {
+      "coverage_enabled": true,
+      "deleted_test": "test_rollback",
+      "name": "delete-one-test",
+      "newly_uncovered": [
+        {
+          "file": "rollback.py",
+          "file_line": "rollback.py:8",
+          "in_security_or_rollback_path": true,
+          "line": 8,
+          "path_class": "rollback"
+        },
+        {
+          "file": "rollback.py",
+          "file_line": "rollback.py:9",
+          "in_security_or_rollback_path": true,
+          "line": 9,
+          "path_class": "rollback"
+        },
+        {
+          "file": "rollback.py",
+          "file_line": "rollback.py:10",
+          "in_security_or_rollback_path": true,
+          "line": 10,
+          "path_class": "rollback"
+        },
+        {
+          "file": "rollback.py",
+          "file_line": "rollback.py:11",
+          "in_security_or_rollback_path": true,
+          "line": 11,
+          "path_class": "rollback"
+        },
+        {
+          "file": "rollback.py",
+          "file_line": "rollback.py:12",
+          "in_security_or_rollback_path": true,
+          "line": 12,
+          "path_class": "rollback"
+        }
+      ],
+      "newly_uncovered_count": 5,
+      "newly_uncovered_file_lines": [
+        "rollback.py:10",
+        "rollback.py:11",
+        "rollback.py:12",
+        "rollback.py:8",
+        "rollback.py:9"
+      ],
+      "non_empty": true
+    },
+    "evidence_requirement": "the newly-uncovered line list with file:line, and the percentage for both states shown side by side",
+    "kind": "coverage-delta",
+    "live_project": {
+      "coverage_data_files": [],
+      "reason": "no pair of line-granularity coverage data files for two product states on this worktree; the detector is proven on the fixture, not folded into a silent live pass",
+      "two_state_comparison": "NOT-CHECKED"
+    },
+    "measurement_subject": "detector fixture under command-center/p2-wave/probes/CNF-0061/fixtures (this worktree has no paired before/after coverage data files for a product-suite two-state comparison)",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe1_line_set_delta.py",
+        "id": "probe1"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe2_delete_one_test.py",
+        "id": "probe2"
+      }
+    ],
+    "newly_covered": [
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:8",
+        "in_security_or_rollback_path": false,
+        "line": 8,
+        "path_class": "neither"
+      },
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:9",
+        "in_security_or_rollback_path": false,
+        "line": 9,
+        "path_class": "neither"
+      },
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:10",
+        "in_security_or_rollback_path": false,
+        "line": 10,
+        "path_class": "neither"
+      },
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:11",
+        "in_security_or_rollback_path": false,
+        "line": 11,
+        "path_class": "neither"
+      },
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:12",
+        "in_security_or_rollback_path": false,
+        "line": 12,
+        "path_class": "neither"
+      },
+      {
+        "file": "extra.py",
+        "file_line": "extra.py:13",
+        "in_security_or_rollback_path": false,
+        "line": 13,
+        "path_class": "neither"
+      }
+    ],
+    "newly_covered_file_lines": [
+      "extra.py:10",
+      "extra.py:11",
+      "extra.py:12",
+      "extra.py:13",
+      "extra.py:8",
+      "extra.py:9"
+    ],
+    "newly_uncovered": [
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:8",
+        "in_security_or_rollback_path": true,
+        "line": 8,
+        "path_class": "security"
+      },
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:9",
+        "in_security_or_rollback_path": true,
+        "line": 9,
+        "path_class": "security"
+      },
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:10",
+        "in_security_or_rollback_path": true,
+        "line": 10,
+        "path_class": "security"
+      },
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:11",
+        "in_security_or_rollback_path": true,
+        "line": 11,
+        "path_class": "security"
+      },
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:12",
+        "in_security_or_rollback_path": true,
+        "line": 12,
+        "path_class": "security"
+      },
+      {
+        "file": "auth.py",
+        "file_line": "auth.py:13",
+        "in_security_or_rollback_path": true,
+        "line": 13,
+        "path_class": "security"
+      }
+    ],
+    "newly_uncovered_count": 6,
+    "newly_uncovered_file_lines": [
+      "auth.py:10",
+      "auth.py:11",
+      "auth.py:12",
+      "auth.py:13",
+      "auth.py:8",
+      "auth.py:9"
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0061/coverage_delta.py:298",
+        "measured": true,
+        "method": "line-set-delta",
+        "name": "percentage-unchanged"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0061/coverage_delta.py:316",
+        "measured": 6,
+        "method": "line-set-delta",
+        "name": "newly-uncovered-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0061/coverage_delta.py:406",
+        "measured": 5,
+        "method": "delete-one-test-control",
+        "name": "delete-one-test-uncovered-count"
+      }
+    ],
+    "output_path": "command-center/confirmation/CNF-0061-coverage-line-delta.json",
+    "output_schema": "command-center/schema/coverage-delta.schema.json",
+    "percentage_side_by_side": {
+      "after": 72.7273,
+      "before": 72.7273,
+      "unchanged": true
+    },
+    "question": "Did coverage move without the percentage moving? Compare the covered LINE SET before and after, not the percentage, and answer: which previously covered lines are now uncovered, and does any of them sit in a security or rollback path? An unchanged percentage can hide an equal trade of coverage between files.",
+    "re_ran_detector_control": true,
+    "security_or_rollback": {
+      "any_hit": true,
+      "rollback_file_lines": [],
+      "security_file_lines": [
+        "auth.py:8",
+        "auth.py:9",
+        "auth.py:10",
+        "auth.py:11",
+        "auth.py:12",
+        "auth.py:13"
+      ]
+    },
+    "threshold_question": {
+      "files": [],
+      "question": "Does the project enforce a coverage threshold?",
+      "reason": "no .coverage-thresholds.json (or equivalent) on this worktree; absence is reported as NOT-CHECKED, never folded into a pass",
+      "verdict": "NOT-CHECKED"
+    },
+    "traced_events_trade": 56,
+    "without_coverage_control": {
+      "blind": true,
+      "coverage_enabled": false,
+      "newly_uncovered_count": 0,
+      "note": "a suite run without coverage enabled cannot see a coverage regression at all"
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This worktree has no paired before/after product-suite coverage data files; the line-set detector is proven on the fixture, not claimed as a live product two-state delta.",
+      "settling_experiment": "Collect two line-granularity coverage data files for a real product before/after pair and re-run coverage_delta against those files.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "independent": true,
+    "notes": "Named probe2 re-runs the delete-one-test DETECTOR CONTROL and the no-coverage blindness control. It does not treat probe1's printed verdict as evidence. re-ran detector control.",
+    "reviewer_id": "CNF-0061-probe2-delete-one-test",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0061 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and coverage was actually enabled for both runs and the delete-one-test control produced a non-empty uncovered set. Any other terminal state is FAILED:CNF-0061 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/catalog-slices/CNF-1.json:CNF-0061",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe1_line_set_delta.py",
+      "id": "coverage-enabled-both-runs",
+      "name": "run the suite WITH coverage enabled",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe1_line_set_delta.py",
+      "id": "threshold-not-checked-when-absent",
+      "name": "absent thresholds file is NOT-CHECKED, never a pass",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0061/probe2_delete_one_test.py",
+      "id": "delete-one-test-non-empty-uncovered",
+      "name": "delete one test; newly-uncovered set is non-empty",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0.030806,
+    "ended_at": "2026-08-25T00:56:49Z",
+    "started_at": "2026-08-25T00:56:49Z"
+  },
+  "unit_id": "CNF-0061"
+}

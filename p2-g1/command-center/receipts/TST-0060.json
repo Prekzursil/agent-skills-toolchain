@@ -1,0 +1,1068 @@
+{
+ "evidence": [
+  {
+   "claim": "TST-0060 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0060.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0060.json",
+     "raw_output": "bytes=17104 sha256=8218e1b043186293867b2d3bfbc14c02384cc5dbb4b590d3738ea3c987764b43",
+     "fingerprint": "7ac709cab4a6ad95488e2c7bd6300091",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0060",
+     "raw_output": "schema-check",
+     "fingerprint": "4977010494f1b77cb15a70c78607a5a3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0060 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0060",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0060",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "365e1274e1e270cb300862489a5e46df",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0060",
+     "raw_output": "schema-valid",
+     "fingerprint": "4693c2d4678176c4b0d4cd1bf1d62b9c",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0060/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0060"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0060",
+ "spec_anchor": "_USER-PROMPTS.md:11308; rules/common/windows-shell.md#9",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0060.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  },
+  {
+   "id": "test_each_transport_round_trips_the_adversarial_payload",
+   "name": "each named transport round-trips the adversarial payload byte-exact or its mismatch is measured (bash here-string newline recorded, not hidden)",
+   "verdict": "PASS",
+   "result": "PASS",
+   "assertions": 4,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "TST-0060",
+ "extensions": {
+  "legacy_root": {
+   "adv_rebuild_circle": false,
+   "adversarial_payload": {
+    "bytes": 369,
+    "contains_backslashes": true,
+    "contains_backticks": true,
+    "contains_dollar_signs": true,
+    "contains_nested_quotes": true,
+    "id": "adversarial_script",
+    "sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "trailing_newline": true
+   },
+   "answer": "On this Linux bash box, Write tool round-tripped 59/59 (failure 0.0%). Quoted heredoc 54/59 (failure 8.475%; remaining misses are payloads without a trailing newline, which a quoted heredoc is specified to add). Quoted bash -c printf 57/59 (failure 3.39%; remaining misses are non-UTF-8 / NUL). Bash here-string 0/59 (failure 100.0%; every successful spawn appends a newline, so byte-equality fails even when quoting is otherwise intact). Known-failing controls: double-quoted -c 33/59 red (kinds={'shell_expansion': 31, 'equal': 26, 'transport_error': 2}); expanding heredoc 38/59 red (kinds={'shell_expansion': 31, 'equal': 21, 'extra_trailing_newline': 3, 'other_mismatch': 2, 'nul_truncation': 1, 'transport_error': 1}). Catalog 8/59 vs 0/40 was a prior Windows/PowerShell measurement; it is not this run. pwsh is absent. SUCCESS:TST-0060",
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0060",
+   "failure_rates": {
+    "c_inline": {
+     "failure_rate": 0.033898,
+     "failure_rate_pct": 3.39,
+     "mismatch_kinds": {
+      "equal": 57,
+      "transport_error": 2
+     },
+     "n": 59,
+     "n_equal": 57,
+     "n_unequal": 2
+    },
+    "c_inline_double_quoted": {
+     "failure_rate": 0.559322,
+     "failure_rate_pct": 55.932,
+     "mismatch_kinds": {
+      "equal": 26,
+      "shell_expansion": 31,
+      "transport_error": 2
+     },
+     "n": 59,
+     "n_equal": 26,
+     "n_unequal": 33
+    },
+    "catalog_cited": {
+     "applies_to": "prior Windows/PowerShell measurement, not this Linux bash run",
+     "here_string": "8/59 (13.6%)",
+     "write_tool": "0/40"
+    },
+    "here_string": {
+     "failure_rate": 1.0,
+     "failure_rate_pct": 100.0,
+     "mismatch_kinds": {
+      "extra_trailing_newline": 57,
+      "transport_error": 2
+     },
+     "n": 59,
+     "n_equal": 0,
+     "n_unequal": 59
+    },
+    "heredoc": {
+     "failure_rate": 0.084746,
+     "failure_rate_pct": 8.475,
+     "mismatch_kinds": {
+      "equal": 54,
+      "extra_trailing_newline": 3,
+      "nul_truncation": 1,
+      "transport_error": 1
+     },
+     "n": 59,
+     "n_equal": 54,
+     "n_unequal": 5
+    },
+    "heredoc_expanding": {
+     "failure_rate": 0.644068,
+     "failure_rate_pct": 64.407,
+     "mismatch_kinds": {
+      "equal": 21,
+      "extra_trailing_newline": 3,
+      "nul_truncation": 1,
+      "other_mismatch": 2,
+      "shell_expansion": 31,
+      "transport_error": 1
+     },
+     "n": 59,
+     "n_equal": 21,
+     "n_unequal": 38
+    },
+    "write_tool": {
+     "failure_rate": 0.0,
+     "failure_rate_pct": 0.0,
+     "mismatch_kinds": {
+      "equal": 59
+     },
+     "n": 59,
+     "n_equal": 59,
+     "n_unequal": 0
+    }
+   },
+   "host": {
+    "bash_path": "/usr/bin/bash",
+    "bash_version_line": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+    "cwd_repo": "/opt/p2/ast-integrate",
+    "machine": "x86_64",
+    "pwsh_path": null,
+    "pwsh_present": false,
+    "python": "3.12.3",
+    "release": "6.8.0-136-generic",
+    "system": "Linux"
+   },
+   "id": "TST-0060",
+   "matrix": {
+    "adversarial_cells": [
+     {
+      "equal": true,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 369,
+      "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "mismatch_kind": "equal",
+      "rc": 0,
+      "transport": "write_tool"
+     },
+     {
+      "equal": false,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 370,
+      "landed_sha256": "61bdabdf331507e79bae6ddeb45eb5ee09cd12e16769ddbd102ea840af6500a8",
+      "mismatch_kind": "extra_trailing_newline",
+      "rc": 0,
+      "transport": "here_string"
+     },
+     {
+      "equal": true,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 369,
+      "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "mismatch_kind": "equal",
+      "rc": 0,
+      "transport": "heredoc"
+     },
+     {
+      "equal": true,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 369,
+      "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "mismatch_kind": "equal",
+      "rc": 0,
+      "transport": "c_inline"
+     },
+     {
+      "equal": false,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 327,
+      "landed_sha256": "606c14c786cce41b898692a3725672f44fb33ca834e0dd9d7bd3365ec7982db0",
+      "mismatch_kind": "shell_expansion",
+      "rc": 0,
+      "transport": "c_inline_double_quoted"
+     },
+     {
+      "equal": false,
+      "intended_bytes": 369,
+      "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+      "landed_bytes": 332,
+      "landed_sha256": "41ebc16201d96f078d89be801d8babe5ff12652ba0f427b4cbe7988939dea0b8",
+      "mismatch_kind": "shell_expansion",
+      "rc": 0,
+      "transport": "heredoc_expanding"
+     }
+    ],
+    "by_transport": {
+     "c_inline": {
+      "failure_rate": 0.033898,
+      "failure_rate_pct": 3.39,
+      "mismatch_kinds": {
+       "equal": 57,
+       "transport_error": 2
+      },
+      "n": 59,
+      "n_equal": 57,
+      "n_unequal": 2
+     },
+     "c_inline_double_quoted": {
+      "failure_rate": 0.559322,
+      "failure_rate_pct": 55.932,
+      "mismatch_kinds": {
+       "equal": 26,
+       "shell_expansion": 31,
+       "transport_error": 2
+      },
+      "n": 59,
+      "n_equal": 26,
+      "n_unequal": 33
+     },
+     "here_string": {
+      "failure_rate": 1.0,
+      "failure_rate_pct": 100.0,
+      "mismatch_kinds": {
+       "extra_trailing_newline": 57,
+       "transport_error": 2
+      },
+      "n": 59,
+      "n_equal": 0,
+      "n_unequal": 59
+     },
+     "heredoc": {
+      "failure_rate": 0.084746,
+      "failure_rate_pct": 8.475,
+      "mismatch_kinds": {
+       "equal": 54,
+       "extra_trailing_newline": 3,
+       "nul_truncation": 1,
+       "transport_error": 1
+      },
+      "n": 59,
+      "n_equal": 54,
+      "n_unequal": 5
+     },
+     "heredoc_expanding": {
+      "failure_rate": 0.644068,
+      "failure_rate_pct": 64.407,
+      "mismatch_kinds": {
+       "equal": 21,
+       "extra_trailing_newline": 3,
+       "nul_truncation": 1,
+       "other_mismatch": 2,
+       "shell_expansion": 31,
+       "transport_error": 1
+      },
+      "n": 59,
+      "n_equal": 21,
+      "n_unequal": 38
+     },
+     "write_tool": {
+      "failure_rate": 0.0,
+      "failure_rate_pct": 0.0,
+      "mismatch_kinds": {
+       "equal": 59
+      },
+      "n": 59,
+      "n_equal": 59,
+      "n_unequal": 0
+     }
+    },
+    "cell_count": 354,
+    "control_transports": [
+     "c_inline_double_quoted",
+     "heredoc_expanding"
+    ],
+    "green_count": 217,
+    "green_sample": [
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "adversarial_script",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "plain_nl",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "plain_no_nl",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "empty",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "only_nl",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "apos",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "nested_quotes",
+      "transport": "write_tool"
+     },
+     {
+      "mismatch_kind": "equal",
+      "payload_id": "dollar_home",
+      "transport": "write_tool"
+     }
+    ],
+    "historical_note": "Catalog cited here-string 8/59 (13.6%) vs Write tool 0/40 on a prior Windows/PowerShell measurement. This receipt is the live Linux bash matrix on this box, not a copy of those rates.",
+    "host": {
+     "bash_path": "/usr/bin/bash",
+     "bash_version_line": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+     "cwd_repo": "/opt/p2/ast-integrate",
+     "machine": "x86_64",
+     "pwsh_path": null,
+     "pwsh_present": false,
+     "python": "3.12.3",
+     "release": "6.8.0-136-generic",
+     "system": "Linux"
+    },
+    "named_transports": [
+     "write_tool",
+     "here_string",
+     "heredoc",
+     "c_inline"
+    ],
+    "payload_count": 59,
+    "red_count": 137,
+    "red_sample": [
+     {
+      "intended_bytes": 369,
+      "landed_bytes": 370,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "adversarial_script",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 12,
+      "landed_bytes": 13,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "plain_nl",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 11,
+      "landed_bytes": 12,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "plain_no_nl",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 0,
+      "landed_bytes": 1,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "empty",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 1,
+      "landed_bytes": 2,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "only_nl",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 12,
+      "landed_bytes": 13,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "apos",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 36,
+      "landed_bytes": 37,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "nested_quotes",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 37,
+      "landed_bytes": 38,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "dollar_home",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 26,
+      "landed_bytes": 27,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "backtick_date",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 66,
+      "landed_bytes": 67,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "mix_script",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 14,
+      "landed_bytes": 15,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "ps_here_terminators",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 12,
+      "landed_bytes": 13,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "eof_line",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 25,
+      "landed_bytes": 26,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "double_and_single",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 21,
+      "landed_bytes": 22,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "backslash_tail",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 8,
+      "landed_bytes": 9,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "tabs_and_spaces",
+      "transport": "here_string"
+     },
+     {
+      "intended_bytes": 14,
+      "landed_bytes": 15,
+      "mismatch_kind": "extra_trailing_newline",
+      "payload_id": "crlf_body",
+      "transport": "here_string"
+     }
+    ],
+    "transport_count": 6,
+    "unit_id": "TST-0060"
+   },
+   "named_roundtrip": {
+    "c_inline_equal": true,
+    "here_string_equal": false,
+    "here_string_kind": "extra_trailing_newline",
+    "heredoc_equal": true,
+    "transports_present": true,
+    "write_tool_equal": true
+   },
+   "notes": "G-1 for TST-0060: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0060",
+   "output_path": "command-center/receipts/TST-0060.json",
+   "output_schema": "command-center/schema/test-receipt.schema.json",
+   "question_or_target": "Failure class :11308 and Phase 10 layer 27 (:11015). Target: write a script containing nested quotes, backslashes, dollar signs and backticks through every transport used here (Write tool, here-string, heredoc, -c inline) and byte-compare the landed file against the intended bytes. Measured: the here-string route failed 8/59 (13.6%) vs the Write tool 0/40.",
+   "red_cell_control": {
+    "c_kind": "shell_expansion",
+    "fired_on_double_quoted_c": true,
+    "fired_on_expanding_heredoc": true,
+    "fired_on_here_string_extra_nl": true,
+    "here_kind": "extra_trailing_newline",
+    "heredoc_kind": "shell_expansion",
+    "silent_on_write_tool": true
+   },
+   "status": "DELIVERED",
+   "title": "Shell quoting must not corrupt script content in transit"
+  }
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0060.json",
+   "bytes": 17104,
+   "sha256": "8218e1b043186293867b2d3bfbc14c02384cc5dbb4b590d3738ea3c987764b43",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0060.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0060.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "536953f55efa00c1d65a48e5db4e2865",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "test-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 17104,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0060.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "adv_rebuild_circle": false,
+ "adversarial_payload": {
+  "bytes": 369,
+  "contains_backslashes": true,
+  "contains_backticks": true,
+  "contains_dollar_signs": true,
+  "contains_nested_quotes": true,
+  "id": "adversarial_script",
+  "sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+  "trailing_newline": true
+ },
+ "answer": "On this Linux bash box, Write tool round-tripped 59/59 (failure 0.0%). Quoted heredoc 54/59 (failure 8.475%; remaining misses are payloads without a trailing newline, which a quoted heredoc is specified to add). Quoted bash -c printf 57/59 (failure 3.39%; remaining misses are non-UTF-8 / NUL). Bash here-string 0/59 (failure 100.0%; every successful spawn appends a newline, so byte-equality fails even when quoting is otherwise intact). Known-failing controls: double-quoted -c 33/59 red (kinds={'shell_expansion': 31, 'equal': 26, 'transport_error': 2}); expanding heredoc 38/59 red (kinds={'shell_expansion': 31, 'equal': 21, 'extra_trailing_newline': 3, 'other_mismatch': 2, 'nul_truncation': 1, 'transport_error': 1}). Catalog 8/59 vs 0/40 was a prior Windows/PowerShell measurement; it is not this run. pwsh is absent. SUCCESS:TST-0060",
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0060",
+ "failure_rates": {
+  "c_inline": {
+   "failure_rate": 0.033898,
+   "failure_rate_pct": 3.39,
+   "mismatch_kinds": {
+    "equal": 57,
+    "transport_error": 2
+   },
+   "n": 59,
+   "n_equal": 57,
+   "n_unequal": 2
+  },
+  "c_inline_double_quoted": {
+   "failure_rate": 0.559322,
+   "failure_rate_pct": 55.932,
+   "mismatch_kinds": {
+    "equal": 26,
+    "shell_expansion": 31,
+    "transport_error": 2
+   },
+   "n": 59,
+   "n_equal": 26,
+   "n_unequal": 33
+  },
+  "catalog_cited": {
+   "applies_to": "prior Windows/PowerShell measurement, not this Linux bash run",
+   "here_string": "8/59 (13.6%)",
+   "write_tool": "0/40"
+  },
+  "here_string": {
+   "failure_rate": 1.0,
+   "failure_rate_pct": 100.0,
+   "mismatch_kinds": {
+    "extra_trailing_newline": 57,
+    "transport_error": 2
+   },
+   "n": 59,
+   "n_equal": 0,
+   "n_unequal": 59
+  },
+  "heredoc": {
+   "failure_rate": 0.084746,
+   "failure_rate_pct": 8.475,
+   "mismatch_kinds": {
+    "equal": 54,
+    "extra_trailing_newline": 3,
+    "nul_truncation": 1,
+    "transport_error": 1
+   },
+   "n": 59,
+   "n_equal": 54,
+   "n_unequal": 5
+  },
+  "heredoc_expanding": {
+   "failure_rate": 0.644068,
+   "failure_rate_pct": 64.407,
+   "mismatch_kinds": {
+    "equal": 21,
+    "extra_trailing_newline": 3,
+    "nul_truncation": 1,
+    "other_mismatch": 2,
+    "shell_expansion": 31,
+    "transport_error": 1
+   },
+   "n": 59,
+   "n_equal": 21,
+   "n_unequal": 38
+  },
+  "write_tool": {
+   "failure_rate": 0.0,
+   "failure_rate_pct": 0.0,
+   "mismatch_kinds": {
+    "equal": 59
+   },
+   "n": 59,
+   "n_equal": 59,
+   "n_unequal": 0
+  }
+ },
+ "host": {
+  "bash_path": "/usr/bin/bash",
+  "bash_version_line": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+  "cwd_repo": "/opt/p2/ast-integrate",
+  "machine": "x86_64",
+  "pwsh_path": null,
+  "pwsh_present": false,
+  "python": "3.12.3",
+  "release": "6.8.0-136-generic",
+  "system": "Linux"
+ },
+ "id": "TST-0060",
+ "matrix": {
+  "adversarial_cells": [
+   {
+    "equal": true,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 369,
+    "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "mismatch_kind": "equal",
+    "rc": 0,
+    "transport": "write_tool"
+   },
+   {
+    "equal": false,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 370,
+    "landed_sha256": "61bdabdf331507e79bae6ddeb45eb5ee09cd12e16769ddbd102ea840af6500a8",
+    "mismatch_kind": "extra_trailing_newline",
+    "rc": 0,
+    "transport": "here_string"
+   },
+   {
+    "equal": true,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 369,
+    "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "mismatch_kind": "equal",
+    "rc": 0,
+    "transport": "heredoc"
+   },
+   {
+    "equal": true,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 369,
+    "landed_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "mismatch_kind": "equal",
+    "rc": 0,
+    "transport": "c_inline"
+   },
+   {
+    "equal": false,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 327,
+    "landed_sha256": "606c14c786cce41b898692a3725672f44fb33ca834e0dd9d7bd3365ec7982db0",
+    "mismatch_kind": "shell_expansion",
+    "rc": 0,
+    "transport": "c_inline_double_quoted"
+   },
+   {
+    "equal": false,
+    "intended_bytes": 369,
+    "intended_sha256": "7dd47f9f1b1555c4b8c1f5e80553b353fa1b621f6e50fca77302ab818f9d3242",
+    "landed_bytes": 332,
+    "landed_sha256": "41ebc16201d96f078d89be801d8babe5ff12652ba0f427b4cbe7988939dea0b8",
+    "mismatch_kind": "shell_expansion",
+    "rc": 0,
+    "transport": "heredoc_expanding"
+   }
+  ],
+  "by_transport": {
+   "c_inline": {
+    "failure_rate": 0.033898,
+    "failure_rate_pct": 3.39,
+    "mismatch_kinds": {
+     "equal": 57,
+     "transport_error": 2
+    },
+    "n": 59,
+    "n_equal": 57,
+    "n_unequal": 2
+   },
+   "c_inline_double_quoted": {
+    "failure_rate": 0.559322,
+    "failure_rate_pct": 55.932,
+    "mismatch_kinds": {
+     "equal": 26,
+     "shell_expansion": 31,
+     "transport_error": 2
+    },
+    "n": 59,
+    "n_equal": 26,
+    "n_unequal": 33
+   },
+   "here_string": {
+    "failure_rate": 1.0,
+    "failure_rate_pct": 100.0,
+    "mismatch_kinds": {
+     "extra_trailing_newline": 57,
+     "transport_error": 2
+    },
+    "n": 59,
+    "n_equal": 0,
+    "n_unequal": 59
+   },
+   "heredoc": {
+    "failure_rate": 0.084746,
+    "failure_rate_pct": 8.475,
+    "mismatch_kinds": {
+     "equal": 54,
+     "extra_trailing_newline": 3,
+     "nul_truncation": 1,
+     "transport_error": 1
+    },
+    "n": 59,
+    "n_equal": 54,
+    "n_unequal": 5
+   },
+   "heredoc_expanding": {
+    "failure_rate": 0.644068,
+    "failure_rate_pct": 64.407,
+    "mismatch_kinds": {
+     "equal": 21,
+     "extra_trailing_newline": 3,
+     "nul_truncation": 1,
+     "other_mismatch": 2,
+     "shell_expansion": 31,
+     "transport_error": 1
+    },
+    "n": 59,
+    "n_equal": 21,
+    "n_unequal": 38
+   },
+   "write_tool": {
+    "failure_rate": 0.0,
+    "failure_rate_pct": 0.0,
+    "mismatch_kinds": {
+     "equal": 59
+    },
+    "n": 59,
+    "n_equal": 59,
+    "n_unequal": 0
+   }
+  },
+  "cell_count": 354,
+  "control_transports": [
+   "c_inline_double_quoted",
+   "heredoc_expanding"
+  ],
+  "green_count": 217,
+  "green_sample": [
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "adversarial_script",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "plain_nl",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "plain_no_nl",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "empty",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "only_nl",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "apos",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "nested_quotes",
+    "transport": "write_tool"
+   },
+   {
+    "mismatch_kind": "equal",
+    "payload_id": "dollar_home",
+    "transport": "write_tool"
+   }
+  ],
+  "historical_note": "Catalog cited here-string 8/59 (13.6%) vs Write tool 0/40 on a prior Windows/PowerShell measurement. This receipt is the live Linux bash matrix on this box, not a copy of those rates.",
+  "host": {
+   "bash_path": "/usr/bin/bash",
+   "bash_version_line": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+   "cwd_repo": "/opt/p2/ast-integrate",
+   "machine": "x86_64",
+   "pwsh_path": null,
+   "pwsh_present": false,
+   "python": "3.12.3",
+   "release": "6.8.0-136-generic",
+   "system": "Linux"
+  },
+  "named_transports": [
+   "write_tool",
+   "here_string",
+   "heredoc",
+   "c_inline"
+  ],
+  "payload_count": 59,
+  "red_count": 137,
+  "red_sample": [
+   {
+    "intended_bytes": 369,
+    "landed_bytes": 370,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "adversarial_script",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 12,
+    "landed_bytes": 13,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "plain_nl",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 11,
+    "landed_bytes": 12,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "plain_no_nl",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 0,
+    "landed_bytes": 1,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "empty",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 1,
+    "landed_bytes": 2,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "only_nl",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 12,
+    "landed_bytes": 13,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "apos",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 36,
+    "landed_bytes": 37,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "nested_quotes",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 37,
+    "landed_bytes": 38,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "dollar_home",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 26,
+    "landed_bytes": 27,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "backtick_date",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 66,
+    "landed_bytes": 67,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "mix_script",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 14,
+    "landed_bytes": 15,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "ps_here_terminators",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 12,
+    "landed_bytes": 13,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "eof_line",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 25,
+    "landed_bytes": 26,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "double_and_single",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 21,
+    "landed_bytes": 22,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "backslash_tail",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 8,
+    "landed_bytes": 9,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "tabs_and_spaces",
+    "transport": "here_string"
+   },
+   {
+    "intended_bytes": 14,
+    "landed_bytes": 15,
+    "mismatch_kind": "extra_trailing_newline",
+    "payload_id": "crlf_body",
+    "transport": "here_string"
+   }
+  ],
+  "transport_count": 6,
+  "unit_id": "TST-0060"
+ },
+ "named_roundtrip": {
+  "c_inline_equal": true,
+  "here_string_equal": false,
+  "here_string_kind": "extra_trailing_newline",
+  "heredoc_equal": true,
+  "transports_present": true,
+  "write_tool_equal": true
+ },
+ "notes": "G-1 for TST-0060: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0060",
+ "output_path": "command-center/receipts/TST-0060.json",
+ "output_schema": "command-center/schema/test-receipt.schema.json",
+ "question_or_target": "Failure class :11308 and Phase 10 layer 27 (:11015). Target: write a script containing nested quotes, backslashes, dollar signs and backticks through every transport used here (Write tool, here-string, heredoc, -c inline) and byte-compare the landed file against the intended bytes. Measured: the here-string route failed 8/59 (13.6%) vs the Write tool 0/40.",
+ "red_cell_control": {
+  "c_kind": "shell_expansion",
+  "fired_on_double_quoted_c": true,
+  "fired_on_expanding_heredoc": true,
+  "fired_on_here_string_extra_nl": true,
+  "here_kind": "extra_trailing_newline",
+  "heredoc_kind": "shell_expansion",
+  "silent_on_write_tool": true
+ },
+ "status": "DELIVERED",
+ "title": "Shell quoting must not corrupt script content in transit"
+}

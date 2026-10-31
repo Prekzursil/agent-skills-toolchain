@@ -1,0 +1,53 @@
+fix(skills): reconcile live-ahead drift into the repo -- a redeploy today reverts ui-audit to a green no-op
+
+The DoD for this lane said "live-ahead drift reconciled into the repo BEFORE any redeploy". The
+reason that ordering is load-bearing turned out to be executable, not rhetorical.
+
+ui-audit's six entry points carry a junction-safe main-module guard that exists ONLY in the live
+curated tree. `~/.claude/skills` is a junction to `skills.daily`; Node resolves symlinks for ESM so
+`import.meta.url` reports the REAL path while `resolve(argv[1])` stays lexical, so the repo copy's
+lexical compare NEVER matches on the documented invocation and `main()` silently never runs. I did
+not take that on the audit's word -- I ran both copies through a real junction with a direct-path
+control:
+
+  through a JUNCTION   REPO exit=0 SILENT-NO-OP        LIVE exit=1 MAIN-RAN
+  direct (control)     REPO exit=1 MAIN-RAN            LIVE exit=1 MAIN-RAN
+
+The probe differs in the broken state and the control proves the difference is junction-specific
+rather than "the repo file is simply broken". After reconciling, the repo copy runs through the
+junction too. Any "ui-audit passed" produced after a redeploy of the old bytes was vacuous: exit 0,
+no artifacts, no error.
+
+WHAT WAS COPIED, and why each class cannot destroy repo content (59 files):
+  50  LEFT-ONLY-FILE  the repo has no bytes at that path at all
+   3  LEFT-AHEAD      the live line-set strictly contains the repo's
+   6  ui-audit DIVERGED, hand-audited line by line: five files have exactly ONE repo-unique line
+      -- the buggy guard being replaced -- against twelve live-unique (329 - 1 + 12 = 340). For
+      critique.mjs all 19 repo-unique lines have a verified live superseding equivalent (nine
+      dimensions not eight, reconcile mode, personas); the one dropped import symbol, `basename`,
+      has 0 uses in the live file. node --check passes on all six.
+
+ONE FILE WAS REFUSED BY ITS OWN PRECONDITION, and that is how the real merge was found.
+schrodinger-maestro-driver/SKILL.md is a three-way split: the `skills/` projection is a newer
+67-tool / 2026-2 rewrite that LACKS the Multi-GPU `jobserverd` section, while live and canonical
+carry that section on top of stale 12-tool / 2022-4 text (grep -c 'Multi-GPU pool' -> 0 / 1 / 1).
+Neither side is a superset, so either one-directional copy loses content. Union-merged instead:
+the live-unique block grafted into the newer body, written byte-identically to both roots.
+
+DELIBERATELY NOT COPIED (211 files):
+  199 / 4.97 MB  crypto-ctf/RsaCtfTool -- a vendored third-party checkout. .gitignore already
+      excluded it under skills/, but `git check-ignore` reported the `.agents/skills/` DUAL-WRITE
+      MIRROR as NOT-IGNORED while the `skills/` twin came back IGNORED in the same run. So the
+      live->repo reconcile this DoD mandates would itself have swept a third-party clone into git
+      through the mirror path. The ignore now covers both roots.
+   12  cv-studio/cv-studio/** -- the skill nested inside itself. The prior audit says DROP;
+      dropping is destructive and this lane defaults hard to KEEP, so it is reported, not removed.
+
+NOTHING WAS MERGED AND NOTHING WAS RETIRED. Two mechanically independent overlap measurements put
+the fleet far below any merge floor (recovered overlap lens: 57 candidate pairs, body token Jaccard
+max 0.185 against a 0.30 floor; grounding lane: all 53,628 pairs, max 0.560 word-set Jaccard), the
+adversarial clearance stage never ran, and the owner condition was that no ability be lost.
+
+Drift on the repo axis: needs_merge 490 -> 431 files, LEFT-AHEAD 3 -> 0. The remaining 245
+LEFT-ONLY-FILE entries are fully accounted for: 199 vendored + 12 nested + 31 .bak- snapshot +
+3 binaries.

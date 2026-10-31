@@ -1,0 +1,512 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0124",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0124 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the planted self-confirmation was flagged and every receipt has an independence verdict with its deciding rule named. Any other terminal state is FAILED:CNF-0124 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0124 question_or_target (authorship audit / self-confirmation)",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "grok",
+    "model": "grok-4.6",
+    "role": "p2-deliver-worker",
+    "execution_substrate": "linux-headless"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:21Z",
+    "ended_at": "2026-08-25T00:58:21Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "report": {
+    "kind": "confirmation-audit",
+    "control_ids": [
+      "planted-self-confirmation",
+      "missing-authorship-default-violation",
+      "forged-authorship-path-ledger",
+      "independent-control-passes",
+      "rule-b-reviewer-not-inert",
+      "rule-c-ancestor-author"
+    ],
+    "observations": [
+      {
+        "name": "live_receipts_count",
+        "measured": 0,
+        "method": "file-read",
+        "anchor": "command-center/confirmation + command-center/receipts"
+      },
+      {
+        "name": "live_violation_count",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "command-center/p2-wave/probes/CNF-0124/predicate.py:222"
+      },
+      {
+        "name": "planted_self_confirmation_flagged",
+        "measured": true,
+        "method": "static-analysis",
+        "anchor": "command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json"
+      },
+      {
+        "name": "every_receipt_has_named_deciding_rule",
+        "measured": true,
+        "method": "static-analysis",
+        "anchor": "command-center/p2-wave/probes/CNF-0124/predicate.py:222"
+      },
+      {
+        "name": "p0_or_p1_violation",
+        "measured": true,
+        "method": "static-analysis",
+        "anchor": "command-center/p2-wave/probes/CNF-0124/predicate.py:222"
+      }
+    ],
+    "title": "Authorship audit over confirmation receipts to catch self-confirmation",
+    "question": "Did any implementer confirm their own work? Audit the authorship chain of every confirmation receipt against the implementation provenance and answer: how many confirmations violate the independence predicate, and does any violation involve a P0 or P1 claim?",
+    "answers": {
+      "live_receipts_count": 0,
+      "live_violation_count": 0,
+      "live_empty_reported_as_zero_of_zero": true,
+      "live_zero_of_zero": "0 of 0",
+      "audited_receipts_count": 6,
+      "violation_count": 5,
+      "p0_or_p1_violation": true,
+      "p0_or_p1_violation_receipts": [
+        "forged-independent-label",
+        "planted-self-confirmation"
+      ],
+      "planted_self_confirmation_flagged": true,
+      "every_receipt_has_named_deciding_rule": true,
+      "violating_receipt_ids": [
+        "ancestor-author",
+        "forged-independent-label",
+        "missing-authorship",
+        "planted-self-confirmation",
+        "reviewer-overlap"
+      ],
+      "how_many_confirmations_violate": "0 of 0 live; 5 of 6 including fixtures",
+      "any_p0_or_p1_violation": true
+    },
+    "receipts": [
+      {
+        "receipt_id": "ancestor-author",
+        "source": "fixture:ancestor-author.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/ancestor-author.json",
+        "confirmer_identity": "agent-ancestor-delta",
+        "implementer_identity": "agent-implementer-alpha",
+        "claim_id": "CLAIM-P2-transitive-author",
+        "claim_priority": "P2",
+        "independence_verdict": "VIOLATION",
+        "deciding_rule": "rule-c-ancestor-author",
+        "p0_or_p1": false,
+        "planted": false,
+        "corroboration": {
+          "changed_path_surface": [
+            "command-center/confirmation/receipts/ancestor-author.json"
+          ],
+          "tool_call_ledger": [
+            {
+              "agent_id": "agent-ancestor-delta",
+              "tool": "Write",
+              "path": "command-center/confirmation/receipts/ancestor-author.json"
+            }
+          ],
+          "result": "MATCHES"
+        }
+      },
+      {
+        "receipt_id": "forged-independent-label",
+        "source": "fixture:forged-independent-label.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/forged-independent-label.json",
+        "confirmer_identity": "agent-fresh-independent",
+        "implementer_identity": "agent-implementer-alpha",
+        "claim_id": "CLAIM-P1-forged-confirmer",
+        "claim_priority": "P1",
+        "independence_verdict": "VIOLATION",
+        "deciding_rule": "rule-forged-authorship-path-ledger",
+        "p0_or_p1": true,
+        "planted": false,
+        "corroboration": {
+          "changed_path_surface": [
+            "command-center/phase11/fake-impl/ALPHA.json"
+          ],
+          "tool_call_ledger": [
+            {
+              "agent_id": "agent-implementer-alpha",
+              "tool": "Write",
+              "path": "command-center/confirmation/receipts/forged-independent-label.json"
+            }
+          ],
+          "result": "CONTRADICTS"
+        }
+      },
+      {
+        "receipt_id": "independent-ok",
+        "source": "fixture:independent-ok.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/independent-ok.json",
+        "confirmer_identity": "agent-fresh-bravo",
+        "implementer_identity": "agent-implementer-alpha",
+        "claim_id": "CLAIM-P0-independent-confirm",
+        "claim_priority": "P0",
+        "independence_verdict": "PASS",
+        "deciding_rule": "rule-independent-pass",
+        "p0_or_p1": true,
+        "planted": false,
+        "corroboration": {
+          "changed_path_surface": [
+            "command-center/confirmation/receipts/independent-ok.json"
+          ],
+          "tool_call_ledger": [
+            {
+              "agent_id": "agent-fresh-bravo",
+              "tool": "Write",
+              "path": "command-center/confirmation/receipts/independent-ok.json"
+            }
+          ],
+          "result": "MATCHES"
+        }
+      },
+      {
+        "receipt_id": "missing-authorship",
+        "source": "fixture:missing-authorship.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/missing-authorship.json",
+        "confirmer_identity": null,
+        "implementer_identity": null,
+        "claim_id": "CLAIM-P2-no-authors",
+        "claim_priority": "P2",
+        "independence_verdict": "VIOLATION",
+        "deciding_rule": "rule-missing-authorship",
+        "p0_or_p1": false,
+        "planted": false,
+        "corroboration": {
+          "changed_path_surface": [],
+          "tool_call_ledger": [],
+          "result": "UNAVAILABLE"
+        }
+      },
+      {
+        "receipt_id": "planted-self-confirmation",
+        "source": "fixture:planted-self-confirmation.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json",
+        "confirmer_identity": "agent-implementer-alpha",
+        "implementer_identity": "agent-implementer-alpha",
+        "claim_id": "CLAIM-P0-authorship-self-confirm",
+        "claim_priority": "P0",
+        "independence_verdict": "VIOLATION",
+        "deciding_rule": "rule-a-author-overlap",
+        "p0_or_p1": true,
+        "planted": true,
+        "corroboration": {
+          "changed_path_surface": [
+            "command-center/confirmation/receipts/planted-self-confirmation.json"
+          ],
+          "tool_call_ledger": [
+            {
+              "agent_id": "agent-implementer-alpha",
+              "tool": "Write",
+              "path": "command-center/confirmation/receipts/planted-self-confirmation.json"
+            }
+          ],
+          "result": "MATCHES"
+        }
+      },
+      {
+        "receipt_id": "reviewer-overlap",
+        "source": "fixture:reviewer-overlap.json",
+        "source_path": "command-center/p2-wave/probes/CNF-0124/fixtures/reviewer-overlap.json",
+        "confirmer_identity": "agent-reviewer-gamma",
+        "implementer_identity": "agent-implementer-alpha",
+        "claim_id": "CLAIM-P2-reviewer-confirmed",
+        "claim_priority": "P2",
+        "independence_verdict": "VIOLATION",
+        "deciding_rule": "rule-b-implementation-reviewer",
+        "p0_or_p1": false,
+        "planted": false,
+        "corroboration": {
+          "changed_path_surface": [
+            "command-center/confirmation/receipts/reviewer-overlap.json"
+          ],
+          "tool_call_ledger": [
+            {
+              "agent_id": "agent-reviewer-gamma",
+              "tool": "Write",
+              "path": "command-center/confirmation/receipts/reviewer-overlap.json"
+            }
+          ],
+          "result": "MATCHES"
+        }
+      }
+    ],
+    "controls": [
+      {
+        "id": "planted-self-confirmation",
+        "expected": "VIOLATION/rule-a-author-overlap",
+        "observed": "VIOLATION/rule-a-author-overlap",
+        "pass": true
+      },
+      {
+        "id": "missing-authorship-default-violation",
+        "expected": "VIOLATION/rule-missing-authorship",
+        "observed": "VIOLATION/rule-missing-authorship",
+        "pass": true
+      },
+      {
+        "id": "forged-authorship-path-ledger",
+        "expected": "VIOLATION/rule-forged-authorship-path-ledger",
+        "observed": "VIOLATION/rule-forged-authorship-path-ledger",
+        "pass": true
+      },
+      {
+        "id": "independent-control-passes",
+        "expected": "PASS/rule-independent-pass",
+        "observed": "PASS/rule-independent-pass",
+        "pass": true
+      },
+      {
+        "id": "rule-b-reviewer-not-inert",
+        "expected": "VIOLATION/rule-b-implementation-reviewer",
+        "observed": "VIOLATION/rule-b-implementation-reviewer",
+        "pass": true
+      },
+      {
+        "id": "rule-c-ancestor-author",
+        "expected": "VIOLATION/rule-c-ancestor-author",
+        "observed": "VIOLATION/rule-c-ancestor-author",
+        "pass": true
+      }
+    ],
+    "independence_predicate": {
+      "source_path": "command-center/p2-wave/probes/CNF-0124/predicate.py",
+      "source_line": 222,
+      "cnf_0002_artifact": {
+        "path": "command-center/confirmation/CNF-0002-independence-predicate.json",
+        "present": false,
+        "fallback": "catalog CNF-0002 rules (a) author-overlap, (b) implementation-reviewer, (c) ancestor-author implemented in predicate.py; empty live corpus reported as 0 of 0 rather than a pass"
+      },
+      "rules": [
+        "rule-missing-authorship: absent confirmer or implementer identity is a violation, never a pass by omission",
+        "rule-forged-authorship-path-ledger: claimed confirmer contradicted by tool-call ledger actors",
+        "rule-a-author-overlap: confirmer agent id appears in implementation authoring provenance",
+        "rule-b-implementation-reviewer: confirmer reviewed that implementation",
+        "rule-c-ancestor-author: confirmer authored an ancestor artifact the claim depends on",
+        "rule-independent-pass: none of the exclusion rules fired"
+      ]
+    },
+    "live_corpus": {
+      "directories": [
+        "command-center/confirmation",
+        "command-center/receipts"
+      ],
+      "empty": true,
+      "note": "No live confirmation receipts matched claim_id+receipt_id on this worktree. That is 0 of 0 for the production corpus, not a clean pass. Fixture receipts including the planted self-confirmation are audited in the same run."
+    }
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/confirmation-audit.schema.json",
+      "bytes": 1111,
+      "sha256": "c44dcc7cb270b477a7a392e2bc6b33292e91506c02fe15ace9096005990a4ade",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/predicate.py",
+      "bytes": 8895,
+      "sha256": "516dac82ba8bcdd4a728986f76e767ea0082f0ef06396dc982a77fde47d72e9c",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/corpus.py",
+      "bytes": 2344,
+      "sha256": "8c779fe0ff1b0bfd014bef686bd3f3867339f3e957ddb9f67710d507d1a872fe",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json",
+      "bytes": 801,
+      "sha256": "1289d579129ef16e4dd8425480c6f67e5ee3b042edba108183069f352e47f433",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/fixtures/missing-authorship.json",
+      "bytes": 179,
+      "sha256": "eebdf4edde9be5723ffba19927397dcbb597e8d65efc680d157b90348195a972",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/fixtures/forged-independent-label.json",
+      "bytes": 719,
+      "sha256": "8d4e52b81236094d4bbbec1966a665dbb7947c2df14efe757d9a01ea0a651c18",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0124/fixtures/independent-ok.json",
+      "bytes": 733,
+      "sha256": "78ba34aed9f4dd13f5cfa50e7a3c72e964b640be1a5d5ee44ef128da6eca6d47",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The planted self-confirmation fixture (same agent as implementer and confirmer on a P0 claim) is a VIOLATION under rule (a).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 -B -c \"import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0124'); from predicate import evaluate; print(evaluate(json.load(open('command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json'))))\"",
+          "raw_output": "VIOLATION/rule-a-author-overlap",
+          "fingerprint": "ea0b566ca002f2cc7c91d7c7a1d34642",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/CNF-0124/fixtures/planted-self-confirmation.json",
+          "raw_output": "confirmer=agent-implementer-alpha implementer=agent-implementer-alpha claim_priority=P0",
+          "fingerprint": "f663d03201c57525af71d1728936558e",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Every audited receipt has an independence verdict with a named deciding rule; omitted authorship is a default violation and a forged confirmer is contradicted by the tool-call ledger.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0124/predicate.py:222",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0124'); from audit import run_audit; d=run_audit(); print(d['report']['answers'])\"",
+          "raw_output": "named=True missing=VIOLATION/rule-missing-authorship forged=VIOLATION/rule-forged-authorship-path-ledger independent=PASS/rule-independent-pass rule_b=VIOLATION/rule-b-implementation-reviewer rule_c=VIOLATION/rule-c-ancestor-author",
+          "fingerprint": "b529fddd9271a55ba94122acd719ca2c",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/CNF-0124/predicate.py:222",
+          "raw_output": "evaluate() names exactly one deciding rule per receipt; RULE_MISSING=rule-missing-authorship RULE_FORGED=rule-forged-authorship-path-ledger",
+          "fingerprint": "b44efae8566b855597d5ea35bcb339a9",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-planted-self-confirmation",
+      "name": "Planted same-agent P0 self-confirmation is VIOLATION/rule-a",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0124/probe1_planted_self_confirmation.py",
+      "result": "PASS",
+      "assertions": 4
+    },
+    {
+      "id": "probe2-missing-forged-rule-b",
+      "name": "Missing authorship, forged ledger, rule-b, independent pass",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0124/probe2_missing_and_forged.py",
+      "result": "PASS",
+      "assertions": 5
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-planted-self-confirmation",
+      "kind": "known-broken-fixture",
+      "description": "Same agent as implementer and confirmer on a P0 claim must fire; an independent confirmer on the twin fixture must pass.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "VIOLATION/rule-a-author-overlap",
+      "good_state_output": "PASS/rule-independent-pass"
+    },
+    {
+      "id": "NC-missing-authorship",
+      "kind": "absent-input",
+      "description": "A receipt with no confirmer and no implementer is a violation by default, never a pass by omission.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "VIOLATION/rule-missing-authorship",
+      "good_state_output": "PASS/rule-independent-pass"
+    },
+    {
+      "id": "NC-forged-authorship-ledger",
+      "kind": "adversarial-payload",
+      "description": "Metadata claiming a fresh confirmer is contradicted by the tool-call ledger actors (the implementer).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "VIOLATION/rule-forged-authorship-path-ledger",
+      "good_state_output": "PASS/rule-independent-pass"
+    },
+    {
+      "id": "NC-rule-b-not-inert",
+      "kind": "known-broken-fixture",
+      "description": "A confirmer who only reviewed the implementation is rejected by rule (b); authorship-only would accept them.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "VIOLATION/rule-b-implementation-reviewer",
+      "good_state_output": "PASS/rule-independent-pass"
+    },
+    {
+      "id": "NC-schema-garbage",
+      "kind": "malformed-input",
+      "description": "output_schema rejects {}, an unrelated passing_tests blob, and a 2000-byte blob so schema-valid is not 'any JSON'.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "garbage documents produce schema errors",
+      "good_state_output": "this receipt is validated before write"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0124-probe1-planted-self-confirmation",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "notes": "Probe 1 re-runs the planted self-confirmation detector; it does not accept this document's conclusion as verification. Probe 2 does not see probe 1's verdict."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0124/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0124"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads (stdlib JSON parser)",
+      "artifact_path": "command-center/confirmation/CNF-0124-authorship-audit.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B -c \"import json; json.loads(open('command-center/confirmation/CNF-0124-authorship-audit.json').read())\"",
+        "raw_output": "json.loads keys=['artifacts', 'defects', 'downstream_consumers', 'evidence', 'manifest_registration', 'min_bytes_threshold', 'negative_controls', 'produced_by', 'report', 'residual_unknowns', 'retry', 'reviewer'] state='SUCCESS' unit_id='CNF-0124'",
+        "fingerprint": "10f0b9736fb104d4bbd297576df294d4",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "This worktree has no live confirmation receipts matching claim_id+receipt_id, so the production corpus is reported as 0 of 0 rather than a clean pass.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the auditor after CNF confirmation receipts exist under command-center/confirmation/ and command-center/receipts/."
+    }
+  ]
+}

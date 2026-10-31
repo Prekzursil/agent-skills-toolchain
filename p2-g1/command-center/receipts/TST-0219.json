@@ -1,0 +1,346 @@
+{
+ "answer": "No: a private name cannot be satisfied from the public mirror when the lockfile pins origin and integrity. The live resolver installed acme-internal-sdk only from https://registry.private.example/acme-internal-sdk (tree 5df1e0f8de80e04e…, payload sha256=0aeee53123952b1b…). The same name offered from https://registry.public.example/acme-internal-sdk was refused with DEPENDENCY_CONFUSION naming package, pinned origin, offered origin, and integrity; the dest tree stayed empty (44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a). A lockfile without an origin pin failed closed (ORIGIN_PIN_MISSING). A known-broken highest-version mutant installed the public artifact (sha256=8908c7256237265e…, tree ae58298df780e9f8…), so the public payload is live and distinct. Production tools/marketplace lockfile schema (IMP-0084) is absent on this worktree; the measured SUT is probes/TST-0219/resolver.py. SUCCESS:TST-0219",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0219.json",
+   "role": "primary",
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "bytes": 14760,
+   "eol": "LF"
+  },
+  {
+   "bytes": 10555,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0219/resolver.py",
+   "role": "supporting",
+   "sha256": "8b73379aee8b6d6016b34eafb0040c7bc70110f3973c56cbae875a44ea49e707"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/receipt.schema.json",
+   "role": "fixture",
+   "sha256": "87e3b6643d87549f796fbb0fad8f4eddb8ac49e6ec173d4b5643b7ec9d931e79",
+   "bytes": 6186,
+   "eol": "LF"
+  }
+ ],
+ "both_states": {
+  "legitimate_private_origin_resolves": true,
+  "public_same_name_refused": true,
+  "unpinned_fails_closed": true
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0219",
+ "declared_schema_file_present": true,
+ "downstream_consumers": [
+  {
+   "consumer": "receipt_validate.py admission (parse+schema+catalog cross-reference)",
+   "artifact_path": "command-center/receipts/TST-0219.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/TST-0219.json",
+    "raw_output": "ACCEPT:TST-0219 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "fingerprint": "c6d08819afa95c26",
+    "exit_code": 0
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0219/resolver.py:resolve_install",
+   "claim": "Resolver refuses to satisfy the private name from the public mirror and names package, pinned origin, offered origin, and integrity in the refusal.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+     "exit_code": 0,
+     "fingerprint": "c2ce6dcd33fc29ee60fa48bc79a2032b",
+     "method": "command",
+     "raw_output": "live evaluate both_states=True public_code=DEPENDENCY_CONFUSION unpinned_code=ORIGIN_PIN_MISSING",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe2_tree_hash.py",
+     "exit_code": 0,
+     "fingerprint": "b0a44c506fb18043baa894b9f410a597",
+     "method": "byte-compare",
+     "raw_output": "private_tree=5df1e0f8de80e04e3158e418fe063bb72f3d47d52ded86581135a61a48111994 public_offer_tree=44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a public_bytes_in_sut=False",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0219/resolver.py:census+tree_hash",
+   "claim": "Installed tree hash after the refused public offer equals the empty-tree hash; the private install census contains the private payload sha256 and not the public payload sha256.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe2_tree_hash.py",
+     "exit_code": 0,
+     "fingerprint": "b0a44c506fb18043baa894b9f410a597",
+     "method": "byte-compare",
+     "raw_output": "private_tree=5df1e0f8de80e04e3158e418fe063bb72f3d47d52ded86581135a61a48111994 public_offer_tree=44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a public_bytes_in_sut=False",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+     "exit_code": 0,
+     "fingerprint": "c2ce6dcd33fc29ee60fa48bc79a2032b",
+     "method": "command",
+     "raw_output": "live evaluate both_states=True public_code=DEPENDENCY_CONFUSION unpinned_code=ORIGIN_PIN_MISSING",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "lockfile": {
+  "pinned": {
+   "lockfileVersion": 1,
+   "packages": {
+    "acme-internal-sdk": {
+     "integrity": "sha256:0aeee53123952b1b37b09d84ccc5564c4cc64ff9459e199320cb2aacb86c5f98",
+     "origin": "https://registry.private.example/acme-internal-sdk",
+     "version": "1.0.0"
+    }
+   }
+  },
+  "pins_integrity": true,
+  "pins_origin": true,
+  "unpinned": {
+   "lockfileVersion": 1,
+   "packages": {
+    "acme-internal-sdk": {
+     "integrity": "sha256:0aeee53123952b1b37b09d84ccc5564c4cc64ff9459e199320cb2aacb86c5f98",
+     "version": "1.0.0"
+    }
+   }
+  }
+ },
+ "manifest_registration": {
+  "entry_id": "TST-0219",
+  "manifest_path": "command-center/p2-wave/probes/TST-0219/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measured_at": "2026-08-25T01:00:33Z",
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+   "id": "probe1-origin-refusal",
+   "result": "PASS",
+   "role": "resolver-refusal-and-message"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe2_tree_hash.py",
+   "id": "probe2-tree-hash",
+   "result": "PASS",
+   "role": "installed-tree-hash"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "Integrity-only lockfile is refused with ORIGIN_PIN_MISSING and writes nothing.",
+   "fired_on_bad_state": true,
+   "id": "lockfile-without-origin-pin",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A resolver that ignores origin pins and picks the highest version installs the public v9.9.9 artifact, proving the public payload is live and that origin pinning is load-bearing.",
+   "fired_on_bad_state": true,
+   "id": "confused-highest-version-mutant",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+ "question": "Can a private package name be satisfied from a public mirror? PASS requires the lockfile to pin both the registry origin and an integrity hash, and resolution to FAIL when the public mirror offers a same-named package.",
+ "report": {
+  "findings": [
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0219/resolver.py:resolve_install",
+    "credential_redacted": true,
+    "cwe": "CWE-426",
+    "exploit_proven": false,
+    "id": "TST-0219-dependency-confusion-refused",
+    "severity": "P1",
+    "summary": "Private package name is not satisfied from a public mirror when origin+integrity are pinned; unpinned lockfile fails closed."
+   }
+  ],
+  "kind": "security_report",
+  "scanners": [
+   {
+    "installed": true,
+    "name": "probe1_origin_refusal",
+    "version": "1"
+   },
+   {
+    "installed": true,
+    "name": "probe2_tree_hash",
+    "version": "1"
+   }
+  ],
+  "observations": [
+   {
+    "name": "named probe probe1_origin_refusal.py live re-run (shard19 w4 resume)",
+    "measured": true,
+    "method": "command",
+    "anchor": "-B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py"
+   }
+  ],
+  "control_ids": [
+   "lockfile-without-origin-pin",
+   "confused-highest-version-mutant"
+  ]
+ },
+ "report_kind": "security_report",
+ "required_fix": null,
+ "residual_unknowns": [
+  {
+   "claim": "tools/marketplace lockfile schema and IMP-0084 verify-on-install are absent from this worktree; measurements are of the contracted origin-pin resolver shipped with this unit, not of a missing production marketplace client.",
+   "settling_experiment": "Re-point resolve_install at tools/marketplace lockfile+installer once IMP-0084 exists and re-run both named probes.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry: a failure here is a finding, not a transient"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-installs into fresh directories and hashes dest trees plus payload-byte presence. It does not treat refusal message text as the pass criterion.",
+  "reviewer_id": "TST-0219-probe2-independent-tree-hash",
+  "verdict": "PASS"
+ },
+ "scenario_fails": [],
+ "scenario_pass": true,
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0219",
+ "signals": [
+  {
+   "code": "DEPENDENCY_CONFUSION",
+   "id": "a",
+   "kind": "resolver-refusal-and-message",
+   "message": "ERROR: DEPENDENCY_CONFUSION: refusing to satisfy package acme-internal-sdk from public/offered origin=https://registry.public.example/acme-internal-sdk; lockfile pins origin=https://registry.private.example/acme-internal-sdk integrity=sha256:0aeee53123952b1b37b09d84ccc5564c4cc64ff9459e199320cb2aacb86c5f98",
+   "private_code": "OK",
+   "private_ok": true,
+   "unpinned_code": "ORIGIN_PIN_MISSING"
+  },
+  {
+   "empty_tree_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "id": "b",
+   "kind": "installed-tree-hash",
+   "mutant_installed_public": true,
+   "mutant_tree_hash": "ae58298df780e9f8b8475d4d1c7cdc0be03e19655fa422557f455aaba823e195",
+   "private_payload_sha256": "0aeee53123952b1b37b09d84ccc5564c4cc64ff9459e199320cb2aacb86c5f98",
+   "private_tree_hash": "5df1e0f8de80e04e3158e418fe063bb72f3d47d52ded86581135a61a48111994",
+   "public_bytes_after_refused_offer": false,
+   "public_bytes_in_sut_tree": false,
+   "public_offer_tree_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "public_payload_sha256": "8908c7256237265eaa6a0a837cc6d8329e8ee64a33793efc573f187c2af245e1"
+  }
+ ],
+ "spec_anchor": "WORK-UNIT-CATALOG.json TST-0219; lockfile origin+integrity pin; resolution fails when a public mirror offers the same name",
+ "state": "SUCCESS",
+ "sut": {
+  "algorithm": "resolve_install reads lockfile origin+integrity, refuses any offered origin that is not the pin, fetches only from the pinned registry, and verifies sha256 before write",
+  "catalog_input": "B07 marketplace resolver + lockfile",
+  "live_bytes": 10555,
+  "live_module": "command-center/p2-wave/probes/TST-0219/resolver.py",
+  "live_sha256": "8b73379aee8b6d6016b34eafb0040c7bc70110f3973c56cbae875a44ea49e707",
+  "package": "acme-internal-sdk",
+  "private_origin": "https://registry.private.example/acme-internal-sdk",
+  "production_lockfile_schema": "tools/marketplace/schema/lockfile.schema.json",
+  "production_lockfile_schema_present": false,
+  "public_origin": "https://registry.public.example/acme-internal-sdk"
+ },
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+   "id": "both-states-private-origin-resolves",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+   "id": "public-mirror-same-name-fails",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe1_origin_refusal.py",
+   "id": "negative-unpinned-origin",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0219/probe2_tree_hash.py",
+   "id": "detector-confused-mutant",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": [
+  {
+   "id": "both-states-private-origin",
+   "result": "PASS",
+   "text": "both-states control: the legitimate private origin resolves"
+  },
+  {
+   "id": "negative-lockfile-without-origin-pin",
+   "result": "PASS",
+   "text": "negative control: a lockfile without an origin pin must fail this test"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:00:33Z",
+  "started_at": "2026-08-25T01:00:33Z"
+ },
+ "title": "Lockfile pins registry origin and integrity, defeating dependency confusion",
+ "unit_id": "TST-0219",
+ "extensions": {
+  "reviewer_extras": {
+   "scope_not_agreement": true
+  },
+  "severity_normalization": {
+   "0": "high->P1"
+  },
+  "original_downstream_consumers": [
+   {
+    "artifact_path": "command-center/receipts/TST-0219.json",
+    "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+    "executed": false,
+    "note": "G-1 measure runs after this receipt and the per-unit manifest exist.",
+    "read_ok": false
+   }
+  ],
+  "reanchor_2026_10_26": {
+   "action": "schema re-anchor only; artifact/probes verified live, not rebuilt",
+   "probes_exit": [
+    0,
+    0
+   ],
+   "consumer": {
+    "cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/TST-0219.json",
+    "rc": 0,
+    "scope": "ran against v1 (identical shape, pre-embedding); final re-validated inline"
+   },
+   "live_probe_tails": [
+    "{\"checks\": {\"both_states_private_origin_resolves\": true, \"confused_dest_stays_empty\": true, \"integrity_verified_on_install\": true, \"negative_unpinned_origin_fails_closed\": true, \"public_mirror_same_name_fails\": true, \"pu",
+    "{\"checks\": {\"detector_confused_mutant_installs_public\": true, \"independent_walk_hash_agrees\": true, \"mutant_proves_public_payload_live\": true, \"mutant_tree_differs_from_pinned_tree\": true}, \"independent_walk_hashes\": {\"m"
+   ],
+   "self_row_convention": "receipt.artifacts self-row sha256 zeroed (preimage); per-unit manifest row carries the plain CRLF-normalized sha of the final bytes"
+  }
+ },
+ "produced_by": {
+  "vendor": "openai",
+  "model": "codex-cli-default",
+  "role": "supply-chain-auditor",
+  "execution_substrate": "cloud-batch"
+ },
+ "notes": "shard19-w4 resume 2026-10-26: receipt re-anchored to the tightened platform receipt schema (2026-10-24 08:49) with live probe re-runs (exit 0/0), receipt_validate admission rc=0, per-unit manifest row refreshed to the live CRLF-normalized sha256. Prior independent reviewer closure kept verbatim (still verifying live). Not owner-gated (owner_approval_required=false)."
+}

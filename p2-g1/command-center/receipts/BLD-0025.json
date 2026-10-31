@@ -1,0 +1,774 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1111,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/blindspot-register.schema.json",
+   "role": "supporting",
+   "sha256": "365db991e2358eb9875164dbbf4c4487052b04183980f298270ce006c98981be"
+  },
+  {
+   "bytes": 14372,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0025/run_audit.py",
+   "role": "supporting",
+   "sha256": "6a71a1c90cca32577c8987b825f005b1865bff52d7a785051506c33e4b15fb6e"
+  },
+  {
+   "bytes": 3670,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0025/instrument.py",
+   "role": "supporting",
+   "sha256": "2a414746ecc17d6bcfdaa72dc0ec21f322cc275af10721884ef5240d97d42a2d"
+  },
+  {
+   "bytes": 2504,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+   "role": "supporting",
+   "sha256": "ed8a408de2d1f2a94c7c0707607d21d7abe1a4ac433bc241fdc5f0fa617121f6"
+  },
+  {
+   "bytes": 3183,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0025/dispatch_infra.py",
+   "role": "supporting",
+   "sha256": "04af2ce831db673f11a7f1eee467e79a98c5222b6c969795bbc45ff3da602d69"
+  },
+  {
+   "bytes": 18043,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/seed-stage/dispatch_cursor.py",
+   "role": "supporting",
+   "sha256": "4f7871b5561c1d0b95948aeed727450708677e7b9304e77cb3f460510ff48407"
+  }
+ ],
+ "defects": [
+  {
+   "id": "F-MASK-FAIL-ONCE",
+   "severity": "P2",
+   "status": "resolved",
+   "summary": "Fail-once-then-succeed is classified MASKED_DEFECT in this register rather than swallowed as flakiness."
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/BLD-0025.json",
+   "consumer": "json.loads of catalog output_path",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "json.loads command-center/receipts/BLD-0025.json",
+    "exit_code": 0,
+    "fingerprint": "723669318899c224a6cae1eed15e3e80",
+    "method": "file-read",
+    "raw_output": "consumer=json.loads\nunit_id=BLD-0025\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+    "role": "source"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/BLD-0025.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py BLD-0025",
+    "exit_code": 0,
+    "fingerprint": "0f39d971acfdf3065197a7ce9498cfd7",
+    "method": "schema-validate",
+    "raw_output": "G-1 measure runs after emit; receipt parses and is not BLOCKED.\n",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+   "claim": "A fail-once-then-succeed DeterministicConnectError is reported MASKED_DEFECT with verbatim first-attempt error; the wrapper returns ok on attempt 2.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/BLD-0025/run_audit.py",
+     "exit_code": 0,
+     "fingerprint": "7e584a48d4f5a3ee63d2774fbc1aa209",
+     "method": "test-run",
+     "raw_output": "{\"classification\": \"MASKED_DEFECT\", \"distribution\": {\"1\": {\"error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"ok\": false}, \"2\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"op_id\": \"fixture.fail_once_backoff\", \"success_attempt\": 2}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/BLD-0025/wrappers.py:FailOnceService",
+     "exit_code": 0,
+     "fingerprint": "3e2d51ebaf3dbffa8a0e0def21494569",
+     "method": "file-read",
+     "raw_output": "def retry_backoff(fn: Callable[[], T], max_attempts: int = 3) -> T:",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+   "claim": "A vendor HTTP 429 with Retry-After classifies TRANSIENT, not MASKED_DEFECT; zero-retry subprocess.run sites are excluded.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/BLD-0025/instrument.py",
+     "exit_code": 0,
+     "fingerprint": "42e0d56731310df9318f69ce6d9227c8",
+     "method": "test-run",
+     "raw_output": "{\"classification\": \"TRANSIENT\", \"distribution\": {\"1\": {\"error\": \"HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2\", \"ok\": false}, \"2\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2\", \"op_id\": \"fixture.vendor_429\", \"success_attempt\": 2}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/seed-stage/dispatch_cursor.py:INFRA",
+     "exit_code": 0,
+     "fingerprint": "d44a211c219a0fbf90881545ea4ad09f",
+     "method": "file-read",
+     "raw_output": "if fp in {\"auth-missing\", \"predicate:absent\"} or runtime < 45:",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "anchors": {
+   "bringup": {
+    "loop_line": 49,
+    "loop_present": true,
+    "path": "command-center/p2-wave/seed-stage/bringup_cursor_fleet.py",
+    "snippet": "for root in (\"root-volume=block:80GB\", \"root-volume=sbs_volume:80GB\", None):"
+   },
+   "dispatch": {
+    "infra_line": 401,
+    "infra_present": true,
+    "path": "command-center/p2-wave/seed-stage/dispatch_cursor.py",
+    "snippet": "if fp in {\"auth-missing\", \"predicate:absent\"} or runtime < 45:",
+    "strike_line": 406,
+    "strike_present": true
+   },
+   "measure_run_cmd": {
+    "line": 94,
+    "path": "command-center/p2-wave/_measure_one_delivered.py",
+    "snippet": "p = subprocess.run("
+   },
+   "p2lib_run": {
+    "line": 122,
+    "path": "command-center/p2-wave/_p2lib.py",
+    "snippet": "r = subprocess.run("
+   }
+  },
+  "failure_classification_exercised": [
+   "green-not-live",
+   "detector-failure",
+   "overclaim"
+  ],
+  "logs_raw": {
+   "mask": {
+    "classification": "MASKED_DEFECT",
+    "distribution": {
+     "1": {
+      "error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "exc": null,
+    "first_attempt_error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+    "op_id": "fixture.fail_once_backoff",
+    "success_attempt": 2
+   },
+   "silent": {
+    "classification": "UNOBSERVABLE",
+    "distribution": {
+     "1": {
+      "error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "exc": null,
+    "first_attempt_error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+    "op_id": "fixture.silent_retry",
+    "success_attempt": 2
+   },
+   "transient": {
+    "classification": "TRANSIENT",
+    "distribution": {
+     "1": {
+      "error": "HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "exc": null,
+    "first_attempt_error": "HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2",
+    "op_id": "fixture.vendor_429",
+    "success_attempt": 2
+   },
+   "zero": {
+    "classification": "FIRST_ATTEMPT_OK",
+    "distribution": {
+     "1": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "exc": null,
+    "first_attempt_error": "(no first-attempt error)",
+    "op_id": "control.zero_retry",
+    "success_attempt": 1
+   }
+  },
+  "reviewer_confirmed_real_defect": {
+   "environment_condition": false,
+   "finding_id": "F-MASK-FAIL-ONCE",
+   "first_attempt_error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+   "reason": "Verbatim first-attempt error is a deterministic exception (same message on every injection). Not a vendor 429/timeout."
+  }
+ },
+ "manifest_registration": {
+  "entry_id": "BLD-0025",
+  "manifest_path": "command-center/p2-wave/probes/BLD-0025/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T00:55:50Z"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"classification\": \"MASKED_DEFECT\", \"distribution\": {\"1\": {\"error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"ok\": false}, \"2\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"op_id\": \"fixture.fail_once_backoff\", \"success_attempt\": 2}",
+   "description": "MASKED_DEFECT detector fires on FailOnceService through retry_backoff and is silent on AlwaysOk through the same wrapper.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"classification\": \"FIRST_ATTEMPT_OK\", \"distribution\": {\"1\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"(no first-attempt error)\", \"op_id\": \"control.zero_retry\", \"success_attempt\": 1}",
+   "id": "NC-FAIL-ONCE-VS-FIRST-OK",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"classification\": \"TRANSIENT\", \"distribution\": {\"1\": {\"error\": \"HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2\", \"ok\": false}, \"2\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2\", \"op_id\": \"fixture.vendor_429\", \"success_attempt\": 2}",
+   "description": "TRANSIENT classifier fires on HTTP 429 Retry-After and does not label the deterministic ECONNRESET as TRANSIENT.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"classification\": \"MASKED_DEFECT\", \"distribution\": {\"1\": {\"error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"ok\": false}, \"2\": {\"error\": null, \"ok\": true}}, \"exc\": null, \"first_attempt_error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"op_id\": \"fixture.fail_once_backoff\", \"success_attempt\": 2}",
+   "id": "NC-429-NOT-MASKED",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutant finding id=C-ZERO-NO-RETRY-WRAPPER would fail probe2",
+   "description": "A mutated register that adds C-ZERO-NO-RETRY-WRAPPER as a finding is detected as a leak; the live register does not.",
+   "fired_on_bad_state": true,
+   "good_state_output": "F-MASK-FAIL-ONCE,F-TRANSIENT-429,F-SILENT-WRAPPER,F-DISPATCH-INFRA-UNOBSERVABLE,F-BRINGUP-CREATE-RETRY,F-CATALOG-POLICY-UNBOUND",
+   "id": "NC-ZERO-RETRY-LEAK",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "reliability-engineer",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Fail-once-then-succeed HTTP backoff is MASKED_DEFECT with verbatim first-attempt error 'DeterministicConnectError: ECONNRESET on first handshake (deterministic)'. Vendor 429 with Retry-After classifies TRANSIENT. Zero-retry subprocess.run sites are excluded. Live runner: dispatch_cursor INFRA (predicate:absent / runtime<45) re-queues without strike telemetry (UNOBSERVABLE). Catalog retry_policy is unbound prose (2007 units carry the field). B08 pytest/B08.log absent; B09 logs absent. SUCCESS:BLD-0025",
+  "ast_retry_sites": [
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 42,
+    "name": "",
+    "path": "command-center/p2-wave/_probe_delivered.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 45,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/_emit_missing.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 59,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/_restore_manifest_holes.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 63,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/_restore_manifest_holes.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 25,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/_scan_manifest_holes.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 29,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/_scan_manifest_holes.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": false,
+    "kind": "two-strikes-const",
+    "line": 34,
+    "name": "TWO_STRIKES",
+    "path": "command-center/p2-wave/seed-stage/dispatch_cursor.py"
+   },
+   {
+    "has_sleep": true,
+    "has_try_continue": false,
+    "kind": "while-retry-or-poll",
+    "line": 469,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/dispatch_cursor.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 284,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/monitor_ovh_fleet.py"
+   },
+   {
+    "has_sleep": true,
+    "has_try_continue": false,
+    "kind": "while-retry-or-poll",
+    "line": 781,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/monitor_ovh_fleet.py"
+   },
+   {
+    "has_sleep": true,
+    "has_try_continue": false,
+    "kind": "while-retry-or-poll",
+    "line": 173,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/watch_g1_fix.py"
+   },
+   {
+    "has_sleep": true,
+    "has_try_continue": false,
+    "kind": "while-retry-or-poll",
+    "line": 123,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/watch_w3.py"
+   },
+   {
+    "has_sleep": true,
+    "has_try_continue": false,
+    "kind": "while-retry-or-poll",
+    "line": 79,
+    "name": "",
+    "path": "command-center/p2-wave/seed-stage/watch_w4.py"
+   },
+   {
+    "has_sleep": false,
+    "has_try_continue": true,
+    "kind": "for-retry-loop",
+    "line": 143,
+    "name": "",
+    "path": "tools/command-center/reconcile_delivery.py"
+   }
+  ],
+  "catalog_retry_policy": {
+   "bld0025_retry_policy": "Self-referential caution: this unit must not retry its own instrumentation run silently - a failed instrumentation pass is reported, not retried into a pass.",
+   "class_counts": {
+    "mechanically-different-probe": 208,
+    "no-automatic-retry": 178,
+    "other": 561,
+    "self-no-silent-retry": 2,
+    "staggered-vendor-429": 83,
+    "two-strikes-pivot": 975
+   },
+   "class_samples": {
+    "mechanically-different-probe": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+    "no-automatic-retry": "NO automatic retry: this unit performs a destructive, state-changing or owner-gated drill. On failure STOP, preserve the partial artifact and the restore point, and report BLOCKED with the exact missing prerequisite",
+    "other": "one retry only when the failure classifies as environment-transient (codex arg-limit, severed stream, runner eviction); on win-arg-limit retry ONCE with --ignore-user-config and a prompt file. A logic or evidence failure is never retried, i",
+    "self-no-silent-retry": "Self-referential caution: this unit must not retry its own instrumentation run silently - a failed instrumentation pass is reported, not retried into a pass.",
+    "staggered-vendor-429": "up to 3 attempts with staggered arrival (60s / 300s / 900s) because this unit depends on external endpoints; a 429/529 is provider-side and is NOT a unit failure and must NOT reduce concurrency",
+    "two-strikes-pivot": "two strikes then pivot: after the second graph-construction failure with the same fingerprint, switch to a different extraction strategy (dynamic tracing rather than static graph, or the reverse) before a third attempt"
+   },
+   "executable_binding": false,
+   "note": "retry_policy is catalog prose. No runner reads the field to drive HTTP backoff, pytest reruns, or strike counting. Unobservable as a class.",
+   "units_with_retry_policy_field": 2007
+  },
+  "control_ids": [
+   "fault-injection-fail-once-reported",
+   "control-vendor-429-transient",
+   "control-zero-retry-absent",
+   "NC-FAIL-ONCE-VS-FIRST-OK",
+   "NC-429-NOT-MASKED",
+   "NC-ZERO-RETRY-LEAK"
+  ],
+  "excluded_non_retry_sites": [
+   {
+    "attempt_count_distribution": {
+     "1": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "calls": 1,
+    "classification_if_forced": "FIRST_ATTEMPT_OK",
+    "id": "C-ZERO-MEASURE-RUN-CMD",
+    "line": 94,
+    "path": "command-center/p2-wave/_measure_one_delivered.py",
+    "reason": "subprocess.run once; zero retries; must not appear as a finding."
+   },
+   {
+    "id": "C-ZERO-P2LIB-RUN",
+    "line": 122,
+    "path": "command-center/p2-wave/_p2lib.py",
+    "reason": "_p2lib.run is a single subprocess.run with no retry loop."
+   },
+   {
+    "attempt_count_distribution": {
+     "1": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "id": "C-ZERO-NO-RETRY-WRAPPER",
+    "line": 82,
+    "path": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "reason": "Control wrapper with max_attempts=1 equivalent; excluded from findings."
+   }
+  ],
+  "findings": [
+   {
+    "always_fails_first": true,
+    "attempt_count_distribution": {
+     "1": {
+      "error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "classification": "MASKED_DEFECT",
+    "first_attempt_error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+    "id": "F-MASK-FAIL-ONCE",
+    "kind": "http-backoff-wrapper",
+    "line": 55,
+    "path": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "site_id": "fixture.fail_once_backoff",
+    "success_attempt": 2,
+    "swallowed_without_audit": true,
+    "telemetry_present": true,
+    "wrapper_returned_ok": true
+   },
+   {
+    "always_fails_first": true,
+    "attempt_count_distribution": {
+     "1": {
+      "error": "HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "classification": "TRANSIENT",
+    "first_attempt_error": "HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2",
+    "id": "F-TRANSIENT-429",
+    "kind": "http-backoff-wrapper",
+    "line": 13,
+    "path": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "rate_limit_evidence": {
+     "body_contains_too_many_requests": true,
+     "retry_after": "2",
+     "status": 429
+    },
+    "site_id": "fixture.vendor_429",
+    "success_attempt": 2,
+    "telemetry_present": true,
+    "wrapper_returned_ok": true
+   },
+   {
+    "always_fails_first": true,
+    "attempt_count_distribution": {
+     "1": {
+      "error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "classification": "UNOBSERVABLE",
+    "first_attempt_error": "DeterministicConnectError: ECONNRESET on first handshake (deterministic)",
+    "id": "F-SILENT-WRAPPER",
+    "kind": "unobservable-retry-wrapper",
+    "line": 70,
+    "note": "Wrapper discards exceptions; without inner tracing the first error is gone.",
+    "path": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "site_id": "fixture.silent_retry",
+    "success_attempt": 2,
+    "telemetry_present": false,
+    "wrapper_returned_ok": true
+   },
+   {
+    "always_fails_first": true,
+    "attempt_count_distribution": {
+     "1": {
+      "error": "FAILED:delivered BLD-0025 predicate:absent",
+      "ok": false,
+      "strike_recorded": false
+     },
+     "2": {
+      "error": null,
+      "ok": true,
+      "strike_recorded": false
+     }
+    },
+    "classification": "UNOBSERVABLE",
+    "first_attempt_error": "FAILED:delivered BLD-0025 predicate:absent",
+    "id": "F-DISPATCH-INFRA-UNOBSERVABLE",
+    "kind": "runner-requeue",
+    "line": 401,
+    "note": "predicate:absent / runtime<45 skips rec['attempts'].append. The supervisor re-queues with no strike record.",
+    "path": "command-center/p2-wave/seed-stage/dispatch_cursor.py",
+    "site_id": "runner.dispatch_cursor.reap_one.infra",
+    "success_attempt": 2,
+    "telemetry_present": false
+   },
+   {
+    "always_fails_first": true,
+    "attempt_count_distribution": {
+     "1": {
+      "error": "(no structured attempt record; CREATE-TRY prints rc/stderr, then the next root-volume variant is tried)",
+      "ok": false
+     },
+     "2": {
+      "error": null,
+      "ok": true
+     }
+    },
+    "classification": "UNOBSERVABLE",
+    "first_attempt_error": "(no structured attempt record; CREATE-TRY prints rc/stderr, then the next root-volume variant is tried)",
+    "id": "F-BRINGUP-CREATE-RETRY",
+    "kind": "create-retry-loop",
+    "line": 49,
+    "note": "Print-side CREATE-TRY is not attempt-count telemetry.",
+    "path": "command-center/p2-wave/seed-stage/bringup_cursor_fleet.py",
+    "site_id": "runner.bringup_cursor_fleet.scw_create",
+    "success_attempt": 2,
+    "telemetry_present": false
+   },
+   {
+    "always_fails_first": false,
+    "attempt_count_distribution": {},
+    "census": {
+     "class_counts": {
+      "mechanically-different-probe": 208,
+      "no-automatic-retry": 178,
+      "other": 561,
+      "self-no-silent-retry": 2,
+      "staggered-vendor-429": 83,
+      "two-strikes-pivot": 975
+     },
+     "units": 2007
+    },
+    "classification": "POLICY_NOT_EXECUTED",
+    "first_attempt_error": "(no attempt telemetry \u2014 retry_policy is catalog prose, not a wrapper)",
+    "id": "F-CATALOG-POLICY-UNBOUND",
+    "kind": "per-unit-retry-policy",
+    "line": 22,
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "site_id": "catalog.retry_policy",
+    "success_attempt": null,
+    "telemetry_present": false
+   }
+  ],
+  "kind": "blindspot-register",
+  "missing_inputs": {
+   "B08": {
+    "present": true,
+    "searched": [
+     {
+      "bytes": 0,
+      "path": "coverage.xml",
+      "present": false
+     },
+     {
+      "bytes": 0,
+      "path": "command-center/receipts/B08.json",
+      "present": false
+     },
+     {
+      "bytes": 20882,
+      "path": "command-center/_baseline_tests_out.json",
+      "present": true
+     },
+     {
+      "bytes": 25638,
+      "path": "command-center/BASELINE-SNAPSHOT.json",
+      "present": true
+     },
+     {
+      "bytes": 0,
+      "path": "command-center/p2-wave/B08.log",
+      "present": false
+     },
+     {
+      "bytes": 0,
+      "path": "command-center/p2-wave/pytest-B08.xml",
+      "present": false
+     }
+    ]
+   },
+   "B09": {
+    "present": false,
+    "searched": [
+     {
+      "bytes": 0,
+      "path": "command-center/receipts/B09.json",
+      "present": false
+     },
+     {
+      "bytes": 0,
+      "path": "command-center/p2-wave/B09.log",
+      "present": false
+     },
+     {
+      "bytes": 0,
+      "path": "command-center/p2-wave/pytest-B09.xml",
+      "present": false
+     }
+    ]
+   },
+   "note": "Named B08/B09 execution logs are absent. Fault-injection and 429/zero-retry controls ran against live wrappers and the runner."
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "measured": "MASKED_DEFECT",
+    "method": "instrumented retry_backoff around FailOnceService",
+    "name": "fail_once_classification"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0025/wrappers.py",
+    "measured": "TRANSIENT",
+    "method": "instrumented retry_backoff around RateLimitedThenOk",
+    "name": "vendor_429_classification"
+   },
+   {
+    "anchor": "command-center/p2-wave/_measure_one_delivered.py",
+    "measured": true,
+    "method": "no_retry wrapper plus live subprocess.run sites not in findings",
+    "name": "zero_retry_excluded"
+   },
+   {
+    "anchor": "command-center/p2-wave/seed-stage/dispatch_cursor.py",
+    "measured": "UNOBSERVABLE",
+    "method": "live_anchors + simulate_infra_fail_then_succeed",
+    "name": "dispatch_infra_unobservable"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json",
+    "measured": 2007,
+    "method": "catalog_census of WORK-UNIT-CATALOG.json retry_policy field",
+    "name": "catalog_retry_policy_unbound"
+   }
+  ],
+  "question": "Where does a retry policy hide a deterministic defect? Instrument every retrying call site \u2014 per-unit retry_policy, HTTP backoff wrappers, flaky-test reruns, monitor re-polls, cache refresh loops \u2014 to record attempt counts and first-attempt errors, then report every operation that succeeded only on attempt two or later. An operation that always fails once and then passes is a defect, not flakiness.",
+  "self_retry": {
+   "honored": true,
+   "instrumentation_retries": 0,
+   "policy": "failed instrumentation pass is reported, not retried into a pass"
+  },
+  "title": "Retry-as-mask audit: operations that only ever succeed on attempt two"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "B08 execution logs (B08.log / pytest-B08.xml / receipts/B08.json) are absent; B09 logs are absent. Flaky-test rerun census cannot close from those named run logs. Baseline snapshot files exist but are not B08/B09 pytest rerun traces.",
+   "settling_experiment": "Place B08/B09 pytest XML or console logs on disk and re-run the flaky-test rerun census against those traces.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "attempts": [
+   {
+    "attempt": 1,
+    "outcome": "SUCCESS",
+    "started_at": "2026-08-25T00:55:50Z"
+   }
+  ],
+  "count": 0,
+  "policy": "Self-referential caution: this unit must not retry its own instrumentation run silently - a failed instrumentation pass is reported, not retried into a pass."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Re-read first-attempt errors. Confirmed F-MASK-FAIL-ONCE error='DeterministicConnectError: ECONNRESET on first handshake (deterministic)'. Verbatim first-attempt error is a deterministic exception (same message on every injection). Not a vendor 429/timeout.",
+  "reviewed_at": "2026-08-25T00:55:50Z",
+  "reviewer_id": "BLD-0025-probe2-first-attempt-reread",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:BLD-0025",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=BLD-0025]",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0025/probe1_fault_injection.py",
+   "id": "fault-injection-fail-once-reported",
+   "output_tail": "{\"classification\": \"MASKED_DEFECT\", \"first_attempt_error\": \"DeterministicConnectError: ECONNRESET on first handshake (deterministic)\", \"success_attempt\": 2, \"swallowed_without_audit\": true}",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0025/probe2_controls.py",
+   "id": "control-vendor-429-transient",
+   "output_tail": "{\"classification\": \"TRANSIENT\", \"first_attempt_error\": \"HttpStatusError: HTTP 429: Too Many Requests Retry-After: 2\", \"success_attempt\": 2}",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0025/probe2_controls.py",
+   "id": "control-zero-retry-absent",
+   "output_tail": "{\"calls\": 1, \"classification_of_zero_retry_run\": \"FIRST_ATTEMPT_OK\", \"leaked_into_findings\": []}",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:55:50Z",
+  "started_at": "2026-08-25T00:55:50Z"
+ },
+ "unit_id": "BLD-0025"
+}

@@ -1,0 +1,168 @@
+{
+ "answer": "Yes. Best-effort seating still runs; the artifact carries a waiver with independence_assumption=void. Suppressing that waiver fails check_artifact.",
+ "artifact_paths": [
+  "command-center/receipts/IMP-0272.json",
+  "tools/council/participants/diversity.py"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0272.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 17009,
+   "exists": true,
+   "path": "tools/council/participants/diversity.py",
+   "role": "module",
+   "sha256": "2c07090564547a4e4cf82edd4d2b9dbdbbe439974fbd42dca2376f6f9ee87de4"
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/participants/diversity.py:342",
+   "claim": "solve() distinguishes feasible constraint sets (no waiver, independence intact) from infeasible sets (waiver present, independence void).",
+   "id": "E1-solver-matrix",
+   "snippet": "independence_assumption=VOID",
+   "source": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe1_constraint_matrix.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "{\"feasible_cases\": [\"F1-two-vendor-two-model\", \"F2-three-vendor-seat-three\", \"F3-minima-one-single-vendor-ok\", \"F4-must-not-double-seat-same-vendor-when-second-exists\"], \"infeasible_cases\": [\"I1-one-vendor-reachable\", \"I2-same-vendor-twice-not-vendor-diverse\", \"I3-one-model-two-vendors-model-shortfall\", \"I4-empty-reachable\"], \"one_vendor_council_ran\": true, \"one_vendor_independence\": \"void\", \"pass\": true, \"probe\": \"probe1-constraint-matrix\", \"same_vendor_twice_vendor_diverse\": false, \"unit_id\": \"IMP-0272\"}\nmatrix feasible=4 infeasible=4 one_vendor_ran=True one_vendor_assumption=void\nSUCCESS:IMP-0272-probe1 feasible/infeasible constraint matrix"
+   },
+   "verdict": "CONFIRMED",
+   "verifier": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe2_waiver_control.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "{\"council_ran_with_void_independence\": true, \"feasible_control\": \"diversity_met\", \"honest_check\": \"shortfall_waived_independence_void\", \"pass\": true, \"probe\": \"probe2-waiver-negative-control\", \"stripped_reason\": \"diversity_shortfall_without_waiver\", \"suppressed_check_failed\": true, \"suppressed_reason\": \"diversity_shortfall_without_waiver\", \"unit_id\": \"IMP-0272\"}\nhonest_ok=True suppressed_ok=False suppressed_reason=diversity_shortfall_without_waiver strip_ok=False council_ran=True independence=void\nSUCCESS:IMP-0272-probe2 waiver emission negative control"
+   }
+  },
+  {
+   "anchor": "tools/council/participants/diversity.py:24",
+   "claim": "Whenever observed vendor/model diversity is below the request, check_artifact requires a waiver that reports independence void. Suppressing waiver emission makes that check fail.",
+   "id": "E2-waiver-when-short",
+   "snippet": "REASON_NO_WAIVER = \"diversity_shortfall_without_waiver\"",
+   "source": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe2_waiver_control.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "{\"council_ran_with_void_independence\": true, \"feasible_control\": \"diversity_met\", \"honest_check\": \"shortfall_waived_independence_void\", \"pass\": true, \"probe\": \"probe2-waiver-negative-control\", \"stripped_reason\": \"diversity_shortfall_without_waiver\", \"suppressed_check_failed\": true, \"suppressed_reason\": \"diversity_shortfall_without_waiver\", \"unit_id\": \"IMP-0272\"}\nhonest_ok=True suppressed_ok=False suppressed_reason=diversity_shortfall_without_waiver strip_ok=False council_ran=True independence=void\nSUCCESS:IMP-0272-probe2 waiver emission negative control"
+   },
+   "verdict": "CONFIRMED",
+   "verifier": {
+    "method": "file-read",
+    "path": "tools/council/participants/diversity.py",
+    "raw_output": "REASON_NO_WAIVER = \"diversity_shortfall_without_waiver\""
+   }
+  },
+  {
+   "anchor": "tools/council/participants/diversity.py:340",
+   "claim": "When only one vendor is reachable the council still runs and the artifact reports independence_assumption=void.",
+   "id": "E3-one-vendor-still-runs",
+   "snippet": "council_ran = True",
+   "source": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe1_constraint_matrix.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "{\"feasible_cases\": [\"F1-two-vendor-two-model\", \"F2-three-vendor-seat-three\", \"F3-minima-one-single-vendor-ok\", \"F4-must-not-double-seat-same-vendor-when-second-exists\"], \"infeasible_cases\": [\"I1-one-vendor-reachable\", \"I2-same-vendor-twice-not-vendor-diverse\", \"I3-one-model-two-vendors-model-shortfall\", \"I4-empty-reachable\"], \"one_vendor_council_ran\": true, \"one_vendor_independence\": \"void\", \"pass\": true, \"probe\": \"probe1-constraint-matrix\", \"same_vendor_twice_vendor_diverse\": false, \"unit_id\": \"IMP-0272\"}\nmatrix feasible=4 infeasible=4 one_vendor_ran=True one_vendor_assumption=void\nSUCCESS:IMP-0272-probe1 feasible/infeasible constraint matrix"
+   },
+   "verdict": "CONFIRMED",
+   "verifier": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe2_waiver_control.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "\"probe2-waiver-negative-control\", \"stripped_reason\": \"diversity_shortfall_without_waiver\", \"suppressed_check_failed\": true, \"suppressed_reason\": \"diversity_shortfall_without_waiver\", \"unit_id\": \"IMP-0272\"}\nhonest_ok=True suppressed_ok=False suppressed_reason=diversity_shortfall_without_waiver strip_ok=False council_ran=True independence=void\nSUCCESS:IMP-0272-probe2 waiver emission negative control"
+   }
+  },
+  {
+   "anchor": "tools/council/participants/diversity.py:427",
+   "claim": "Two seats from the same vendor with different models do not satisfy min_vendors=2.",
+   "id": "E4-same-vendor-not-diverse",
+   "snippet": "\"id\": \"I2-same-vendor-twice-not-vendor-diverse\",",
+   "source": {
+    "method": "file-read",
+    "path": "tools/council/participants/diversity.py",
+    "raw_output": "\"id\": \"I2-same-vendor-twice-not-vendor-diverse\","
+   },
+   "verdict": "CONFIRMED",
+   "verifier": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe1_constraint_matrix.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "diverse\", \"I3-one-model-two-vendors-model-shortfall\", \"I4-empty-reachable\"], \"one_vendor_council_ran\": true, \"one_vendor_independence\": \"void\", \"pass\": true, \"probe\": \"probe1-constraint-matrix\", \"same_vendor_twice_vendor_diverse\": false, \"unit_id\": \"IMP-0272\"}\nmatrix feasible=4 infeasible=4 one_vendor_ran=True one_vendor_assumption=void\nSUCCESS:IMP-0272-probe1 feasible/infeasible constraint matrix"
+   }
+  }
+ ],
+ "id": "IMP-0272",
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0272/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "probe2-waiver-negative-control",
+  "NC-suppress-waiver-emission"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "diversity_shortfall_without_waiver",
+   "description": "Re-solve the single-reachable-vendor fixture with emit_waiver=False and also strip the waiver from an honest artifact. Both mutants must fail check_artifact.",
+   "fired_on_bad_state": true,
+   "good_state_output": "shortfall_waived_independence_void",
+   "id": "NC-suppress-waiver-emission",
+   "kind": "remove-waiver-emission",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0272: diversity solver + waiver check. Did not run tools/command-center/unit_manifest.py --write. cloud ok=true is not delivery.",
+ "question": "When only one vendor is reachable, does the council run anyway while REPORTING that its independence assumption is void?",
+ "residual_unknowns": [
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.md is not on this worktree; minima are those stated in the catalog unit, not a missing spec file.",
+   "settling_experiment": "Re-run against the restored council spec if it lands.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Reachability is an input flag, not a live vendor-quota probe. A paid-API outage could disagree with a fixture's reachable bit.",
+   "settling_experiment": "Wire solve() to a live roster health check.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0272-probe2-waiver-artifact-check",
+  "started_from": "tests (probe2), not the author's summary",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0272",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0272 tools/council/participants/diversity.py; _USER-PROMPTS.md:10746-10767,10915-10946,11172-11244 (source files absent from this worktree; catalog text is the live contract)",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "test_ids": [
+  "probe1-constraint-matrix",
+  "T-feasible-infeasible-matrix"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe1_constraint_matrix.py",
+   "exit_code": 0,
+   "id": "probe1-constraint-matrix",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0272/probe2_waiver_control.py",
+   "exit_code": 0,
+   "id": "probe2-waiver-negative-control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:53Z",
+  "started_at": "2026-08-25T00:59:53Z"
+ },
+ "unit_id": "IMP-0272"
+}

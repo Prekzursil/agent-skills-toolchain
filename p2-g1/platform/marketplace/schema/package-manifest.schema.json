@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/package-manifest.schema.json",
+  "title": "Marketplace package manifest",
+  "description": "The unit of publication. A manifest is signed as a whole (signature.schema.json) and the signature transitively covers the payload because `payload.digest` is a digest over (relative_path, sha256) for every payload file. Spec 10846-10871 requires versions+channels, dependency metadata, platform/client compatibility, permissions, provenance, SBOM, license metadata, quality score, benchmark evidence and deprecation -- all of them live here or are $ref'd from here, so there is exactly ONE place a publisher declares a fact about a package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "version",
+    "channel",
+    "summary",
+    "publisher",
+    "license",
+    "permissions",
+    "compatibility",
+    "payload",
+    "provenance",
+    "sbom_ref",
+    "quality",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "name": { "$ref": "common.schema.json#/$defs/package_name" },
+    "version": { "$ref": "common.schema.json#/$defs/semver" },
+    "channel": { "$ref": "common.schema.json#/$defs/channel" },
+    "summary": { "type": "string", "minLength": 8, "maxLength": 300 },
+    "description": { "type": "string", "maxLength": 4000 },
+    "kind": {
+      "enum": ["skill", "hook", "workflow", "council-protocol", "schema-bundle", "mcp-server", "library"],
+      "default": "library",
+      "description": "Artifact class. Closed set: the resolver dispatches on it, so an unknown kind must be a validation failure and not a runtime surprise."
+    },
+    "publisher": { "$ref": "common.schema.json#/$defs/publisher_id" },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spdx", "notice_required", "aggregate_verified"],
+      "properties": {
+        "spdx": { "$ref": "common.schema.json#/$defs/spdx" },
+        "notice_required": {
+          "type": "boolean",
+          "description": "True for Apache-2.0-family terms that require NOTICE preservation. The linter cross-checks this against the per-file licences in the SBOM: TOURNAMENT-VERDICT.md M1 records 31 Apache-2.0 payload entries aggregated under a declared MIT in this very repo, which is exactly the defect this field plus MKT-L03 detects."
+        },
+        "aggregate_verified": {
+          "type": "boolean",
+          "description": "The publisher asserts the declared SPDX is compatible with EVERY component licence in the SBOM. `false` is publishable to a private mirror but MKT-L04 refuses a public publish."
+        },
+        "notice_path": { "$ref": "common.schema.json#/$defs/relative_path" },
+        "license_path": { "$ref": "common.schema.json#/$defs/relative_path" }
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/permission" },
+      "uniqueItems": true,
+      "maxItems": 64,
+      "description": "The COMPLETE set the package may use. Deny-by-default: anything not listed is refused at install time, and anything listed that the trust policy does not grant refuses the install."
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platforms", "clients"],
+      "properties": {
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["win32", "linux", "darwin", "any"] }
+        },
+        "clients": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "range"],
+            "properties": {
+              "id": { "enum": ["claude-code", "codex-cli", "antigravity"] },
+              "range": { "$ref": "common.schema.json#/$defs/version_range" }
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "range"],
+        "properties": {
+          "name": { "$ref": "common.schema.json#/$defs/package_name" },
+          "range": { "$ref": "common.schema.json#/$defs/version_range" },
+          "optional": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "files", "digest"],
+      "properties": {
+        "root": { "$ref": "common.schema.json#/$defs/relative_path" },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "bytes"],
+            "properties": {
+              "path": { "$ref": "common.schema.json#/$defs/relative_path" },
+              "sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+              "bytes": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "description": "EXPLICIT allowlist. There is no glob and no implicit `**`: marketplace-first FM-4 measured an absolute local path leaking through a committed registry row, and an enumerated payload is the only form a reviewer can read."
+        },
+        "digest": { "$ref": "common.schema.json#/$defs/sha256" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "builder", "built_at", "reproducible"],
+      "properties": {
+        "source": { "type": "string", "minLength": 3, "maxLength": 400 },
+        "source_revision": { "type": "string", "maxLength": 100 },
+        "builder": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "built_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+        "reproducible": { "type": "boolean" },
+        "receipt_ref": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Optional pointer to the Wave-1 completion receipt that certified the payload. This is the ACCEPTANCE plane of marketplace-first 1.5 -- publishing is gated on the 12-condition predicate that already exists rather than on a new one."
+        }
+      }
+    },
+    "sbom_ref": { "$ref": "common.schema.json#/$defs/relative_path" },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conformance_score", "scored_at"],
+      "properties": {
+        "conformance_score": { "$ref": "common.schema.json#/$defs/score_0_100" },
+        "scored_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+        "score_ref": { "$ref": "common.schema.json#/$defs/relative_path" },
+        "benchmark_ref": { "$ref": "common.schema.json#/$defs/relative_path" }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["reverse-engineering", "media", "research", "orchestration", "quality", "security", "cloud", "design", "docs", "testing"]
+      }
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,30}$" }
+    },
+    "deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deprecated", "reason", "since"],
+      "properties": {
+        "deprecated": { "const": true },
+        "reason": { "type": "string", "minLength": 8, "maxLength": 400 },
+        "since": { "$ref": "common.schema.json#/$defs/iso8601" },
+        "superseded_by": { "$ref": "common.schema.json#/$defs/package_name" }
+      },
+      "description": "DEPRECATION is advisory: install warns and proceeds. REVOCATION (revocation.schema.json) is enforcement: install refuses. Conflating the two is how a revocation becomes a warning nobody reads."
+    },
+    "created_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "signature": {
+      "$ref": "signature.schema.json",
+      "description": "Publisher signature over the canonical form of this manifest with `signature` removed, domain `mkt.manifest.v1`. Absent in an UNSIGNED draft (the scaffolder emits one); required by every consumer -- `trust-policy.on_missing.signature` is a one-value enum so a build in which an unsigned package installs is not expressible."
+    }
+  }
+}

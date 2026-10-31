@@ -1,0 +1,1 @@
+Coverage numbers mislead when the index is rebuilt from its own output. That rebuild loop is a classic anti-pattern; the census ends up validating the generator, not the tree. Beware any summary that cites it.

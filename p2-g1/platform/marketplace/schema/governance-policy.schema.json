@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/governance-policy.schema.json",
+  "title": "Marketplace governance policy",
+  "description": "The MACHINE-READABLE half of the documented governance model (spec 10871); the prose half is GOVERNANCE.md. Two halves exist because a governance document nobody can check is a promise, and a governance file nobody can read is a config. `mkt.lint` asserts the two agree on the values that appear in both: roles, quorum, SLAs and the publish preconditions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy_version", "roles", "publish_preconditions", "slas", "amendment"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "policy_version": { "$ref": "common.schema.json#/$defs/semver" },
+    "prose_document": { "$ref": "common.schema.json#/$defs/relative_path" },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "may"],
+        "properties": {
+          "role": { "enum": ["publisher", "registry-maintainer", "moderator", "security-response", "consumer"] },
+          "may": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "publish-package", "yank-version", "sign-index", "revoke-package",
+                "open-moderation-case", "close-moderation-case", "file-appeal",
+                "publish-advisory", "install-package", "operate-mirror"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "publish_preconditions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "license-basis-present", "license-aggregate-consistent", "signature-present",
+          "sbom-complete", "payload-allowlist-explicit", "no-secret-findings",
+          "permissions-within-ceiling", "conformance-score-floor", "provenance-complete"
+        ]
+      },
+      "description": "`license-basis-present` is Stage 0 of marketplace-first and is adopted here as a BLOCKING precondition: TOURNAMENT-VERDICT.md M1 records that this repo has no root LICENSE/COPYING/NOTICE while aggregating 31 Apache-2.0 entries under a declared MIT, so publishing is not merely un-governed but unlawful. The gate exists so that fact is enforced rather than remembered."
+    },
+    "slas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moderation_triage_days", "advisory_triage_days", "appeal_window_days"],
+      "properties": {
+        "moderation_triage_days": { "type": "integer", "minimum": 1, "maximum": 90 },
+        "advisory_triage_days": { "type": "integer", "minimum": 1, "maximum": 90 },
+        "appeal_window_days": { "type": "integer", "minimum": 1, "maximum": 365 }
+      }
+    },
+    "amendment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["process", "quorum"],
+      "properties": {
+        "process": { "type": "string", "minLength": 20, "maxLength": 1000 },
+        "quorum": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
+    }
+  }
+}

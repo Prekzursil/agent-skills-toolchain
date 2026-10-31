@@ -1,0 +1,435 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1103,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/detector-control.schema.json",
+   "role": "supporting",
+   "sha256": "bf941281e8fe5fbb47fe2e32ba0299cae93c29256daacad3f6bbd4ef584f798b"
+  },
+  {
+   "bytes": 2833,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0082/scout.py",
+   "role": "supporting",
+   "sha256": "91278d13e8815ec99feb33ac583702f1f393fa571af9d1ebbb6412b0d3a9c8d3"
+  },
+  {
+   "bytes": 4370,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0082/scenario.py",
+   "role": "supporting",
+   "sha256": "5113ddbb406175bafe07a522035bc31adc41d7b18b77b564ca2eb3baa0948eb3"
+  },
+  {
+   "bytes": 319,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-superior.json",
+   "role": "fixture",
+   "sha256": "814945ec820a2693484bc134cf77e260a3aa322340e1e7dd9a3a26d286945edd"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0082-scout-rediscovery.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0082/probe2_ranking.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0082/probe2_ranking.py",
+    "exit_code": 0,
+    "fingerprint": "schema-validate:detector-control",
+    "method": "schema-validate",
+    "raw_output": "schema_ok (offline RefResolver)",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0082/scout.py:search",
+   "claim": "Probe-local scout rediscovers a planted superior workflow in every declared source class, or names the blind class.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0082/probe1_rediscovery.py",
+     "exit_code": 0,
+     "fingerprint": "cnf0082:probe1-rediscovery",
+     "method": "command",
+     "raw_output": "found=['local', 'marketplace', 'repo', 'docs', 'papers'] blind=[] rec_defects=[] invalid=silent injection=silent rows=local=found#1, marketplace=found#1, repo=found#1, docs=found#1, papers=found#1",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c \"from pathlib import Path; print((Path('command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-superior.json')).is_file())\"",
+     "exit_code": 0,
+     "fingerprint": "cnf0082:plant-files-stat",
+     "method": "file-read",
+     "raw_output": "plant on disk True for each declared class",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0082/recommend.py:assess",
+   "claim": "Found-but-ranked-below-rebuild is a recommendation defect; a rebuild-on-top mutant fires while live ranking does not.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0082/probe2_ranking.py",
+     "exit_code": 0,
+     "fingerprint": "cnf0082:probe2-ranking-mutant",
+     "method": "command",
+     "raw_output": "live_defect=False mutant_defect=True every_planted=True every_verdict=True",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c \"p=open('command-center/p2-wave/probes/CNF-0082/scout.py').read(); print('index.json' in p)\"",
+     "exit_code": 0,
+     "fingerprint": "cnf0082:scout-skips-index",
+     "method": "static-analysis",
+     "raw_output": "scout.py mentions skipping index.json",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/CNF-0082/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "mutant_defect=True ranked_above_rebuild=False",
+   "description": "Mutant that scores the rebuild proposal above the planted incumbent must fire recommendation-defect; live ranking must stay silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "live_defect=False ranked_above_rebuild=True",
+   "id": "NC-rebuild-on-top-mutant",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "rejected 15 errors on 2-key SUCCESS stub",
+   "description": "detector-control.schema.json (physical receipt_core + report.kind=detector-control) must reject a 2-key SUCCESS stub and accept this receipt.",
+   "fired_on_bad_state": true,
+   "good_state_output": "schema accepted live receipt",
+   "id": "NC-schema-garbage",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "ghosts=[] invalid=silent",
+   "description": "Index.json ghosts and a non-matching high-score decoy must not be counted as rediscovery.",
+   "fired_on_bad_state": true,
+   "good_state_output": "declared-class plants found; ghosts and decoy silent",
+   "id": "NC-index-ghost-and-invalid-plant",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "discovery-control-engineer",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "The probe-local scout rediscovered the planted superior workflow in every declared source class (local, marketplace, repo, docs, papers) and ranked each plant above the rebuild proposal. Named IMP-0209/WFA-0143 scout artifacts are absent on this tree; this confirmation did not rebuild them. Detector under test for the five source classes is the probe-local file walk, not an injected index. Estate library scout tools/foundry/scout.py planted-library verdict=blind adopted=None (default None/None; empty None). Index-only ghosts were silent. A non-matching high-score decoy was silent (invalid-plant control). A mutant that scores rebuild above the plant is classified recommendation-defect.",
+  "blind_classes": [],
+  "control_ids": [
+   "plant-local",
+   "plant-marketplace",
+   "plant-repo",
+   "plant-docs",
+   "plant-papers",
+   "invalid-plant-nonmatching-tokens",
+   "index-injection-ghosts",
+   "recommendation-mutant-rebuild-on-top",
+   "foundry-library-plant"
+  ],
+  "controls": [
+   {
+    "id": "plant-local",
+    "kind": "source-class-plant",
+    "plant": {
+     "id": "wf.cnf0082.local.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-superior.json",
+     "quality_score": 95,
+     "source_class": "local",
+     "superior": true
+    },
+    "plant_rank": 1,
+    "ranked_above_rebuild": true,
+    "rebuild_rank": 2,
+    "scout_ids": [
+     "wf.cnf0082.local.superior",
+     "build.new.certify-and-publish-workflow",
+     "wf.cnf0082.local.inferior"
+    ],
+    "source_class": "local",
+    "verdict": "found"
+   },
+   {
+    "id": "plant-marketplace",
+    "kind": "source-class-plant",
+    "plant": {
+     "id": "wf.cnf0082.marketplace.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/marketplace/wf-cnf0082-marketplace-superior.json",
+     "quality_score": 95,
+     "source_class": "marketplace",
+     "superior": true
+    },
+    "plant_rank": 1,
+    "ranked_above_rebuild": true,
+    "rebuild_rank": 2,
+    "scout_ids": [
+     "wf.cnf0082.marketplace.superior",
+     "build.new.certify-and-publish-workflow",
+     "wf.cnf0082.marketplace.inferior"
+    ],
+    "source_class": "marketplace",
+    "verdict": "found"
+   },
+   {
+    "id": "plant-repo",
+    "kind": "source-class-plant",
+    "plant": {
+     "id": "wf.cnf0082.repo.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/repo/wf-cnf0082-repo-superior.json",
+     "quality_score": 95,
+     "source_class": "repo",
+     "superior": true
+    },
+    "plant_rank": 1,
+    "ranked_above_rebuild": true,
+    "rebuild_rank": 2,
+    "scout_ids": [
+     "wf.cnf0082.repo.superior",
+     "build.new.certify-and-publish-workflow",
+     "wf.cnf0082.repo.inferior"
+    ],
+    "source_class": "repo",
+    "verdict": "found"
+   },
+   {
+    "id": "plant-docs",
+    "kind": "source-class-plant",
+    "plant": {
+     "id": "wf.cnf0082.docs.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/docs/wf-cnf0082-docs-superior.json",
+     "quality_score": 95,
+     "source_class": "docs",
+     "superior": true
+    },
+    "plant_rank": 1,
+    "ranked_above_rebuild": true,
+    "rebuild_rank": 2,
+    "scout_ids": [
+     "wf.cnf0082.docs.superior",
+     "build.new.certify-and-publish-workflow",
+     "wf.cnf0082.docs.inferior"
+    ],
+    "source_class": "docs",
+    "verdict": "found"
+   },
+   {
+    "id": "plant-papers",
+    "kind": "source-class-plant",
+    "plant": {
+     "id": "wf.cnf0082.papers.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/papers/wf-cnf0082-papers-superior.json",
+     "quality_score": 95,
+     "source_class": "papers",
+     "superior": true
+    },
+    "plant_rank": 1,
+    "ranked_above_rebuild": true,
+    "rebuild_rank": 2,
+    "scout_ids": [
+     "wf.cnf0082.papers.superior",
+     "build.new.certify-and-publish-workflow",
+     "wf.cnf0082.papers.inferior"
+    ],
+    "source_class": "papers",
+    "verdict": "found"
+   },
+   {
+    "id": "invalid-plant-nonmatching-tokens",
+    "kind": "invalid-plant",
+    "plant": {
+     "id": "wf.cnf0082.local.nonmatching",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-nonmatching.json"
+    },
+    "returned": false,
+    "verdict": "silent"
+   },
+   {
+    "ghosts": [],
+    "id": "index-injection-ghosts",
+    "kind": "index-injection",
+    "plant": {
+     "id": "wf.cnf0082.*.ghost",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/*/index.json"
+    },
+    "verdict": "silent"
+   },
+   {
+    "id": "recommendation-mutant-rebuild-on-top",
+    "kind": "recommendation-mutant",
+    "live_defect": false,
+    "mutant_defect": true,
+    "plant": {
+     "id": "wf.cnf0082.local.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-superior.json"
+    },
+    "verdict": "recommendation-defect"
+   },
+   {
+    "id": "foundry-library-plant",
+    "kind": "estate-library-scout",
+    "plant": {
+     "id": "wf.cnf0082.foundry.superior",
+     "path": "command-center/p2-wave/probes/CNF-0082/fixtures/foundry-library.json"
+    },
+    "planted_adopted": null,
+    "verdict": "blind"
+   }
+  ],
+  "declared_source_classes": [
+   "local",
+   "marketplace",
+   "repo",
+   "docs",
+   "papers"
+  ],
+  "detector": {
+   "index_injection": false,
+   "mechanism": "walk each source-class directory for workflow JSON whose goal_tokens cover the query; skip index.json; append a rebuild proposal and rank by quality_score",
+   "name": "cnf-0082-probe-local-source-class-walk",
+   "production_scout_present": false,
+   "production_survey": {
+    "estate_library_scout": null,
+    "named_artifacts_missing": [
+     "command-center/receipts/IMP-0209.json",
+     "command-center/foundry/WFA-0143-workflow-scout-executable-search-rank-and-provenance.json",
+     "command-center/wfa/WFA-0127-workflow-scout-executable-spec.json"
+    ],
+    "named_artifacts_present": [],
+    "production_present": false
+   }
+  },
+  "every_declared_class_has_found_or_blind": true,
+  "every_declared_class_planted": true,
+  "found_classes": [
+   "local",
+   "marketplace",
+   "repo",
+   "docs",
+   "papers"
+  ],
+  "kind": "detector-control",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-superior.json",
+    "measured": "found",
+    "method": "probe-local source-class file walk; skip index.json",
+    "name": "plant-local"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/marketplace/wf-cnf0082-marketplace-superior.json",
+    "measured": "found",
+    "method": "probe-local source-class file walk; skip index.json",
+    "name": "plant-marketplace"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/repo/wf-cnf0082-repo-superior.json",
+    "measured": "found",
+    "method": "probe-local source-class file walk; skip index.json",
+    "name": "plant-repo"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/docs/wf-cnf0082-docs-superior.json",
+    "measured": "found",
+    "method": "probe-local source-class file walk; skip index.json",
+    "name": "plant-docs"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/papers/wf-cnf0082-papers-superior.json",
+    "measured": "found",
+    "method": "probe-local source-class file walk; skip index.json",
+    "name": "plant-papers"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/control.py:recommendation_mutant",
+    "measured": true,
+    "method": "rebuild_score raised to 10000 vs live REBUILD_SCORE",
+    "name": "recommendation-mutant-both-states"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/local/wf-cnf0082-local-nonmatching.json",
+    "measured": "silent",
+    "method": "non-matching goal_tokens decoy must stay silent",
+    "name": "invalid-plant-nonmatching"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0082/fixtures/sources/*/index.json",
+    "measured": "silent",
+    "method": "index.json ghosts must not be returned",
+    "name": "index-injection-ghosts"
+   }
+  ],
+  "question": "Would the scout rediscover a workflow that already exists, or would it propose rebuilding it? Plant a known-present, clearly superior workflow in each searched source class and answer: does the scout find it in every class, and in which class is it blind? Spec line 11331 names ignoring an existing superior workflow as a required regression case."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Named IMP-0209 / WFA-0143 production scout receipts are absent on this worktree; this unit surveyed them and did not rebuild them.",
+   "settling_experiment": "Re-run production_scout_census after IMP-0209/WFA-0143 land, then plant into those source classes rather than the probe-local walk.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "tools/foundry/scout.py is absent, so the estate-library plant stayed blind rather than ADOPT.",
+   "settling_experiment": "Plant into tools/foundry/library/incumbents.json once tools/foundry/scout.py is on this tree and re-measure foundry_library_control.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 re-runs ranking, invalid-plant, index-injection, and schema controls on the live fixtures; it does not take the emit summary as given.",
+  "reviewer_id": "CNF-0082-probe2-ranking-injection-mutant",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0082 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every declared source class received a plant and has a recorded found-or-blind verdict. Any other terminal state is FAILED:CNF-0082 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "_USER-PROMPTS.md:11331",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0082/probe1_rediscovery.py",
+   "id": "probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0082/probe2_ranking.py",
+   "id": "probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 1,
+  "ended_at": "2026-08-25T00:57:33Z",
+  "started_at": "2026-08-25T00:57:33Z"
+ },
+ "unit_id": "CNF-0082"
+}

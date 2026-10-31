@@ -1,0 +1,87 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0124",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ADV-0124",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0124]",
+ "min_bytes_threshold": 2048,
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json",
+   "bytes": 18559,
+   "sha256": "c4044bfe6e2405bc209b0775997dfaf89f5cb4209178c93598725dd82edd3e8e",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Both named probes re-run live this session and exit 0; the primary artifact at output_path parses, carries the completion sentinel, and its per-unit manifest row matches the CRLF-normalized sha256.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0124/SUBAGENT-RETURN.json:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+     "raw_output": "{\"confusion_matrix\": {\"FINISHED\": \"FINISHED\", \"RUNNING_MONITOR_ALIVE\": \"RUNNING_MONITOR_ALIVE\", \"RUNNING_MONITOR_DEAD\": \"RUNNING_MONITOR_DEAD\", \"STALLED\": \"STALLED\"}, \"finished_versus_stalled_distinct\": true, \"four_distinct\": true, \"live_work_not_false_dead\": true, \"pass\": true, \"plainly_running_ok\": true, \"probe\": \"probe1-four-state-matrix\", \"reported\": [\"RUNNING_MONITOR_ALIVE\", \"RUNNING_MONITOR_DEAD\", \"FINISHED\", \"STALLED\"], \"truths\": [\"RUNNING_MONITOR_ALIVE\", \"RUNNING_MONITOR_DEAD\", \"FINISHED\", \"STALLED\"], \"unit_id\": \"ADV-0124\"}\nSUCCESS:ADV-0124-probe1 four-state matrix {'RUNNING_MONITOR_ALIVE': 'RUNNING_MONITOR_ALIVE', 'RUNNING_MONITOR_DEAD': 'RUNNING_MONITOR_DEAD', 'FINISHED': 'FINISHED', 'STALLED': 'STALLED'}",
+     "fingerprint": "ADV-0124:probe1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0124/probe2_signal_source_audit.py",
+     "raw_output": "{\"classify_has_mtime_param\": false, \"heartbeat_false_dead_on_s2\": true, \"heartbeat_only_s2_s4_collide\": true, \"heartbeat_s1_silent\": true, \"mtime_only_s3_s4_collide\": true, \"mtime_s1_silent\": true, \"mtime_used_any\": false, \"pass\": true, \"probe\": \"probe2-signal-source-audit\", \"proc_s2_vs_s4\": {\"distinct_when_proc_admitted\": true, \"s2\": {\"complete_trailer\": false, \"cpu_delta\": 5, \"hb_delta\": 0, \"hb_fresh\": false, \"proc_alive\": true, \"proc_state\": \"R\", \"terminal\": false}, \"s4\": {\"complete_trailer\": false, \"cpu_delta\": 0, \"hb_delta\": 0, \"hb_fresh\": false, \"proc_alive\": true, \"proc_state\": \"T\", \"terminal\": false}}, \"production_absent\": false, \"source_audit_clean\": true, \"unit_id\": \"ADV-0124\"}\nSUCCESS:ADV-0124-probe2 signal-source audit mtime_clean heartbeat-only-collides mtime-only-collides",
+     "fingerprint": "ADV-0124:probe2",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-24T23:22:56Z",
+  "ended_at": "2026-10-25T15:22:41Z"
+ },
+ "retry": {
+  "count": 1,
+  "policy": "two-strikes pivot; skip is a verdict, not a retry"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete and live-verified (_measure_one_delivered.py -> SUCCESS:delivered): artifact at output_path parses, carries the completion sentinel, both named probes re-run exit 0, per-unit manifest row matches the CRLF-normalized sha256. state stays BLOCKED because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, and the catalog reviewer_requirement names a fresh-context / cross-vendor / two-reviewer panel that has not run. Only the independent reviewer closes. one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement ADV-0124 fix cycle: the live fleet re-run misclassified S1 (RUNNING_MONITOR_ALIVE -> RUNNING_MONITOR_DEAD); root cause = monitor heartbeat reader mapped a torn mid-write JSON read to seq=None and its 0.14s sample window could be entirely missed under scheduler load. Instrument hardened (bounded torn-read retry + 0.35s window), artifact re-emitted, probes re-run green. Second fix cycle: Windows env-prefix failure in write_receipts run_cmd ported the _measure_one_delivered.py adaptation.",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement"
+ },
+ "reviewer": {
+  "reviewer_id": "unassigned-independent-reviewer",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0124"
+ },
+ "produced_by": {
+  "model": "opus",
+  "role": "builder-shard-2-w2",
+  "vendor": "anthropic"
+ },
+ "extensions": {
+  "carried_from_builder_receipt": {
+   "completion_sentinel": "SUCCESS:ADV-0124 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0124 <reason>.",
+   "gate_note": "not owner-gated (catalog owner_approval_required=false); blanket build directive 2026-10-24 not needed for this unit",
+   "owner_approval_required": false,
+   "output_path": "command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json",
+   "output_schema": "command-center/schema/fault-injection-run.schema.json",
+   "status": "BUILT-AWAITING-REVIEW",
+   "ts": "2026-10-24T23:22:56Z",
+   "id": "ADV-0124",
+   "manifest_path": "command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json"
+  }
+ }
+}

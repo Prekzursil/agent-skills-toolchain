@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/advisory.schema.json",
+  "title": "Security advisory list",
+  "description": "Vulnerability status and the security advisory flow (spec 10854, 10869). An advisory is a STATE MACHINE, not a flag: reported -> triaged -> confirmed -> fixed | disputed | withdrawn. `vulnerability status` for a package version is DERIVED from the open advisories that match it, never stored on the package -- a status stored on the package would go stale the moment a new advisory landed, and staleness in this field is indistinguishable from safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "updated_at", "advisories", "signature"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "advisories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["advisory_id", "state", "severity", "title", "affected", "reported_at", "reporter"],
+        "properties": {
+          "advisory_id": { "type": "string", "pattern": "^adv:[0-9]{4}-[0-9]{4}$" },
+          "state": { "enum": ["reported", "triaged", "confirmed", "fixed", "disputed", "withdrawn"] },
+          "severity": { "$ref": "common.schema.json#/$defs/severity" },
+          "title": { "type": "string", "minLength": 8, "maxLength": 200 },
+          "detail": { "type": "string", "maxLength": 4000 },
+          "cwe": { "type": "string", "pattern": "^CWE-[0-9]{1,5}$" },
+          "affected": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "range"],
+              "properties": {
+                "name": { "$ref": "common.schema.json#/$defs/package_name" },
+                "range": { "$ref": "common.schema.json#/$defs/version_range" },
+                "fixed_in": { "$ref": "common.schema.json#/$defs/semver" }
+              }
+            }
+          },
+          "reported_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+          "reporter": { "type": "string", "minLength": 2, "maxLength": 200 },
+          "coordinated_until": {
+            "$ref": "common.schema.json#/$defs/iso8601",
+            "description": "Embargo end. Before this date the advisory may be withheld from a PUBLIC mirror but must still be present in the private one -- an embargo that hides an advisory from the operator who is running the code protects the wrong party."
+          },
+          "triaged_by": { "$ref": "common.schema.json#/$defs/publisher_id" },
+          "resolution": { "type": "string", "maxLength": 1000 }
+        }
+      }
+    },
+    "signature": { "$ref": "signature.schema.json" }
+  }
+}

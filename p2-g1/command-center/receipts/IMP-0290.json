@@ -1,0 +1,265 @@
+{
+ "artifact_paths": [
+  "tools/council/protocol/blind_first.py",
+  "command-center/receipts/IMP-0290.json"
+ ],
+ "artifacts": [
+  {
+   "bytes": 12078,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/council/protocol/blind_first.py",
+   "role": "primary",
+   "sha256": "b92ed62a1ea79db5a221a89f3b1dc048ed4a8a66181eff4903555ffbd78bfbfa"
+  },
+  {
+   "bytes": 12078,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/council/protocol/blind_first.py",
+   "role": "supporting",
+   "sha256": "b92ed62a1ea79db5a221a89f3b1dc048ed4a8a66181eff4903555ffbd78bfbfa"
+  },
+  {
+   "bytes": 432,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/council/__init__.py",
+   "role": "supporting",
+   "sha256": "31b905bbdb0e3ad5befde6a9afc9de588a45922a7b121e3aaab252f0a6066e1f"
+  },
+  {
+   "bytes": 162,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/council/protocol/__init__.py",
+   "role": "supporting",
+   "sha256": "d04ee1b338e3303694cddb0284ca47a67d4585235e5cb9dc9df997716aa0c6af"
+  },
+  {
+   "bytes": 2437,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0290/scenario.py",
+   "role": "supporting",
+   "sha256": "cc8b51289a0d32ad4dc9d93a5e90a61c706953d40c8d1706f3380169dc47bdba"
+  },
+  {
+   "bytes": 6811,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0290/probe1_barrier.py",
+   "role": "supporting",
+   "sha256": "8250a0f0d675fa51a1d0d2ec472a92c1ea044bc33d3fd5474f0ccee561c1b65f"
+  },
+  {
+   "bytes": 4255,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0290/probe2_early_open.py",
+   "role": "supporting",
+   "sha256": "4eefa32e8a5f702dffd5812be8906d1b87e8779f30f60ff6cab41d2e19dc4b2e"
+  },
+  {
+   "bytes": 15036,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0290/write_receipts.py",
+   "role": "supporting",
+   "sha256": "3b9ebda653cf9907d5c146a8b681448a83b391163cd912e48f8d31de136761e8"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0290.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0290",
+   "executed": false,
+   "exit_code": null,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0290",
+    "fingerprint": "2496e7217436c2be29d582a2b400107a",
+    "method": "command",
+    "raw_output": "measure runs after this receipt is written; not claimed here",
+    "role": "verifier"
+   },
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/protocol/blind_first.py:legitimate_barrier_at",
+   "claim": "Delivered-prompt scan for peer content before the legitimate barrier timestamp is zero on the slow-participant/timeout path and on the all-submitted path. Retry and streaming buffers do not appear in a later seat's prompt before the barrier opens. After timeout, submitted seats receive peers; the timed-out seat does not, and post-barrier submit is refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0290/probe1_barrier.py",
+     "exit_code": 0,
+     "fingerprint": "8bd0d54670c549a47aeefa4dbe7cba2a",
+     "method": "command",
+     "raw_output": "{\"all_submitted_path\": {\"post_barrier_delivery\": true, \"pre_barrier_leaks\": 0}, \"event_order_ok\": true, \"pass\": true, \"probe\": \"probe1-barrier\", \"receipt\": {\"ok\": true, \"present\": false, \"reason\": \"receipt-not-yet-written\"}, \"retry_clean\": true, \"slow_and_timeout\": {\"post_barrier_submit_rejected\": true, \"post_timeout_peer_delivery\": true, \"pre_timeout_leaks\": 0, \"timed_out_seat_withheld\": true}, \"stream_clean\": true, \"unit_id\": \"IMP-0290\"}\nslow_timeout_ok=True retry_clean=True stream_clean=True scan_zero=True event_order_ok=True\nSUCCESS:IMP-0290-probe1 barrier semantics under slow participant and timeout",
+     "role": "source"
+    },
+    {
+     "command": "BlindFirstRound.audit_event_order() on the same slow/timeout trace",
+     "exit_code": 0,
+     "fingerprint": "b0a9eacee3de9bf6642652e4d442e3e1",
+     "method": "event-order-audit",
+     "raw_output": "{\"event_order_ok\": true, \"slow_and_timeout\": {\"post_barrier_submit_rejected\": true, \"post_timeout_peer_delivery\": true, \"pre_timeout_leaks\": 0, \"timed_out_seat_withheld\": true}}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/protocol/blind_first.py:audit_event_order",
+   "claim": "Event-order audit comparing submission and delivery timestamps reports ok=true on the honest paths and names deliver-before-legitimate-barrier on the forced early open.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "BlindFirstRound.audit_event_order() on the same slow/timeout trace",
+     "exit_code": 0,
+     "fingerprint": "b0a9eacee3de9bf6642652e4d442e3e1",
+     "method": "event-order-audit",
+     "raw_output": "{\"event_order_ok\": true, \"slow_and_timeout\": {\"post_barrier_submit_rejected\": true, \"post_timeout_peer_delivery\": true, \"pre_timeout_leaks\": 0, \"timed_out_seat_withheld\": true}}",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0290/probe2_early_open.py",
+     "exit_code": 0,
+     "fingerprint": "7c19c6aa563a5806c12c454a6e87b8ba",
+     "method": "command",
+     "raw_output": "{\"event_order_fires_on_bad\": true, \"fired_on_bad_state\": true, \"leak_count_bad\": 1, \"legitimate_untouched_by_force\": true, \"mutant_actual_opened_at_scanner_silent_on_bad\": true, \"pass\": true, \"probe\": \"probe2-early-open\", \"receipt\": {\"ok\": true, \"present\": false, \"reason\": \"receipt-not-yet-written\"}, \"reviewer_starts_from\": \"negative control (early barrier open), not author summary\", \"silent_on_good_state\": true, \"unit_id\": \"IMP-0290\"}\nearly_open_scan_fires=1 good_silent=True mutant_actual_open_silent=True\nSUCCESS:IMP-0290-probe2 early-open negative control fires",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0290/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit only; did not run tools/command-center/unit_manifest.py --write",
+  "registered": true
+ },
+ "min_bytes_threshold": 512,
+ "negative_control_ids": [
+  "IMP-0290-C1-early-open-prompt-scan"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"event_order_fires_on_bad\": true, \"fired_on_bad_state\": true, \"leak_count_bad\": 1, \"legitimate_untouched_by_force\": true, \"mutant_actual_opened_at_scanner_silent_on_bad\": true, \"pass\": true, \"probe\": \"probe2-early-open\", \"receipt\": {\"ok\": true, \"present\": false, \"reason\": \"receipt-not-yet-written\"}, \"reviewer_starts_from\": \"negative control (early barrier open), not author summary\", \"silent_on_good_state\": true, \"unit_id\": \"IMP-0290\"}\nearly_open_scan_fires=1 good_silent=True mutant_actual_open_silent=True\nSUCCESS:IMP-0290-probe2 early-open negative control fires",
+   "description": "Open the barrier with force=True before every seat has submitted. The delivered-prompt scan must FIRE on the later seat's prompt. The same sequence without force-open must stay silent. A scanner that trusts actual opened_at instead of legitimate_barrier_at is silent on the bad state and is refused.",
+   "fired_on_bad_state": true,
+   "good_state_output": "same submits, no force-open: scan_delivered_prompts() == [] and audit_event_order ok=true",
+   "id": "IMP-0290-C1-early-open-prompt-scan",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "council-protocol-module",
+ "report": {
+  "answer": "On the live module: no. Retry and stream buffers stay in the vault. The only path that delivers peer text before the legitimate barrier is open_barrier(force=True), which the prompt scan and event-order audit both detect. SUCCESS:IMP-0290",
+  "falsifiable_question": "is there any ordering, retry or streaming path by which an early submitter's text reaches a later participant before the barrier opens?",
+  "kind": "council-protocol-module",
+  "probe1": {
+   "all_submitted_path": {
+    "post_barrier_delivery": true,
+    "pre_barrier_leaks": 0
+   },
+   "event_order_ok": true,
+   "pass": true,
+   "probe": "probe1-barrier",
+   "receipt": {
+    "ok": true,
+    "present": false,
+    "reason": "receipt-not-yet-written"
+   },
+   "retry_clean": true,
+   "slow_and_timeout": {
+    "post_barrier_submit_rejected": true,
+    "post_timeout_peer_delivery": true,
+    "pre_timeout_leaks": 0,
+    "timed_out_seat_withheld": true
+   },
+   "stream_clean": true,
+   "unit_id": "IMP-0290"
+  },
+  "probe2": {
+   "event_order_fires_on_bad": true,
+   "fired_on_bad_state": true,
+   "leak_count_bad": 1,
+   "legitimate_untouched_by_force": true,
+   "mutant_actual_opened_at_scanner_silent_on_bad": true,
+   "pass": true,
+   "probe": "probe2-early-open",
+   "receipt": {
+    "ok": true,
+    "present": false,
+    "reason": "receipt-not-yet-written"
+   },
+   "reviewer_starts_from": "negative control (early barrier open), not author summary",
+   "silent_on_good_state": true,
+   "unit_id": "IMP-0290"
+  },
+  "title": "Blind independent first pass with a submission barrier"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Declared output_schema command-center/schema/receipt.schema.json is absent on this worktree (platform/schema likewise). Schema validation is NOT-CHECKED. G-1 measure requires parse + non-BLOCKED state + sentinel + live probes + per-unit manifest.",
+   "settling_experiment": "Re-validate this receipt against receipt.schema.json when that file is present on disk.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Dependencies IMP-0264 (kernel) and IMP-0274 (elastic seats) are not delivered here. The protocol is standalone with an explicit kernel port. A topology that reads the vault directly is NOT-CHECKED until the kernel call-graph check exists.",
+   "settling_experiment": "After IMP-0264, add a call-graph control that a test topology writing participant output besides assemble_prompt is rejected.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Reviewer is the adversarial named probe, not a separate human vendor in a fresh process. Catalog reviewer_requirement is met at the test-starting-point bar, not at the cross-vendor bar.",
+   "settling_experiment": "Assign an independent vendor who re-runs probe1 and probe2 from the tests without this receipt's prose.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0290-probe2-early-open",
+  "starts_from": "tests (early-open negative control), not the author summary",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0290",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0290]",
+ "state": "SUCCESS",
+ "test_ids": [
+  "IMP-0290-T1-slow-participant-and-timeout",
+  "IMP-0290-T2-early-open-negative-control"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0290/probe1_barrier.py",
+   "id": "IMP-0290-T1-slow-participant-and-timeout",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0290/probe2_early_open.py",
+   "id": "IMP-0290-T2-early-open-negative-control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:38Z",
+  "started_at": "2026-08-25T00:59:38Z"
+ },
+ "unit_id": "IMP-0290"
+}

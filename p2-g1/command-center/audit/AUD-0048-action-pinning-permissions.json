@@ -1,0 +1,2230 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/audit/AUD-0048-action-pinning-permissions.json",
+   "bytes": 31826,
+   "sha256": "2398fba989e3003db15af2773d951a644436842af7d1cea7a9e1cc97020cb0b0",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "report": {
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "anchor": ".github/workflows",
+    "measured": 12,
+    "method": "directory listing of .github/workflows",
+    "name": "live_workflow_files"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0048/scan.py",
+    "measured": 41,
+    "method": "syntactic uses: line scan",
+    "name": "live_uses"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0048/classify.py",
+    "measured": 3,
+    "method": "pin_class severity gate (branch=critical, tag=high)",
+    "name": "live_third_party_flagged"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0048/classify.py",
+    "measured": 2,
+    "method": "workflow-level permissions missing or write-grant",
+    "name": "live_permissions_flagged"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0048/resolve.py",
+    "measured": true,
+    "method": "git ls-remote of fixture tag-pinned uses",
+    "name": "probe2_fixture_tag_resolved"
+   }
+  ],
+  "control_ids": [
+   "branch-vs-sha-pin"
+  ],
+  "answer": "No: not every third-party action is SHA-pinned. Live .github/workflows has 12 workflow files, 41 uses: lines, 38 sha-pinned, 3 tag-pinned (['actions/ai-inference@v3', 'actions/checkout@v7', 'dependabot/fetch-metadata@v3']), 0 branch-pinned, 2 workflows whose workflow-level permissions block is missing or grants write. Nested/vendored workflow YAML (7 files) is inventoried separately and is not this repo's Actions identity.",
+  "question": "Is every third-party action pinned to a full commit SHA rather than a tag, and does every workflow declare a least-privilege permissions block rather than inheriting the default token scope?"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0048 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/audit/AUD-0048-action-pinning-permissions.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "AUD-0048",
+ "extensions": {
+  "legacy_root": {
+   "answer": "No: not every third-party action is SHA-pinned. Live .github/workflows has 12 workflow files, 41 uses: lines, 38 sha-pinned, 3 tag-pinned (['actions/ai-inference@v3', 'actions/checkout@v7', 'dependabot/fetch-metadata@v3']), 0 branch-pinned, 2 workflows whose workflow-level permissions block is missing or grants write. Nested/vendored workflow YAML (7 files) is inventoried separately and is not this repo's Actions identity.",
+   "claim_scope": "SUCCESS means the two named probes ran, the required both-states pin control discriminated, and the live-tree question was answered without vacuity. It does not mean every historical workflow was SHA-pinned.",
+   "controls": {
+    "branch_severity": "critical",
+    "errors": [],
+    "id": "branch-vs-sha-pin",
+    "pass": true,
+    "permissions": {
+     "branch_missing": true,
+     "sha_least_privilege": true
+    },
+    "sha_flagged": false
+   },
+   "findings": [
+    {
+     "file": ".github/workflows/autofix-models.yml",
+     "id": "live-.github/workflows/autofix-models.yml-37",
+     "line": 37,
+     "severity": "high",
+     "title": "tag-pinned actions/checkout@v7"
+    },
+    {
+     "file": ".github/workflows/autofix-models.yml",
+     "id": "live-.github/workflows/autofix-models.yml-77",
+     "line": 77,
+     "severity": "high",
+     "title": "tag-pinned actions/ai-inference@v3"
+    },
+    {
+     "file": ".github/workflows/dependabot-auto-merge.yml",
+     "id": "live-.github/workflows/dependabot-auto-merge.yml-24",
+     "line": 24,
+     "severity": "high",
+     "title": "tag-pinned dependabot/fetch-metadata@v3"
+    },
+    {
+     "examples": [
+      {
+       "file": ".github/workflows/autofix-models.yml",
+       "pin_class": "tag-pinned",
+       "raw": "actions/checkout@v7"
+      },
+      {
+       "file": ".github/workflows/autofix-models.yml",
+       "pin_class": "tag-pinned",
+       "raw": "actions/ai-inference@v3"
+      },
+      {
+       "file": ".github/workflows/dependabot-auto-merge.yml",
+       "pin_class": "tag-pinned",
+       "raw": "dependabot/fetch-metadata@v3"
+      }
+     ],
+     "id": "F-harvest-tag-or-branch-pins",
+     "pin_classes": {
+      "sha-pinned": 26,
+      "tag-pinned": 3
+     },
+     "severity": "high",
+     "title": "AUD-0041 harvest: 3 third-party uses are not full-SHA pins (stale inventory, not live YAML)"
+    },
+    {
+     "files": [
+      "tools/editor/metaswarm/.github/workflows/ci.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/ci.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/claude-code-review.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/claude.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/docs.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/lint.yml",
+      "tools/editor/ralph-orchestrator/vendor/.github/workflows/release.yml"
+     ],
+     "id": "F-nested-vendored-unpinned",
+     "pin_classes": {
+      "branch-pinned": 6,
+      "tag-pinned": 41
+     },
+     "severity": "medium",
+     "title": "Nested/vendored workflows: 47 third-party uses are not full-SHA pins (not this repo's Actions identity)"
+    }
+   ],
+   "fixtures": {
+    "uses": [
+     {
+      "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-branch-pinned.yml",
+      "flagged": true,
+      "line": 8,
+      "pin_class": "branch-pinned",
+      "raw": "actions/checkout@main",
+      "severity": "critical"
+     },
+     {
+      "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-sha-pinned.yml",
+      "flagged": false,
+      "line": 10,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-tag-pinned.yml",
+      "flagged": true,
+      "line": 10,
+      "pin_class": "tag-pinned",
+      "raw": "actions/checkout@v4",
+      "severity": "high"
+     }
+    ]
+   },
+   "harvest_aud0041": {
+    "flagged_n": 3,
+    "n": 29,
+    "note": "Classified from AUD-0041 probe1-yaml-inventory.json. Those workflow files are not on this worktree. Not a live pinning claim.",
+    "pin_classes": {
+     "sha-pinned": 26,
+     "tag-pinned": 3
+    },
+    "tag_resolutions": []
+   },
+   "headline": {
+    "fixture_control_pass": true,
+    "harvest_flagged": 3,
+    "harvest_pin_classes": {
+     "sha-pinned": 26,
+     "tag-pinned": 3
+    },
+    "harvest_uses": 29,
+    "live_permissions_flagged": 2,
+    "live_pin_classes": {
+     "sha-pinned": 38,
+     "tag-pinned": 3
+    },
+    "live_third_party_flagged": 3,
+    "live_uses": 41,
+    "live_workflow_files": 12,
+    "nested_flagged": 47,
+    "nested_workflow_files": 7,
+    "probe2_resolutions_ok": true
+   },
+   "live": {
+    "files": [
+     ".github/workflows/autofix-models.yml",
+     ".github/workflows/codex-runner.yml",
+     ".github/workflows/dependabot-auto-merge.yml",
+     ".github/workflows/hook-audit.yml",
+     ".github/workflows/interpreter-floor.yml",
+     ".github/workflows/mcp-audit.yml",
+     ".github/workflows/no-runtime-junk.yml",
+     ".github/workflows/p2next-rail-count.yml",
+     ".github/workflows/quality.yml",
+     ".github/workflows/routing-benchmark.yml",
+     ".github/workflows/rule-audit.yml",
+     ".github/workflows/skill-dual-write.yml"
+    ],
+    "workflows": [
+     {
+      "file": ".github/workflows/autofix-models.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "draft-fix": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": true,
+        "form": "map",
+        "grants": {
+         "contents": "write",
+         "pull-requests": "write"
+        },
+        "least_privilege": false,
+        "present": true,
+        "reason": "write grants: ['contents', 'pull-requests']",
+        "severity": "medium"
+       }
+      },
+      "permissions_flagged": true,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": true,
+        "line": 37,
+        "pin_class": "tag-pinned",
+        "raw": "actions/checkout@v7",
+        "ref": "v7",
+        "severity": "high"
+       },
+       {
+        "action": "actions/ai-inference",
+        "flagged": true,
+        "line": 77,
+        "pin_class": "tag-pinned",
+        "raw": "actions/ai-inference@v3",
+        "ref": "v3",
+        "severity": "high"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/codex-runner.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "run": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "step-security/harden-runner",
+        "flagged": false,
+        "line": 62,
+        "pin_class": "sha-pinned",
+        "raw": "step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c",
+        "ref": "05e31511f85b41b11d1cf0ef85d0992719546e2c",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 85,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-node",
+        "flagged": false,
+        "line": 91,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "ref": "820762786026740c76f36085b0efc47a31fe5020",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 94,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/dependabot-auto-merge.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "auto-merge": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": true,
+        "form": "map",
+        "grants": {
+         "contents": "write",
+         "pull-requests": "write"
+        },
+        "least_privilege": false,
+        "present": true,
+        "reason": "write grants: ['contents', 'pull-requests']",
+        "severity": "medium"
+       }
+      },
+      "permissions_flagged": true,
+      "uses": [
+       {
+        "action": "dependabot/fetch-metadata",
+        "flagged": true,
+        "line": 24,
+        "pin_class": "tag-pinned",
+        "raw": "dependabot/fetch-metadata@v3",
+        "ref": "v3",
+        "severity": "high"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/hook-audit.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "hook-audit": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 125,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 129,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/interpreter-floor.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "interpreter-floor": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 78,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 80,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 84,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/mcp-audit.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "mcp-audit": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 62,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 65,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/no-runtime-junk.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "no-runtime-junk": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 27,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 28,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/p2next-rail-count.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "p2next-rail-count": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 52,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 55,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/quality.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "deps": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "lint": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "sast": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "secrets": {
+         "flagged": false,
+         "form": "map",
+         "grants": {
+          "contents": "read",
+          "pull-requests": "read"
+         },
+         "least_privilege": true,
+         "present": true,
+         "reason": "explicit non-write grants",
+         "severity": "none"
+        },
+        "test-node": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "test-platform": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "test-python": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        },
+        "types": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 78,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 79,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 131,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 132,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 243,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-node",
+        "flagged": false,
+        "line": 244,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "ref": "820762786026740c76f36085b0efc47a31fe5020",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 287,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 288,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-node",
+        "flagged": false,
+        "line": 1156,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "ref": "820762786026740c76f36085b0efc47a31fe5020",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 1521,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 1585,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 1586,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 1615,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 1638,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "gitleaks/gitleaks-action",
+        "flagged": false,
+        "line": 1644,
+        "pin_class": "sha-pinned",
+        "raw": "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+        "ref": "e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+        "severity": "none"
+       },
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 1700,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "google/osv-scanner-action/osv-scanner-action",
+        "flagged": false,
+        "line": 1721,
+        "pin_class": "sha-pinned",
+        "raw": "google/osv-scanner-action/osv-scanner-action@8deb546fdb875b9996d27d4950be7312dac076a1",
+        "ref": "8deb546fdb875b9996d27d4950be7312dac076a1",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/routing-benchmark.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "routing-benchmark": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 45,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 46,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/rule-audit.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "rule-audit": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 91,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 92,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     },
+     {
+      "file": ".github/workflows/skill-dual-write.yml",
+      "permissions": {
+       "any_declared": true,
+       "jobs": {
+        "skill-dual-write": {
+         "flagged": true,
+         "form": "missing",
+         "least_privilege": false,
+         "present": false,
+         "reason": "inherits default GITHUB_TOKEN scope",
+         "severity": "high"
+        }
+       },
+       "workflow": {
+        "flagged": false,
+        "form": "map",
+        "grants": {
+         "contents": "read"
+        },
+        "least_privilege": true,
+        "present": true,
+        "reason": "explicit non-write grants",
+        "severity": "none"
+       }
+      },
+      "permissions_flagged": false,
+      "uses": [
+       {
+        "action": "actions/checkout",
+        "flagged": false,
+        "line": 50,
+        "pin_class": "sha-pinned",
+        "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "severity": "none"
+       },
+       {
+        "action": "actions/setup-python",
+        "flagged": false,
+        "line": 53,
+        "pin_class": "sha-pinned",
+        "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "severity": "none"
+       }
+      ]
+     }
+    ]
+   },
+   "measured_at": "2026-08-25T01:03:58Z",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0048/probe1_syntactic_classification.py",
+     "id": "probe1",
+     "role": "syntactic-classification"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0048/probe2_tag_resolution.py",
+     "id": "probe2",
+     "role": "tag-to-sha-resolution"
+    }
+   ],
+   "output_schema": "command-center/schema/audit-finding.schema.json",
+   "output_schema_on_disk": true,
+   "probe2_resolutions": [
+    {
+     "action": "actions/checkout",
+     "attempted": true,
+     "error": null,
+     "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-tag-pinned.yml",
+     "fingerprint": "59f214717a76755f",
+     "ok": true,
+     "pin_class": "tag-pinned",
+     "ref": "v4",
+     "repo": "actions/checkout",
+     "sha": "11d5960a326750d5838078e36cf38b85af677262",
+     "skip_reason": null,
+     "url": "https://github.com/actions/checkout.git"
+    },
+    {
+     "action": "actions/checkout",
+     "attempted": true,
+     "error": null,
+     "file": ".github/workflows/autofix-models.yml",
+     "fingerprint": "5a9ebbd15cb93706",
+     "ok": true,
+     "pin_class": "tag-pinned",
+     "ref": "v7",
+     "repo": "actions/checkout",
+     "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "skip_reason": null,
+     "url": "https://github.com/actions/checkout.git"
+    },
+    {
+     "action": "actions/ai-inference",
+     "attempted": true,
+     "error": null,
+     "file": ".github/workflows/autofix-models.yml",
+     "fingerprint": "2496784c12f55c60",
+     "ok": true,
+     "pin_class": "tag-pinned",
+     "ref": "v3",
+     "repo": "actions/ai-inference",
+     "sha": "2c43c91ae16266ca159d311430343c67a5ffa222",
+     "skip_reason": null,
+     "url": "https://github.com/actions/ai-inference.git"
+    },
+    {
+     "action": "dependabot/fetch-metadata",
+     "attempted": true,
+     "error": null,
+     "file": ".github/workflows/dependabot-auto-merge.yml",
+     "fingerprint": "a1d1fe0937974529",
+     "ok": true,
+     "pin_class": "tag-pinned",
+     "ref": "v3",
+     "repo": "dependabot/fetch-metadata",
+     "sha": "25dd0e34f4fe68f24cc83900b1fe3fe149efef98",
+     "skip_reason": null,
+     "url": "https://github.com/dependabot/fetch-metadata.git"
+    }
+   ],
+   "question": "Is every third-party action pinned to a full commit SHA rather than a tag, and does every workflow declare a least-privilege permissions block rather than inheriting the default token scope?",
+   "report_kind": "audit-finding"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0048",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "AUD-0048 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/audit/AUD-0048-action-pinning-permissions.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/audit/AUD-0048-action-pinning-permissions.json",
+     "raw_output": "bytes=31826 sha256=2398fba989e3003db15af2773d951a644436842af7d1cea7a9e1cc97020cb0b0",
+     "fingerprint": "1d56a65364f52de8bdf71bc2e196d8e6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact AUD-0048",
+     "raw_output": "schema-check",
+     "fingerprint": "24314da2f31903e29068b0a492a524b2",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "AUD-0048 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/AUD-0048",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py AUD-0048",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "e934c5c41c32f14e7b743e3a6d26cb9a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered AUD-0048",
+     "raw_output": "schema-valid",
+     "fingerprint": "669f781fb9dff148458d855774719d0d",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/AUD-0048/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "AUD-0048"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/audit/AUD-0048-action-pinning-permissions.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/audit/AUD-0048-action-pinning-permissions.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "83153585a0791c26aedd1b51bff31501",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "No: not every third-party action is SHA-pinned. Live .github/workflows has 12 workflow files, 41 uses: lines, 38 sha-pinned, 3 tag-pinned (['actions/ai-inference@v3', 'actions/checkout@v7', 'dependabot/fetch-metadata@v3']), 0 branch-pinned, 2 workflows whose workflow-level permissions block is missing or grants write. Nested/vendored workflow YAML (7 files) is inventoried separately and is not this repo's Actions identity.",
+ "claim_scope": "SUCCESS means the two named probes ran, the required both-states pin control discriminated, and the live-tree question was answered without vacuity. It does not mean every historical workflow was SHA-pinned.",
+ "controls": {
+  "branch_severity": "critical",
+  "errors": [],
+  "id": "branch-vs-sha-pin",
+  "pass": true,
+  "permissions": {
+   "branch_missing": true,
+   "sha_least_privilege": true
+  },
+  "sha_flagged": false
+ },
+ "findings": [
+  {
+   "file": ".github/workflows/autofix-models.yml",
+   "id": "live-.github/workflows/autofix-models.yml-37",
+   "line": 37,
+   "severity": "high",
+   "title": "tag-pinned actions/checkout@v7"
+  },
+  {
+   "file": ".github/workflows/autofix-models.yml",
+   "id": "live-.github/workflows/autofix-models.yml-77",
+   "line": 77,
+   "severity": "high",
+   "title": "tag-pinned actions/ai-inference@v3"
+  },
+  {
+   "file": ".github/workflows/dependabot-auto-merge.yml",
+   "id": "live-.github/workflows/dependabot-auto-merge.yml-24",
+   "line": 24,
+   "severity": "high",
+   "title": "tag-pinned dependabot/fetch-metadata@v3"
+  },
+  {
+   "examples": [
+    {
+     "file": ".github/workflows/autofix-models.yml",
+     "pin_class": "tag-pinned",
+     "raw": "actions/checkout@v7"
+    },
+    {
+     "file": ".github/workflows/autofix-models.yml",
+     "pin_class": "tag-pinned",
+     "raw": "actions/ai-inference@v3"
+    },
+    {
+     "file": ".github/workflows/dependabot-auto-merge.yml",
+     "pin_class": "tag-pinned",
+     "raw": "dependabot/fetch-metadata@v3"
+    }
+   ],
+   "id": "F-harvest-tag-or-branch-pins",
+   "pin_classes": {
+    "sha-pinned": 26,
+    "tag-pinned": 3
+   },
+   "severity": "high",
+   "title": "AUD-0041 harvest: 3 third-party uses are not full-SHA pins (stale inventory, not live YAML)"
+  },
+  {
+   "files": [
+    "tools/editor/metaswarm/.github/workflows/ci.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/ci.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/claude-code-review.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/claude.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/docs.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/lint.yml",
+    "tools/editor/ralph-orchestrator/vendor/.github/workflows/release.yml"
+   ],
+   "id": "F-nested-vendored-unpinned",
+   "pin_classes": {
+    "branch-pinned": 6,
+    "tag-pinned": 41
+   },
+   "severity": "medium",
+   "title": "Nested/vendored workflows: 47 third-party uses are not full-SHA pins (not this repo's Actions identity)"
+  }
+ ],
+ "fixtures": {
+  "uses": [
+   {
+    "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-branch-pinned.yml",
+    "flagged": true,
+    "line": 8,
+    "pin_class": "branch-pinned",
+    "raw": "actions/checkout@main",
+    "severity": "critical"
+   },
+   {
+    "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-sha-pinned.yml",
+    "flagged": false,
+    "line": 10,
+    "pin_class": "sha-pinned",
+    "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "severity": "none"
+   },
+   {
+    "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-tag-pinned.yml",
+    "flagged": true,
+    "line": 10,
+    "pin_class": "tag-pinned",
+    "raw": "actions/checkout@v4",
+    "severity": "high"
+   }
+  ]
+ },
+ "harvest_aud0041": {
+  "flagged_n": 3,
+  "n": 29,
+  "note": "Classified from AUD-0041 probe1-yaml-inventory.json. Those workflow files are not on this worktree. Not a live pinning claim.",
+  "pin_classes": {
+   "sha-pinned": 26,
+   "tag-pinned": 3
+  },
+  "tag_resolutions": []
+ },
+ "headline": {
+  "fixture_control_pass": true,
+  "harvest_flagged": 3,
+  "harvest_pin_classes": {
+   "sha-pinned": 26,
+   "tag-pinned": 3
+  },
+  "harvest_uses": 29,
+  "live_permissions_flagged": 2,
+  "live_pin_classes": {
+   "sha-pinned": 38,
+   "tag-pinned": 3
+  },
+  "live_third_party_flagged": 3,
+  "live_uses": 41,
+  "live_workflow_files": 12,
+  "nested_flagged": 47,
+  "nested_workflow_files": 7,
+  "probe2_resolutions_ok": true
+ },
+ "live": {
+  "files": [
+   ".github/workflows/autofix-models.yml",
+   ".github/workflows/codex-runner.yml",
+   ".github/workflows/dependabot-auto-merge.yml",
+   ".github/workflows/hook-audit.yml",
+   ".github/workflows/interpreter-floor.yml",
+   ".github/workflows/mcp-audit.yml",
+   ".github/workflows/no-runtime-junk.yml",
+   ".github/workflows/p2next-rail-count.yml",
+   ".github/workflows/quality.yml",
+   ".github/workflows/routing-benchmark.yml",
+   ".github/workflows/rule-audit.yml",
+   ".github/workflows/skill-dual-write.yml"
+  ],
+  "workflows": [
+   {
+    "file": ".github/workflows/autofix-models.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "draft-fix": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": true,
+      "form": "map",
+      "grants": {
+       "contents": "write",
+       "pull-requests": "write"
+      },
+      "least_privilege": false,
+      "present": true,
+      "reason": "write grants: ['contents', 'pull-requests']",
+      "severity": "medium"
+     }
+    },
+    "permissions_flagged": true,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": true,
+      "line": 37,
+      "pin_class": "tag-pinned",
+      "raw": "actions/checkout@v7",
+      "ref": "v7",
+      "severity": "high"
+     },
+     {
+      "action": "actions/ai-inference",
+      "flagged": true,
+      "line": 77,
+      "pin_class": "tag-pinned",
+      "raw": "actions/ai-inference@v3",
+      "ref": "v3",
+      "severity": "high"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/codex-runner.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "run": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "step-security/harden-runner",
+      "flagged": false,
+      "line": 62,
+      "pin_class": "sha-pinned",
+      "raw": "step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c",
+      "ref": "05e31511f85b41b11d1cf0ef85d0992719546e2c",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 85,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-node",
+      "flagged": false,
+      "line": 91,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "ref": "820762786026740c76f36085b0efc47a31fe5020",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 94,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/dependabot-auto-merge.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "auto-merge": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": true,
+      "form": "map",
+      "grants": {
+       "contents": "write",
+       "pull-requests": "write"
+      },
+      "least_privilege": false,
+      "present": true,
+      "reason": "write grants: ['contents', 'pull-requests']",
+      "severity": "medium"
+     }
+    },
+    "permissions_flagged": true,
+    "uses": [
+     {
+      "action": "dependabot/fetch-metadata",
+      "flagged": true,
+      "line": 24,
+      "pin_class": "tag-pinned",
+      "raw": "dependabot/fetch-metadata@v3",
+      "ref": "v3",
+      "severity": "high"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/hook-audit.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "hook-audit": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 125,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 129,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/interpreter-floor.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "interpreter-floor": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 78,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 80,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 84,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/mcp-audit.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "mcp-audit": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 62,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 65,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/no-runtime-junk.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "no-runtime-junk": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 27,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 28,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/p2next-rail-count.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "p2next-rail-count": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 52,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 55,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/quality.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "deps": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "lint": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "sast": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "secrets": {
+       "flagged": false,
+       "form": "map",
+       "grants": {
+        "contents": "read",
+        "pull-requests": "read"
+       },
+       "least_privilege": true,
+       "present": true,
+       "reason": "explicit non-write grants",
+       "severity": "none"
+      },
+      "test-node": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "test-platform": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "test-python": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      },
+      "types": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 78,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 79,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 131,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 132,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 243,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-node",
+      "flagged": false,
+      "line": 244,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "ref": "820762786026740c76f36085b0efc47a31fe5020",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 287,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 288,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-node",
+      "flagged": false,
+      "line": 1156,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "ref": "820762786026740c76f36085b0efc47a31fe5020",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 1521,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 1585,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 1586,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 1615,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 1638,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "gitleaks/gitleaks-action",
+      "flagged": false,
+      "line": 1644,
+      "pin_class": "sha-pinned",
+      "raw": "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+      "ref": "e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+      "severity": "none"
+     },
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 1700,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "google/osv-scanner-action/osv-scanner-action",
+      "flagged": false,
+      "line": 1721,
+      "pin_class": "sha-pinned",
+      "raw": "google/osv-scanner-action/osv-scanner-action@8deb546fdb875b9996d27d4950be7312dac076a1",
+      "ref": "8deb546fdb875b9996d27d4950be7312dac076a1",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/routing-benchmark.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "routing-benchmark": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 45,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 46,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/rule-audit.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "rule-audit": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 91,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 92,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   },
+   {
+    "file": ".github/workflows/skill-dual-write.yml",
+    "permissions": {
+     "any_declared": true,
+     "jobs": {
+      "skill-dual-write": {
+       "flagged": true,
+       "form": "missing",
+       "least_privilege": false,
+       "present": false,
+       "reason": "inherits default GITHUB_TOKEN scope",
+       "severity": "high"
+      }
+     },
+     "workflow": {
+      "flagged": false,
+      "form": "map",
+      "grants": {
+       "contents": "read"
+      },
+      "least_privilege": true,
+      "present": true,
+      "reason": "explicit non-write grants",
+      "severity": "none"
+     }
+    },
+    "permissions_flagged": false,
+    "uses": [
+     {
+      "action": "actions/checkout",
+      "flagged": false,
+      "line": 50,
+      "pin_class": "sha-pinned",
+      "raw": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "severity": "none"
+     },
+     {
+      "action": "actions/setup-python",
+      "flagged": false,
+      "line": 53,
+      "pin_class": "sha-pinned",
+      "raw": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "severity": "none"
+     }
+    ]
+   }
+  ]
+ },
+ "measured_at": "2026-08-25T01:03:58Z",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0048/probe1_syntactic_classification.py",
+   "id": "probe1",
+   "role": "syntactic-classification"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0048/probe2_tag_resolution.py",
+   "id": "probe2",
+   "role": "tag-to-sha-resolution"
+  }
+ ],
+ "output_schema": "command-center/schema/audit-finding.schema.json",
+ "output_schema_on_disk": true,
+ "probe2_resolutions": [
+  {
+   "action": "actions/checkout",
+   "attempted": true,
+   "error": null,
+   "file": "command-center/p2-wave/probes/AUD-0048/fixtures/control-tag-pinned.yml",
+   "fingerprint": "59f214717a76755f",
+   "ok": true,
+   "pin_class": "tag-pinned",
+   "ref": "v4",
+   "repo": "actions/checkout",
+   "sha": "11d5960a326750d5838078e36cf38b85af677262",
+   "skip_reason": null,
+   "url": "https://github.com/actions/checkout.git"
+  },
+  {
+   "action": "actions/checkout",
+   "attempted": true,
+   "error": null,
+   "file": ".github/workflows/autofix-models.yml",
+   "fingerprint": "5a9ebbd15cb93706",
+   "ok": true,
+   "pin_class": "tag-pinned",
+   "ref": "v7",
+   "repo": "actions/checkout",
+   "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "skip_reason": null,
+   "url": "https://github.com/actions/checkout.git"
+  },
+  {
+   "action": "actions/ai-inference",
+   "attempted": true,
+   "error": null,
+   "file": ".github/workflows/autofix-models.yml",
+   "fingerprint": "2496784c12f55c60",
+   "ok": true,
+   "pin_class": "tag-pinned",
+   "ref": "v3",
+   "repo": "actions/ai-inference",
+   "sha": "2c43c91ae16266ca159d311430343c67a5ffa222",
+   "skip_reason": null,
+   "url": "https://github.com/actions/ai-inference.git"
+  },
+  {
+   "action": "dependabot/fetch-metadata",
+   "attempted": true,
+   "error": null,
+   "file": ".github/workflows/dependabot-auto-merge.yml",
+   "fingerprint": "a1d1fe0937974529",
+   "ok": true,
+   "pin_class": "tag-pinned",
+   "ref": "v3",
+   "repo": "dependabot/fetch-metadata",
+   "sha": "25dd0e34f4fe68f24cc83900b1fe3fe149efef98",
+   "skip_reason": null,
+   "url": "https://github.com/dependabot/fetch-metadata.git"
+  }
+ ],
+ "question": "Is every third-party action pinned to a full commit SHA rather than a tag, and does every workflow declare a least-privilege permissions block rather than inheriting the default token scope?",
+ "report_kind": "audit-finding"
+}

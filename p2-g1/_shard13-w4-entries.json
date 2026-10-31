@@ -1,0 +1,490 @@
+{
+ "IMP-0423": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0423:DEGRADED-LOUD-AND-PRESERVED",
+  "dependencies": [
+   "IMP-0419",
+   "IMP-0422"
+  ],
+  "evidence_requirement": "A forced-mismatch dispatch showing the DEGRADED verdict, the preserved partial artifact path, and its byte size.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: silent-substitution, partial-artifact-discarded",
+  "id": "IMP-0423",
+  "inputs": [
+   "command-center/receipts/IMP-0419.json",
+   "command-center/receipts/IMP-0422.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0423.json",
+  "output_schema": "command-center/schema/work-result.schema.json",
+  "owner_approval_required": false,
+  "phase": "9",
+  "question_or_target": "Implement the degrade-loudly contract at spec line 10983: on a capability mismatch the dispatcher returns a typed DEGRADED result and PRESERVES the partial artifact, never a silent substitution and never a discard. Exact target: there must be no code path where a mismatch produces an ordinary-looking success.",
+  "retry_policy": "no automatic retry; retrying a capability mismatch cannot fix it",
+  "reviewer_requirement": "adversarial refuter; must attempt to produce a silent success from a mismatch",
+  "tests_required": "mismatch test asserting DEGRADED not SUCCESS; artifact-preservation test asserting the partial file still exists after the failure; a mutation that discards the partial must turn the test red.",
+  "timeout_seconds": 1800,
+  "title": "Degrade-loudly contract for capability mismatch",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ "IMP-0441": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0441:GATES-GREEN-BOTH-PLATFORMS",
+  "dependencies": [
+   "IMP-0439",
+   "IMP-0440"
+  ],
+  "evidence_requirement": "Exit codes of both gates on the Windows working tree before and after, plus confirmation that the Linux CI run stayed green across the change (a fix that greens Windows by reddening CI is a regression).",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: dev-box-cannot-run-own-gates, fix-greens-one-platform-reddens-other",
+  "id": "IMP-0441",
+  "inputs": [
+   ".gitattributes",
+   "command-center/**",
+   "CI workflow definition"
+  ],
+  "output_path": "command-center/receipts/IMP-0441.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Add the EOL attributes that make the command-center gates runnable on the primary development box, then prove both gates exit zero on a Windows working tree. Exact target: the machine the program is authored on must be able to run its own gates - today both exit nonzero purely from CRLF while being genuinely green in CI.",
+  "retry_policy": "max 2 attempts; escalate rather than normalizing line endings destructively across the tree",
+  "reviewer_requirement": "independent-claude-reviewer runs both gates from a clean re-clone on Windows",
+  "tests_required": "dual-platform gate test; a control asserting the pre-fix Windows run really was red, so the after-state is not silence in both states.",
+  "timeout_seconds": 2700,
+  "title": "EOL policy and a Windows-checkout green-gate proof",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:git-readonly",
+   "Bash:pwsh"
+  ]
+ },
+ "IMP-0442": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+  "dependencies": [
+   "IMP-0436",
+   "IMP-0443"
+  ],
+  "evidence_requirement": "A time-series of observed concurrent units per substrate across a 40-unit mixed dry run; the local-serialized series must be flat at one.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: substrate-ignored, serial-lane-parallelized",
+  "id": "IMP-0442",
+  "inputs": [
+   "command-center/WORK-UNIT-CATALOG.json",
+   "command-center/receipts/IMP-0436.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0442.json",
+  "output_schema": "command-center/schema/dispatch-plan.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Implement the dispatcher that reads the catalog and routes each unit to its declared execution_substrate, with local-serialized meaning strictly one at a time. Exact question: with a catalog containing units of all four substrates, does the observed simultaneous count for local-serialized ever exceed one?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer inspects the time-series, not the summary",
+  "tests_required": "substrate-isolation test per substrate; a mutation removing the serial lock must show a concurrent count above one and turn the test red.",
+  "timeout_seconds": 3600,
+  "title": "Work-unit dispatcher honoring the declared execution substrate",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ "IMP-0451": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0451:MONITOR-STATES-DISTINGUISHED",
+  "dependencies": [
+   "IMP-0450"
+  ],
+  "evidence_requirement": "Four-cell truth table (monitor alive/dead x work active/idle) with the detector verdict in each cell; any cell where the detector guesses instead of returning UNDECIDABLE is a defect.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: idle-read-as-dead, dead-read-as-idle",
+  "id": "IMP-0451",
+  "inputs": [
+   "command-center/receipts/IMP-0450.json",
+   "monitor heartbeat stream"
+  ],
+  "output_path": "command-center/receipts/IMP-0451.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Implement both detectors from spec lines 11315-11316 together: a monitor that dies while remote work continues, and a live monitor that merely has nothing to report being mistaken for dead. Exact target: the two states must be distinguishable, and where they are not, the detector must return UNDECIDABLE rather than guessing.",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "adversarial refuter constructs the hardest cell",
+  "tests_required": "all four cells as tests; a mutation collapsing the two signals into one must make two cells indistinguishable and turn the test red.",
+  "timeout_seconds": 2700,
+  "title": "Stale-monitor and no-change-monitor detectors as a matched pair",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh-readonly"
+  ]
+ },
+ "IMP-0461": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0461:INTERPRETER-EXPLICIT",
+  "dependencies": [
+   "IMP-0466"
+  ],
+  "evidence_requirement": "Resolution table showing what each shell reports for the same interpreter name, with the resolved absolute path for each, demonstrating the two shells disagree.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: bare-script-invocation, wrong-bash-resolved, crlf-rejected-by-real-interpreter",
+  "id": "IMP-0461",
+  "inputs": [
+   "script launcher",
+   "interpreter discovery results from both shells"
+  ],
+  "output_path": "command-center/receipts/IMP-0461.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Anchor spec:11304 (bare .sh invocation on Windows). Implement a launcher that resolves an explicit interpreter per script type and refuses bare invocation. Exact target: distinguish the MSYS bash from the Windows system bash, because the latter is WSL and mangles Windows paths and rejects CRLF - a resolver that reports only one of them is wrong.",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer re-resolves from the other shell",
+  "tests_required": "CRLF script test under the real target interpreter, not under the tolerant one; a bare-invocation attempt must be refused. Both-shell control proving the resolver consulted both.",
+  "timeout_seconds": 2700,
+  "title": "Explicit interpreter resolution banning bare script invocation",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh"
+  ]
+ },
+ "IMP-0465": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0465:MARSHALLER-QUOTE-SAFE",
+  "dependencies": [
+   "IMP-0466"
+  ],
+  "evidence_requirement": "Transport failure matrix over the payload corpus: transport, payload shape, observed outcome. Include at least one payload whose BODY quotes a destructive command, because a payload can be scanned as if it were a command line.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: quoting-corruption, payload-scanned-as-command, heredoc-backslash-mangling",
+  "id": "IMP-0465",
+  "inputs": [
+   "command dispatch layer",
+   "payload corpus with apostrophes, quotes and control bytes"
+  ],
+  "output_path": "command-center/receipts/IMP-0465.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Anchor spec:11308 (shell quoting corrupts script content). Implement a marshaller that never inlines a payload containing an apostrophe, a here-string terminator, or a control byte - routing all such content through a written file and a path argument. Exact question: at what payload shape does each transport break, measured rather than assumed?",
+  "retry_policy": "max 2 attempts; after the second quoting failure switch transport rather than escaping a third time",
+  "reviewer_requirement": "independent-claude-reviewer re-runs the matrix from the other shell",
+  "tests_required": "round-trip integrity test asserting the received bytes equal the sent bytes for every corpus entry; a control payload known to break the naive transport must be shown breaking it.",
+  "timeout_seconds": 2700,
+  "title": "Quoting-safe command marshaller with file-based payload transport",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh"
+  ]
+ },
+ "IMP-0476": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tooling-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+  "dependencies": [
+   "IMP-0471",
+   "IMP-0460"
+  ],
+  "evidence_requirement": "Per-check listing of BOTH probes with their outputs; a check declaring only one probe is a violation and must render as NOT-CHECKED in the report.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: single-signal-green, undeclared-source-probe",
+  "id": "IMP-0476",
+  "inputs": [
+   "installed component inventory",
+   "command-center/receipts/IMP-0471.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0476.json",
+  "output_schema": "command-center/schema/health-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement the health-check command so every reported status is backed by two mechanically independent probes, and any single-probe check reports NOT-CHECKED rather than OK. Exact question: how many of the health checks can currently produce a green verdict from one probe alone?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer audits three checks for genuine probe independence",
+  "tests_required": "single-probe check must render NOT-CHECKED; a two-probe check with disagreeing probes must render DISAGREE, never OK. Positive control on a genuinely healthy component.",
+  "timeout_seconds": 2700,
+  "title": "Health-check command built on two-signal probes only",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh-readonly"
+  ]
+ },
+ "IMP-0478": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0478:ERROR-CATALOG-COMPLETE",
+  "dependencies": [
+   "IMP-0449"
+  ],
+  "evidence_requirement": "Coverage table: taxonomy class, message id, and the next command it recommends. Every recommended command must be executed verbatim by the documentation test.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P2-degraded / classes: unmapped-failure-class, recommended-command-does-not-run",
+  "id": "IMP-0478",
+  "inputs": [
+   "command-center/receipts/IMP-0449.json",
+   "failure taxonomy"
+  ],
+  "output_path": "command-center/receipts/IMP-0478.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement the user-facing error catalog mapping every class in the failure taxonomy to a message that names what failed, why, and the exact next command. Exact question: how many taxonomy classes currently have no user-facing message, and after this unit is that number zero?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer runs three messages end to end as a naive user",
+  "tests_required": "coverage test asserting zero unmapped classes; documentation-command test executing every recommended next command; a control asserting a class added later is reported as unmapped.",
+  "timeout_seconds": 2700,
+  "title": "Actionable error catalog covering every failure class",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ "IMP-0480": {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0480:INJECTION-BOUNDARY-HELD",
+  "dependencies": [
+   "IMP-0414",
+   "IMP-0470"
+  ],
+  "evidence_requirement": "Behavioral diff for each planted injection: consuming-stage output with and without the injection present. Identical outputs are the pass condition; any divergence names the injection that worked.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P0-blocking / classes: artifact-injects-instructions, insensitive-behavioral-diff",
+  "id": "IMP-0480",
+  "inputs": [
+   "artifact consumption points",
+   "planted-injection corpus"
+  ],
+  "output_path": "command-center/receipts/IMP-0480.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "9",
+  "question_or_target": "Anchor spec:11344 (an artifact injects instructions into a later stage). Implement the boundary that treats every consumed artifact - transcripts, fetched pages, peer results, participant outputs - as untrusted DATA, never as instructions, with a structural wrapper rather than a prompt-level plea. Exact question: does a planted instruction inside an artifact change the behavior of the consuming stage?",
+  "retry_policy": "no automatic retry on a successful injection; escalate and widen the corpus",
+  "reviewer_requirement": "security reviewer plus an adversarial refuter who authors three new injections the corpus has never seen",
+  "tests_required": "injection corpus covering role-spoof, ignore-previous-instructions, encoded payload, and a credential-read request; every one must produce an identical downstream output. Control: a benign artifact edit that SHOULD change the output must change it, proving the diff is sensitive.",
+  "timeout_seconds": 3600,
+  "title": "Prompt-injection defence on the artifact-consumption boundary",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ "REL-0001": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "contract-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:REL-0001",
+  "dependencies": [
+   "B06"
+  ],
+  "evidence_requirement": "Cite the change-class rule table by file:line and paste the linter exit code for three crafted diffs (one per bump class). A claim that the rule is enforced must cite an exit code, not the presence of the rule in a document.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "spec-underspecified",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "REL-0001",
+  "inputs": [
+   "the formal contract set produced by the specification lane (B06)",
+   "the current plugin manifest and marketplace registry entry",
+   "git tags and the tag-to-HEAD diff",
+   "_USER-PROMPTS.md:10797-10822 (contracts) and 11100-11123 (release ceremony)"
+  ],
+  "output_path": "command-center/receipts/REL-0001.json",
+  "output_schema": "command-center/schema/contract-spec-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Implementation target: turn the release policy and versioning rules the spec demands at lines 10817-10820 into a machine-checkable artifact. Enumerate, for the plugin package, the registry entry, the blueprint pack and the CouncilSpec schema, exactly which change classes force MAJOR, MINOR or PATCH -- manifest key removal, permission widening, hook-contract signature change, blueprint id retirement, a schema field becoming required -- then ship a linter that derives the REQUIRED bump from the git diff between the previous tag and HEAD and exits non-zero whenever the declared version is lower than the derived one.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than this unit's executor; a same-vendor reviewer inherits the executor's blind spots",
+  "tests_required": [
+   "Mutation: delete a required manifest key and declare a PATCH bump -> linter exits non-zero.",
+   "Both-states: a genuinely patch-only diff declared as PATCH -> linter silent (no false positive).",
+   "Widening a declared tool permission must classify MAJOR even though no key was removed.",
+   "A pure file rename with byte-identical content must classify as no-bump-required."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Semantic-version contract with a diff-derived bump linter",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "REL-0006": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "recovery-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:REL-0006",
+  "dependencies": [
+   "REL-0002",
+   "REL-0005"
+  ],
+  "evidence_requirement": "Quote the fetched artifact sha256 alongside the manifest value. Quote the acceptance-probe output before and after. Report MTTR in seconds with the clock source named; an estimated duration is not a measurement.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "unfetchable-artifact",
+   "false-restore",
+   "manifest-hash-mismatch"
+  ],
+  "id": "REL-0006",
+  "inputs": [
+   "command-center/ROLLBACK-MANIFEST.md recorded hashes",
+   "the release store holding the N-1 artifact",
+   "the N-1 acceptance probe and the upgraded profile left by REL-0005",
+   "the typed inverse actions from REL-0002"
+  ],
+  "output_path": "command-center/receipts/REL-0006.json",
+  "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: rehearse going backwards. Check the blocking precondition first -- the N-1 artifact must be fetchable from the release store and its sha256 must equal the value recorded in ROLLBACK-MANIFEST.md, because a plan that assumes an artifact nobody can fetch is not a plan -- then downgrade the canary and prove restoration by re-running the N-1 acceptance probe rather than by reading a version string. Record wall-clock time from decision to restored behaviour as the MTTR figure the runbook will quote.",
+  "retry_policy": "resumable with mandatory restore: on interruption the profile is rolled back to its captured baseline before the next attempt, and the resume boundary is recorded",
+  "reviewer_requirement": "one reviewer who re-executes the drill end to end on a freshly created profile from the recorded commands alone; a reviewer who reads the transcript has not rehearsed it",
+  "tests_required": [
+   "Precondition control: corrupt the stored N-1 artifact -> the retrievability gate blocks before any downgrade begins.",
+   "Show that a version-string read reports N-1 while behaviour is still N, which is why the behaviour probe is the acceptance signal.",
+   "Zero owner-authored files are removed during the downgrade, verified against the pre-downgrade hashes.",
+   "MTTR is recorded and compared against the figure the runbook publishes; a divergence fails the drill."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Downgrade drill: artifact retrievability precondition, behaviour-restored proof, measured MTTR",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "REL-0014": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.1-codex",
+   "role": "vulnerability-analyst",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:REL-0014",
+  "dependencies": [
+   "REL-0011"
+  ],
+  "evidence_requirement": "The receipt carries the artifact sha256, the database snapshot id, the scan timestamp and the window length. A promotion consuming a result outside the window must be visible as a refusal in the log, not merely absent.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "stale-green",
+   "tool-error-as-pass",
+   "detector-failure"
+  ],
+  "id": "REL-0014",
+  "inputs": [
+   "the artifact hash being promoted",
+   "the scanner, pinned, and its advisory database snapshot metadata",
+   "any previously stored scan results and their timestamps",
+   "_USER-PROMPTS.md:11112 (vulnerability scan) and 11129 (all required gates pass)"
+  ],
+  "output_path": "command-center/receipts/REL-0014.json",
+  "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: make the vulnerability gate decay-aware. A scan result is a query against a live advisory database, so last week's green says nothing about today's advisory set. Implement three properties: re-run the scanner against the exact artifact hash at the moment of promotion, record the advisory-database snapshot identifier and timestamp inside the receipt, and refuse to consume any stored result older than the declared window rather than reusing it.",
+  "retry_policy": "retry permitted only with a re-pulled advisory database; reusing the cached database makes the second run the same measurement as the first",
+  "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+  "tests_required": [
+   "Feed a stored result older than the window -> the gate refuses to consume it and forces a re-scan.",
+   "Detector control: pin a dependency with a known advisory -> the scanner reports it.",
+   "A scanner exiting non-zero for a tooling reason classifies NOT-CHECKED; the estate has a measured case where exit 127 was read as a clean scan.",
+   "Two runs minutes apart must both record their own snapshot id; a reused id fails the freshness check."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Advisory re-scan at the promotion moment with an enforced freshness window",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_read_file",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ }
+}

@@ -1,0 +1,66 @@
+{
+ "artifacts": [
+  {
+   "bytes": 107058,
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+   "role": "primary",
+   "sha256": "d19088081cd2270f0ac99db5f9ee84b2661ee02f79ebc45eda11ca4df10ec954",
+   "present": true
+  }
+ ],
+ "catalog_output_schema": "command-center/schema/fault-injection-run.schema.json",
+ "cloud_ok": false,
+ "extensions": {
+  "prev_closure": {
+   "independent": true,
+   "reviewer_id": "ADV-0127-probe2-behavioral-clock",
+   "verdict": "PASS"
+  },
+  "shard0_w1_resume_2026-10-24": {
+   "action": "artifact + probes rebuilt live on this Windows worktree; receipt set to BLOCKED/reviewer-absent per program contract (only the independent reviewer closes; builder-authored probe2 closure demoted to prev_closure)",
+   "builder": "shard0 wave-1 builder (resume of a mid-flight-dead prior attempt)"
+  },
+  "wave4_2026_10_26": {
+   "action": "drift repair: static_audit re-measured + behavioral re-anchored on live vi.freshness; probes exit 0; receipt form preserved",
+   "artifacts_sha256": "a9d4cfd2b6b4c7de9da85de5811a9c2e23bcfa9a4f74c9a2187f2ea6fd3561e2",
+   "probes_exit": [
+    0,
+    0
+   ]
+  },
+  "reanchor_2026_10_26": "shard1-w4 resume: artifact re-emitted against live production census (fingerprint drift live=0304bc2a... vs stale art); probes re-run green after re-emit"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder lane may not self-certify. Windows adaptation: the TZ-shift scenario cannot fire on win32 (CRT ignores TZ env) so the negative control keys on the backward-clock-step event reorder (fired, OS-independent) and the unrepresentable TZ world is disclosed in tz_shift_world + artifact residuals; census fingerprint refreshed, probes green, manifest sha matches; awaits independent closure."
+ },
+ "id": "ADV-0127",
+ "manifest_path": "command-center/p2-wave/probes/ADV-0127/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe1_static_audit.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\n \"anchors\": [\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.fromisoformat (tz optional)\",\n   \"line\": 57,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.fromisoformat(explicit)\"\n  },\n  {\n   \"clock_class\": \"utc-aware\",\n   \"detail\": \"datetime.now(UTC)\",\n   \"line\": 58,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.now(timezone.utc)\"\n  },\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.astimezone (naive uses local TZ)\",\n   \"line\": 62,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"moment.astimezone\"\n  },\n  {\n   \"clock_class\": \"utc-aware\",\n   \"detail\": \"datetime.now(UTC)\",\n   \"line\": 42,\n   \"path\": \"tools/marketplace/vuln_ingestion.py\",\n   \"snippet\": \"datetime.now(timezone.utc)\"\n  },\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.strptime (naive result unless %z in format)\",\n   \"line\": 210,\n   \"path\": \"tools/marketplace/vuln_ingestion.py\",\n   \"snippet\": \"datetime.strptime(str(verdict.get(\\\"queried_at\\\")), \\\"%Y-%m-%dT%H:%M:%SZ\\\")\"\n  },\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.strptime (naive result unless %z in format)\",\n   \"line\": 211,\n   \"path\": \"tools/marketplace/vuln_ingestion.py\",\n   \"snippet\": \"datetime.strptime(now, \\\"%Y-%m-%dT%H:%M:%SZ\\\")\"\n  }\n ],\n \"close_fromisoformat\": true,\n \"counts\": {\n  \"monotonic\": 153,\n  \"naive-local\": 155,\n  \"utc-aware\": 68\n },\n \"fingerprint_sha256\": \"0d175c85d630a6dc9d8d82e89a2d7e16c5fabb9872dc77fa7b08fda9bc91f856\",\n \"monotonic_present\": true,\n \"n_rows\": 376,\n \"naive_local_present\": true,\n \"probe\": \"probe1-static-clock-class-census\",\n \"production_modules_present\": {\n  \"ci/harness/ledger.py\": false,\n  \"ci/harness/prebuild_recall/prebuild_recall.py\": false,\n  \"platform/coordination/leases.py\": true,\n  \"platform/plugin/cache.py\": true\n },\n \"unit_id\": \"ADV-0127\",\n \"utc_aware_present\": true\n}\ncensus rows=376 naive=155 utc=68 monotonic=153\nSUCCESS:ADV-0127-probe1 static clock-class census, naive fromisoformat classified, artifact matches\n<unknown>:64: SyntaxWarning: \"\\p\" is an invalid escape sequence. Such sequences will not work in the future. Did you mean \"\\\\p\"? A raw string is also an option."
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe2_behavioral.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\n \"aware_tz_silent\": true,\n \"backward_reorders\": true,\n \"distinction\": {\n  \"handled_by_utc_alone\": \"dst-transition\",\n  \"not_handled_by_utc_alone\": \"backward-clock-step\",\n  \"only_one_handled_by_utc_storage_alone\": true,\n  \"utc_storage_preserves_backward_step_order\": false,\n  \"utc_storage_preserves_dst_order\": true\n },\n \"dst_utc_order_ok\": true,\n \"lease_never_expires\": true,\n \"mtime_fixture\": {\n  \"never_expires_on_backward_step\": true,\n  \"premature_on_forward_jump\": true,\n  \"production_cache_module\": false,\n  \"stable_not_expired\": true\n },\n \"naive_tz_shift\": false,\n \"negative_control\": {\n  \"description\": \"Events appended under a backward clock step reorder under string-sort-by-ts storage, while a DST transition alone does not reorder. Fires on every OS; the naive-vs-aware TZ-shift scenario it replaced cannot fire on win32 and is recorded in tz_shift_world instead.\",\n  \"fired_on_bad_state\": true,\n  \"id\": \"NC-BACKWARD-STEP-EVENT-REORDER\",\n  \"kind\": \"adversarial-payload\",\n  \"ok\": true,\n  \"silent_on_good_state\": true\n },\n \"powershell_present\": true,\n \"probe\": \"probe2-behavioral-clock-scenarios\",\n \"retry_clock_independent\": null,\n \"stable_utc_ok\": true,\n \"unit_id\": \"ADV-0127\"\n}\nstable_utc=True naive_tz_shift=True aware_silent=True dst_order=True backward_reorders=True detector_both_states=True\nSUCCESS:ADV-0127-probe2 behavioral DST/TZ/backward, UTC-vs-naive detector, artifact matches"
+  }
+ ],
+ "notes": "Shard0 wave-1 builder (resume) 2026-10-24: ADV-0127 rebuilt and verified live (named probes exit 0, manifest sha row matches live artifact). Prior builder attempt died mid-flight; its self-referential probe2 closure is preserved in extensions.prev_closure. Receipt BLOCKED/reviewer-absent awaiting independent closure.\nWave-4 builder 2026-10-26: live-tree drift repair. Concurrent fleet work removed parse_iso_z/iso_z/with_retry from tools/marketplace/vuln_ingestion.py and added a naive-strptime freshness() gate; static_audit re-measured (fingerprint refreshed), behavioral re-anchored on the live vi.freshness()/now_iso() paths, census detector now classifies datetime.strptime as naive-local, and TARGET-RETRY-BACKOFF is disclosed NOT-CHECKED (anchor removed). Both named probes re-run exit 0; artifact re-emitted canonically. Receipt form unchanged: state BLOCKED / failure reviewer-absent; prior mechanical closure kept in extensions.prev_closure for the independent reviewer to confirm or overturn.",
+ "output_path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+ "output_schema": "command-center/p2-wave/probes/ADV-0127/fault-injection-run.schema.json",
+ "registered": true,
+ "reviewer": null,
+ "sentinel": "SUCCESS:ADV-0127",
+ "state": "BLOCKED",
+ "status": "DELIVERED",
+ "ts": "2026-10-26T04:58:13Z",
+ "unit_id": "ADV-0127"
+}

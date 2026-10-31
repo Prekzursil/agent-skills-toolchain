@@ -1,0 +1,580 @@
+{
+  "answer": "Live SchemaStore marketplace.json (fetched 2026-08-25T01:23:44Z, sha256=42c3f8041363\u2026) requires name, owner, plugins. Each plugin entry requires name and source. version is optional at both layers. plugin.json still WINS the version field: disagree fixture plugin.json=0.2.0 vs marketplace=9.9.9 honours 0.2.0 (observed installed version for that fixture). Identical 0.2.0/0.2.0 produces no precedence signal. The SchemaStore schema does not encode precedence. Live claude CLI is absent here, so cache install was not executed. Whether the win is silent is PARTIAL (docs validate-warns=True; issue-54280 no-warning report). The 0.2.0 dual-pin trap still holds: a marketplace-only bump does not change the honoured version.",
+  "claims": [
+    {
+      "canonical_mechanism": "json-schema-draft-07 required/properties walk",
+      "claim": "The live SchemaStore marketplace.json schema (draft-07, $id=https://json.schemastore.org/claude-code-marketplace.json) requires top-level ['name', 'owner', 'plugins'] and plugin-entry ['name', 'source']. version is optional on both the marketplace root and each plugin entry. A document missing plugins[] is rejected; both two-file fixtures validate.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-25T01:23:53Z",
+      "id": "C-MARKETPLACE-SCHEMA-TODAY",
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe1_disagree_precedence.py",
+      "snapshot_sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc",
+      "source_lineage": [
+        {
+          "bytes": 88719,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://www.schemastore.org/claude-code-marketplace.json",
+          "http_status": 200,
+          "key": "marketplace_schema",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/claude-code-marketplace.schema.json",
+          "permalink": "https://www.schemastore.org/claude-code-marketplace.json",
+          "rail": "structured-api",
+          "sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc"
+        },
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        }
+      ],
+      "strongest_caveat": "SchemaStore $comment is 'Generated on 2026-04-23T05:09:42.045Z'. Docs list plugin-entry fields absent from this schema: ['defaultEnabled', 'displayName', 'metadata', 'relevance']. Those fields are documented runtime behaviour, not encoded here. Root additionalProperties is omitted (JSON Schema default: allow).",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "version-management waterfall: plugin.json version, then marketplace entry version, then git SHA / archive digest / unknown",
+      "claim": "When plugin.json and the marketplace entry disagree on version, plugin.json wins. Disagree fixture pin plugin.json=0.2.0 vs marketplace=9.9.9 resolves to honoured_version=0.2.0 (source=plugin.json). That is the trap: bumping only marketplace.json ships nothing.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-25T01:23:53Z",
+      "id": "C-PLUGIN-JSON-WINS-VERSION",
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe1_disagree_precedence.py",
+      "snapshot_sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+      "source_lineage": [
+        {
+          "bytes": 112528,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugins-reference.md",
+          "http_status": 200,
+          "key": "plugins_reference_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugins-reference.md",
+          "permalink": "https://code.claude.com/docs/en/plugins-reference.md",
+          "rail": "prose",
+          "sha256": "74ee89d3f27de366fdfdfb17373d0f87e3ff969a6fa36feada0f8e8bc78ceaac"
+        },
+        {
+          "bytes": 5737,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "http_status": 200,
+          "key": "github_issue_54280",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/github-54280.json",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "rail": "structured-api",
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10"
+        }
+      ],
+      "strongest_caveat": "Live `claude` CLI is absent on this worktree, so cache-path install was not observed here. The structured rail is GitHub issue 54280 (Customize panel showed plugin.json's version). The SchemaStore schema does not encode this rule (plugin_entry_version_mentions_plugin_json_priority=false).",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "both-states mismatch detector on two-file fixture",
+      "claim": "When both files pin the same version (0.2.0), the detector reports precedence_signal=false. A one-field marketplace mutation to 9.9.9 makes the same detector fire. Identical versions produce no precedence signal at all.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-25T01:23:53Z",
+      "id": "C-IDENTICAL-NO-PRECEDENCE-SIGNAL",
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe2_identical_negative.py",
+      "snapshot_sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c",
+      "source_lineage": [
+        {
+          "bytes": 88719,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://www.schemastore.org/claude-code-marketplace.json",
+          "http_status": 200,
+          "key": "marketplace_schema",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/claude-code-marketplace.schema.json",
+          "permalink": "https://www.schemastore.org/claude-code-marketplace.json",
+          "rail": "structured-api",
+          "sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc"
+        },
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        }
+      ],
+      "strongest_caveat": "The negative control is the fixture detector plus schema acceptance of both states. Runtime `/plugin update` skip was not executed (no claude CLI).",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "docs vs issue contradiction, live CLI NOT-CHECKED",
+      "claim": "Whether the win is silent is version-skewed: current docs say `claude plugin validate` warns when marketplace and plugin.json versions differ, while GitHub issue 54280 reported no validate warning. Runtime docs still say Claude Code uses plugin.json without warning at load/update.",
+      "confidence_band": "medium",
+      "evidence_tier": "E3",
+      "freshness_stamp": "2026-08-25T01:23:53Z",
+      "id": "C-SILENT-WIN-VERSION-SKEW",
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe1_disagree_precedence.py",
+      "snapshot_sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c",
+      "source_lineage": [
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        },
+        {
+          "bytes": 5737,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "http_status": 200,
+          "key": "github_issue_54280",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/github-54280.json",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "rail": "structured-api",
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10"
+        }
+      ],
+      "strongest_caveat": "Cannot be cited as measured runtime silence without a live claude plugin validate on the disagree fixture. WIN is confirmed; SILENT is not.",
+      "verdict": "PARTIAL"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:RES-0008 in the receipt AND a precedence verdict backed by a reproducible two-file fixture and the observed installed version",
+  "edges": [
+    {
+      "from": "C-PLUGIN-JSON-WINS-VERSION",
+      "note": "Issue 54280 (no validate warning) vs current docs (validate warns). Does not undo the waterfall win.",
+      "to": "C-SILENT-WIN-VERSION-SKEW",
+      "type": "version-skew"
+    },
+    {
+      "from": "C-MARKETPLACE-SCHEMA-TODAY",
+      "note": "JSON Schema accepts disagreeing versions; precedence is a runtime rule, not a schema constraint.",
+      "to": "C-PLUGIN-JSON-WINS-VERSION",
+      "type": "scope-mismatch"
+    },
+    {
+      "from": "C-IDENTICAL-NO-PRECEDENCE-SIGNAL",
+      "note": "Both-states control for the mismatch detector.",
+      "to": "C-PLUGIN-JSON-WINS-VERSION",
+      "type": "support"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "https://www.schemastore.org/claude-code-marketplace.json",
+      "claim": "C-MARKETPLACE-SCHEMA-TODAY",
+      "rails": [
+        {
+          "bytes": 88719,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://www.schemastore.org/claude-code-marketplace.json",
+          "http_status": 200,
+          "key": "marketplace_schema",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/claude-code-marketplace.schema.json",
+          "permalink": "https://www.schemastore.org/claude-code-marketplace.json",
+          "rail": "structured-api",
+          "sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc"
+        },
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "https://code.claude.com/docs/en/plugins-reference.md",
+      "claim": "C-PLUGIN-JSON-WINS-VERSION",
+      "rails": [
+        {
+          "bytes": 112528,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugins-reference.md",
+          "http_status": 200,
+          "key": "plugins_reference_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugins-reference.md",
+          "permalink": "https://code.claude.com/docs/en/plugins-reference.md",
+          "rail": "prose",
+          "sha256": "74ee89d3f27de366fdfdfb17373d0f87e3ff969a6fa36feada0f8e8bc78ceaac"
+        },
+        {
+          "bytes": 5737,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "http_status": 200,
+          "key": "github_issue_54280",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/github-54280.json",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "rail": "structured-api",
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "https://www.schemastore.org/claude-code-marketplace.json",
+      "claim": "C-IDENTICAL-NO-PRECEDENCE-SIGNAL",
+      "rails": [
+        {
+          "bytes": 88719,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://www.schemastore.org/claude-code-marketplace.json",
+          "http_status": 200,
+          "key": "marketplace_schema",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/claude-code-marketplace.schema.json",
+          "permalink": "https://www.schemastore.org/claude-code-marketplace.json",
+          "rail": "structured-api",
+          "sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc"
+        },
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+      "claim": "C-SILENT-WIN-VERSION-SKEW",
+      "rails": [
+        {
+          "bytes": 114727,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "http_status": 200,
+          "key": "plugin_marketplaces_docs",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+          "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+          "rail": "prose",
+          "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c"
+        },
+        {
+          "bytes": 5737,
+          "fetched_at": "2026-08-25T01:23:44Z",
+          "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "http_status": 200,
+          "key": "github_issue_54280",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0008/snapshots/github-54280.json",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "rail": "structured-api",
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10"
+        }
+      ],
+      "verdict": "PARTIAL"
+    }
+  ],
+  "fetch_log": {
+    "fetched_at": "2026-08-25T01:23:44Z",
+    "sources": {
+      "github_issue_54280": {
+        "bytes": 5737,
+        "content_type": "application/json; charset=utf-8",
+        "error": null,
+        "fetched_at": "2026-08-25T01:23:44Z",
+        "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+        "http_status": 200,
+        "key": "github_issue_54280",
+        "ok": true,
+        "path": "command-center/p2-wave/probes/RES-0008/snapshots/github-54280.json",
+        "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+        "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+        "url": "https://api.github.com/repos/anthropics/claude-code/issues/54280"
+      },
+      "marketplace_schema": {
+        "bytes": 88719,
+        "content_type": "application/json; charset=utf-8",
+        "error": null,
+        "fetched_at": "2026-08-25T01:23:44Z",
+        "final_url": "https://www.schemastore.org/claude-code-marketplace.json",
+        "http_status": 200,
+        "key": "marketplace_schema",
+        "ok": true,
+        "path": "command-center/p2-wave/probes/RES-0008/snapshots/claude-code-marketplace.schema.json",
+        "permalink": "https://www.schemastore.org/claude-code-marketplace.json",
+        "sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc",
+        "url": "https://json.schemastore.org/claude-code-marketplace.json"
+      },
+      "plugin_marketplaces_docs": {
+        "bytes": 114727,
+        "content_type": "text/markdown; charset=utf-8",
+        "error": null,
+        "fetched_at": "2026-08-25T01:23:44Z",
+        "final_url": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+        "http_status": 200,
+        "key": "plugin_marketplaces_docs",
+        "ok": true,
+        "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugin-marketplaces.md",
+        "permalink": "https://code.claude.com/docs/en/plugin-marketplaces.md",
+        "sha256": "12cb0d2125148533bd6d7f1f6a38aa6a549256e7dd48c2fe4dc55f9c260e2e2c",
+        "url": "https://code.claude.com/docs/en/plugin-marketplaces.md"
+      },
+      "plugins_reference_docs": {
+        "bytes": 112528,
+        "content_type": "text/markdown; charset=utf-8",
+        "error": null,
+        "fetched_at": "2026-08-25T01:23:44Z",
+        "final_url": "https://code.claude.com/docs/en/plugins-reference.md",
+        "http_status": 200,
+        "key": "plugins_reference_docs",
+        "ok": true,
+        "path": "command-center/p2-wave/probes/RES-0008/snapshots/plugins-reference.md",
+        "permalink": "https://code.claude.com/docs/en/plugins-reference.md",
+        "sha256": "74ee89d3f27de366fdfdfb17373d0f87e3ff969a6fa36feada0f8e8bc78ceaac",
+        "url": "https://code.claude.com/docs/en/plugins-reference.md"
+      }
+    },
+    "unit_id": "RES-0008",
+    "user_agent": "RES-0008-ast-integrate-research/1.0 (local measurement; no secrets)"
+  },
+  "freshness_stamp": "2026-08-25T01:23:53Z",
+  "id": "RES-0008",
+  "installed_client": {
+    "path": null,
+    "present": false,
+    "reason": "claude binary not on PATH in this worktree",
+    "validate_ran": false,
+    "version": null
+  },
+  "marketplace_schema": {
+    "$comment": "Generated on 2026-04-23T05:09:42.045Z",
+    "$id": "https://json.schemastore.org/claude-code-marketplace.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Marketplace manifest (.claude-plugin/marketplace.json) listing Claude Code plugins. Learn more: https://code.claude.com/docs/en/plugin-marketplaces",
+    "disagree_fixture_valid": true,
+    "docs_plugin_fields_absent_from_schema": [
+      "defaultEnabled",
+      "displayName",
+      "metadata",
+      "relevance"
+    ],
+    "docs_urls": [
+      "https://code.claude.com/docs/en/plugin-marketplaces.md",
+      "https://code.claude.com/docs/en/plugins-reference.md"
+    ],
+    "docs_validate_warns_on_mismatch": true,
+    "identical_fixture_valid": true,
+    "missing_plugins_error_count": 1,
+    "permalink": "https://json.schemastore.org/claude-code-marketplace.json",
+    "plugin_entry_additionalProperties": "<omitted-default-true>",
+    "plugin_entry_property_names": [
+      "$schema",
+      "agents",
+      "author",
+      "category",
+      "channels",
+      "commands",
+      "dependencies",
+      "description",
+      "homepage",
+      "hooks",
+      "keywords",
+      "license",
+      "lspServers",
+      "mcpServers",
+      "monitors",
+      "name",
+      "outputStyles",
+      "repository",
+      "settings",
+      "skills",
+      "source",
+      "strict",
+      "tags",
+      "themes",
+      "userConfig",
+      "version"
+    ],
+    "plugin_entry_required": [
+      "name",
+      "source"
+    ],
+    "plugin_entry_version_description": "Semantic version (e.g., 1.2.3) following semver.org specification",
+    "plugin_entry_version_mentions_plugin_json_priority": false,
+    "required": [
+      "name",
+      "owner",
+      "plugins"
+    ],
+    "root_additionalProperties": "<omitted-default-true>",
+    "root_property_names": [
+      "$schema",
+      "allowCrossMarketplaceDependenciesOn",
+      "description",
+      "forceRemoveDeletedPlugins",
+      "metadata",
+      "name",
+      "owner",
+      "plugins",
+      "version"
+    ],
+    "schema_root_extra_properties": [
+      "allowCrossMarketplaceDependenciesOn",
+      "forceRemoveDeletedPlugins"
+    ],
+    "snapshot_bytes": 88719,
+    "snapshot_sha256": "42c3f80413638e93a420256d942f409104b651379b9ac2451cc636f581de2ffc",
+    "title": "Claude Code Plugin Marketplace",
+    "unknown_top_level_accepted": true,
+    "unknown_top_level_key_accepted": true,
+    "unknown_top_level_key_error_count": 0
+  },
+  "min_bytes_threshold": 1024,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe1_disagree_precedence.py",
+      "id": "probe1",
+      "role": "disagree-precedence"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe2_identical_negative.py",
+      "id": "probe2",
+      "role": "identical-negative-control"
+    }
+  ],
+  "negative_controls": [
+    {
+      "fired_on_bad_state": true,
+      "id": "NC-IDENTICAL-NO-SIGNAL",
+      "silent_on_good_state": true
+    },
+    {
+      "fired_on_bad_state": true,
+      "id": "NC-MISSING-PLUGINS-RED",
+      "silent_on_good_state": true
+    }
+  ],
+  "not_checked": [
+    {
+      "claim": "Live claude plugin validate mismatch warning",
+      "reason": "claude binary not on PATH in this worktree"
+    },
+    {
+      "claim": "Live ~/.claude/plugins/cache/<marketplace>/<plugin>/<version> path",
+      "reason": "No claude CLI on this worktree; cache directory not created."
+    },
+    {
+      "claim": "05-ECO-plugin-specs.md:139-141 original shard wording",
+      "reason": "Catalog input path C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-plugin-specs.md is not on this Linux worktree."
+    },
+    {
+      "claim": "This repo's .claude-plugin/marketplace.json at HEAD",
+      "reason": "No .claude-plugin/ directory at the worktree root."
+    },
+    {
+      "claim": "Instance validation against command-center/schema/research-claim-record.schema.json",
+      "reason": "That file is RES-0001's output and is absent here. Authoring it would steal RES-0001. G-1 does not require that schema."
+    }
+  ],
+  "observed_installed_version": "0.2.0",
+  "output_path": "command-center/research/RES-0008.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "precedence": {
+    "disagree_fixture": {
+      "honoured": "0.2.0",
+      "marketplace_entry": "9.9.9",
+      "marketplace_path": "command-center/p2-wave/probes/RES-0008/fixtures/disagree/.claude-plugin/marketplace.json",
+      "plugin_json": "0.2.0",
+      "plugin_path": "command-center/p2-wave/probes/RES-0008/fixtures/disagree/plugins/res-0008-pin/.claude-plugin/plugin.json",
+      "precedence_signal": true
+    },
+    "honoured_source": "plugin.json",
+    "identical_fixture": {
+      "honoured": "0.2.0",
+      "marketplace_entry": "0.2.0",
+      "marketplace_path": "command-center/p2-wave/probes/RES-0008/fixtures/identical/.claude-plugin/marketplace.json",
+      "plugin_json": "0.2.0",
+      "plugin_path": "command-center/p2-wave/probes/RES-0008/fixtures/identical/plugins/res-0008-pin/.claude-plugin/plugin.json",
+      "precedence_signal": false
+    },
+    "live_claude_cli": {
+      "path": null,
+      "present": false,
+      "reason": "claude binary not on PATH in this worktree",
+      "validate_ran": false,
+      "version": null
+    },
+    "observed_installed_version": "0.2.0",
+    "schema_encodes_precedence": false,
+    "verdict": "plugin.json wins"
+  },
+  "question": "What is the exact marketplace.json schema today, and does plugin.json still silently WIN over the marketplace entry for the version field - the trap that makes commits without a version bump ship nothing while both files pin 0.2.0?",
+  "report_kind": "research-claim-record",
+  "reviewer": {
+    "adversarial_default": "REFUTED-unless-both-states",
+    "independent": true,
+    "mechanism": "probe2 re-runs the identical 0.2.0 fixture and a marketplace-only version mutation. It does not read claims[].",
+    "reviewer_id": "RES-0008-probe2-identical-negative",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:RES-0008 in the receipt AND a precedence verdict backed by a reproducible two-file fixture and the observed installed version",
+  "source_unavailable": [
+    "command-center/sources/REGISTER.md",
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+    "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-plugin-specs.md",
+    ".claude-plugin/marketplace.json",
+    "command-center/schema/research-claim-record.schema.json"
+  ],
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "strongest_surviving_counterargument": "Without a live Claude Code process, the waterfall is the published rule plus one GitHub UI observation, not a cache-path reading on this host. If a later client reversed step 1 and 2, this fixture would still report plugin.json until the docs/issue rails were re-fetched. Re-run capture.py against a newer SchemaStore $comment and re-check PLUGIN_WINS_MARKERS.",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe1_disagree_precedence.py",
+      "id": "disagree-two-file-fixture",
+      "observed_installed_version": "0.2.0",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0008/probe2_identical_negative.py",
+      "id": "identical-negative-control",
+      "result": "PASS"
+    },
+    {
+      "command": "jsonschema Draft7Validator on marketplace minus plugins[]",
+      "id": "schema-missing-plugins-rejected",
+      "result": "PASS"
+    }
+  ],
+  "title": "Extract the marketplace.json schema and the plugin-vs-marketplace precedence rule",
+  "unit_id": "RES-0008"
+}

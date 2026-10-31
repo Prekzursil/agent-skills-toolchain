@@ -1,0 +1,523 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "fresh-context-rederivation-tiebreak",
+  "name": "Fresh-context re-derivation tiebreak for a load-bearing value",
+  "description": "Blueprint 47 of 96 (BP-DBG-04). When a value has been carried for many steps, things keep not adding up, and the same hypothesis has now failed twice, re-derive that value in a context that CANNOT inherit the current reasoning. The distinctive mechanism is non-contamination, expressed structurally: the child derivation is an INLINE workflow whose parameter surface admits raw inputs only, so there is no field through which the prior derivation, the prior conclusion, or a summary containing either could reach it. If the fresh context disagrees, the run HALTS and traces what inherited the dead value rather than continuing on a self-consistent wrong anchor.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["research-and-evidence", "engineering-and-reliability"],
+  "tags": ["fresh-context", "non-contamination", "tiebreak", "blast-radius"],
+  "flagship": false,
+
+  "params": {
+    "value_name": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The load-bearing value under suspicion - an offset, a pinned ref, a threshold, a count"
+    },
+    "raw_input_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 32,
+      "required": true,
+      "description": "The RAW sources only. A path to a prior analysis, digest, or conclusion belongs in forbidden_context_paths instead."
+    },
+    "forbidden_context_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Everything the fresh context must NOT see: the prior derivation, the prior conclusion, and any summary containing either"
+    },
+    "dependent_steps": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "What has already been decided using this value - the blast radius if it is wrong"
+    },
+    "cross_vendor_rederivation": {
+      "type": "boolean",
+      "default": true,
+      "description": "S3b: re-derive on a different vendor for maximum independence, since a same-vendor fresh context still shares the training prior"
+    }
+  },
+
+  "roles": {
+    "value-identifier": {
+      "description": "Names the value, how it was originally derived, and everything downstream that now depends on it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Glob"],
+      "speaking_rights": "always"
+    },
+    "context-scrubber": {
+      "description": "Builds the raw-inputs-only pack and PROVES the prior derivation is absent from it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Write", "Bash:python"],
+      "write_paths": ["command-center/rederivation/pack/**"],
+      "speaking_rights": "always"
+    },
+    "comparator": {
+      "description": "Compares the two derivations mechanically. Does not pick a winner when they disagree - it halts.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "Rules on a disagreement, because the blast radius may cross work the owner already accepted",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Write", "Bash:python", "mcp__codex__codex"],
+    "deny": ["Edit", "WebFetch", "WebSearch"],
+    "network": "none",
+    "write_paths": ["command-center/rederivation/**"],
+    "forbid_write_paths": ["command-center/rederivation/pack/**"]
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "cross_vendor_rederivation == true",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "a same-vendor fresh context is fresh in history but not in prior; crossing the vendor removes the shared prior too"
+      }
+    ],
+    "fallbacks": [{ "model": "opus", "vendor": "anthropic" }],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "pack-is-uncontaminated": {
+      "predicate": "custom-expression",
+      "expression": "prior_derivation_in_pack == false AND prior_conclusion_in_pack == false AND summary_referencing_prior_in_pack == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "derivations-agree": {
+      "predicate": "custom-expression",
+      "expression": "rederived_value == original_value",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "value-was-derivable": {
+      "predicate": "custom-expression",
+      "expression": "rederivation_possible_from_raw_inputs == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "identify-value",
+      "title": "S0 IDENTIFY the load-bearing value, its original derivation, and its dependents",
+      "kind": "task",
+      "role": "value-identifier",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "ADV-0005",
+        "title": "Name the load-bearing value, record how it was originally derived, and enumerate everything that now depends on it",
+        "phase": "12",
+        "question_or_target": "State the value under suspicion, the exact route by which it was first obtained, and every later decision that used it. This artifact is written BEFORE the fresh derivation exists so that the comparison cannot be adjusted after the fact.",
+        "inputs": ["params.value_name", "params.raw_input_paths", "params.dependent_steps"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "value-identifier",
+          "basis": "enumerating the dependents is the step that makes a disagreement actionable"
+        },
+        "tool_permissions": ["Read", "Grep", "Glob"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/rederivation/value-under-test.json",
+        "output_schema": "command-center/schema/decision-provenance.schema.json",
+        "evidence_requirement": "the original value with the file:line or command that produced it, and a dependents list each anchored to where the value was used - a value whose origin cannot be located is already an assumption and must be labelled one",
+        "tests_required": [
+          "a value whose origin cannot be located must be reclassified as an ASSUMPTION rather than recorded as derived",
+          "the dependents list must be non-empty or the value is not load-bearing and this blueprint does not apply",
+          "both-states control: a value with a known, locatable origin must produce a located record; if every value reads as unlocatable the locator is broken"
+        ],
+        "reviewer_requirement": "an independent reviewer who confirms each dependent actually consumes the value at the cited anchor",
+        "completion_sentinel": "SUCCESS:ADV-0005 emitted only when value-under-test.json exists, parses, records the original value with a locatable origin, and lists at least one anchored dependent; otherwise FAILED:ADV-0005 <reason>",
+        "retry_policy": "two strikes then pivot; a second failure to locate the origin means the value is an assumption - reclassify rather than search a third time",
+        "failure_classification": ["origin-unlocatable", "not-load-bearing", "stale-premise"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/rederivation/value-under-test.json",
+          "schema_ref": "command-center/schema/decision-provenance.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0005",
+          "consumers": ["scrub-context", "compare-derivations"]
+        }
+      ]
+    },
+    {
+      "id": "scrub-context",
+      "title": "S1a BUILD the raw-inputs-only pack and prove the prior derivation is absent from it",
+      "kind": "task",
+      "role": "context-scrubber",
+      "depends_on": ["identify-value"],
+      "work_unit_ref": "ADV-0133",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/rederivation/raw-pack-manifest.json",
+          "schema_ref": "command-center/schema/independence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0133",
+          "consumers": ["contamination-gate", "fresh-rederivation"]
+        }
+      ]
+    },
+    {
+      "id": "contamination-gate",
+      "title": "Contamination VOIDS the check - the pack is inspected before the fresh context sees it",
+      "kind": "gate",
+      "depends_on": ["scrub-context"],
+      "gate_ref": "pack-is-uncontaminated"
+    },
+    {
+      "id": "fresh-rederivation",
+      "title": "S1b-S2 RE-DERIVE in an INLINE child workflow whose parameters admit raw inputs only",
+      "kind": "subworkflow",
+      "depends_on": ["contamination-gate"],
+      "isolation": "container",
+      "propagate_failure": false,
+      "timeout_seconds": 7200,
+      "params": { "raw_pack": "command-center/rederivation/pack" },
+      "workflow": {
+        "dsl_version": "1.0.0",
+        "id": "raw-inputs-only-derivation",
+        "name": "Raw-inputs-only derivation (inline child - no field can carry the prior reasoning)",
+        "description": "Declared INLINE rather than by reference so that its parameter surface is visible and auditable at the point of call: it accepts a raw pack and a target name, and nothing else. There is no parameter through which a prior derivation, conclusion or summary could be passed, which is what makes non-contamination a structural property rather than a promise.",
+        "version": "1.0.0",
+        "kind": "subworkflow",
+        "categories": ["research-and-evidence"],
+        "params": {
+          "raw_pack": {
+            "type": "path",
+            "required": true,
+            "description": "The scrubbed pack. The ONLY input surface."
+          },
+          "target_name": {
+            "type": "string",
+            "description": "What to derive, named without stating what it was previously believed to be"
+          }
+        },
+        "roles": {
+          "fresh-deriver": {
+            "description": "Derives the value from the raw pack alone; has never seen the parent run and cannot request anything outside the pack",
+            "model": "gpt-5-codex",
+            "vendor": "openai",
+            "effort": "max",
+            "authority": "advisory",
+            "independence": "independent",
+            "cross_vendor_required": true,
+            "tool_permissions": ["Read", "Grep", "Bash:python"],
+            "speaking_rights": "always"
+          }
+        },
+        "tool_policy": {
+          "default": "deny",
+          "allow": ["Read", "Grep", "Bash:python"],
+          "deny": ["WebFetch", "WebSearch", "Write", "Edit"],
+          "network": "none",
+          "forbid_write_paths": ["command-center/rederivation/**"]
+        },
+        "model_routing": {
+          "strategy": "static",
+          "default": { "model": "gpt-5-codex", "vendor": "openai", "effort": "max" }
+        },
+        "stages": [
+          {
+            "id": "derive-from-raw",
+            "title": "Derive the value from the raw pack and show the derivation",
+            "kind": "task",
+            "role": "fresh-deriver",
+            "work_unit_ref": "CNF-0163",
+            "timeout_seconds": 5400,
+            "produces": [
+              {
+                "path": "command-center/rederivation/fresh-derivation.json",
+                "schema_ref": "command-center/schema/reprobe-record.schema.json",
+                "min_bytes": 128,
+                "register_in_manifest": true,
+                "sentinel": "SUCCESS:CNF-0163",
+                "consumers": ["compare-derivations"]
+              }
+            ]
+          }
+        ],
+        "stopping_rules": [
+          {
+            "id": "derived-or-undeprivable",
+            "expression": "value_derived == true OR raw_inputs_insufficient == true",
+            "applies_to": "workflow",
+            "on_stop": "complete"
+          }
+        ],
+        "failure_policy": {
+          "on_failure": "degrade-loudly",
+          "classify_as": ["raw-inputs-insufficient", "pack-incomplete"],
+          "terminal_state_required": true,
+          "never_silent": true,
+          "preserve_partial_artifact": true
+        }
+      }
+    },
+    {
+      "id": "derivability-gate",
+      "title": "If the value cannot be derived from raw inputs it was never derived - it is an assumption",
+      "kind": "gate",
+      "depends_on": ["fresh-rederivation"],
+      "gate_ref": "value-was-derivable"
+    },
+    {
+      "id": "compare-derivations",
+      "title": "S3 COMPARE mechanically - two values, one equality check, no interpretation",
+      "kind": "task",
+      "role": "comparator",
+      "depends_on": ["derivability-gate"],
+      "work_unit_ref": "ADV-0002",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/rederivation/comparison.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0002",
+          "consumers": ["agreement-gate", "trace-blast-radius"]
+        }
+      ]
+    },
+    {
+      "id": "agreement-gate",
+      "title": "On disagreement: HALT. Do not average, do not pick the more convenient value.",
+      "kind": "gate",
+      "depends_on": ["compare-derivations"],
+      "gate_ref": "derivations-agree"
+    },
+    {
+      "id": "trace-blast-radius",
+      "title": "S3 (disagreement path) TRACE everything that inherited the dead value",
+      "kind": "task",
+      "role": "value-identifier",
+      "depends_on": ["agreement-gate"],
+      "when": "rederived_value != original_value",
+      "work_unit_ref": "BLD-0035",
+      "timeout_seconds": 3600,
+      "produces": [
+        {
+          "path": "command-center/rederivation/blast-radius.json",
+          "schema_ref": "command-center/schema/blast-radius.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BLD-0035",
+          "consumers": ["halt-checkpoint"]
+        }
+      ]
+    },
+    {
+      "id": "halt-checkpoint",
+      "title": "A disagreement on a load-bearing value is an owner decision, not a retry",
+      "kind": "human_checkpoint",
+      "depends_on": ["trace-blast-radius"],
+      "prompt": "The fresh context derived a DIFFERENT value. Everything in the attached blast radius rests on the original. Re-derive the dependents, accept the fresh value and redo the affected work, or order a third independent derivation.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["accept-fresh-and-redo-dependents", "order-a-third-derivation", "keep-original-with-recorded-dissent"],
+      "decision_artifact": {
+        "path": "command-center/rederivation/halt-decision.json",
+        "schema_ref": "command-center/schema/decision-reversal.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "fresh-context-agrees",
+      "expression": "rederived_value == original_value",
+      "applies_to": "workflow",
+      "minimum_conditions": "prior_derivation_in_pack == false",
+      "on_stop": "complete"
+    },
+    {
+      "id": "halt-on-disagreement",
+      "expression": "rederived_value != original_value",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "value-was-an-assumption",
+      "expression": "rederivation_possible_from_raw_inputs == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["contaminated-pack", "origin-unlocatable", "owner-blocked"]
+  },
+
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": ["contaminated-pack", "raw-inputs-insufficient", "stale-premise"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "halt-checkpoint",
+    "quarantine_path": "command-center/rederivation/quarantine"
+  },
+
+  "resume": {
+    "enabled": false,
+    "resume_from": "restart"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/fresh-context-rederivation-tiebreak.jsonl",
+    "record": ["params", "inputs", "model_outputs", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["network", "env"],
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "workflow",
+    "read_only": true,
+    "invalidate_on": ["raw-pack-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/fresh-context-rederivation-tiebreak-plan.json",
+    "forbid_tools": ["Write", "Bash:python", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "wallclock_seconds": { "min": 300, "expected": 3600, "max": 14400 },
+    "tokens": { "min": 40000, "expected": 300000, "max": 1500000 },
+    "tool_calls": { "expected": 40, "max": 200 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "the workflow itself only writes a comparison; its OUTPUT may invalidate downstream work, which is the point - the blast radius it reports is the one that already existed",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/fresh-context-rederivation-tiebreak.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/fresh-context-verify",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "AGENTS.md#4b-two-strikes-pivot",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DBG-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/fresh-context-verify@as-shipped"]
+  },
+
+  "outputs": {
+    "comparison": {
+      "path": "command-center/rederivation/comparison.json",
+      "schema_ref": "command-center/schema/divergence-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["command-center/CLAIM-REGISTRY.json"]
+    },
+    "blast-radius": {
+      "path": "command-center/rederivation/blast-radius.json",
+      "schema_ref": "command-center/schema/blast-radius.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A deploy verdict computed against a local checkout believed to be current.",
+      "value": "the base commit sha used as 'real remote main'",
+      "original_derivation": "read from the local checkout's HEAD - self-consistent, and wrong: the checkout was 11 commits and 300 files stale",
+      "scrub": "the pack carries the remote refs and the raw object store ONLY; the earlier verdict table and the sha it asserted are listed in forbidden_context_paths and their absence from the pack is proven before the child runs",
+      "fresh_derivation": "the child, seeing raw refs only, derives a DIFFERENT sha",
+      "outcome": "derivations-agree FAILS -> the run halts, blast-radius.json lists every deploy verdict computed against the stale sha; 5 of 12 flipped when re-derived on the correct one",
+      "contamination_counter_case": "an earlier attempt passed the child a 'brief summary of what we found so far'. That summary named the original sha, so pack-is-uncontaminated FAILED - correctly: a child that is told the answer is not an independent check",
+      "assumption_case": "on a sibling value the child could not derive it from raw inputs at all. value-was-derivable records that, and the value is reclassified as an assumption rather than treated as measured"
+    },
+    "distinctive_mechanism": "non-contamination as a STRUCTURAL property - the child is declared inline with a two-parameter surface that has no field for prior reasoning - plus an explicit halt-and-trace path instead of a retry",
+    "contraindications": [
+      "NOT for cheap values - just re-measure inline",
+      "NOT as a first response - this is the tiebreak after a second failure, not the opener",
+      "NOT when the raw inputs are themselves derived from the suspect value - that is circular and the pack cannot be scrubbed"
+    ],
+    "not_a_duplicate_because": "the two-signal gate corroborates a claim with a second probe inside the SAME context; this re-derives the value in a clean one, and its defining control is contamination-proofing rather than probe independence."
+  }
+}

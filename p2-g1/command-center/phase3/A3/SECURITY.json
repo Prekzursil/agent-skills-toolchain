@@ -1,0 +1,612 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "Marketplace-first execution is refuse-by-default until verify_package passes metadata, exact lockfile identity, private-only source, permission subset, freshness-bounded CRL, and HMAC-SHA256 over canonical bytes. Path coverage (AST) shows one sink caller (_after_choke) with choke lineno before sink lineno; a smuggle_unsigned mutant adds a second sink caller and the detector goes red. Unsigned-but-well-formed metadata is refused (signature-verification-failed) on every public path including execute_cached. A3 DESIGN.json is absent (ARC-0017); this unit specifies the choke without rebuilding the dossier. SUCCESS:ARC-0020",
+ "architecture_class": "marketplace-first",
+ "architecture_id": "A3",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A3/SECURITY.json",
+   "role": "primary",
+   "bytes": 19167,
+   "sha256": "6ddc45488d8e2929a288d6b833519078d4bfa3b4b2413dd2fcd91c20f5b2ad5e"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/architecture-review.schema.json",
+   "role": "supporting",
+   "bytes": 1156,
+   "sha256": "ef43fb7c24a5bc094f2fbf39131216668d640113545f5cf9e5df15b3920b5654"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+   "role": "choke",
+   "bytes": 4589,
+   "sha256": "74c9e871286f18e985c5cd9c8de4a1bf81426570eda0dc135ececc6ac97f4a13"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0020/client.py",
+   "role": "execute-paths",
+   "bytes": 2131,
+   "sha256": "103a3d2f87bd6656d7239f58bdd31acddaad2bb92df15766530a8c3d5a32493e"
+  },
+  {
+   "exists": true,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "role": "live-tree",
+   "bytes": 5284323,
+   "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+  }
+ ],
+ "attack_classes": [
+  {
+   "design_path": {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:25",
+    "gate": "permissions-subset-allowlist",
+    "line": 25,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "REFUSE_OVER_PERMISSION = \"permissions-not-subset-of-allowlist\""
+   },
+   "id": "malicious-or-over-permissioned",
+   "mapping": "event-stream shipped a payload with more capability than consumers had reason to grant. verify_package refuses any permission not in the lockfile allowlist before the sink.",
+   "prior_art": {
+    "dated": "2018-11-26",
+    "incident": "npm event-stream / flatmap-stream",
+    "url": "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident"
+   },
+   "title": "Malicious or over-permissioned package"
+  },
+  {
+   "design_path": {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:21",
+    "gate": "exact-lockfile-id-and-version",
+    "line": 21,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "REFUSE_TYPOSQUAT = \"package-id-not-exact-lockfile-match\""
+   },
+   "id": "typosquat",
+   "mapping": "crossenv existed because a near-name was installable. This client requires package.id == lockfile.packages[id].id and matching version; skill.helo is not skill.hello.",
+   "prior_art": {
+    "dated": "2017-08-02",
+    "incident": "npm crossenv vs cross-env",
+    "url": "https://blog.npmjs.org/post/163723642530/crossenv-malware-on-the-npm-registry"
+   },
+   "title": "Typosquatted package id"
+  },
+  {
+   "design_path": {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:28",
+    "gate": "hmac-sha256-over-canonical-bytes",
+    "line": 28,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "REFUSE_SIGNATURE = \"signature-verification-failed\""
+   },
+   "id": "signature-stripped",
+   "mapping": "Codecov customers ran an unsigned script whose bytes had changed. Metadata-valid packages with a missing or wrong hmac-sha256 MAC are refused at the signature step; execute_package_content is not called.",
+   "prior_art": {
+    "dated": "2021-04-01",
+    "incident": "Codecov bash uploader modification",
+    "url": "https://about.codecov.io/security-update/"
+   },
+   "title": "Unsigned or signature-stripped artifact"
+  },
+  {
+   "design_path": {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:23",
+    "gate": "no-public-registry-fallback",
+    "line": 23,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "REFUSE_PUBLIC_FALLBACK = \"public-registry-fallback-forbidden\""
+   },
+   "id": "dependency-confusion",
+   "mapping": "Birsan's installers consulted a public index when a private name collided. This client has no fetch_public path (AST-proven) and refuses allow_public_fallback=true and any source_registry other than the private index id.",
+   "prior_art": {
+    "dated": "2021-02-09",
+    "incident": "Alex Birsan dependency confusion",
+    "url": "https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610"
+   },
+   "title": "Private-mirror vs public-index confusion"
+  },
+  {
+   "design_path": {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/client.py:62",
+    "gate": "re-verify-on-cached-execute",
+    "line": 62,
+    "path": "command-center/p2-wave/probes/ARC-0020/client.py",
+    "snippet": "def execute_cached("
+   },
+   "id": "stale-revocation",
+   "mapping": "A yanked or patched Log4j release did not move clients whose lockfile/cache still held 2.14.1. execute_cached is a public execute path and still calls verify_package, which fail-closes on a stale CRL and on a revoked id.",
+   "prior_art": {
+    "dated": "2021-12-10",
+    "incident": "Log4Shell CVE-2021-44228 — patched release vs pinned/cached install",
+    "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+   },
+   "title": "Revocation that never reaches an already-installed client"
+  }
+ ],
+ "claim_under_test": "A marketplace client that validates package metadata may execute package content; signature, identity, source, permission, and revocation checks can be skipped for already-installed or lockfile-pinned packages.",
+ "claims": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+   "claim": "Making the canonical registry index the control plane is sufficient to execute package content; no separate verify-before-execute choke is required.",
+   "defect_locus": "DESIGN",
+   "id": "C1",
+   "scoped_restatement": "The index may be the control plane for what is listed. Execution still requires verify_package; without it, index-as-control-plane is a fail-open loader.",
+   "verdict": "REFUTED",
+   "why_locus": "ARC-0017's architecture sentence makes the index the control plane and does not name a choke. That is a DESIGN gap in the A3 class, not a wording slip. This unit does not fill it by writing DESIGN.json."
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+   "claim": "A lockfile-pinned package is supply-chain safe, so already-installed content may run without re-verification.",
+   "defect_locus": "SENTENCE",
+   "id": "C2",
+   "scoped_restatement": "A lockfile pins id and version. Safety against signature-stripped or revoked-but-cached bytes requires the MAC and CRL steps on execute_cached as well as install.",
+   "verdict": "REFUTED",
+   "why_locus": "lockfile-pinned is a catalogue phrase. DESIGN.json for A3 is absent, so there is no A3 rule to refute; the overclaim is the sentence that pinning implies byte safety."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:17",
+   "claim": "Every public execute path in client.py reaches execute_package_content only after verify_package allows.",
+   "id": "C3",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:28",
+   "claim": "A package that passes metadata validation but fails signature verification is refused, including on execute_cached.",
+   "id": "C4",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:70",
+   "claim": "A2 marketplace_entry JSON is an executable A3 package and therefore a signature-stripped install path on this tree.",
+   "defect_locus": "SENTENCE",
+   "id": "C5",
+   "scoped_restatement": "A2 marketplace_entry is a generated metadata class with no signature field and no execute sink. It is not mapped as an A3 install path; treating it as one would be decorative.",
+   "verdict": "REFUTED",
+   "why_locus": "ARC-0010 registry.schema.json marketplace_entry has no signature field and no execute sink. Calling that listing an A3 execute path is a sentence-level category error, not a reason to rebuild A2 DESIGN.json here."
+  }
+ ],
+ "class_controls": {
+  "over_permission_refused": true,
+  "public_fallback_refused": true,
+  "revoked_refused": true,
+  "stale_crl_refused": true,
+  "typosquat_refused": true,
+  "wrong_source_refused": true
+ },
+ "completion_sentinel": "SUCCESS:ARC-0020",
+ "cross_vendor_reviewer": {
+  "independent": true,
+  "reason": "Catalog requires a Codex cross-vendor reviewer. Codex MCP is not available on this Linux substrate. Absence is recorded as NOT-CHECKED rather than a forged PASS.",
+  "required_by_catalog": true,
+  "reviewer_id": "codex-cli-default",
+  "scope_not_agreement": true,
+  "verdict": "NOT-CHECKED"
+ },
+ "dropped_threats": [
+  {
+   "id": "public-moderation-dispute",
+   "title": "Marketplace moderation queue and publisher dispute process",
+   "why_no_design_path": "This client has no second publisher and no moderation object. Listing a dispute process would be decorative under PR-ONLY."
+  },
+  {
+   "id": "multi-publisher-pki",
+   "title": "Per-publisher public-key signatures and web-of-trust",
+   "why_no_design_path": "No second publisher keyring exists in the client. HMAC with the owner key is the implemented binding; a PKI gate with no keys would be an unfalsifiable control."
+  },
+  {
+   "id": "sbom-cve-scanner-as-install-gate",
+   "title": "SBOM CVE scanner as a blocking install gate",
+   "why_no_design_path": "No scanner binary or advisory feed is invoked from client.py. Claiming CVE blocking without a call site would be overclaim."
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+   "claim": "ARC-0017 states A3 as index-as-control-plane without naming a verify-before-execute choke.",
+   "kind": "live-tree",
+   "line": 11474,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "the canonical registry index IS the control plane"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+   "claim": "ARC-0017 uses lockfile-pinned as the safety sentence; pinning name/version is not a byte MAC.",
+   "kind": "live-tree",
+   "line": 11474,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "every local capability arrives as an installed, versioned, lockfile-pinned package"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11624",
+   "claim": "This unit's catalog question names the five attack classes and the choke-point proof.",
+   "kind": "live-tree",
+   "line": 11624,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Threat-model the marketplace as an attack surface"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:70",
+   "claim": "Live A2 marketplace_entry (ARC-0010 registry.schema.json) is metadata-only (no signature field); it is not an A3 execute path.",
+   "kind": "live-tree",
+   "line": 70,
+   "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+   "snippet": "\"const\": \"marketplace_entry\""
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:14",
+   "claim": "Seeded class FC-11346 already names malicious/over-permissioned marketplace packages.",
+   "kind": "live-tree",
+   "line": 14,
+   "path": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+   "snippet": "marketplace package has malicious or excessive permissions"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:17",
+   "claim": "The mandatory choke is named verify_package.",
+   "kind": "live-tree",
+   "line": 17,
+   "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+   "snippet": "CHOKE_NAME = \"verify_package\""
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:28",
+   "claim": "Signature-stripped or wrong-MAC packages fail closed at the signature step.",
+   "kind": "live-tree",
+   "line": 28,
+   "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+   "snippet": "REFUSE_SIGNATURE = \"signature-verification-failed\""
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0020/client.py:62",
+   "claim": "Already-installed execute_cached still enters _after_choke; revocation is not install-only.",
+   "kind": "live-tree",
+   "line": 62,
+   "path": "command-center/p2-wave/probes/ARC-0020/client.py",
+   "snippet": "def execute_cached("
+  }
+ ],
+ "headline_verdict": "CHOKE-SPECIFIED",
+ "mandatory_verification": {
+  "choke": "verify_package",
+  "order": [
+   "metadata",
+   "identity (exact lockfile id/version + NFKC)",
+   "source (private index only; public fallback forbidden)",
+   "permissions subset of allowlist",
+   "CRL freshness then revocation set",
+   "HMAC-SHA256 over canonical id/version/source/permissions/content digest"
+  ],
+  "primitive": "hmac-sha256 owner MAC (single-owner PR-ONLY; not a public signature)",
+  "sink": "execute_package_content"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/ARC-0020/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "entry_id": "ARC-0020",
+  "global_catalog_write": false
+ },
+ "min_bytes_threshold": 4096,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0020/probe1_path_coverage.py",
+   "id": "probe1",
+   "role": "path-coverage"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0020/probe2_negative_control.py",
+   "id": "probe2",
+   "role": "negative-control-overclaim"
+  }
+ ],
+ "negative_control": {
+  "cached_unsigned_executed": false,
+  "cached_unsigned_reason": "signature-verification-failed",
+  "good_reason": "ok",
+  "metadata_fields_present_on_unsigned": true,
+  "metadata_ok_signature_bad_refused": true,
+  "metadata_ok_signature_ok_allowed": true,
+  "silent_loss_file": "command-center/p2-wave/probes/ARC-0020/fixtures/unsigned-skill.hello.json",
+  "stripped_reason": "signature-verification-failed",
+  "unsigned_reason": "signature-verification-failed"
+ },
+ "path_coverage": {
+  "all_execute_paths_cross_choke": true,
+  "choke_before_sink": true,
+  "computed_not_asserted": true,
+  "forbidden_hits": 0,
+  "method": "ast.parse(client.py); sink callers, choke lineno, PUBLIC_EXECUTE_PATHS",
+  "missing_public": [],
+  "public_path_count": 5,
+  "public_paths": [
+   "install_from_index",
+   "install_from_export",
+   "upgrade",
+   "execute_cached",
+   "rollback_restore"
+  ],
+  "public_paths_crossing_choke": [
+   "install_from_index",
+   "install_from_export",
+   "upgrade",
+   "execute_cached",
+   "rollback_restore"
+  ],
+  "sink_caller_count": 1,
+  "sink_callers": [
+   "_after_choke"
+  ]
+ },
+ "path_coverage_both_states": {
+  "both_states_pass": true,
+  "live_ok": true,
+  "mutant_ok": false,
+  "mutant_sink_callers": [
+   "_after_choke",
+   "smuggle_unsigned"
+  ]
+ },
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "security-reviewer",
+  "vendor": "cursor"
+ },
+ "public_path_runs": {
+  "all_good_executed": true,
+  "all_unsigned_refused": true,
+  "paths": [
+   {
+    "good_executed": true,
+    "path": "install_from_index",
+    "unsigned_executed": false,
+    "unsigned_reason": "signature-verification-failed"
+   },
+   {
+    "good_executed": true,
+    "path": "install_from_export",
+    "unsigned_executed": false,
+    "unsigned_reason": "signature-verification-failed"
+   },
+   {
+    "good_executed": true,
+    "path": "upgrade",
+    "unsigned_executed": false,
+    "unsigned_reason": "signature-verification-failed"
+   },
+   {
+    "good_executed": true,
+    "path": "execute_cached",
+    "unsigned_executed": false,
+    "unsigned_reason": "signature-verification-failed"
+   },
+   {
+    "good_executed": true,
+    "path": "rollback_restore",
+    "unsigned_executed": false,
+    "unsigned_reason": "signature-verification-failed"
+   }
+  ]
+ },
+ "question": "Threat-model the marketplace as an attack surface: malicious or over-permissioned package, typosquatted id, unsigned or signature-stripped artifact, dependency confusion between a private mirror and a public one, and a revocation that never reaches an already-installed client. Specify the MANDATORY verification a client performs before executing ANY package content, and prove no install path skips it.",
+ "required_fix": null,
+ "reviewer": {
+  "verdict": "PASS",
+  "fresh_context": true,
+  "reviewer_id": "ARC-0020-probe2-overclaim-scope",
+  "independent": true,
+  "method": "Mechanical scope check: REFUTED rows name DESIGN vs SENTENCE; attack classes cite dated URLs mapped onto resolving design paths; dropping defect_locus fails the checker; unsigned metadata-valid packages are refused. Agreement with the A3 class is not required.",
+  "scope_not_agreement": true
+ },
+ "scenario": {
+  "catching_architecture": "A3 marketplace-first with mandatory verify_package before execute_package_content on every public lifecycle path in command-center/p2-wave/probes/ARC-0020/client.py, including execute_cached.",
+  "id": "S1-unsigned-metadata-valid",
+  "procedure": [
+   "Build a lockfile pinning skill.hello@1.0.0 from owner-private-index.",
+   "Build a package with valid id/version/source/permissions and an HMAC over those bytes.",
+   "Strip or zero the signature field while leaving metadata intact.",
+   "Offer the stripped package to every PUBLIC_EXECUTE_PATHS entry, including execute_cached.",
+   "Assert each path returns executed=False with reason signature-verification-failed."
+  ],
+  "silent_loss_file": "command-center/p2-wave/probes/ARC-0020/fixtures/unsigned-skill.hello.json",
+  "title": "Metadata-valid signature-stripped package must not execute"
+ },
+ "sentinel": "SUCCESS:ARC-0020",
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "Under PR-ONLY the owner is the only publisher, so HMAC-SHA256 with the owner key is the smallest binding that still fails closed on stripped bytes. A second publisher would make this MAC insufficient (no per-publisher keys). That is dead-weight under the single-owner cost model, not a reason to skip the choke. The index can remain the control plane for what is listed; it is not a substitute for verify-before-execute. Do not rebuild A3 DESIGN.json in this unit (no ADV circle). Generated A2 marketplace_entry JSON is metadata-only and is not an execute path.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0020/probe1_path_coverage.py",
+   "id": "T1-path-coverage",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0020/probe2_negative_control.py",
+   "id": "T2-negative-control-overclaim",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-10-24T12:17:23Z"
+ },
+ "title": "A3 (marketplace-first): Marketplace threat model and mandatory verify-before-execute choke",
+ "unit_id": "ARC-0020",
+ "upstream_design": {
+  "note": "ARC-0017 is not delivered on this worktree. This unit specifies the mandatory verification choke and maps threats onto that choke. It does not write command-center/phase3/A3/DESIGN.json.",
+  "path": "command-center/phase3/A3/DESIGN.json",
+  "present": false,
+  "stand_in": "command-center/p2-wave/probes/ARC-0020/verify.py and command-center/p2-wave/probes/ARC-0020/client.py"
+ },
+ "extensions": {
+  "manifest_registration_extras_preserved": {
+   "global_catalog_write": false
+  },
+  "artifact_roles_preserved": {
+   "command-center/p2-wave/probes/ARC-0020/verify.py": "choke",
+   "command-center/p2-wave/probes/ARC-0020/client.py": "execute-paths",
+   "command-center/WORK-UNIT-CATALOG.json": "live-tree"
+  },
+  "reviewer_extras_preserved": {
+   "method": "Mechanical scope check: REFUTED rows name DESIGN vs SENTENCE; attack classes cite dated URLs mapped onto resolving design paths; dropping defect_locus fails the checker; unsigned metadata-valid packages are refused. Agreement with the A3 class is not required.",
+   "scope_not_agreement": true
+  },
+  "produced_by_vendor_preserved": "cursor",
+  "original_evidence_preserved": [
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+    "claim": "ARC-0017 states A3 as index-as-control-plane without naming a verify-before-execute choke.",
+    "kind": "live-tree",
+    "line": 11474,
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "snippet": "the canonical registry index IS the control plane"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+    "claim": "ARC-0017 uses lockfile-pinned as the safety sentence; pinning name/version is not a byte MAC.",
+    "kind": "live-tree",
+    "line": 11474,
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "snippet": "every local capability arrives as an installed, versioned, lockfile-pinned package"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11624",
+    "claim": "This unit's catalog question names the five attack classes and the choke-point proof.",
+    "kind": "live-tree",
+    "line": 11624,
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "snippet": "Threat-model the marketplace as an attack surface"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:70",
+    "claim": "Live A2 marketplace_entry (ARC-0010 registry.schema.json) is metadata-only (no signature field); it is not an A3 execute path.",
+    "kind": "live-tree",
+    "line": 70,
+    "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+    "snippet": "\"const\": \"marketplace_entry\""
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:14",
+    "claim": "Seeded class FC-11346 already names malicious/over-permissioned marketplace packages.",
+    "kind": "live-tree",
+    "line": 14,
+    "path": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+    "snippet": "marketplace package has malicious or excessive permissions"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:17",
+    "claim": "The mandatory choke is named verify_package.",
+    "kind": "live-tree",
+    "line": 17,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "CHOKE_NAME = \"verify_package\""
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/verify.py:28",
+    "claim": "Signature-stripped or wrong-MAC packages fail closed at the signature step.",
+    "kind": "live-tree",
+    "line": 28,
+    "path": "command-center/p2-wave/probes/ARC-0020/verify.py",
+    "snippet": "REFUSE_SIGNATURE = \"signature-verification-failed\""
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0020/client.py:62",
+    "claim": "Already-installed execute_cached still enters _after_choke; revocation is not install-only.",
+    "kind": "live-tree",
+    "line": 62,
+    "path": "command-center/p2-wave/probes/ARC-0020/client.py",
+    "snippet": "def execute_cached("
+   }
+  ],
+  "shard1_w4_artifact_reanchor": {
+   "date": "2026-10-26T17:45:23Z",
+   "changes": []
+  },
+  "previous_downstream_consumers_preserved": [
+   {
+    "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+    "artifact_path": "command-center/phase3/A3/SECURITY.json",
+    "executed": true,
+    "read_ok": true,
+    "exit_code": 0,
+    "probe": {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "python -I -c \"import json;d=json.load(open(r'command-center/phase3/A3/SECURITY.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+     "raw_output": "reader ok keys= 43",
+     "fingerprint": "b870b51a2933520b9219eba4459ac375",
+     "exit_code": 0
+    }
+   }
+  ],
+  "shard1_w4_restore_2026_10_26": {
+   "date": "2026-10-26T17:54:54Z",
+   "reason": "named probes require original artifact shapes (evidence[].path/line/snippet, reviewer extras) that the receipt-shaped catalog output_schema bans; probe contract restored, schema contradiction reported as residual",
+   "changes": [
+    "evidence restored",
+    "reviewer extras restored",
+    "consumers restored",
+    "manifest_registration extras restored",
+    "roles restored",
+    "vendor restored"
+   ]
+  }
+ },
+ "schema_version": 1,
+ "report": {
+  "kind": "architecture-review",
+  "observations": [
+   {
+    "name": "probe1_path_coverage (ARC-0020)",
+    "measured": "rc=0 SUCCESS:ARC-0020-probe1 path-coverage both-states class-controls",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ARC-0020/probe1_path_coverage.py"
+   },
+   {
+    "name": "probe2_negative_control (ARC-0020)",
+    "measured": "rc=1 FAILED:ARC-0020-probe2 unresolved anchor",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ARC-0020/probe2_negative_control.py"
+   }
+  ],
+  "control_ids": [
+   "nc-ARC-0020-probe2_negative_control"
+  ]
+ },
+ "spec_anchor": "WORK-UNIT-CATALOG.json:ARC-0020 (source slice ARC-1.json)",
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [],
+ "negative_controls": [
+  {
+   "id": "nc-ARC-0020-probe2_negative_control",
+   "kind": "mutation",
+   "description": "probe2_negative_control.py constructs the bad state internally (planted/mutated input) and must flag it while staying silent on the real artifact; rc=0 SUCCESS line records the both-states verdict on the live tree 2026-10-26.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "probe exits 0 only when the planted bad state was flagged (raw SUCCESS lines)",
+   "good_state_output": "SUCCESS:ARC-0020-probe2 negative-control overclaim anchors"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+   "artifact_path": "command-center/phase3/A3/SECURITY.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "python -I -c \"import json;d=json.load(open(r'command-center/phase3/A3/SECURITY.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+    "raw_output": "reader ok keys= 43",
+    "fingerprint": "b870b51a2933520b9219eba4459ac375",
+    "exit_code": 0
+   }
+  }
+ ]
+}

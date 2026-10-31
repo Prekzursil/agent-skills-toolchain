@@ -1,0 +1,206 @@
+{
+  "artifacts": [
+    {
+      "path": "tools/agentspec/agentspec/evals/baseline.py",
+      "sha256": "e17b766d561a508576f64b0c41582fb42bcc151cc221f15e20207a42dd1fe8a5",
+      "bytes": 7161,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/probe1_cross_corpus.py",
+      "sha256": "dfea66c94b992247fe958e88d328e2b4daf9a8698208b42e9f42077566dac230",
+      "bytes": 3160,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/probe2_per_case_delta.py",
+      "sha256": "ed35d20d01b44828015b9e9fe6315c48c977dad09ec37bb16d9b59f8a543b9a3",
+      "bytes": 2899,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/fixtures/baseline-certified.json",
+      "sha256": "a6ff318d2a77413f4bc85c87b1e20676038c61b7d35b6ae65b192565f7de7560",
+      "bytes": 290,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/fixtures/baseline-summary-only.json",
+      "sha256": "aa8bed6d7a9c1b268943214809b3cffdd22a298be2557ab099557a8d19ee9b81",
+      "bytes": 138,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/fixtures/run-cross-corpus.json",
+      "sha256": "6d2148b1a401c4aabc3b2ab352d8e621654ff775dfd6cc1ca2233fbf9cf62f00",
+      "bytes": 272,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/fixtures/run-same-corpus.json",
+      "sha256": "ab68881a3d6aa18344fe40ceed1e6047fb18ce99b51faf9624be4297db5229cd",
+      "bytes": 274,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0201/fixtures/run-spec-mismatch.json",
+      "sha256": "d60dec5c7210210d91f2969babcdbb26e285a27c05169694c74f178190621b86",
+      "bytes": 278,
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0201.json",
+      "consumer": "command-center/p2-wave/probes/IMP-0201/probe1_cross_corpus.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0201/probe1_cross_corpus.py",
+        "exit_code": 0,
+        "fingerprint": "ab91eaaf79bdd692f7d739047f11ff28",
+        "method": "command",
+        "raw_output": "named probe 1",
+        "role": "verifier"
+      },
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/receipts/IMP-0201.json",
+      "consumer": "command-center/p2-wave/probes/IMP-0201/probe2_per_case_delta.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0201/probe2_per_case_delta.py",
+        "exit_code": 0,
+        "fingerprint": "fd6e6633e7769e9e32ac4c11e222e78e",
+        "method": "command",
+        "raw_output": "named probe 2",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/agentspec/agentspec/evals/baseline.py:compare_to_baseline",
+      "claim": "A later run whose corpus_version differs from the frozen baseline is refused with named reason CROSS_CORPUS_REFUSED; the same per-case rows under the baseline corpus_version are compared. The known-broken sibling that copies the baseline corpus_version onto the run would permit the pair, so the corpus gate is load-bearing.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "agentspec.evals.baseline.compare_to_baseline(cross, baseline)",
+          "exit_code": 0,
+          "fingerprint": "10ac8f1c872748f1ff2f7237633ec018",
+          "method": "in-process-compare",
+          "raw_output": "{\"detail\": \"cross-corpus comparison refused: run corpus_version 'corpus.v2.retargeted' differs from baseline corpus_version 'corpus.v1.matched-holdout'\", \"ok\": false, \"reason\": \"CROSS_CORPUS_REFUSED\", \"refused\": true}",
+          "role": "source"
+        },
+        {
+          "command": "agentspec.evals.baseline.compare_ignoring_corpus_for_control(cross, baseline)",
+          "exit_code": 0,
+          "fingerprint": "4abf5f23c703db6633b5f6baef6ba77f",
+          "method": "in-process-control-sibling",
+          "raw_output": "{\"good_ok\": true, \"spec_reason\": \"SPEC_VERSION_MISMATCH_REFUSED\", \"ungated_ok\": true}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/agentspec/agentspec/evals/baseline.py:delta_from_rows",
+      "claim": "Same-corpus mean_delta is -20/4 = -5.0, recomputed from per_case_rows by both compare_to_baseline and delta_from_rows (which has no summary parameter). Stored summaries 999 and 1 would have produced -998 if trusted. A summary-only freeze is refused with SUMMARY_ONLY_REFUSED.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "agentspec.evals.baseline.delta_from_rows(run_rows, baseline_rows)",
+          "exit_code": 0,
+          "fingerprint": "b9558be075ae8b44916fe2a7ac1218ab",
+          "method": "in-process-row-delta",
+          "raw_output": "{\"mean_delta\": -5.0, \"mean_delta_numerator\": -20, \"n_cases\": 4, \"ok\": true, \"summary_consulted\": false}",
+          "role": "source"
+        },
+        {
+          "command": "agentspec.evals.baseline.compare_to_baseline(run, summary_only_baseline)",
+          "exit_code": 0,
+          "fingerprint": "8a58372fa8a29dab58370ba4cd2d990a",
+          "method": "in-process-summary-only-refusal",
+          "raw_output": "{\"ok\": false, \"reason\": \"SUMMARY_ONLY_REFUSED\"} {\"mean_delta\": -5.0, \"mean_delta_denominator\": 4, \"mean_delta_numerator\": -20, \"n_cases\": 4, \"ok\": true, \"summary_consulted\": false}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0201/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"detail\": \"cross-corpus comparison refused: run corpus_version 'corpus.v2.retargeted' differs from baseline corpus_version 'corpus.v1.matched-holdout'\", \"ok\": false, \"reason\": \"CROSS_CORPUS_REFUSED\", \"refused\": true}",
+      "description": "Cross-corpus run is refused; same-corpus twin is permitted. The ungated sibling permits the cross-corpus pair.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"mean_delta\": -5.0, \"mean_delta_denominator\": 4, \"mean_delta_numerator\": -20, \"n_cases\": 4, \"ok\": true, \"summary_consulted\": false}",
+      "id": "c1-cross-corpus",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "{\"ok\": false, \"reason\": \"SUMMARY_ONLY_REFUSED\"}",
+      "description": "Summary-only baseline is refused; lying summaries on a row-bearing baseline are ignored.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"mean_delta\": -5.0, \"mean_delta_numerator\": -20, \"n_cases\": 4, \"ok\": true, \"summary_consulted\": false}",
+      "id": "c2-summary-only",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "This unit freezes and compares synthetic per-case rows shaped like an IMP-0197/IMP-0198 runner would emit. Named probes do not consume those units' live archives, so live workflow certification against them is NOT-CHECKED beyond the named gate.",
+      "settling_experiment": "Re-run freeze/compare against IMP-0197/IMP-0198 per-case archives once those units land.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "max 2 attempts then pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "reviewer_id": "IMP-0201-probe2-per-case-delta",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0201",
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0201: freeze each certified workflow's benchmark result as a named baseline with its corpus version and spec_version; comparing against a baseline captured under a DIFFERENT corpus version is refused",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0201/probe1_cross_corpus.py",
+      "id": "t1-cross-corpus-both-states",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0201/probe2_per_case_delta.py",
+      "id": "t2-delta-from-per-case-rows",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:51Z",
+    "started_at": "2026-08-25T00:58:51Z"
+  },
+  "unit_id": "IMP-0201",
+  "notes": "shard8w4 2026-10-26: artifacts[] re-inventoried against live disk after probe-layer reconstruction (prior builder session ended mid-flight); rows for files no longer present were dropped per write_if_valid convention. Reviewer closure unchanged; live re-verification: probes exit 0, per-unit manifest row matches."
+}

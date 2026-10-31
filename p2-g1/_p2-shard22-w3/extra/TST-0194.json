@@ -1,0 +1,78 @@
+{
+  "report_kind": "portability_report",
+  "claims": [
+    {
+      "id": "E-build-time-rejection",
+      "anchor": "command-center/p2-wave/probes/TST-0194/packer.py:build",
+      "claim": "Two package entries differing only in case are REJECTED at BUILD time with both paths named in the error ('Lib/Hooks.py' collides with 'lib/hooks.py') - the collision never reaches the user's case-insensitive filesystem.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-distinct-builds",
+      "anchor": "command-center/p2-wave/probes/TST-0194/probe1_build_rejects.py:main",
+      "claim": "Both-states control: a case-distinct-but-non-colliding manifest (Lib/Hooks.py + lib/utils.py) builds cleanly - the gate discriminates collisions, not case-distinct paths.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-install-deferral-fails",
+      "anchor": "command-center/p2-wave/probes/TST-0194/probe2_install_deferral.py:main",
+      "claim": "Negative control: deferring the check to install time FAILS the requirement - on case-insensitive NTFS the colliding pair installs to 1 file instead of 2 (silent last-write-wins loss; survivor content = the case-variant payload), which is exactly the loss the build gate prevents.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-casefold-set-size",
+      "anchor": "command-center/p2-wave/probes/TST-0194/probe2_install_deferral.py:casefold_set_comparison",
+      "claim": "Independent case-folded set-size signal: raw distinct entries 2 vs case-folded distinct 1 (delta 1 = the hidden collision); in probe1's colliding manifest raw 3 vs folded 2.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "install-time-deferral",
+      "kind": "mutation",
+      "description": "A naive packer that skips the build gate collides at install on NTFS: 2 manifest entries become 1 installed file, one variant silently lost - proving deferral fails and the build-time check is the required control point.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "installed_files=1 < manifest_entries=2, survivor='# hooks B (case-variant)'",
+      "good_state_output": "build refuses the pair outright, naming both paths"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0194/packer.py",
+    "build_gate": "casefold-collision check over manifest paths BEFORE any bytes are written; PackerBuildError names every colliding pair",
+    "install": "naive copy into a real NTFS directory (the case-insensitive reality; no simulated FS)",
+    "regression_seed": "_USER-PROMPTS.md:11309 case-insensitive parser collision (path-form of the same class)"
+  },
+  "observations": [
+    {
+      "name": "packer exit status + message on colliding manifest",
+      "measured": "build failed naming 'Lib/Hooks.py' and 'lib/hooks.py'",
+      "method": "PackerBuildError captured with .colliding",
+      "anchor": "command-center/p2-wave/probes/TST-0194/probe1_build_rejects.py"
+    },
+    {
+      "name": "NTFS install of a deferred colliding pair",
+      "measured": "2 entries -> 1 installed file (silent loss)",
+      "method": "real directory install via naive packer",
+      "anchor": "command-center/p2-wave/probes/TST-0194/probe2_install_deferral.py"
+    },
+    {
+      "name": "case-folded vs raw manifest path set size",
+      "measured": "colliding: 3 raw vs 2 folded; pair: 2 raw vs 1 folded",
+      "method": "independent set-size comparison",
+      "anchor": "command-center/p2-wave/probes/TST-0194/packer.py:find_case_collisions"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The packer is the probe-local reference build/install path (real NTFS as the install target); the estate's production package builder, if it exists elsewhere, must carry the same build-time gate.",
+      "settling_experiment": "Bind build() to the production packer seam and re-run both probes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0194: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

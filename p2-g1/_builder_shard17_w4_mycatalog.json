@@ -1,0 +1,554 @@
+{
+  "TST-0155": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "observability-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0155",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the monitor's counted lines, and (b) an offline count over the rotated files concatenated in order",
+    "execution_substrate": "local-serialized",
+    "failure_classification": [
+      "detector-failure",
+      "uncontrolled-silence",
+      "overclaim",
+      "platform-gap"
+    ],
+    "id": "TST-0155",
+    "inputs": [
+      "_USER-PROMPTS.md:11010 (Phase 10 layer 22, stale-monitor tests)",
+      "rules/common/bash-hud-and-terminal-emit.md",
+      "rules/common/single-signal-verification.md",
+      "B07 cockpit / monitor surface"
+    ],
+    "output_path": "command-center/receipts/TST-0155.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/monitor_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "While the monitor tails a log, rotate it: does the reader continue without crashing and without re-counting lines already consumed? PASS requires an exact line-count match against the concatenated pre- and post-rotation content.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+    "tests_required": [
+      "both-states control: no rotation yields the same count",
+      "boundary test: rotation exactly between two writes, and mid-line"
+    ],
+    "timeout_seconds": 2700,
+    "title": "Log rotation under a live reader causes neither crash nor double-count",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ]
+  },
+  "TST-0158": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "concurrency-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0158",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the merger's exit status and collision list, and (b) an independent set-intersection computed over the two slices' id fields",
+    "execution_substrate": "local-parallel",
+    "failure_classification": [
+      "detector-failure",
+      "flaky-nondeterminism",
+      "green-not-live",
+      "dependency-blocked"
+    ],
+    "id": "TST-0158",
+    "inputs": [
+      "_USER-PROMPTS.md:11011 (Phase 10 layer 23, duplicate-dispatch tests)",
+      "_USER-PROMPTS.md:10965-10983 (Phase 9 work claims, file leases, duplicate suppression)",
+      "tools/lib/handled-ledger.mjs",
+      "command-center/OPTION-ID-RESOLUTION.json",
+      "tools/command-center/catalog.py"
+    ],
+    "output_path": "command-center/receipts/TST-0158.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "When two catalog slices reuse the same id namespace with different meanings, does the merger refuse and enumerate the colliding ids? PASS requires refusal plus the full collision list; silently taking last-wins is a FAIL.",
+    "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: two disjoint slices merge cleanly",
+      "regression seed: the measured 31-way M-NN collision between the option universe and the architecture-candidates mechanism cards"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Catalog merge refuses colliding id namespaces",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write"
+    ]
+  },
+  "TST-0161": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "concurrency-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0161",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome",
+    "execution_substrate": "local-parallel",
+    "failure_classification": [
+      "detector-failure",
+      "flaky-nondeterminism",
+      "green-not-live",
+      "dependency-blocked"
+    ],
+    "id": "TST-0161",
+    "inputs": [
+      "_USER-PROMPTS.md:11011 (Phase 10 layer 23, duplicate-dispatch tests)",
+      "_USER-PROMPTS.md:10965-10983 (Phase 9 work claims, file leases, duplicate suppression)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0161.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "Do two sessions requesting the same file lease see an explicit conflict, and can a lease expiring mid-write transfer ownership without the original writer noticing? PASS requires the expiring writer to fail its next write rather than continue.",
+    "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: non-overlapping paths lease independently",
+      "negative control: an advisory-only lease with no write-time recheck must fail the second case"
+    ],
+    "timeout_seconds": 3600,
+    "title": "File-lease conflict surfaces and expiry cannot silently transfer a live write",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write"
+    ]
+  },
+  "TST-0162": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "concurrency-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0162",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the resume plan's skip/redispatch lists, and (b) an independent diff of receipts present before and after resume",
+    "execution_substrate": "local-parallel",
+    "failure_classification": [
+      "detector-failure",
+      "flaky-nondeterminism",
+      "green-not-live",
+      "dependency-blocked"
+    ],
+    "id": "TST-0162",
+    "inputs": [
+      "_USER-PROMPTS.md:11011 (Phase 10 layer 23, duplicate-dispatch tests)",
+      "_USER-PROMPTS.md:10965-10983 (Phase 9 work claims, file leases, duplicate suppression)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0162.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "On resume, are already-terminal units skipped and units with a corrupted claim record re-dispatched? PASS requires both behaviors; a corrupted claim that is silently skipped is the dangerous failure and must be detected.",
+    "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: intact claims skip, corrupted claims re-dispatch",
+      "mutation control: truncate one claim record and confirm the re-dispatch happens"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Resume skips terminal units and re-dispatches corrupted claims",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write"
+    ]
+  },
+  "TST-0163": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "concurrency-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0163",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the recorded per-unit spec hash, and (b) the current spec file hash recomputed at fan-in by a separate process",
+    "execution_substrate": "local-parallel",
+    "failure_classification": [
+      "detector-failure",
+      "flaky-nondeterminism",
+      "green-not-live",
+      "dependency-blocked"
+    ],
+    "id": "TST-0163",
+    "inputs": [
+      "_USER-PROMPTS.md:11011 (Phase 10 layer 23, duplicate-dispatch tests)",
+      "_USER-PROMPTS.md:10965-10983 (Phase 9 work claims, file leases, duplicate suppression)",
+      "tools/lib/handled-ledger.mjs",
+      "rules/common/fan-out-contract.md"
+    ],
+    "output_path": "command-center/receipts/TST-0163.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "If the fan-out launcher or unit spec is edited after launch, does fan-in detect that units ran under different contracts? PASS requires a spec hash recorded at dispatch and compared at fan-in, with a typed CONTRACT-DRIFT result naming the two hashes.",
+    "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: an unedited run reports no drift",
+      "regression seed: the measured mid-run edit that left contradictory tool-call caps live"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Launcher edited mid-run is detected by a spec hash at fan-in",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write"
+    ]
+  },
+  "TST-0164": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "resume-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0164",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) a byte diff of the two artifact trees, and (b) a normalized diff after applying the declared non-determinism mask",
+    "execution_substrate": "worktree-isolated",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "fixture-invalid"
+    ],
+    "id": "TST-0164",
+    "inputs": [
+      "_USER-PROMPTS.md:11012 (Phase 10 layer 24, resume tests)",
+      "_USER-PROMPTS.md:10874-10896 (Phase 7 resume, deterministic replay, artifact caching)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0164.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "Does resuming from a mid-phase checkpoint produce downstream artifacts byte-identical to an uninterrupted run, after excluding fields explicitly declared non-deterministic? PASS requires the non-deterministic field list be declared UP FRONT, not discovered by diffing.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: an undeclared non-deterministic field must make the byte diff fail, proving the mask is not a blanket",
+      "negative control: masking everything must be rejected by a mask-coverage ceiling"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Mid-phase resume reproduces the uninterrupted downstream artifacts",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write",
+      "Edit"
+    ]
+  },
+  "TST-0165": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "resume-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0165",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the resume exit status and message, and (b) a field-set diff between the old checkpoint and the migrated one showing zero silent drops",
+    "execution_substrate": "worktree-isolated",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "fixture-invalid"
+    ],
+    "id": "TST-0165",
+    "inputs": [
+      "_USER-PROMPTS.md:11012 (Phase 10 layer 24, resume tests)",
+      "_USER-PROMPTS.md:10874-10896 (Phase 7 resume, deterministic replay, artifact caching)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0165.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "When the checkpoint on disk predates the current schema version, does resume run a versioned migration or refuse loudly? PASS forbids a partial read that silently drops unknown fields.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: a current-version checkpoint resumes without migration",
+      "negative control: a lenient loader that ignores unknown fields must fail"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Older checkpoint schema triggers migration or a loud refusal",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write",
+      "Edit"
+    ]
+  },
+  "TST-0166": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "resume-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0166",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the resume prompt/record naming both SHAs, and (b) an independent `git diff --name-only <pinned>..HEAD` listing",
+    "execution_substrate": "worktree-isolated",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "fixture-invalid"
+    ],
+    "id": "TST-0166",
+    "inputs": [
+      "_USER-PROMPTS.md:11012 (Phase 10 layer 24, resume tests)",
+      "_USER-PROMPTS.md:10874-10896 (Phase 7 resume, deterministic replay, artifact caching)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0166.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "If HEAD moved since the checkpoint, does resume surface the SHA mismatch and require an explicit choice? PASS requires the pinned SHA be validated and the divergence summarized (files changed) before any work continues.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: an unchanged HEAD resumes without a prompt",
+      "negative control: auto-accepting the new HEAD must fail"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Checkpoint pinned SHA mismatch is a decision, not an auto-accept",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write",
+      "Edit"
+    ]
+  },
+  "TST-0168": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "resume-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0168",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) child id set before and after, and (b) receipt count per child id",
+    "execution_substrate": "worktree-isolated",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "fixture-invalid"
+    ],
+    "id": "TST-0168",
+    "inputs": [
+      "_USER-PROMPTS.md:11012 (Phase 10 layer 24, resume tests)",
+      "_USER-PROMPTS.md:10874-10896 (Phase 7 resume, deterministic replay, artifact caching)",
+      "tools/lib/handled-ledger.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0168.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "When a workflow is suspended while a dynamic fan-out is in flight, does resume re-derive every child's state exactly once? PASS requires: children_after == children_before, with no child in an unowned state and no child executed twice.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "both-states control: suspending before the fan-out starts and after it completes both resume cleanly",
+      "race amplification: suspend at 20 randomized points inside the fan-out"
+    ],
+    "timeout_seconds": 3600,
+    "title": "Resume of an in-flight dynamic fan-out orphans nothing and duplicates nothing",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write",
+      "Edit"
+    ]
+  },
+  "TST-0174": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "cache-integrity-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0174",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) reader-side integrity checks across the concurrent run, and (b) an inspection for leftover temp files",
+    "execution_substrate": "local-parallel",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "uncontrolled-silence",
+      "fixture-invalid"
+    ],
+    "id": "TST-0174",
+    "inputs": [
+      "_USER-PROMPTS.md:11013 (Phase 10 layer 25, corrupted-cache tests)",
+      "_USER-PROMPTS.md:11305 (stale cache masks a fixed package)",
+      "B05/B07 cache refresh and invalidation implementation"
+    ],
+    "output_path": "command-center/receipts/TST-0174.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "With two processes writing the same cache key concurrently, can any reader observe a partial entry? PASS requires atomic publish and a well-defined winner; readers must see either the old entry or a complete new one.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+    "tests_required": [
+      "property test: 1,000 interleavings with a reader thread asserting integrity on every read",
+      "mutation control: remove the atomic publish and confirm partial reads appear"
+    ],
+    "timeout_seconds": 2700,
+    "title": "Concurrent cache writers cannot expose a partial entry",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash",
+      "Write"
+    ]
+  },
+  "TST-0204": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "role": "portability-tester",
+      "vendor": "anthropic"
+    },
+    "completion_sentinel": "SUCCESS:TST-0204",
+    "dependencies": [
+      "B07"
+    ],
+    "evidence_requirement": "two independent signals: (a) the enforced cap in the generator plus a property test over 10,000 generated ids, and (b) the longest observed real path in a full fan-out run",
+    "execution_substrate": "local-serialized",
+    "failure_classification": [
+      "detector-failure",
+      "platform-gap",
+      "green-not-live",
+      "owner-blocked"
+    ],
+    "id": "TST-0204",
+    "inputs": [
+      "_USER-PROMPTS.md:11017 (Phase 10 layer 29, long-path tests)",
+      "rules/common/windows-shell.md",
+      "B07 artifact writer + package extractor"
+    ],
+    "output_path": "command-center/receipts/TST-0204.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "Do generated worktree roots and unit ids have a declared maximum length, so the harness cannot consume the user's path budget? PASS requires a hard cap enforced in code, not a convention.",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+    "reviewer_requirement": "one independent reviewer who re-runs the probe on a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding",
+    "tests_required": [
+      "property test: every generated root length <= declared cap",
+      "measurement: report the p100 observed path length from a 256-unit run"
+    ],
+    "timeout_seconds": 2700,
+    "title": "Worktree/id generators bound their own contribution to the path budget",
+    "tool_permissions": [
+      "Read",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ]
+  },
+  "TST-0209": {
+    "_source_slice_file": "TST-2.json",
+    "assigned_model_vendor_role": {
+      "model": "codex-cli-default",
+      "role": "security-tester",
+      "vendor": "openai"
+    },
+    "completion_sentinel": "SUCCESS:TST-0209",
+    "dependencies": [
+      "B07",
+      "TST-0206"
+    ],
+    "evidence_requirement": "two independent signals: (a) the sink output for a newly added unscrubbed call site, and (b) a static scan showing no call site performs its own redaction as the only defense",
+    "execution_substrate": "cloud-batch",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "owner-blocked"
+    ],
+    "id": "TST-0209",
+    "inputs": [
+      "_USER-PROMPTS.md:11018 (Phase 10 layer 30, secret-leak tests)",
+      "_USER-PROMPTS.md:11345 (credentials or decrypted secrets enter an artifact bundle)",
+      "AGENTS.md:9 (security non-negotiables)",
+      "tools/lib/security.mjs"
+    ],
+    "output_path": "command-center/receipts/TST-0209.json",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+    "owner_approval_required": false,
+    "phase": "10",
+    "question_or_target": "Are secrets scrubbed from error messages, stack traces and telemetry by a single sink-level scrubber? PASS requires: adding a NEW logging call site with an unscrubbed secret must still be redacted in the output.",
+    "retry_policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture",
+    "reviewer_requirement": "two reviewers: a cross-vendor (Codex) security reviewer plus one correctness reviewer in a fresh context; both must reproduce the both-states control",
+    "tests_required": [
+      "detector control: add an unscrubbed call site and confirm the sink still redacts",
+      "property test over 200 synthetic secret shapes in exception messages"
+    ],
+    "timeout_seconds": 2700,
+    "title": "Scrubbing happens at the sink, not per call site",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ]
+  }
+}

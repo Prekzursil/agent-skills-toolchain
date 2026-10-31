@@ -1,0 +1,1058 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "rules-distill-sweep",
+  "name": "Rules-distill sweep with a script-first veto and a context budget",
+  "description": "Scan the skill corpus for cross-cutting principles and distil them into rules, so a lesson learned inside one skill becomes available everywhere. Two mechanisms stop this from becoming rule bloat. The SCRIPT-FIRST VETO: a principle a script can enforce becomes a script, not a rule, because a rule competes for the always-on context budget while a script does not. And a hard BUDGET gate: the always-on rule surface has a line ceiling, and a proposal that would exceed it must displace something rather than accumulate. A caveat unique to one skill is never promoted - single-skill detail belongs in that skill.",
+  "version": "1.0.0",
+  "kind": "meta-workflow",
+  "categories": [
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "bp-doc-02",
+    "rules",
+    "script-first",
+    "context-budget",
+    "dedupe"
+  ],
+  "flagship": false,
+  "params": {
+    "skill_corpus": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "items": {
+        "type": "path"
+      },
+      "description": "Roots of the skill vault to scan. One fan-out shard per root."
+    },
+    "existing_rules": {
+      "type": "path",
+      "required": true,
+      "description": "The current rules tree, so a proposal can be deduped against what already exists."
+    },
+    "min_skills_for_promotion": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 2,
+      "maximum": 50,
+      "description": "A caveat must appear in at least this many skills to be cross-cutting. Below it, the detail belongs in its skill."
+    },
+    "rule_line_budget": {
+      "type": "integer",
+      "default": 300,
+      "minimum": 50,
+      "maximum": 5000,
+      "description": "Ceiling on the always-on rule surface. The stated discipline is CLAUDE.md under 300 lines."
+    },
+    "seeded_from_branch_capture": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when invoked as a subworkflow by the pre-PR capture, which supplies a candidate principle to test against the corpus."
+    }
+  },
+  "roles": {
+    "corpus-scanner": {
+      "description": "Scans one corpus shard for repeated caveats and records where each occurrence lives.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/knowledge/**)"
+      ]
+    },
+    "cluster-synthesiser": {
+      "description": "Clusters occurrences into candidate principles. This is the subjective step and is labelled as such.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/knowledge/**)"
+      ]
+    },
+    "script-first-auditor": {
+      "description": "Holds the veto that turns an enforceable principle into a SCRIPT rather than a rule.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "dedupe-auditor": {
+      "description": "Refutes a proposal that restates an existing rule, and distinguishes 'new rule' from 'existing rule needs updating'.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/knowledge/**)",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Bash:git",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/knowledge/rules-distill/**"
+    ],
+    "forbid_write_paths": [
+      "skills/**",
+      "rules/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == dedupe-auditor",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the synthesiser that clustered a principle will not see that it already exists as a rule"
+      },
+      {
+        "when": "stage_role == corpus-scanner",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "medium"
+        },
+        "reason": "scanning is bounded pattern work; the judgement is in the clustering"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "cross-cutting-only": {
+      "predicate": "custom-expression",
+      "expression": "single_skill_principles_promoted == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "script-beats-rule": {
+      "predicate": "custom-expression",
+      "expression": "enforceable_principles_proposed_as_rules == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "no-restatement-of-existing": {
+      "predicate": "custom-expression",
+      "expression": "proposals_restating_existing_rule == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "within-context-budget": {
+      "predicate": "custom-expression",
+      "expression": "always_on_rule_lines <= rule_line_budget",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "scan-corpus",
+      "title": "S0 - scan the corpus for repeated caveats",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "skill_corpus",
+        "item_var": "corpus_shard",
+        "key_field": "corpus_shard"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 100,
+      "max_items": 128,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "scan-shard",
+          "title": "Scan one corpus shard",
+          "kind": "task",
+          "role": "corpus-scanner",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Write(command-center/knowledge/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "inputs_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/knowledge/rules-distill/cache/shards",
+            "ttl_seconds": 604800,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "DOC-8301",
+            "title": "Extract every caveat, gotcha and warning from one corpus shard with its location",
+            "phase": "2B",
+            "question_or_target": "Record each caveat verbatim with the skill and file:line it came from, so a later cluster can count HOW MANY DISTINCT SKILLS exhibit it rather than how many times it was written.",
+            "inputs": [
+              "item.corpus_shard",
+              "params.min_skills_for_promotion"
+            ],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "corpus-scanner",
+              "basis": "recognising a caveat that is phrased differently in two skills is judgement a grep cannot do"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Write(command-center/knowledge/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/knowledge/rules-distill/caveats/shard-caveats.jsonl",
+            "output_schema": "command-center/schema/caveat-audit.schema.json",
+            "evidence_requirement": "each caveat with its verbatim text, its owning SKILL id, and a file:line anchor",
+            "tests_required": [
+              "a caveat repeated twice inside ONE skill counts as one skill, not two occurrences - the promotion threshold is per-skill",
+              "a caveat phrased differently in two skills is recorded as two occurrences of one candidate, not two candidates"
+            ],
+            "reviewer_requirement": "the cluster-synthesiser, which needs per-skill attribution to count correctly",
+            "completion_sentinel": "SUCCESS:DOC-8301 emitted only when every caveat carries a skill id and a file:line anchor; otherwise FAILED:DOC-8301 <reason>",
+            "retry_policy": "two strikes then narrow the shard rather than re-scanning the same tree",
+            "failure_classification": [
+              "shard-unreadable",
+              "anchor-missing",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "per-skill caveat extraction with skill-level attribution for the promotion count"
+          },
+          "produces": [
+            {
+              "path": "command-center/knowledge/rules-distill/caveats/shard-caveats.jsonl",
+              "schema_ref": "command-center/schema/caveat-audit.schema.json",
+              "min_bytes": 32,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DOC-8301",
+              "consumers": [
+                "cluster-principles"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.8,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "corpus-join",
+      "title": "Gather the shards before clustering",
+      "kind": "barrier",
+      "depends_on": [
+        "scan-corpus"
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-degraded",
+        "require_stages": [
+          "scan-corpus"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "scan-corpus"
+      ]
+    },
+    {
+      "id": "cluster-principles",
+      "title": "S1 - cluster occurrences into candidate principles",
+      "kind": "task",
+      "depends_on": [
+        "corpus-join"
+      ],
+      "role": "cluster-synthesiser",
+      "timeout_seconds": 2400,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8302",
+        "title": "Cluster caveats into principles and count the DISTINCT skills exhibiting each",
+        "phase": "2B",
+        "question_or_target": "Group semantically equivalent caveats into candidate principles, and for each record the distinct skills that exhibit it, so the promotion threshold is a count rather than an impression.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/caveats/shard-caveats.jsonl",
+          "params.min_skills_for_promotion"
+        ],
+        "dependencies": [
+          "DOC-8301"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "cluster-synthesiser",
+          "basis": "clustering is the subjective step and is labelled subjective in the artifact rather than presented as measurement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/knowledge/rules-distill/candidate-principles.json",
+        "output_schema": "command-center/schema/dedup-report.schema.json",
+        "evidence_requirement": "each candidate names the distinct skills exhibiting it with an anchor per skill, and the clustering is marked NON-DETERMINISTIC because it is model judgement",
+        "tests_required": [
+          "a caveat present in 5 skills is surfaced as a candidate",
+          "a caveat unique to ONE skill is NOT promoted - it is recorded as single-skill detail belonging in that skill",
+          "both-states control: raising min_skills_for_promotion above the top candidate's count empties the promotion set, proving the threshold is live"
+        ],
+        "reviewer_requirement": "the dedupe-auditor, cross-vendor, which checks the clusters are not already rules",
+        "completion_sentinel": "SUCCESS:DOC-8302 emitted only when every candidate carries a distinct-skill count with per-skill anchors; otherwise FAILED:DOC-8302 <reason>",
+        "retry_policy": "two strikes then emit the raw caveat groups unclustered rather than forcing a cluster",
+        "failure_classification": [
+          "clustering-unstable",
+          "single-skill-promotion",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "semantic clustering with a distinct-SKILL count as the promotion threshold"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/candidate-principles.json",
+          "schema_ref": "command-center/schema/dedup-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8302",
+          "consumers": [
+            "cross-cutting-gate",
+            "check-script-enforceable",
+            "dedupe-against-existing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cross-cutting-gate",
+      "title": "Single-skill detail belongs in its skill, not in a rule",
+      "kind": "gate",
+      "depends_on": [
+        "cluster-principles"
+      ],
+      "gate_ref": "cross-cutting-only"
+    },
+    {
+      "id": "check-script-enforceable",
+      "title": "S2 - prefer a SCRIPT: a rule competes for the always-on budget, a script does not",
+      "kind": "task",
+      "depends_on": [
+        "cross-cutting-gate"
+      ],
+      "role": "script-first-auditor",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8303",
+        "title": "Decide for each principle whether a script could enforce it mechanically",
+        "phase": "2B",
+        "question_or_target": "For each candidate, decide whether the principle is decidable by an exact algorithm - counting, set membership, byte comparison, schema validation - and if so route it to a SCRIPT rather than to a rule.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/candidate-principles.json"
+        ],
+        "dependencies": [
+          "DOC-8302"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "script-first-auditor",
+          "basis": "judging decidability requires knowing what a script could actually observe, which is the veto's whole content"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/rules-distill/script-enforceability.json",
+        "output_schema": "command-center/schema/capability-record.schema.json",
+        "evidence_requirement": "for each principle, the verdict script-enforceable or judgement-only, with the exact check a script would perform when enforceable",
+        "tests_required": [
+          "a principle stating a countable property is routed to a SCRIPT and does not reach the rule proposal",
+          "a principle requiring judgement stays a rule candidate, so the veto is not rejecting every principle",
+          "the named script check is concrete enough to implement; 'a script could check this' with no check named is not a verdict"
+        ],
+        "reviewer_requirement": "the dedupe-auditor, which checks a script proposal does not duplicate an existing gate",
+        "completion_sentinel": "SUCCESS:DOC-8303 emitted only when every candidate carries a script-enforceable verdict and, when enforceable, the concrete check; otherwise FAILED:DOC-8303 <reason>",
+        "retry_policy": "two strikes then mark the principle judgement-only and record the undecided enforceability",
+        "failure_classification": [
+          "enforceability-undecided",
+          "rule-bloat",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "script-first veto that removes mechanically-decidable principles from the rule surface"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/script-enforceability.json",
+          "schema_ref": "command-center/schema/capability-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8303",
+          "consumers": [
+            "script-first-gate",
+            "emit-script-spec",
+            "propose-rules"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "script-first-gate",
+      "title": "An enforceable principle may not be proposed as a rule",
+      "kind": "gate",
+      "depends_on": [
+        "check-script-enforceable"
+      ],
+      "gate_ref": "script-beats-rule"
+    },
+    {
+      "id": "emit-script-spec",
+      "title": "S2b - emit a script specification for each enforceable principle",
+      "kind": "task",
+      "depends_on": [
+        "script-first-gate"
+      ],
+      "role": "script-first-auditor",
+      "when": "enforceable_principles > 0",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8304",
+        "title": "Specify the script that enforces each mechanically-decidable principle",
+        "phase": "2B",
+        "question_or_target": "Write an implementable specification per enforceable principle: the inputs it enumerates, the failure it emits, and the known-bad input that proves the gate can go red.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/script-enforceability.json"
+        ],
+        "dependencies": [
+          "DOC-8303"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "script-first-auditor",
+          "basis": "a specification that cannot fail closed is a permanently green gate, so the spec author must reason about the empty-input case"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/rules-distill/script-specs.json",
+        "output_schema": "command-center/schema/contract-spec.schema.json",
+        "evidence_requirement": "per script: the input enumeration, the fail-closed behaviour on an empty walk, the terminal marker it prints, and a named known-bad input",
+        "tests_required": [
+          "each spec names a known-bad input that makes the gate exit non-zero - a gate that has never gone red is indistinguishable from a no-op",
+          "each spec fails CLOSED on an empty input walk rather than reporting nothing-found as a pass"
+        ],
+        "reviewer_requirement": "the dedupe-auditor, checking the script does not duplicate an existing gate",
+        "completion_sentinel": "SUCCESS:DOC-8304 emitted only when every enforceable principle has a spec with a fail-closed rule and a known-bad input; otherwise FAILED:DOC-8304 <reason>",
+        "retry_policy": "two strikes then downgrade the principle to judgement-only rather than shipping an unfalsifiable gate spec",
+        "failure_classification": [
+          "gate-spec-unfalsifiable",
+          "no-op-gate",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "script specification carrying its own fail-closed rule and a known-bad input",
+        "not_a_duplicate_because": "the enforceability audit DECIDES whether a script is possible; this writes the spec that makes it falsifiable, which is where a no-op gate would otherwise be born"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/script-specs.json",
+          "schema_ref": "command-center/schema/contract-spec.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8304",
+          "consumers": [
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dedupe-against-existing",
+      "title": "S3 - dedupe against the existing rules; distinguish NEW from NEEDS-UPDATE",
+      "kind": "task",
+      "depends_on": [
+        "script-first-gate"
+      ],
+      "role": "dedupe-auditor",
+      "timeout_seconds": 2400,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "DOC-8305",
+        "title": "Refute any proposal that already exists as a rule, and separate updates from additions",
+        "phase": "2B",
+        "question_or_target": "For each surviving principle, decide NEW, RESTATES-EXISTING or EXISTING-NEEDS-UPDATE by searching the rules tree, so the sweep cannot rediscover a rule it already wrote.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/script-enforceability.json",
+          "params.existing_rules"
+        ],
+        "dependencies": [
+          "DOC-8303"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "dedupe-auditor",
+          "basis": "the synthesiser that just clustered a principle is the least likely to notice it already exists"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/knowledge/rules-distill/dedupe-audit.json",
+        "output_schema": "command-center/schema/dedup-audit.schema.json",
+        "evidence_requirement": "for each RESTATES verdict, the existing rule file:line that already says it; for each NEEDS-UPDATE, the clause that is now wrong",
+        "tests_required": [
+          "the dedupe control: a principle that already exists as a rule is caught and cited - if the sweep rediscovers an existing rule, the dedupe step is broken",
+          "an existing rule whose content is now WRONG is classified NEEDS-UPDATE, not as a new rule alongside the stale one",
+          "both-states control: a genuinely novel principle is classified NEW, so the auditor is not rejecting everything"
+        ],
+        "reviewer_requirement": "the cluster-synthesiser, which may contest a RESTATES verdict with a distinguishing mechanism",
+        "completion_sentinel": "SUCCESS:DOC-8305 emitted only when every surviving principle carries one of the three verdicts with a citation where applicable; otherwise FAILED:DOC-8305 <reason>",
+        "retry_policy": "two strikes then mark the principle CONTESTED and let the owner decide rather than double-adding",
+        "failure_classification": [
+          "duplicate-rule-proposed",
+          "detector-failure",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "cross-vendor dedupe with a three-way NEW / RESTATES / NEEDS-UPDATE verdict"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/dedupe-audit.json",
+          "schema_ref": "command-center/schema/dedup-audit.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8305",
+          "consumers": [
+            "dedupe-gate",
+            "update-existing-rule",
+            "propose-rules"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dedupe-gate",
+      "title": "A new rule must not restate an existing one",
+      "kind": "gate",
+      "depends_on": [
+        "dedupe-against-existing"
+      ],
+      "gate_ref": "no-restatement-of-existing"
+    },
+    {
+      "id": "update-existing-rule",
+      "title": "S3b - an existing rule that is now wrong is UPDATED, not duplicated",
+      "kind": "task",
+      "depends_on": [
+        "dedupe-gate"
+      ],
+      "role": "cluster-synthesiser",
+      "when": "existing_rules_needing_update > 0",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8306",
+        "title": "Propose a correction to each existing rule the sweep found to be stale",
+        "phase": "2B",
+        "question_or_target": "For each EXISTING-NEEDS-UPDATE verdict, propose the corrected clause and record what the old clause claimed, so the correction is traceable and the stale guidance is retired rather than silently overwritten.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/dedupe-audit.json",
+          "params.existing_rules"
+        ],
+        "dependencies": [
+          "DOC-8305"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "cluster-synthesiser",
+          "basis": "deciding what an updated clause should say is authoring work, not a mechanical patch"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/rules-distill/rule-updates.json",
+        "output_schema": "command-center/schema/supersession-graph.schema.json",
+        "evidence_requirement": "the old clause verbatim, the proposed replacement, and the observation that made the old one wrong",
+        "tests_required": [
+          "the old clause is recorded verbatim, so a corrected rule cannot be silently rewritten as though it was always right",
+          "a rule update does not increase the always-on line count unless the budget gate allows it"
+        ],
+        "reviewer_requirement": "the dedupe-auditor, which verifies the update targets the rule it cited",
+        "completion_sentinel": "SUCCESS:DOC-8306 emitted only when every NEEDS-UPDATE verdict has a proposed replacement plus the old clause recorded; otherwise FAILED:DOC-8306 <reason>",
+        "retry_policy": "two strikes then propose the correction as a comment on the rule rather than a rewrite",
+        "failure_classification": [
+          "supersession-dangling",
+          "rule-bloat",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "in-place rule correction with the superseded clause recorded verbatim"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/rule-updates.json",
+          "schema_ref": "command-center/schema/supersession-graph.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8306",
+          "consumers": [
+            "propose-rules"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "propose-rules",
+      "title": "S4 - propose the surviving rules within the context budget",
+      "kind": "task",
+      "depends_on": [
+        "dedupe-gate",
+        "update-existing-rule"
+      ],
+      "role": "cluster-synthesiser",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8307",
+        "title": "Emit the rule proposals with their line cost and displacement plan",
+        "phase": "2B",
+        "question_or_target": "Write the surviving rules with a measured line cost, and when the total would exceed rule_line_budget, name what each new rule DISPLACES rather than assuming the budget will stretch.",
+        "inputs": [
+          "command-center/knowledge/rules-distill/dedupe-audit.json",
+          "command-center/knowledge/rules-distill/rule-updates.json",
+          "params.rule_line_budget"
+        ],
+        "dependencies": [
+          "DOC-8305",
+          "DOC-8306"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "cluster-synthesiser",
+          "basis": "choosing what to displace is a priority judgement the budget arithmetic cannot make"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/rules-distill/rule-proposals.json",
+        "output_schema": "command-center/schema/owner-brief.schema.json",
+        "evidence_requirement": "the projected always-on line count after the change, and for an over-budget proposal the specific rule or clause it displaces",
+        "tests_required": [
+          "an over-budget proposal names a displacement; it does not silently exceed rule_line_budget",
+          "a sweep that found no cross-cutting principle proposes NOTHING and says so, rather than promoting a single-skill detail to justify the run"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who recomputes the projected line count",
+        "completion_sentinel": "SUCCESS:DOC-8307 emitted only when the projected line count is recorded and any overage carries a named displacement; otherwise FAILED:DOC-8307 <reason>",
+        "retry_policy": "two strikes then propose the highest-value rule alone rather than the whole set",
+        "failure_classification": [
+          "rule-bloat",
+          "budget-exceeded",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "budget-aware rule proposal with an explicit displacement plan"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rules-distill/rule-proposals.json",
+          "schema_ref": "command-center/schema/owner-brief.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8307",
+          "consumers": [
+            "budget-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "budget-gate",
+      "title": "Rules compete for the always-on context budget",
+      "kind": "gate",
+      "depends_on": [
+        "propose-rules"
+      ],
+      "gate_ref": "within-context-budget"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "corpus-scanned",
+      "expression": "shards_scanned >= shards_total",
+      "applies_to": "workflow",
+      "minimum_conditions": "single_skill_principles_promoted == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "nothing-cross-cutting-found",
+      "expression": "candidate_principles == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "budget-exceeded-needs-owner",
+      "expression": "always_on_rule_lines > rule_line_budget",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "shard-unreadable",
+      "clustering-unstable"
+    ],
+    "no_retry_on": [
+      "rule-bloat",
+      "duplicate-rule-proposed",
+      "budget-exceeded"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "budget-gate"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "shard-unreadable",
+      "rule-bloat",
+      "duplicate-rule-proposed",
+      "budget-exceeded"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "budget-gate",
+    "quarantine_path": "command-center/knowledge/rules-distill/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/knowledge/rules-distill/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/knowledge/rules-distill/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/knowledge/rules-distill/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/knowledge/rules-distill/dry-run-plan.json",
+    "forbid_tools": [
+      "Write(command-center/knowledge/**)",
+      "mcp__codex__codex",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 5.0,
+      "max": 22.0
+    },
+    "wallclock_seconds": {
+      "expected": 5400,
+      "max": 21600
+    },
+    "tokens": {
+      "expected": 1200000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "proposal only: skills/** and rules/** are in forbid_write_paths, so the sweep cannot edit the corpus it is reading",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/knowledge/rules-distill/export/rules-distill-sweep.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DOC-02",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "cmd-rules-distill",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skill-skill-stocktake",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "cmd-rules-distill@current"
+    ]
+  },
+  "outputs": {
+    "candidate_rules": {
+      "path": "command-center/knowledge/rules-distill/rule-proposals.json",
+      "schema_ref": "command-center/schema/owner-brief.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "script_specs": {
+      "path": "command-center/knowledge/rules-distill/script-specs.json",
+      "schema_ref": "command-center/schema/contract-spec.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "dedupe_against_existing": {
+      "path": "command-center/knowledge/rules-distill/dedupe-audit.json",
+      "schema_ref": "command-center/schema/dedup-audit.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DOC-02",
+      "card_index_in_library": 83,
+      "family": "D16-documentation",
+      "primary_category": "collective-intelligence-and-meta",
+      "mechanism_signature": [
+        "corpus-wide-caveat-scan-with-skill-attribution",
+        "distinct-skill-count-promotion-threshold",
+        "script-first-veto-over-rule-proposal",
+        "cross-vendor-three-way-dedupe-verdict",
+        "always-on-line-budget-with-displacement-plan"
+      ],
+      "worked_example": {
+        "scenario": "Run the sweep over a 60-skill vault after a batch of new skills landed.",
+        "params": {
+          "skill_corpus": [
+            "skills",
+            ".agents/skills"
+          ],
+          "existing_rules": "rules/common",
+          "min_skills_for_promotion": 3,
+          "rule_line_budget": 300
+        },
+        "expected_trace": [
+          "scan-corpus -> 2 shards, 412 caveats with skill attribution; barrier quorum 1.0",
+          "cluster-principles -> 23 candidates; 14 appear in only ONE skill and are recorded as single-skill detail",
+          "cross-cutting-gate PASS (0 single-skill principles promoted)",
+          "check-script-enforceable -> 4 of the 9 remaining are decidable by an exact check (a path exists, a marker is present, a count matches) and are routed to SCRIPTS",
+          "script-first-gate PASS (0 enforceable principles proposed as rules)",
+          "emit-script-spec -> 4 specs, each naming a known-bad input that makes the gate exit non-zero",
+          "dedupe-against-existing -> of the 5 judgement-only principles: 2 NEW, 2 RESTATES-EXISTING (cited), 1 EXISTING-NEEDS-UPDATE",
+          "dedupe-gate PASS; update-existing-rule -> 1 correction with the old clause recorded verbatim",
+          "propose-rules -> 2 new rules costing 34 lines; projected total 286 <= 300; no displacement needed",
+          "budget-gate PASS"
+        ],
+        "expected_terminal_state": "SUCCESS:DOC-8307 with 2 rules proposed, 4 scripts specified and 2 restatements rejected"
+      },
+      "unverified": "UNVERIFIED that the sweep does not rediscover rules it already wrote; the dedupe stage is the control and its own test is the settling experiment - run the sweep on an unchanged corpus and require it to propose ZERO new rules, because every candidate should classify as RESTATES-EXISTING on the second pass.",
+      "distinct_from": {
+        "bp-doc-01": "that captures from ONE branch; this scans the WHOLE corpus for cross-skill repetition",
+        "bp-doc-03": "that reconciles one FACT stated in many places and ends in a pointer rewrite; this clusters many caveats into a new principle and can end in a SCRIPT instead of a document",
+        "BP-MNT-05": "that inventories the portfolio; this reads the portfolio's content for repeated caveats"
+      },
+      "flagship_test": null,
+      "flagship_rationale": "NOT flagship: its convergence property (a second pass over an unchanged corpus proposes zero new rules) requires a full skill vault and two sequential runs. The script-first veto ordering, the distinct-skill threshold and the displacement requirement ARE asserted by test_bp7_slice.py."
+    }
+  }
+}

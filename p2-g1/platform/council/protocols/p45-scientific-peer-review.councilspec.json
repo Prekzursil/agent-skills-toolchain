@@ -1,0 +1,592 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p45-scientific-peer-review",
+  "preset": "scientific_peer_review",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Give an artifact an independent competent read against a stated standard, with a right of reply.",
+    "charter": "Journal peer review. k mutually blind reviewers; an editor reconciles; the author responds point-by-point. Near-identical review sets mean one reviewer wearing k hats, so comment-set overlap is a gate.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "k independent reviews, each ACCEPT/MINOR/MAJOR/REJECT with itemised comments",
+      "reviewer comment-set Jaccard below the ceiling",
+      "the author answered every point",
+      "an editorial reconciliation naming which comments are binding"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 3
+    },
+    "roster": [
+      {
+        "participant_id": "editor",
+        "role": "judge",
+        "expertise": [
+          "editorial reconciliation"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "judge",
+        "tools": [
+          "council_eval.jaccard"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_recruit": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "author",
+        "role": "proposer",
+        "expertise": [
+          "the artifact under review"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "conflicts": [
+          {
+            "kind": "authored_artifact",
+            "detail": "authored the artifact under review",
+            "recused": true
+          }
+        ]
+      },
+      {
+        "participant_id": "overlap-auditor",
+        "role": "verifier",
+        "expertise": [
+          "review independence",
+          "set overlap"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter",
+        "tools": [
+          "council_eval.jaccard"
+        ]
+      }
+    ],
+    "recruitment": {
+      "dynamic": true,
+      "triggers": [
+        "missing_expertise",
+        "low_novelty"
+      ],
+      "max_recruits": 2
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "topology": {
+    "kind": "nested_subcouncil",
+    "subcouncils": [
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p45-sub-blind-reviewer-panel",
+        "objective": {
+          "statement": "Three mutually blind reviewers each return a verdict plus itemised comments against the stated standard.",
+          "risk_tier": "moderate",
+          "desired_output": "review_verdict",
+          "success_criteria": [
+            "three independent review sets",
+            "reviewer comment-set overlap below the ceiling"
+          ],
+          "consensus_intent": "elicit_distribution"
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact",
+              "model_diverse",
+              "vendor_diverse"
+            ]
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 3
+          },
+          "diversity": {
+            "min_distinct_vendors": 3,
+            "min_distinct_expertise": 3,
+            "max_share_per_vendor": 0.34
+          },
+          "roster": [
+            {
+              "participant_id": "reviewer-1",
+              "role": "domain_expert",
+              "expertise": [
+                "correctness lens"
+              ],
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "authority": "voter",
+              "anonymous": true,
+              "context": {
+                "briefing": "Lens: correctness and evidence. Do not review style."
+              },
+              "independence": {
+                "sees_peers_before_first_position": false,
+                "fresh_context": true
+              }
+            },
+            {
+              "participant_id": "reviewer-2",
+              "role": "security_reviewer",
+              "expertise": [
+                "threat model lens"
+              ],
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "authority": "voter",
+              "anonymous": true,
+              "context": {
+                "briefing": "Lens: security and blast radius. Do not review style."
+              },
+              "independence": {
+                "sees_peers_before_first_position": false,
+                "fresh_context": true
+              }
+            },
+            {
+              "participant_id": "reviewer-3",
+              "role": "architect",
+              "expertise": [
+                "maintainability lens"
+              ],
+              "model": "gemini-3-pro",
+              "vendor": "google",
+              "authority": "voter",
+              "anonymous": true,
+              "context": {
+                "briefing": "Lens: interfaces and operability. Do not review style."
+              },
+              "independence": {
+                "sees_peers_before_first_position": false,
+                "fresh_context": true
+              }
+            }
+          ],
+          "anonymity": {
+            "mode": "double_blind"
+          },
+          "duplicate_detection": {
+            "enabled": true,
+            "dimensions": [
+              "prompt",
+              "expertise",
+              "position_similarity"
+            ],
+            "max_similarity": 0.4
+          }
+        },
+        "topology": {
+          "kind": "delphi"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read",
+              "independent": true,
+              "anonymous": true,
+              "quotas": {
+                "objections_per_participant": 3
+              }
+            }
+          ],
+          "speaking_order": "simultaneous",
+          "rounds": {
+            "min": 1,
+            "max": 2
+          },
+          "obligations": {
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "adversarial"
+        },
+        "voting": {
+          "method": "score",
+          "score_scale": {
+            "min": 0,
+            "max": 3
+          },
+          "belief_aggregation": {
+            "method": "median",
+            "require_confidence_per_vote": true
+          },
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "evidence_outranks_majority": true
+          },
+          "tie_break": "judge"
+        },
+        "consensus": {
+          "threshold": 0.6,
+          "measure": "agreement_index",
+          "minority_report": "required",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": false,
+            "suppression_check": true
+          },
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "source_expression": "independent_positions >= 3 AND diversity_index >= 0.5",
+          "expression": {
+            "all_of": [
+              {
+                "metric": "independent_positions",
+                "op": ">=",
+                "value": 3
+              },
+              {
+                "metric": "diversity_index",
+                "op": ">=",
+                "value": 0.5
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 1,
+            "min_independent_positions": 3,
+            "every_participant_spoke": true
+          },
+          "hard_caps": {
+            "max_rounds": 2,
+            "on_cap": "synthesize_best_effort"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "no_decision",
+            "minority_report",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "echo_chamber",
+            "instant_unanimity",
+            "sycophancy",
+            "silence",
+            "collusion",
+            "role_collapse"
+          ],
+          "fast_unanimity_response": [
+            "blind_re_evaluation",
+            "recruit_independent_critic"
+          ]
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "argument_ledger",
+            "dissent_minority_report"
+          ]
+        },
+        "metadata": {
+          "title": "P45 blind reviewer panel (subcouncil)",
+          "notes": "Mutual blindness plus a per-reviewer lens is the countermeasure to the card's failure mode (reviewers converge because they share a brief). Vendor diversity is 3-of-3 so a shared model prior cannot be the reason three reviews agree."
+        }
+      }
+    ],
+    "fan_in": {
+      "reducer": "synthesize",
+      "require_all_subcouncils_complete": true
+    }
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "dispatch",
+        "custom_name": "dispatch-blind-reviews",
+        "rounds": 1,
+        "participants": [
+          "editor"
+        ]
+      },
+      {
+        "kind": "custom",
+        "stage_id": "reconcile",
+        "custom_name": "editorial-reconciliation-and-right-of-reply",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 3,
+          "counterexamples_per_round": 1
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:reviewer_comment_jaccard",
+              "op": "<=",
+              "value": 0.4,
+              "value_type": "number",
+              "producer": "council_eval.jaccard",
+              "note": "Card proof gate: reviewer comment-set Jaccard must be below a ceiling; near-identical review sets mean one reviewer wearing k hats."
+            },
+            {
+              "metric": "custom:author_unanswered_points",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "editor_checklist",
+              "note": "Right of reply is not optional: the author must respond point-by-point."
+            },
+            {
+              "metric": "custom:subcouncil_reviews_received",
+              "op": ">=",
+              "value": 3,
+              "value_type": "number",
+              "producer": "fan_in.synthesize"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "editorial-verdict"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 3,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "turns": 20,
+    "speaking_quota_per_participant": 6,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "evidence_items": 6,
+    "objections": 9,
+    "diversity_index": 0.5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.4,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "independent_positions >= 3 AND diversity_index >= 0.5 AND every_objection_addressed == true AND (verdict == ACCEPT OR verdict == REJECT)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 3
+        },
+        {
+          "metric": "diversity_index",
+          "op": ">=",
+          "value": 0.5
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "any_of": [
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "ACCEPT"
+            },
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "REJECT"
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "min_objections_addressed": 3,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every MAJOR comment closed or explicitly waived by the editor"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "judge_ruling",
+      "rotate_roles",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "judge"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "instant_unanimity",
+      "sycophancy",
+      "collusion",
+      "role_collapse",
+      "missing_expertise",
+      "lost_dissent",
+      "weak_synthesis",
+      "hidden_conflict_of_interest"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "recruit_independent_critic",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "argument_ledger",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P45 scientific-peer-review",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:835-849",
+      "_USER-PROMPTS.md:10926",
+      "_USER-PROMPTS.md:11193"
+    ],
+    "lineage": [
+      "P45 scientific-peer-review",
+      "journal peer review",
+      "estate: metaswarm design-review-gate"
+    ],
+    "notes": "Nested by construction: the blind reviewer panel is a SUBCOUNCIL so its double-blind anonymity cannot leak into the editorial layer, and the editor never participates in the reads it reconciles. The author holds a contributor seat with may_vote false and a declared authored_artifact conflict. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

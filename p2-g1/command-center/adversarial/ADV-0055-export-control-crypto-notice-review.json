@@ -1,0 +1,633 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1146,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/license-and-rights-record.schema.json",
+   "role": "supporting",
+   "sha256": "2a732d18bd820f3a986dea64c8f7706a32923c416419298f5e29cf1e4667443c"
+  },
+  {
+   "bytes": 7755,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/classify.py",
+   "role": "supporting",
+   "sha256": "21f89d232396461689f11c7e7dafd63b9d5ade2caa27f09a613facef095cb1dc"
+  },
+  {
+   "bytes": 6890,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/notices.py",
+   "role": "supporting",
+   "sha256": "75443bbd42adcc406fc65517af477967a9d42296ed18305b3aa17f952d1381ac"
+  },
+  {
+   "bytes": 3140,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+   "role": "supporting",
+   "sha256": "8cffb1d1254dd7c00da45a6148a794335c3efc82e2f2905113dce0e691ac0a21"
+  },
+  {
+   "bytes": 6525,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+   "role": "supporting",
+   "sha256": "9cc813d4a0821fa79ca7f2ae0079a0069542978b7b0a6e1f1e02dd28f9f949ae"
+  },
+  {
+   "bytes": 607,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/fixtures/trees/acme-signer.json",
+   "role": "supporting",
+   "sha256": "c93f6cbf6f6e71b09633e5d09ee7f003977a114906c5b8d8c36775aab70d1d84"
+  },
+  {
+   "bytes": 246,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0055/fixtures/SOURCE-DECOY-NOTICE.txt",
+   "role": "supporting",
+   "sha256": "0e195fa6d527b912cd8f2435e1c97d7f72d758a3ec2c721c41e336162d45430a"
+  },
+  {
+   "bytes": 4718,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/pack.py",
+   "role": "supporting",
+   "sha256": "54d6d45d6d0c348bd45788b1c9a94908adcd2eacd9c49e0bbf3706340e615744"
+  },
+  {
+   "bytes": 1778,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/census.py",
+   "role": "supporting",
+   "sha256": "22cc27c4c842547f669c536754665eebbc13482f0bc63333cc8e6652e1ccdcf3"
+  },
+  {
+   "bytes": 1573,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/blob_store.py",
+   "role": "supporting",
+   "sha256": "44e1fde5dc5a23394bfada0dae3ebcd06de056f1291bd4c3151156f6beb2cc2b"
+  }
+ ],
+ "defects": [
+  {
+   "id": "ADV-0055-D1-NO-DRAFTED-RELEASE-METADATA",
+   "severity": "P3",
+   "status": "open",
+   "summary": "No live dist/ NOTICE or ECCN text is drafted. Harmless while the packer ships only platform hashlib; becomes a release blocker if cryptography or OpenSSL is later pinned."
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/adversarial/ADV-0055-export-control-crypto-notice-review.json",
+   "consumer": "json.loads of catalog output_path",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; from pathlib import Path; p=Path('command-center/adversarial/ADV-0055-export-control-crypto-notice-review.json'); d=json.loads(p.read_text(encoding='utf-8')); print('unit', d.get('unit_id'), 'state', d.get('state'), 'kind', (d.get('report') or {}).get('kind'), 'evidence', len(d.get('evidence') or []))\"",
+    "exit_code": 0,
+    "fingerprint": "0651838686bd57eb12a2af7bb9061e59",
+    "method": "schema-validate",
+    "raw_output": "unit ADV-0055 state SUCCESS kind license-and-rights-record evidence 6",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/census.py:8",
+   "claim": "Live packaging/signing tooling calls platform hashlib and does not import bundled crypto libraries.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+     "exit_code": 0,
+     "fingerprint": "b1198cef23fafc0b89053d76f1858cd0",
+     "method": "command",
+     "raw_output": "{\"control\": {\"bundled_direct_only\": [], \"bundled_transitive\": [{\"classification\": \"bundled\", \"impl\": \"pyca/cryptography wheels bundle OpenSSL\", \"name\": \"cryptography\", \"obligation\": \"OpenSSL attribution plus encryption-software distribution notices\"}], \"control_pass\": true, \"direct_names\": [\"packaging-core\"], \"direct_only_misses_transitive\": true, \"empty_on_signer_means_missed_transitives\": false, \"ships_signer\": true, \"transitive_names\": [\"packaging-core\", \"cryptography\"], \"tree_id\": \"acme-signer\"}, \"direct_only_is_insufficient\": true, \"live_tooling\": {\"bundled_import_count\": 0, \"bundled_imports\": [], \"bundled_modules\": [], \"platform_import_count\": 10, \"platform_imports_sample\": [{\"classification\": \"platform\", \"line\": 8, \"module\": \"hashlib\", \"path\": \"tools/plugin/census.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/blob_store.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/testing_support.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "dae16bc7ef6e11548e004299d536377e",
+     "method": "static-analysis",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/pack.py:105",
+   "claim": "tools/plugin/pack.py pack_staging emits a zip of staging bytes and does not link OpenSSL.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "e14f75021e116f3d6862145c39948d3e",
+     "method": "test-run",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "dae16bc7ef6e11548e004299d536377e",
+     "method": "static-analysis",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/blob_store.py:4",
+   "claim": "Marketplace blob identity is hashlib.sha256, a platform library call, not a bundled implementation.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+     "exit_code": 0,
+     "fingerprint": "b1198cef23fafc0b89053d76f1858cd0",
+     "method": "command",
+     "raw_output": "{\"control\": {\"bundled_direct_only\": [], \"bundled_transitive\": [{\"classification\": \"bundled\", \"impl\": \"pyca/cryptography wheels bundle OpenSSL\", \"name\": \"cryptography\", \"obligation\": \"OpenSSL attribution plus encryption-software distribution notices\"}], \"control_pass\": true, \"direct_names\": [\"packaging-core\"], \"direct_only_misses_transitive\": true, \"empty_on_signer_means_missed_transitives\": false, \"ships_signer\": true, \"transitive_names\": [\"packaging-core\", \"cryptography\"], \"tree_id\": \"acme-signer\"}, \"direct_only_is_insufficient\": true, \"live_tooling\": {\"bundled_import_count\": 0, \"bundled_imports\": [], \"bundled_modules\": [], \"platform_import_count\": 10, \"platform_imports_sample\": [{\"classification\": \"platform\", \"line\": 8, \"module\": \"hashlib\", \"path\": \"tools/plugin/census.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/blob_store.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/testing_support.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "dae16bc7ef6e11548e004299d536377e",
+     "method": "static-analysis",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ADV-0055/fixtures/trees/acme-signer.json:15",
+   "claim": "acme-signer ships a signer and pulls cryptography transitively through packaging-core; probe 1 lists it as bundled.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+     "exit_code": 0,
+     "fingerprint": "b1198cef23fafc0b89053d76f1858cd0",
+     "method": "command",
+     "raw_output": "{\"control\": {\"bundled_direct_only\": [], \"bundled_transitive\": [{\"classification\": \"bundled\", \"impl\": \"pyca/cryptography wheels bundle OpenSSL\", \"name\": \"cryptography\", \"obligation\": \"OpenSSL attribution plus encryption-software distribution notices\"}], \"control_pass\": true, \"direct_names\": [\"packaging-core\"], \"direct_only_misses_transitive\": true, \"empty_on_signer_means_missed_transitives\": false, \"ships_signer\": true, \"transitive_names\": [\"packaging-core\", \"cryptography\"], \"tree_id\": \"acme-signer\"}, \"direct_only_is_insufficient\": true, \"live_tooling\": {\"bundled_import_count\": 0, \"bundled_imports\": [], \"bundled_modules\": [], \"platform_import_count\": 10, \"platform_imports_sample\": [{\"classification\": \"platform\", \"line\": 8, \"module\": \"hashlib\", \"path\": \"tools/plugin/census.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/blob_store.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/testing_support.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "dae16bc7ef6e11548e004299d536377e",
+     "method": "static-analysis",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ADV-0055/fixtures/SOURCE-DECOY-NOTICE.txt:1",
+   "claim": "A source-tree decoy NOTICE is not visible inside the without-notices built archive.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "e14f75021e116f3d6862145c39948d3e",
+     "method": "test-run",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c \"from pathlib import Path; p=Path('command-center/p2-wave/probes/ADV-0055/fixtures/SOURCE-DECOY-NOTICE.txt'); print('DECOY' in p.read_text())\"",
+     "exit_code": 0,
+     "fingerprint": "b11057ac0e3809fe175d5e07cf853082",
+     "method": "byte-compare",
+     "raw_output": "source_decoy_present_on_disk=True; without_notices.decoy_canary=False",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:6017",
+   "claim": "Catalog question is export-control / crypto-distribution notices for signing and packaging tooling.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+     "exit_code": 0,
+     "fingerprint": "b1198cef23fafc0b89053d76f1858cd0",
+     "method": "command",
+     "raw_output": "{\"control\": {\"bundled_direct_only\": [], \"bundled_transitive\": [{\"classification\": \"bundled\", \"impl\": \"pyca/cryptography wheels bundle OpenSSL\", \"name\": \"cryptography\", \"obligation\": \"OpenSSL attribution plus encryption-software distribution notices\"}], \"control_pass\": true, \"direct_names\": [\"packaging-core\"], \"direct_only_misses_transitive\": true, \"empty_on_signer_means_missed_transitives\": false, \"ships_signer\": true, \"transitive_names\": [\"packaging-core\", \"cryptography\"], \"tree_id\": \"acme-signer\"}, \"direct_only_is_insufficient\": true, \"live_tooling\": {\"bundled_import_count\": 0, \"bundled_imports\": [], \"bundled_modules\": [], \"platform_import_count\": 10, \"platform_imports_sample\": [{\"classification\": \"platform\", \"line\": 8, \"module\": \"hashlib\", \"path\": \"tools/plugin/census.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/blob_store.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/testing_support.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+     "exit_code": 0,
+     "fingerprint": "dae16bc7ef6e11548e004299d536377e",
+     "method": "static-analysis",
+     "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "anchors": {
+   "bundled_table": "command-center/p2-wave/probes/ADV-0055/classify.py:32",
+   "catalog": "command-center/WORK-UNIT-CATALOG.json:6005",
+   "inspect_archive": "command-center/p2-wave/probes/ADV-0055/notices.py:98",
+   "platform_table": "command-center/p2-wave/probes/ADV-0055/classify.py:18",
+   "ships_signer": "command-center/p2-wave/probes/ADV-0055/fixtures/trees/acme-signer.json:4",
+   "transitive_walk": "command-center/p2-wave/probes/ADV-0055/classify.py:107"
+  },
+  "notes": "G-1 for ADV-0055. Did not run unit_manifest.py --write. No ADV rebuild circle. No keys created or rotated.",
+  "probe_commands": {
+   "probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+   "probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py"
+  }
+ },
+ "manifest_registration": {
+  "entry_id": "ADV-0055",
+  "manifest_path": "command-center/p2-wave/probes/ADV-0055/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T01:05:16Z"
+ },
+ "min_bytes_threshold": 4000,
+ "negative_controls": [
+  {
+   "bad_state_output": "status=FIRE missing=['openssl_attribution', 'export_classification']",
+   "description": "Packed cryptography/_openssl.so without NOTICE/EXPORT-CONTROL must FIRE; the same payload with OpenSSL attribution and ECCN text must be SILENT. A source-tree decoy NOTICE must not green the missing-notice archive.",
+   "fired_on_bad_state": true,
+   "good_state_output": "status=SILENT missing=[]",
+   "id": "NC-MISSING-NOTICE-ARCHIVE",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "direct_names=['packaging-core']",
+   "description": "Direct-only lockfile inspection of acme-signer sees packaging-core and must NOT list cryptography; otherwise the control cannot prove transitives are walked.",
+   "fired_on_bad_state": true,
+   "good_state_output": "bundled_transitive=[{'classification': 'bundled', 'impl': 'pyca/cryptography wheels bundle OpenSSL', 'name': 'cryptography', 'obligation': 'OpenSSL attribution plus encryption-software distribution notices'}]",
+   "id": "NC-DIRECT-ONLY-WALK",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "license-and-legal-analyst",
+  "vendor": "xai"
+ },
+ "profile": "license-and-rights-record",
+ "report": {
+  "answer": "On this worktree the signing and packaging tooling (tools/plugin/pack.py pack_staging, tools/plugin/census.py, tools/marketplace/blob_store.py) hashes with the platform hashlib library (observed modules=['hashlib']) and does not import or vendor OpenSSL, libsodium, or pyca/cryptography. Probe 1's live AST walk found bundled_import_count=0. Probe 2 packed those sources with pack_staging and scanned only zip members: bundled crypto paths=[]. Platform hashlib is not a bundled cryptographic implementation and does not, by itself, trigger OpenSSL/ECCN distribution-notice obligations. A known bundled-crypto control (acme-signer -> packaging-core -> cryptography 45.0.2) is enumerated only by the transitive walk; a direct-only mutant misses it, which is the catalog control. Required notices for a bundle that does ship OpenSSL (attribution + ECCN/export-control text) are enforced on packed bytes: with-notices SILENT, without-notices FIRE, and a source-tree decoy NOTICE does not green the missing-notice archive. Drafted live release-channel metadata (ECCN, NOTICE in a dist wheel) is absent on this tree, so presence of channel notices for a future bundled-crypto channel is PARTIAL, not a clean confirm. This record is a factual distribution review, not legal advice; owner sign-off remains required before changing release channels.",
+  "built_artifact": {
+   "live_packed": {
+    "bundled": [],
+    "decoy_canary": false,
+    "member_count": 5,
+    "members": [
+     "pack.py",
+     "payload.py",
+     "blob_store.py",
+     "census.py",
+     "healthcheck.py"
+    ],
+    "missing": [],
+    "packer": "tools.plugin.pack.pack_staging",
+    "required": [],
+    "status": "SILENT"
+   },
+   "with_notices": {
+    "bundled": [
+     "cryptography/hazmat/bindings/_openssl.so"
+    ],
+    "export_classification": true,
+    "missing": [],
+    "openssl_attribution": true,
+    "reviewer": {
+     "has_export_basename": true,
+     "has_notice_basename": true,
+     "method": "archive-member-basenames-only",
+     "missing": [],
+     "status": "SILENT"
+    },
+    "status": "SILENT"
+   },
+   "without_notices": {
+    "bundled": [
+     "cryptography/hazmat/bindings/_openssl.so"
+    ],
+    "decoy_canary": false,
+    "export_classification": false,
+    "missing": [
+     "openssl_attribution",
+     "export_classification"
+    ],
+    "openssl_attribution": false,
+    "reviewer": {
+     "has_export_basename": false,
+     "has_notice_basename": false,
+     "method": "archive-member-basenames-only",
+     "missing": [
+      "NOTICE-basename",
+      "EXPORT-CONTROL-basename"
+     ],
+     "status": "FIRE"
+    },
+    "status": "FIRE"
+   }
+  },
+  "classification_rule": {
+   "bundled": [
+    "argon2-cffi",
+    "bcrypt",
+    "cryptography",
+    "cryptography-vectors",
+    "nacl",
+    "openssl",
+    "pycrypto",
+    "pycryptodome",
+    "pynacl",
+    "pyopenssl"
+   ],
+   "platform": "stdlib hashlib/hmac/ssl/secrets",
+   "walk": "transitive depends_on from declared direct deps"
+  },
+  "completion_sentinel": "SUCCESS:ADV-0055 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0055 <reason>.",
+  "control": {
+   "bundled_direct_only": [],
+   "bundled_transitive": [
+    {
+     "classification": "bundled",
+     "impl": "pyca/cryptography wheels bundle OpenSSL",
+     "name": "cryptography",
+     "obligation": "OpenSSL attribution plus encryption-software distribution notices"
+    }
+   ],
+   "control_pass": true,
+   "direct_names": [
+    "packaging-core"
+   ],
+   "direct_only_misses_transitive": true,
+   "empty_on_signer_means_missed_transitives": false,
+   "ships_signer": true,
+   "transitive_names": [
+    "packaging-core",
+    "cryptography"
+   ],
+   "tree_id": "acme-signer"
+  },
+  "control_ids": [
+   "NC-MISSING-NOTICE-ARCHIVE",
+   "NC-DIRECT-ONLY-WALK"
+  ],
+  "evidence_requirement": "Probe 1: enumerate crypto-bearing components in the resolved dependency tree, distinguishing bundled implementations from calls into the platform's own libraries. Probe 2 (mechanically different): check the built artifact for the actual presence of the required notices, rather than checking the source repository for them.",
+  "kind": "license-and-rights-record",
+  "legal_disclaimer": "Factual inventory and notice-presence measurement only. Not a legal opinion. Owner sign-off is required before any channel or classification change.",
+  "live_tooling": {
+   "bundled_import_count": 0,
+   "bundled_imports": [],
+   "bundled_modules": [],
+   "platform_import_count": 10,
+   "platform_imports_sample": [
+    {
+     "classification": "platform",
+     "line": 8,
+     "module": "hashlib",
+     "path": "tools/plugin/census.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 4,
+     "module": "hashlib",
+     "path": "tools/marketplace/blob_store.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 4,
+     "module": "hashlib",
+     "path": "tools/marketplace/testing_support.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 15,
+     "module": "hashlib",
+     "path": "tools/marketplace/vuln_ingestion.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 14,
+     "module": "hashlib",
+     "path": "tools/command-center/failure_taxonomy.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 10,
+     "module": "hashlib",
+     "path": "tools/command-center/git_blob.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 17,
+     "module": "hashlib",
+     "path": "tools/command-center/render.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 33,
+     "module": "hashlib",
+     "path": "tools/command-center/seed.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 15,
+     "module": "hashlib",
+     "path": "tools/command-center/tests/test_seed.py",
+     "root": "hashlib"
+    },
+    {
+     "classification": "platform",
+     "line": 18,
+     "module": "hashlib",
+     "path": "tools/command-center/unit_manifest.py",
+     "root": "hashlib"
+    }
+   ],
+   "platform_modules": [
+    "hashlib"
+   ],
+   "roots": [
+    "tools/plugin",
+    "tools/marketplace",
+    "tools/command-center"
+   ]
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+    "exit_code": 0,
+    "id": "probe1",
+    "raw_output": "{\"control\": {\"bundled_direct_only\": [], \"bundled_transitive\": [{\"classification\": \"bundled\", \"impl\": \"pyca/cryptography wheels bundle OpenSSL\", \"name\": \"cryptography\", \"obligation\": \"OpenSSL attribution plus encryption-software distribution notices\"}], \"control_pass\": true, \"direct_names\": [\"packaging-core\"], \"direct_only_misses_transitive\": true, \"empty_on_signer_means_missed_transitives\": false, \"ships_signer\": true, \"transitive_names\": [\"packaging-core\", \"cryptography\"], \"tree_id\": \"acme-signer\"}, \"direct_only_is_insufficient\": true, \"live_tooling\": {\"bundled_import_count\": 0, \"bundled_imports\": [], \"bundled_modules\": [], \"platform_import_count\": 10, \"platform_imports_sample\": [{\"classification\": \"platform\", \"line\": 8, \"module\": \"hashlib\", \"path\": \"tools/plugin/census.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/blob_store.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 4, \"module\": \"hashlib\", \"path\": \"tools/marketplace/testing_support.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+    "role": "enumerate-crypto-bundled-vs-platform"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+    "exit_code": 0,
+    "id": "probe2",
+    "raw_output": "PACKED /tmp/adv0055-dat733pq/live-packaging-tooling.zip entries=5\n{\"live_built_packaging_tooling\": {\"bundled\": [], \"decoy_canary\": false, \"member_count\": 5, \"members\": [\"pack.py\", \"payload.py\", \"blob_store.py\", \"census.py\", \"healthcheck.py\"], \"missing\": [], \"packer\": \"tools.plugin.pack.pack_staging\", \"required\": [], \"status\": \"SILENT\"}, \"mechanism\": \"zip-member-and-content-scan-not-source-grep\", \"observation_method\": \"zipfile.ZipFile namelist+read of packed bytes. Live archive emitted by tools.plugin.pack.pack_staging (the packaging tool). Source-tree decoy NOTICE is not opened.\", \"platform_hash_only\": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+    "role": "built-artifact-notice-check"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "tools/plugin/census.py:8",
+    "measured": 0,
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+    "name": "live-bundled-crypto-import-count"
+   },
+   {
+    "anchor": "tools/plugin/pack.py:105",
+    "measured": "none",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+    "name": "live-packed-bundled-members"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0055/fixtures/trees/acme-signer.json:15",
+    "measured": true,
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+    "name": "control-cryptography-transitive"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0055/notices.py:98",
+    "measured": "good=SILENT bad=FIRE",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+    "name": "notice-detector-both-states"
+   }
+  ],
+  "question_or_target": "Does the release bundle include or link cryptographic implementations that carry distribution obligations, and are the required notices present in the release metadata?",
+  "targets": [
+   {
+    "basis": "live bundled_import_count=0; live packed zip bundled members=[]; only hashlib platform calls.",
+    "claim": "The live release/packaging bundle includes or links a bundled cryptographic implementation (OpenSSL/libsodium/etc.) that carries distribution-notice obligations.",
+    "id": "T1-live-bundled-crypto-with-distribution-obligations",
+    "verdict": "REFUTED"
+   },
+   {
+    "basis": "No dist/ wheel, NOTICE, or ECCN metadata is drafted for a live release channel. Platform-hash tooling currently requires an empty notice set; a future cryptography pin would change that.",
+    "claim": "Required crypto-distribution notices are present in currently drafted live release metadata for the chosen channels.",
+    "id": "T2-required-notices-in-live-release-metadata",
+    "verdict": "PARTIAL"
+   },
+   {
+    "basis": "bundled_transitive contains cryptography; direct-only walk returns packaging-core only.",
+    "claim": "A component known to bundle crypto (cryptography via packaging-core on a package that ships a signer) appears in probe 1's transitive enumeration.",
+    "id": "T3-control-bundled-crypto-enumerated",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "basis": "with-notices=SILENT without-notices=FIRE decoy_in_bad_archive=False",
+    "claim": "Checking the built artifact (not the source repository) detects missing OpenSSL/export notices when bundled crypto is packed, and stays silent when those notices are packed.",
+    "id": "T4-built-artifact-notice-detector",
+    "verdict": "CONFIRMED"
+   }
+  ],
+  "tests_required": [
+   "control: a component known to bundle crypto must appear in probe 1; an empty enumeration on a package that ships a signer means the traversal missed transitive dependencies"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Owner has not signed off on a release-channel crypto classification (ENC/ECCN) because no bundled encryption library is currently shipped.",
+   "settling_experiment": "Owner decision if a future pin adds pyca/cryptography.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Re-derived notice presence from zip member basenames only (NOTICE / EXPORT-CONTROL.txt), not from probe 1's lockfile walk and not from content regex. Agreed: good SILENT, bad FIRE.",
+  "reviewed_at": "2026-08-25T01:05:16Z",
+  "reviewer_id": "ADV-0055-probe2-archive-basename-reviewer",
+  "vendor": "local",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ADV-0055 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0055 <reason>.",
+ "spec_anchor": "_USER-PROMPTS.md:11108-11111",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 6,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+   "id": "T-PROBE-1-ENUMERATE",
+   "name": "Transitive lockfile walk plus live import classification",
+   "output_tail": "ot\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/marketplace/vuln_ingestion.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 14, \"module\": \"hashlib\", \"path\": \"tools/command-center/failure_taxonomy.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 10, \"module\": \"hashlib\", \"path\": \"tools/command-center/git_blob.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 17, \"module\": \"hashlib\", \"path\": \"tools/command-center/render.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 33, \"module\": \"hashlib\", \"path\": \"tools/command-center/seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 15, \"module\": \"hashlib\", \"path\": \"tools/command-center/tests/test_seed.py\", \"root\": \"hashlib\"}, {\"classification\": \"platform\", \"line\": 18, \"module\": \"hashlib\", \"path\": \"tools/command-center/unit_manifest.py\", \"root\": \"hashlib\"}], \"platform_modules\": [\"hashlib\"], \"roots\": [\"tools/plugin\", \"tools/marketplace\", \"tools/command-center\"]}, \"mechanism\": \"transitive-lockfile-walk-plus-import-classification\", \"platform_tree\": {\"bundled\": [], \"imports_declared\": [\"hashlib\", \"hmac\", \"ssl\"], \"transitive_names\": [], \"tree_id\": \"hashlib-packager\"}, \"probe\": \"probe1-enumerate-crypto\", \"unit_id\": \"ADV-0055\"}\ncontrol cryptography via packaging-core bundled={'cryptography'} direct_only_miss=True\nlive bundled_imports=0 platform_modules=['hashlib']\nSUCCESS:ADV-0055-probe1 enumerate-crypto bundled-vs-platform",
+   "result": "PASS"
+  },
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe2_built_artifact_notices.py",
+   "id": "T-PROBE-2-BUILT-NOTICES",
+   "name": "Packed-archive notice scan, both-states, live plugin.pack",
+   "output_tail": ": {\"bundled\": [], \"required\": [], \"status\": \"SILENT\"}, \"probe\": \"probe2-built-artifact-notices\", \"source_decoy_present_on_disk\": true, \"unit_id\": \"ADV-0055\", \"with_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"export_classification\": true, \"missing\": [], \"openssl_attribution\": true, \"reviewer\": {\"has_export_basename\": true, \"has_notice_basename\": true, \"method\": \"archive-member-basenames-only\", \"missing\": [], \"status\": \"SILENT\"}, \"status\": \"SILENT\"}, \"without_notices\": {\"bundled\": [\"cryptography/hazmat/bindings/_openssl.so\"], \"decoy_canary\": false, \"export_classification\": false, \"missing\": [\"openssl_attribution\", \"export_classification\"], \"openssl_attribution\": false, \"reviewer\": {\"has_export_basename\": false, \"has_notice_basename\": false, \"method\": \"archive-member-basenames-only\", \"missing\": [\"NOTICE-basename\", \"EXPORT-CONTROL-basename\"], \"status\": \"FIRE\"}, \"status\": \"FIRE\"}}\nBOTH-STATES with-notices=SILENT without-notices=FIRE missing=['openssl_attribution', 'export_classification']\nNEGATIVE-CONTROL verbatim: on the packed cryptography/_openssl.so archive WITHOUT NOTICE/EXPORT-CONTROL the check returns FIRE; on the same payload WITH OpenSSL attribution and ECCN text it returns SILENT; on the source-tree decoy NOTICE the without-notices archive still FIRE.\nLIVE packed by tools.plugin.pack members=['pack.py', 'payload.py', 'blob_store.py', 'census.py', 'healthcheck.py'] bundled=[] status=SILENT\nSUCCESS:ADV-0055-probe2 built-artifact-notices both-states",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+   "id": "T-CONTROL-KNOWN-BUNDLED-SIGNER",
+   "name": "A component known to bundle crypto must appear in probe 1; an empty enumeration on a package that ships a signer means the traversal missed transitive dependencies",
+   "output_tail": "cryptography listed in bundled_transitive; direct_only_misses_transitive=True",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0055/probe1_enumerate_crypto.py",
+   "id": "T-NEGATIVE-PLATFORM-HASHLIB",
+   "name": "Platform hashlib-only packager is not classified bundled",
+   "output_tail": "hashlib-packager bundled=[]",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T01:05:16Z",
+  "started_at": "2026-08-25T01:05:16Z"
+ },
+ "unit_id": "ADV-0055"
+}

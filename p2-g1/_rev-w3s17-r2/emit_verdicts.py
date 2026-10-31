@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Assemble VERDICTS-w3s17-r2.json from the r2 battery output (reviewer-owned)."""
+import hashlib
+import json
+from pathlib import Path
+
+REPO = Path(r"C:/Users/Prekzursil/p2-g1")
+out = json.loads((REPO / "_rev-w3s17-r2/verify_out.json").read_text(encoding="utf-8"))
+
+PER_UNIT = {
+ "RES-0114": "D red (1): embedded 'reviewer' object carries 6 additionalProperties-forbidden keys (default, insufficient_evidence_rule, job, read_conclusion_first, refuted_claims, surviving_claims) vs research-claim-record profile. Green: A(narrow)/B(2/2)/C-sha/E.",
+ "RES-0128": "D red (1): required 'min_bytes_threshold' absent vs research-registry profile. Green: A/B(2/2)/C-sha/E.",
+ "RES-0144": "D red (1): required 'min_bytes_threshold' absent vs measurement-run profile. Green: A/B(2/2)/C-sha(14 rows)/E.",
+ "RES-0151": "D red (31): receipt_core boilerplate absent (downstream_consumers, manifest_registration, residual_unknowns); artifacts[0] missing bytes+sha256; artifacts[1] role 'schema' not in enum. Note: the r2 wide-net sentinel scan also flagged the sentinel text's embedded description of the FAILED branch ('Any other terminal state is FAILED:RES-0151 ...'); narrow reading (sentinel starts SUCCESS:) is green - decision rests on D alone. Green: B(2/2)/C-sha/E.",
+ "RES-0157": "A red: artifact $.sentinel literally begins 'FAILED:RES-0157 owner-host remesure finds 32 claimed sidecars absent, harvest same-vendor review, and condition 11 red on CC-0010' - self-declared FAILED; $.evidence[5].verdict=BLOCKED. D red (5): sentinel violates ^(SUCCESS:|SENTINEL:) pattern, state='SUCCESS' forbidden by profile given that sentinel, manifest_registration.registered != true, downstream_consumers missing. Green: B(2/2 incl node .mjs)/C-sha/E.",
+ "RES-0158": "D red (3): downstream_consumers missing; evidence[8]/probes shape violations vs gem-candidate profile. Green: A/B(2/2)/C-sha/E.",
+ "RES-0160": "D red (4): downstream_consumers missing; manifest_registration.registered != true; defects array self-records three OPEN P1 defects (D1-CONDITION11 live condition-11 red + primary path absent from manifest; D2-METRIC-DETECTOR known-present-metric mutation survives; D3-SHARED-JULY17-UPSTREAM). Substantive self-recorded red state, not boilerplate. Green: B(2/2 incl node .mjs)/C-sha/E.",
+ "RES-0162": "D red (34): receipt_core boilerplate largely absent (downstream_consumers, manifest_registration, min_bytes_threshold, negative_controls, report, residual_unknowns). Green: B(2/2)/C-sha/E.",
+ "RES-0164": "A red: artifact $.sentinel literally begins 'FAILED:RES-0164 refute outcome=REFUTED; duplicated literal verdicts and a surviving counterevidence mutant invalidate the implement-stage independence claim'. D red (5): sentinel violates ^(SUCCESS:|SENTINEL:), state forbidden, manifest_registration.registered != true, downstream_consumers missing, open P0 defect D1-HARDCODED-SHARED-VERDICTS self-recorded. Green: B(2/2 incl node .mjs)/C-sha/E.",
+ "RES-0168": "D red (30): receipt_core required fields absent (downstream_consumers, evidence, manifest_registration, report, residual_unknowns, retry). C observation (NOT a failing check): manifest bytes column records LF-normalized count 52610 vs on-disk CRLF 54267; delta 1657 == exact CRLF count; sha256 over CRLF->LF matches, so the contract sha binding holds; line-ending drift noted. Green: A/B(2/2)/C-sha/E.",
+ "RES-0175": "D red (16): receipt_core required fields absent (downstream_consumers, evidence, manifest_registration, min_bytes_threshold, negative_controls, report). Green: A/B(2/2)/C-sha/E.",
+ "RES-0176": "D red (18): receipt_core required fields absent incl 'artifacts', downstream_consumers, evidence, manifest_registration, min_bytes_threshold, negative_controls. Green: A/B(2/2)/C-sha/E.",
+}
+
+IDS = list(PER_UNIT.keys())
+verdicts = {
+ "wave": "3",
+ "shard": "17",
+ "pass": "r2 (resume of the 2026-10-26 ~06:00 w3s17 review)",
+ "reviewer": "claude-opus-5-5 independent reviewer review:w3s17 r2 2026-10-26 (P2 workflow independent reviewer wave 3, resumed)",
+ "units": len(IDS),
+ "shard_derivation": "the 12 units of the shard17 wave-3 build: RES-0114/0128/0144 (full builder trees) + the 9 BLOCKED receipts repaired by _p2shard17-w3-repair-receipts.py (RES-0151/0157/0158/0160/0162/0164/0168/0175/0176); identical 12-unit set the first w3s17 pass reviewed",
+ "resume_context": "first w3s17 pass (battery _review_w3s17_verify.py, out _review_w3s17_out.json): 12x FAIL on output_schema, receipts untouched. Later w4s15/w4s16 passes stamped receipts SUCCESS 2026-10-26T07:29-07:32Z while their own notes disclose strict artifact-vs-output_schema conformance was treated as non-gating census. Artifacts and all schema-chain files byte-unchanged since before the first FAIL verdict (artifact mtimes 10-24 08:50 and 10-25 18:18-18:19; schemas+resolver 10-24 08:49-08:50).",
+ "instruments": [
+  "_rev-w3s17-r2/verify_w3s17_r2.py (fresh reviewer-owned battery; Git-Bash pinned; python3=C:/Python314 3.14.6 and node v24.16.0 verified, no WSL contamination)",
+  "D1: platform/lib/schema_resolver.validate_artifact (repo-canonical fail-closed resolver)",
+  "D2: direct physical-profile compile with hand-built referencing Registry (mechanically independent code path); agrees EXACTLY with D1 on all 12 (identical error counts)",
+  "control/both-states: RES-0148, RES-0106, RES-0149, RES-0183 validate 0-error through the same instruments - D is not a constant-red no-op",
+  "third signal: first w3s17 pass and the prior independent shard-18 review found the same violations on the overlapping units RES-0114/0128/0144",
+ ],
+ "probe_protocol_note": "all 24 named probes re-executed live by this reviewer, exit 0, no FAILED: markers; canonical measure _measure_one_delivered.py SUCCESS:delivered x12; every manifest row sha256 (CRLF->LF normalized) matches live bytes. These do NOT cure check D.",
+ "receipts_modified": False,
+ "verdict_tally": {"FAIL": len(IDS), "PASS": 0},
+ "verdicts": {uid: "FAIL" for uid in IDS},
+ "fail_reasons": PER_UNIT,
+ "existing_w4_closure_assessment": "the w4s15/w4s16 PASS closures are NOT valid under this shard contract: the contract lists 'validate output_schema' among the checks that must ALL hold, and the closures themselves concede the artifacts violate the declared output_schema (relabeled 'non-gating census'). Per the closure rule (ANY fails -> FAIL, receipt unchanged), receipts were left exactly as found.",
+ "full_evidence": "_rev-w3s17-r2/verify_out.json (per-unit probe transcripts, both schema instruments, manifest recompute, receipt snapshots)",
+}
+
+p = REPO / "_rev-w3s17-r2/VERDICTS-w3s17-r2.json"
+p.write_text(json.dumps(verdicts, indent=1), encoding="utf-8")
+print("written", p)
+for uid in IDS:
+    h = hashlib.sha256(
+        (REPO / f"command-center/receipts/{uid}.json").read_bytes()).hexdigest()[:12]
+    print(uid, "receipt sha(head)", h)

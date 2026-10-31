@@ -1,0 +1,832 @@
+{
+  "artifacts": [
+    {
+      "bytes": 29304,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/phase3/[REDACTED]/DESIGN.json",
+      "role": "primary",
+      "sha256": "0bbf004a8c0dd0fdd5a5086ed7dff091e0e7be9689c5adef435d87935bf2b958"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/phase3/[REDACTED]/DESIGN.json",
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/schema_resolver.py validate command-center/phase3/[REDACTED]/DESIGN.json",
+        "exit_code": 0,
+        "fingerprint": "e98c2befb3e42a4b944f07931778b5c8",
+        "method": "schema-validate",
+        "raw_output": "SUCCESS:schema-valid",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/phase3/[REDACTED]/DESIGN.json",
+      "claim": "[REDACTED] catalog output_path exists, parses, and is registered as the primary artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "stat command-center/phase3/[REDACTED]/DESIGN.json",
+          "exit_code": 0,
+          "fingerprint": "ce3000afbdb57e46b343ec8bc85e16c9",
+          "method": "file-read",
+          "raw_output": "bytes=29304 sha256=0bbf004a8c0dd0fdd5a5086ed7dff091e0e7be9689c5adef435d87935bf2b958",
+          "role": "source"
+        },
+        {
+          "command": "validate_artifact [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "150c42ccc6acd486e3aa1cbe5cdc25aa",
+          "method": "schema-validate",
+          "raw_output": "schema-check",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]",
+      "claim": "[REDACTED] named probes/schema contract were exercised against the live artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "f1dcf0f8ac7cc386057b653ab3a1e7cf",
+          "method": "command",
+          "raw_output": "SUCCESS:delivered",
+          "role": "source"
+        },
+        {
+          "command": "ready_units.artifact_delivered [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "6b84a7cf49ffb9552e5d2b20189e8c2e",
+          "method": "static-analysis",
+          "raw_output": "schema-valid",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "answer": "[REDACTED] is a typed work-unit queue on an append-only JSONL ledger. Three dispatcher adapters (local, worktree, cloud) compare-and-append a CLAIM record whose named fields are claim_id, fencing_token, lease_until_ns and dedupe_key; fcntl.LOCK_EX serializes the append so two dispatchers racing the same unit produce exactly one WON. Delivery is at-least-once plus idempotent units: exactly-once is not claimed, because a crash after a side effect and before COMPLETE still re-dispatches. A unit is idempotent iff two executions with the same idempotence_key yield the same CRLF-normalized artifact sha256; the architecture-dossier emit shape on this tree is NON-IDEMPOTENT (wall-clock ended_at) and MUST be skipped after SUCCEEDED rather than re-run. ONE completion reducer is TST-0003.evaluate \u2014 imported, not copied. Dynamic fan-out width comes from agentspec.resolve_dynamic_fanout on a schema-validated producer receipt. Barriers are per-unit timeouts (IsolatedPipelineRunner), not join-all. The FIRST construct that is not expressible is dispatcher-local SUCCESS from process exit code 0.",
+      "architecture_class": "[REDACTED]",
+      "architecture_id": "[REDACTED]",
+      "barriers": {
+        "ledger_records": [
+          "BARRIER_WAIT",
+          "BARRIER_RELEASE"
+        ],
+        "negative_control": "CoupledBarrierRunner join-all with no per-unit timeout",
+        "production": "tools/agentrail/agentrail/runner.py IsolatedPipelineRunner"
+      },
+      "claim_mechanism": {
+        "claim_id": "opaque per-attempt id",
+        "dedupe_key": "default unit_id; exactly one live CLAIM",
+        "fencing_token": "monotonic per dedupe_key, assigned under LOCK_EX",
+        "lease_until_ns": "CLAIM expires; unit returns to QUEUED",
+        "name": "ledger CLAIM compare-and-append"
+      },
+      "completion_sentinel": "SUCCESS:[REDACTED]",
+      "declared_output_schema": "command-center/schema/architecture-dossier.schema.json",
+      "delivery_guarantee": {
+        "claimed": "at-least-once plus idempotent units (skip-if-complete for NON-IDEMPOTENT shapes). exactly-once is not claimed.",
+        "idempotence_criterion": "A unit is idempotent iff two executions with the same idempotence_key produce the same CRLF-normalized sha256 of its primary artifact. Otherwise it is NON-IDEMPOTENT and a SUCCEEDED ledger state makes a later CLAIM return SKIP.",
+        "mechanism": {
+          "fields": [
+            "claim_id",
+            "fencing_token",
+            "lease_until_ns",
+            "dedupe_key",
+            "dispatcher_id",
+            "substrate"
+          ],
+          "record_type": "CLAIM",
+          "serialization": "fcntl.LOCK_EX compare-and-append on the ledger file",
+          "stale_complete": "COMPLETE whose fencing_token does not match the active CLAIM is CLAIM_DENIED",
+          "winner": "lowest seq among unexpired CLAIM records for that dedupe_key"
+        },
+        "not_claimed": "exactly-once",
+        "schema_anchor": "command-center/p2-wave/probes/[REDACTED]/ledger.schema.json",
+        "why_not_exactly_once": "Three substrates cannot share a single atomic commit. A crash after the worker's side effect and before the COMPLETE record is durable re-enqueues the unit when the lease expires. That is at-least-once."
+      },
+      "dispatchers": {
+        "cloud": {
+          "adapter": "remote batch harvest into the same ledger; no auth files in image",
+          "id": "dispatcher.cloud",
+          "isolation": "artifact-scrub gate before bundle leaves the box ([REDACTED])",
+          "substrate": "cloud"
+        },
+        "local": {
+          "adapter": "in-process IsolatedPipelineRunner (tools/agentrail/agentrail/runner.py)",
+          "id": "dispatcher.local",
+          "isolation": "one pipeline per unit; declared timeout; no join-all hang",
+          "substrate": "local"
+        },
+        "worktree": {
+          "adapter": "disposable git worktree per mutating unit (catalog IMP-0223 class)",
+          "id": "dispatcher.worktree",
+          "isolation": "disjoint git indexes; teardown refused unless content preserved",
+          "substrate": "worktree"
+        }
+      },
+      "dynamic_fan_out": {
+        "not_a_width_source": [
+          "exit code",
+          "progress stream",
+          "mtime"
+        ],
+        "path": "tools/agentspec/agentspec/dynamic_fanout.py",
+        "symbol": "resolve_dynamic_fanout",
+        "width_source": "schema-validated producer receipt item list"
+      },
+      "expressibility": {
+        "cardinality_from_library_bytes": "NOT-CHECKED",
+        "cardinality_reason": "09-WORKFLOW-BLUEPRINT-LIBRARY.json and 12-COUNCIL-PROTOCOLS-AND-PRESETS.json are absent on this worktree.",
+        "catalogue_claim": "Skill, workflow-blueprint, and council-preset records from the [REDACTED] registry encode as work-units that complete via TST-0003.evaluate",
+        "declarative_subset_still_maps": true,
+        "first_non_expressible_construct": "dispatcher-local SUCCESS from process exit code 0",
+        "libraries_on_this_tree": {
+          "09-WORKFLOW-BLUEPRINT-LIBRARY.json": false,
+          "12-COUNCIL-PROTOCOLS-AND-PRESETS.json": false,
+          "command-center/p2-wave/probes/TST-0003/reducer.py": true,
+          "command-center/p2-wave/probes/[REDACTED]/registry.json": true,
+          "command-center/phase3/ROSTER.json": false,
+          "command-center/phase3/RUBRIC.json": false,
+          "skills/council/SKILL.md": true,
+          "tools/agentrail/agentrail/runner.py": true,
+          "tools/agentspec/agentspec/dynamic_fanout.py": false
+        },
+        "stop_reason": "TST-0003 reducer.py states exit code 0 is not consulted. A dispatcher that treats subprocess success as unit SUCCESS would be a second, disagreeing reducer (the TST-0003 seven-site identity class). Mapping of that construct fails; we stop there.",
+        "stopped_at_first_inexpressible": true,
+        "structural_rule": "A capability is expressible iff it transcribes into [REDACTED]-work-unit/v1 with an idempotence_key and completion=TST-0003.evaluate, and the mapper finds no exit-code completion construct."
+      },
+      "file_set": [
+        {
+          "notes": "Load order and sha256 of every [REDACTED] control-plane file. Files not listed are not loaded.",
+          "path": "command-center/control-plane/[REDACTED]/MANIFEST.json",
+          "role": "index"
+        },
+        {
+          "notes": "Names claim_id, fencing_token, lease_until_ns, dedupe_key. Append-only JSONL records.",
+          "path": "command-center/p2-wave/probes/[REDACTED]/ledger.schema.json",
+          "role": "ledger-schema"
+        },
+        {
+          "notes": "Executable compare-and-append under fcntl.LOCK_EX. Prototype of the [REDACTED] ledger.",
+          "path": "command-center/p2-wave/probes/[REDACTED]/ledger.py",
+          "role": "ledger-writer"
+        },
+        {
+          "notes": "One JSON file per unit_id: unit_type, substrate, idempotence_key, deps, barrier_id.",
+          "path": "command-center/control-plane/[REDACTED]/queue/",
+          "role": "typed-work-unit-queue"
+        },
+        {
+          "notes": "Binds IsolatedPipelineRunner; writes CLAIM/START/COMPLETE to the shared ledger.",
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/local.json",
+          "role": "dispatcher-local"
+        },
+        {
+          "notes": "Disposable worktree per mutating unit; same ledger, same reducer.",
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/worktree.json",
+          "role": "dispatcher-worktree"
+        },
+        {
+          "notes": "Remote harvest; no auth files in the image; same ledger, same reducer.",
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/cloud.json",
+          "role": "dispatcher-cloud"
+        },
+        {
+          "notes": "THE reducer. Local copies are forbidden. Exit code 0 is not consulted.",
+          "path": "command-center/p2-wave/probes/TST-0003/reducer.py",
+          "role": "shared-completion-reducer"
+        },
+        {
+          "notes": "Width from a schema-validated producer receipt, never from an exit code or progress stream.",
+          "path": "tools/agentspec/agentspec/dynamic_fanout.py",
+          "role": "dynamic-fan-out"
+        },
+        {
+          "notes": "Per-unit timeout. A join-all hang is the CoupledBarrierRunner negative control, not the production barrier.",
+          "path": "tools/agentrail/agentrail/runner.py",
+          "role": "barriers"
+        }
+      ],
+      "idempotence_samples": [
+        {
+          "artifact": "generate(registry) concatenated files",
+          "catalog_shape": "[REDACTED] [REDACTED]",
+          "classification": "IDEMPOTENT",
+          "id": "[REDACTED]",
+          "idempotent": true,
+          "nfiles": 10,
+          "note": "Same registry bytes + generator_version 1.0.0; no timestamps.",
+          "run1_sha256": "f119b18b7e55be04465119db789b3d711cd2a7879d5b9ccddb2db233bc043d43",
+          "run2_sha256": "f119b18b7e55be04465119db789b3d711cd2a7879d5b9ccddb2db233bc043d43",
+          "source": "command-center/p2-wave/probes/[REDACTED]/generator.py"
+        },
+        {
+          "artifact": "scratch DESIGN-shaped JSON",
+          "catalog_shape": "ARC-* DESIGN.json emit (wall-clock ended_at)",
+          "classification": "NON-IDEMPOTENT",
+          "id": "architecture-dossier-emit",
+          "idempotent": false,
+          "live_emitters_call_datetime_now": [
+            {
+              "calls_datetime_now": true,
+              "path": "command-center/p2-wave/probes/[REDACTED]/emit_design.py"
+            },
+            {
+              "calls_datetime_now": true,
+              "path": "command-center/p2-wave/probes/[REDACTED]/emit_design.py"
+            }
+          ],
+          "note": "Re-running emit_design.py mutates timestamps. The runtime must skip-if-complete after SUCCEEDED rather than re-execute this shape.",
+          "run1_sha256": "8887e05140e6e4f681dff193e7dba594c54c172ff3969227f5a38b7b40872a80",
+          "run2_sha256": "d3c8c56507226584646d18d7ab8eab4f4f5d48a1bc55df9667725af41f508edb",
+          "source": "live emit_design.py pattern on this tree"
+        },
+        {
+          "artifact": "evaluate(SYNTH-PASS) verdict object",
+          "catalog_shape": "TST-0003 shared 12-condition completion reducer",
+          "classification": "IDEMPOTENT",
+          "id": "shared-reducer",
+          "idempotent": true,
+          "note": "Pure function of the receipt; exit code is not consulted.",
+          "run1_sha256": "2a778da0b4c834f9a9d5db8f55fdf21dd199902a567cd1667d65964a13d54856",
+          "run2_sha256": "2a778da0b4c834f9a9d5db8f55fdf21dd199902a567cd1667d65964a13d54856",
+          "source": "command-center/p2-wave/probes/TST-0003/reducer.py",
+          "verdict": "PASS"
+        }
+      ],
+      "ledger_schema": {
+        "$id": "command-center/p2-wave/probes/[REDACTED]/ledger.schema.json",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Every record is an append. In-place edit is detected by recomputing sha256 over (prev_sha256 + canonical payload). Delivery is at-least-once plus idempotent units; the exclusive-execution mechanism is the CLAIM record's (dedupe_key, fencing_token, lease_until_ns) triple under fcntl.LOCK_EX compare-and-append, not an asserted exactly-once property.",
+        "properties": {
+          "artifact_sha256": {
+            "type": "string"
+          },
+          "barrier_id": {
+            "type": "string"
+          },
+          "child_unit_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "claim_id": {
+            "description": "Opaque id of one CLAIM attempt. Named exclusive-execution mechanism together with fencing_token and lease_until_ns.",
+            "type": "string"
+          },
+          "dedupe_key": {
+            "description": "Exactly one live CLAIM per dedupe_key. Default equals unit_id. Named in this schema; not a prose guarantee.",
+            "type": "string"
+          },
+          "deps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dispatcher_id": {
+            "type": "string"
+          },
+          "failing_condition_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fanout_id": {
+            "type": "string"
+          },
+          "fencing_token": {
+            "description": "Monotonic per dedupe_key. A COMPLETE/FAIL whose fencing_token does not match the active CLAIM is ignored.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "idempotence_key": {
+            "description": "Stable key for at-least-once replay. Same key must not produce a second side-effecting execution after SUCCEEDED.",
+            "type": "string"
+          },
+          "lease_until_ns": {
+            "description": "CLAIM is active until this monotonic-ish epoch ns. Expiry returns the unit to QUEUED.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "prev_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reducer": {
+            "const": "command-center/p2-wave/probes/TST-0003/reducer.py:evaluate",
+            "type": "string"
+          },
+          "reducer_verdict": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "WON",
+              "LOST",
+              "SKIP"
+            ],
+            "type": "string"
+          },
+          "seq": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "substrate": {
+            "enum": [
+              "local",
+              "worktree",
+              "cloud"
+            ],
+            "type": "string"
+          },
+          "ts_ns": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "ENQUEUE",
+              "ENQUEUE_DUP",
+              "CLAIM",
+              "CLAIM_DENIED",
+              "START",
+              "HEARTBEAT",
+              "COMPLETE",
+              "FAIL",
+              "TIMEOUT",
+              "SEVERED",
+              "BARRIER_WAIT",
+              "BARRIER_RELEASE",
+              "FANOUT",
+              "REDUCE"
+            ],
+            "type": "string"
+          },
+          "unit_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "unit_type": {
+            "type": "string"
+          },
+          "winner_seq": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "type",
+          "prev_sha256",
+          "sha256",
+          "ts_ns"
+        ],
+        "title": "[REDACTED] append-only resumable work-unit ledger record",
+        "type": "object"
+      },
+      "lifecycle": {
+        "derived_from": "ledger replay; file mtime is never a stall signal",
+        "retryable": [
+          "TIMEOUT",
+          "SEVERED"
+        ],
+        "states": [
+          "ABSENT",
+          "QUEUED",
+          "CLAIMED",
+          "RUNNING",
+          "BARRIER_WAIT",
+          "SUCCEEDED",
+          "FAILED",
+          "BLOCKED",
+          "TIMEOUT",
+          "SEVERED"
+        ],
+        "terminal": [
+          "SUCCEEDED",
+          "FAILED",
+          "BLOCKED"
+        ],
+        "transitions": [
+          {
+            "from": "QUEUED",
+            "to": "CLAIMED",
+            "via": "CLAIM"
+          },
+          {
+            "from": "CLAIMED",
+            "to": "RUNNING",
+            "via": "START"
+          },
+          {
+            "from": "CLAIMED",
+            "to": "QUEUED",
+            "via": "lease-expiry"
+          },
+          {
+            "from": "RUNNING",
+            "to": "SUCCEEDED",
+            "via": "REDUCE-PASS"
+          },
+          {
+            "from": "RUNNING",
+            "to": "FAILED",
+            "via": "REDUCE-FAIL"
+          },
+          {
+            "from": "RUNNING",
+            "to": "TIMEOUT",
+            "via": "TIMEOUT"
+          },
+          {
+            "from": "RUNNING",
+            "to": "SEVERED",
+            "via": "SEVERED"
+          },
+          {
+            "from": "TIMEOUT",
+            "to": "QUEUED",
+            "via": "lease-expiry-or-requeue"
+          },
+          {
+            "from": "SEVERED",
+            "to": "QUEUED",
+            "via": "lease-expiry-or-requeue"
+          },
+          {
+            "from": "QUEUED",
+            "to": "BARRIER_WAIT",
+            "via": "deps-unmet"
+          },
+          {
+            "from": "BARRIER_WAIT",
+            "to": "QUEUED",
+            "via": "BARRIER_RELEASE"
+          },
+          {
+            "from": "SUCCEEDED",
+            "to": "SUCCEEDED",
+            "via": "re-claim"
+          }
+        ]
+      },
+      "live_schema": "command-center/p2-wave/probes/[REDACTED]/dossier.local.schema.json",
+      "load_order": [
+        {
+          "order": 1,
+          "path": "command-center/p2-wave/probes/TST-0003/reducer.py"
+        },
+        {
+          "order": 2,
+          "path": "command-center/p2-wave/probes/[REDACTED]/ledger.schema.json"
+        },
+        {
+          "order": 3,
+          "path": "command-center/p2-wave/probes/[REDACTED]/ledger.py"
+        },
+        {
+          "order": 4,
+          "path": "command-center/control-plane/[REDACTED]/MANIFEST.json"
+        },
+        {
+          "order": 5,
+          "path": "command-center/control-plane/[REDACTED]/queue/"
+        },
+        {
+          "order": 6,
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/local.json"
+        },
+        {
+          "order": 7,
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/worktree.json"
+        },
+        {
+          "order": 8,
+          "path": "command-center/control-plane/[REDACTED]/dispatchers/cloud.json"
+        },
+        {
+          "order": 9,
+          "path": "tools/agentspec/agentspec/dynamic_fanout.py"
+        },
+        {
+          "order": 10,
+          "path": "tools/agentrail/agentrail/runner.py"
+        }
+      ],
+      "named_probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_idempotence.py",
+          "id": "probe1",
+          "role": "idempotence-criterion"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_duplicate_dispatch.py",
+          "id": "probe2",
+          "role": "duplicate-dispatch"
+        }
+      ],
+      "precedence": {
+        "duplicate_in_one_file": "FAIL-CLOSED: a second ENQUEUE for the same unit_id appends ENQUEUE_DUP with result=SKIP and does not create a second queue row.",
+        "loader": "JSONL append + hash-chain verify + CLAIM compare-and-append. No evaluator besides the shared reducer.",
+        "merge": "No field-level merge of ledger records. Records are immutable. An in-place edit is detected when sha256 != sha256(prev_sha256 + canonical payload).",
+        "no_exit_code_completion": true,
+        "reducer_copy": "FAIL-CLOSED. A local evaluate() that is not TST-0003.evaluate is a second control plane.",
+        "rule": "Ledger seq is the only order. A later file or dispatcher never overrides an earlier seq. When two CLAIM records share a dedupe_key, the lowest seq whose lease has not expired is active.",
+        "tie_break": "Equal fencing_token cannot occur: tokens are assigned under LOCK_EX as max(existing)+1. Equal seq cannot occur: seq is len(rows)+1 under the same lock. No mtime, no wall clock, no runtime coin-flip.",
+        "unlisted_file": "A dispatcher adapter absent from MANIFEST.json is not loaded."
+      },
+      "question": "Specify a [REDACTED]: a typed work-unit queue with an append-only resumable ledger, dispatchers for local / worktree / cloud substrates, barriers, dynamic fan-out and ONE shared completion reducer. Define the unit lifecycle states, the ledger record, and state precisely which delivery guarantee is claimed - exactly-once, or at-least-once plus idempotent units - and what makes a unit idempotent.",
+      "samples": [
+        {
+          "id": "skill.council",
+          "kind": "skill",
+          "sha256": "927bbcb00e6954516108d4b2d5a8073133fa946c26999a8296d044a5414f8b02",
+          "source_citation": "command-center/p2-wave/probes/[REDACTED]/registry.json entries[id=skill.council]",
+          "source_id": "skills/council/SKILL.md",
+          "transcription": {
+            "config": {
+              "completion": "shared-reducer:TST-0003.evaluate",
+              "frontmatter": {
+                "description": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+                "name": "council"
+              },
+              "instructions": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+              "origin": "[REDACTED]-registry",
+              "path": "skills/council/SKILL.md",
+              "roles": [
+                "Architect",
+                "Skeptic",
+                "Pragmatist",
+                "Critic"
+              ]
+            },
+            "form": "[REDACTED]-work-unit/v1",
+            "id": "skill.council",
+            "kind": "skill",
+            "source_id": "skills/council/SKILL.md",
+            "unit": {
+              "children": [],
+              "completion": "command-center/p2-wave/probes/TST-0003/reducer.py:evaluate",
+              "dedupe_key": "skill.council",
+              "idempotence_key": "skill.council:65ca42192de5be32",
+              "ledger_records": [
+                "ENQUEUE",
+                "CLAIM",
+                "START",
+                "REDUCE",
+                "COMPLETE"
+              ],
+              "substrate": "local",
+              "unit_id": "skill.council",
+              "unit_type": "skill"
+            }
+          },
+          "transcription_basis": "Typed registry entry on this worktree (library SKILL.md absent). Encoded as one work-unit whose completion is TST-0003.evaluate.",
+          "verdict": "EXPRESSIBLE"
+        },
+        {
+          "id": "wf.catalog-class.discovery-only",
+          "kind": "workflow_blueprint",
+          "sha256": "7738d3cd72f1079c33b95b8f4a868cd3cc0cdbb59edede071eb9b075a9e1c9ad",
+          "source_citation": "command-center/p2-wave/probes/[REDACTED]/registry.json entries[id=wf.catalog-class.discovery-only]",
+          "source_id": "09-WORKFLOW-BLUEPRINT-LIBRARY.json#discovery_only",
+          "transcription": {
+            "config": {
+              "completion": "shared-reducer:TST-0003.evaluate",
+              "discovery_only": true,
+              "library": "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+              "stages": [
+                {
+                  "id": "discover",
+                  "inputs": [
+                    "repo"
+                  ],
+                  "kind": "static-scan",
+                  "outputs": [
+                    "candidates.json"
+                  ]
+                },
+                {
+                  "id": "record",
+                  "inputs": [
+                    "candidates.json"
+                  ],
+                  "kind": "write-config",
+                  "outputs": [
+                    "blueprint.json"
+                  ]
+                }
+              ],
+              "stopping": {
+                "max_stages": 2,
+                "on_error": "halt"
+              }
+            },
+            "form": "[REDACTED]-work-unit/v1",
+            "id": "wf.catalog-class.discovery-only",
+            "kind": "workflow_blueprint",
+            "source_id": "09-WORKFLOW-BLUEPRINT-LIBRARY.json#discovery_only",
+            "unit": {
+              "children": [
+                "wf.catalog-class.discovery-only:discover",
+                "wf.catalog-class.discovery-only:record"
+              ],
+              "completion": "command-center/p2-wave/probes/TST-0003/reducer.py:evaluate",
+              "dedupe_key": "wf.catalog-class.discovery-only",
+              "idempotence_key": "wf.catalog-class.discovery-only:9487f62e0ac1d452",
+              "ledger_records": [
+                "ENQUEUE",
+                "FANOUT",
+                "BARRIER_WAIT",
+                "BARRIER_RELEASE",
+                "CLAIM",
+                "REDUCE"
+              ],
+              "substrate": "local",
+              "unit_id": "wf.catalog-class.discovery-only",
+              "unit_type": "workflow_blueprint"
+            }
+          },
+          "transcription_basis": "Registry workflow on this worktree; fan-out of stage units plus a barrier, reduced by the shared predicate.",
+          "verdict": "EXPRESSIBLE"
+        },
+        {
+          "id": "council.preset.catalog-class.editable",
+          "kind": "council_preset",
+          "sha256": "a1b033fc013a51d38cb58c1269d7b529e2069564f7f8792e23d925990cc83b2a",
+          "source_citation": "command-center/p2-wave/probes/[REDACTED]/registry.json entries[id=council.preset.catalog-class.editable]",
+          "source_id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets",
+          "transcription": {
+            "config": {
+              "completion": "shared-reducer:TST-0003.evaluate",
+              "consensus": {
+                "local_completion_forbidden": true,
+                "reducer": "shared-completion-predicate-name"
+              },
+              "editable": true,
+              "roles": [
+                "Architect",
+                "Skeptic",
+                "Pragmatist",
+                "Critic"
+              ],
+              "stopping": {
+                "max_rounds": 8,
+                "on_timeout": "halt"
+              },
+              "voting": {
+                "quorum": 4,
+                "rule": "unanimous-or-record-dissent"
+              }
+            },
+            "form": "[REDACTED]-work-unit/v1",
+            "id": "council.preset.catalog-class.editable",
+            "kind": "council_preset",
+            "source_id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets",
+            "unit": {
+              "children": [
+                "council.preset.catalog-class.editable:voice:Architect",
+                "council.preset.catalog-class.editable:voice:Skeptic",
+                "council.preset.catalog-class.editable:voice:Pragmatist",
+                "council.preset.catalog-class.editable:voice:Critic"
+              ],
+              "completion": "command-center/p2-wave/probes/TST-0003/reducer.py:evaluate",
+              "dedupe_key": "council.preset.catalog-class.editable",
+              "idempotence_key": "council.preset.catalog-class.editable:a033962901fcc0af",
+              "ledger_records": [
+                "ENQUEUE",
+                "FANOUT",
+                "CLAIM",
+                "REDUCE",
+                "COMPLETE"
+              ],
+              "substrate": "local",
+              "unit_id": "council.preset.catalog-class.editable",
+              "unit_type": "council_preset"
+            }
+          },
+          "transcription_basis": "Registry preset on this worktree; one work-unit per voice plus ONE shared reducer (local completion forbidden).",
+          "verdict": "EXPRESSIBLE"
+        }
+      ],
+      "shared_completion_reducer": {
+        "call_sites": [
+          "local_runner",
+          "cloud_dispatcher",
+          "monitor",
+          "harvester",
+          "workflow_fan_in",
+          "cross_vendor_adapter",
+          "final_synthesis"
+        ],
+        "exit_code_consulted": false,
+        "identity_ok": true,
+        "path": "command-center/p2-wave/probes/TST-0003/reducer.py",
+        "symbol": "evaluate"
+      },
+      "title": "[REDACTED] ([REDACTED]): Design the distributed work-unit runtime, its ledger, and its delivery guarantee"
+    }
+  },
+  "manifest_registration": {
+    "entry_id": "[REDACTED]",
+    "manifest_path": "command-center/p2-wave/probes/[REDACTED]/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "absent",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "good_state_output": "delivered",
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "ovh-leftover-fleet",
+    "model": "[REDACTED]",
+    "role": "implementer",
+    "vendor": "[REDACTED]"
+  },
+  "report": {
+    "control_ids": [
+      "NC-ABSENT"
+    ],
+    "kind": "architecture-dossier",
+    "observations": [
+      {
+        "anchor": "command-center/phase3/[REDACTED]/DESIGN.json",
+        "measured": 29304,
+        "method": "filesystem-stat",
+        "name": "primary_artifact_bytes"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent [REDACTED] reviewer of this leftover envelope has not been dispatched.",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema.",
+    "reviewer_id": "schema-resolver",
+    "vendor": "custom",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:[REDACTED]",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=[REDACTED]]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 1,
+      "command": "python -c json.load(command-center/phase3/[REDACTED]/DESIGN.json)",
+      "duration_seconds": 0.01,
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 5280,
+    "ended_at": "2026-08-25T01:48:00Z",
+    "started_at": "2026-08-25T00:20:00Z"
+  },
+  "unit_id": "[REDACTED]"
+}

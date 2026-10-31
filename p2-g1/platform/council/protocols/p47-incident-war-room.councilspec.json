@@ -1,0 +1,405 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p47-incident-war-room",
+  "preset": "incident_war_room",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "During an outage, trade deliberation quality for decision latency explicitly and pre-commit to the retrospective.",
+    "charter": "SRE incident command. One commander decides unilaterally; seats report facts only; the scribe timestamps every action with a rollback note. Entry requires a named failing detector; the postmortem is scheduled at OPEN, not at close.",
+    "risk_tier": "critical",
+    "desired_output": "decision",
+    "success_criteria": [
+      "entry justified by a named failing detector artifact",
+      "every action timestamped with a rollback note",
+      "a postmortem id scheduled before the first action, not at stand-down",
+      "all decisions marked provisional and revisited at stand-down"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "entering war-room mode without an incident trigger artifact",
+        "taking an irreversible action without a rollback note"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4
+    },
+    "roster": [
+      {
+        "participant_id": "incident-commander",
+        "role": "chair",
+        "expertise": [
+          "incident command"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "chair",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true,
+          "may_call_experiment": true,
+          "may_recruit": true
+        },
+        "effort": "max"
+      },
+      {
+        "participant_id": "facts-1",
+        "role": "custom:facts_reporter",
+        "expertise": [
+          "telemetry",
+          "process state"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "context": {
+          "briefing": "Report observed facts with their probe. Do not propose, do not argue, do not vote."
+        }
+      },
+      {
+        "participant_id": "facts-2",
+        "role": "custom:facts_reporter",
+        "expertise": [
+          "service dependencies"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        },
+        "context": {
+          "briefing": "Report observed facts with their probe. Do not propose, do not argue, do not vote."
+        }
+      },
+      {
+        "participant_id": "war-room-scribe",
+        "role": "scribe",
+        "expertise": [
+          "action log",
+          "rollback notes"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "observer",
+        "tools": [
+          "scribe_log",
+          "incident_registry"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "role_collapse"
+      ],
+      "preserve_prior_positions": true
+    }
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "incident-commander"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "entry",
+        "custom_name": "incident-entry-gate",
+        "rounds": 1,
+        "participants": [
+          "incident-commander",
+          "war-room-scribe"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:named_failing_detector_present",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "incident_registry",
+              "note": "Card failure mode: war-room mode used for non-incidents. Entry requires an explicit incident trigger artifact."
+            },
+            {
+              "metric": "custom:scheduled_postmortem_id_present",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "incident_registry",
+              "note": "Card proof gate: the postmortem id is created at OPEN. Scheduling it at close is the failure this protocol pre-commits against."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "facts",
+        "custom_name": "facts-only-reporting",
+        "rounds": 3,
+        "participants": [
+          "facts-1",
+          "facts-2",
+          "war-room-scribe"
+        ]
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "stand-down-challenge",
+        "rounds": 1,
+        "quotas": {
+          "objections_per_participant": 1,
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "stand-down",
+        "custom_name": "stand-down-and-provisional-review",
+        "rounds": 1,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:actions_without_rollback_note",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "scribe_log",
+              "note": "Card reversibility note: actions taken may be hard to revert; require a rollback note per action."
+            },
+            {
+              "metric": "custom:provisional_decisions_unreviewed",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "scribe_log"
+            }
+          ]
+        }
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 1,
+      "max": 6
+    },
+    "turn": {
+      "max_words": 120,
+      "time_limit_seconds": 90
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true
+    },
+    "critique_intensity": "gentle",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 10,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "max",
+    "time_minutes": 45,
+    "turns": 40,
+    "speaking_quota_per_participant": 12,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "evidence_items": 4,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.9,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "(executable_test_settled == true AND objections_open == 0) OR time_minutes >= 45",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "executable_test_settled",
+              "op": "==",
+              "value": true
+            },
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "metric": "time_minutes",
+          "op": ">=",
+          "value": 45
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_evidence_items": 2
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 45,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every provisional decision revisited at stand-down",
+      "the scheduled postmortem executed against its id"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1
+    },
+    "resolution": [
+      "chair_ruling",
+      "run_experiment",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "moderator_capture",
+      "sycophancy",
+      "silence",
+      "role_collapse",
+      "instant_unanimity",
+      "lost_dissent",
+      "evidence_free_majority",
+      "weak_synthesis"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "evidence_map",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "action_plan",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P47 incident-war-room",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:867-881",
+      "_USER-PROMPTS.md:10932",
+      "_USER-PROMPTS.md:11189"
+    ],
+    "lineage": [
+      "P47 incident-war-room",
+      "SRE incident command"
+    ],
+    "notes": "The latency-for-quality trade is EXPLICIT and bounded: the OR branch fires at time_minutes >= 45, matching hard_caps.max_minutes and objective.owner_constraints.deadline_minutes, so the trade cannot silently become permanent. voting is synthesis_only because the commander decides unilaterally - but minority_report is REQUIRED, so suspending consensus does not suspend the record of dissent. Anti-failure leads with moderator_capture: unilateral authority is this protocol's own declared security risk. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

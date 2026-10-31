@@ -1,0 +1,563 @@
+{
+  "record_type": "RepairRecord",
+  "unit_id": "WFA-0088",
+  "id": "WFA-0088",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:WFA-0088",
+  "completion_sentinel": "SUCCESS:WFA-0088",
+  "title": "Repair the fan-out deadlock class: one hung unit blocking an entire cohort",
+  "question_or_target": "Implementation target: eliminate the measured class in which a parallel barrier has no per-agent timeout, so a single hung unit deadlocks the whole phase - replacing it with per-work-unit pipelines, a per-agent deadline and a null-tolerant barrier that completes on partial results.",
+  "output_path": "command-center/wfa/WFA-0088-repair-fanout-deadlock.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RepairRecord",
+  "schema_pack_present": true,
+  "defect_class": {
+    "id": "fanout-deadlock",
+    "spec_line": 11317,
+    "name": "one hung unit blocks a large batch",
+    "mechanism": "A parallel barrier with no per-agent timeout (Promise.all / wait-all analogue) waits for every sibling. One hung unit keeps the phase unresolved past the per-agent deadline. A phase-only deadline still loses sibling work held in memory."
+  },
+  "repair": {
+    "path": "tools/wfa_fanout/pipeline.py",
+    "per_work_unit_pipelines": true,
+    "per_agent_deadline_s": 0.2,
+    "null_tolerant_barrier": true,
+    "write_as_you_go": true,
+    "hung_unit_id": "wu-hang",
+    "cohort_size": 8,
+    "broken_observation_window_s": 1.2,
+    "repaired_max_s": 0.7,
+    "pipeline": {
+      "line": 127,
+      "snippet": "def _pipeline_one("
+    },
+    "run_cohort": {
+      "line": 383,
+      "snippet": "def run_cohort("
+    },
+    "atomic_write_json": {
+      "line": 64,
+      "snippet": "def atomic_write_json(path: Path | str, doc: dict[str, Any]) -> None:"
+    }
+  },
+  "answer": "tools/wfa_fanout/pipeline.py gives every work unit its own pipeline with a per-agent deadline. A hung unit becomes TIMEOUT with a null payload; the barrier is null-tolerant and completes on the partial. Each terminal result is fsynced before the barrier continues. Both-states: the pre-fix wait-all control is still RUNNING after 1.2s (>0.2s deadline); the repaired cohort of 8 with one hang resolves with 7 OK + 1 TIMEOUT on disk. A phase-only deadline discards siblings that finished in RAM (zero durable files). A memory-only twin of an interrupt leaves no files; write-as-you-go leaves the OK partials. SUCCESS:WFA-0088",
+  "inputs_observed": {
+    "declared": [
+      {
+        "input": "live:~/.claude/workflows",
+        "path": "/root/.claude/workflows",
+        "kind": "dir",
+        "present": false
+      },
+      {
+        "input": "rule:rules/common/fan-out-contract.md",
+        "path": "/opt/p2/ast-integrate/rules/common/fan-out-contract.md",
+        "kind": "file",
+        "present": true
+      },
+      {
+        "input": "_USER-PROMPTS.md:11317",
+        "path": "/opt/p2/ast-integrate/_USER-PROMPTS.md",
+        "kind": "file",
+        "present": false
+      }
+    ],
+    "live_workflows_present": false,
+    "fan_out_contract_present": true,
+    "user_prompts_present": false,
+    "repo_workflow_js_outside_probe_fixtures": [
+      "userscripts/github-pat-quick-fill.user.js",
+      "workflows/rtv-pdr.js",
+      ".agents/skills/bc-drive/bc_agent.js",
+      ".agents/skills/writing-skills/render-graphs.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/latex.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/code.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/index.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/util.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/text.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/layout_builders.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/svg.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/image.js",
+      ".agents/skills/slides/assets/pptxgenjs_helpers/layout.js",
+      ".agents/skills/develop-web-game/scripts/web_game_playwright_client.js",
+      "agent-self/config/workflows/harness-self-improve-sweep-imporant.js",
+      "agent-self/config/workflows/monitor-harness-ultracode-2026-07-18-final-great-research-architecture.js",
+      "agent-self/config/workflows/multiai-orchestration-research.js",
+      "agent-self/config/workflows/workspace-gem-hunt-2026-07-12.js",
+      "agent-self/config/workflows/uiux-tooling-consolidation-2026-07-12.js",
+      "agent-self/config/workflows/trainer-gui-mega-plan.js",
+      "agent-self/config/workflows/agentic-repair-reliability.js",
+      "agent-self/config/workflows/reconcile-all-branches-prs-imporant.js",
+      "agent-self/config/workflows/bc-stage-compendium-enrichment.js",
+      "skills/bc-drive/bc_agent.js",
+      "skills/writing-skills/render-graphs.js",
+      "skills/slides/assets/pptxgenjs_helpers/latex.js",
+      "skills/slides/assets/pptxgenjs_helpers/code.js",
+      "skills/slides/assets/pptxgenjs_helpers/index.js",
+      "skills/slides/assets/pptxgenjs_helpers/util.js",
+      "skills/slides/assets/pptxgenjs_helpers/text.js",
+      "skills/slides/assets/pptxgenjs_helpers/layout_builders.js",
+      "skills/slides/assets/pptxgenjs_helpers/svg.js",
+      "skills/slides/assets/pptxgenjs_helpers/image.js",
+      "skills/slides/assets/pptxgenjs_helpers/layout.js",
+      "skills/develop-web-game/scripts/web_game_playwright_client.js",
+      "skills-claude-only/superpowers/writing-skills/render-graphs.js",
+      "skills-claude-only/superpowers/brainstorming/scripts/helper.js",
+      "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web/vite.config.js",
+      "tools/editor/metaswarm/cli/metaswarm.js",
+      "tools/editor/metaswarm/lib/sync-resources.js",
+      "tools/editor/metaswarm/lib/platform-detect.js",
+      "tools/mcpapply/mcpapply/static/app.js",
+      "tools/mcp/hacktricks-mcp-server/dist/errors.js",
+      "tools/mcp/hacktricks-mcp-server/dist/verify-citation.js",
+      "tools/mcp/hacktricks-mcp-server/dist/index.js",
+      "tools/mcp/hacktricks-mcp-server/dist/tools.js",
+      "tools/mcp/hacktricks-mcp-server/dist/markdown.js",
+      "tools/mcp/hacktricks-mcp-server/dist/util.js",
+      "tools/mcp/hacktricks-mcp-server/dist/corpus.js",
+      "tools/mcp/hacktricks-mcp-server/dist/text.js",
+      "tools/mcp/hacktricks-mcp-server/dist/defaults.js",
+      "tools/mcp/hacktricks-mcp-server/dist/limits.js",
+      "tools/mcp/hacktricks-mcp-server/dist/verify.js",
+      "tools/mcp/hacktricks-mcp-server/dist/citation.js",
+      "tools/mcp/hacktricks-mcp-server/dist/server.js",
+      "tools/mcp/hacktricks-mcp-server/dist/provenance.js",
+      "tools/mcp/hacktricks-mcp-server/dist/validation.js",
+      ".agents/skills/critique-panel/critique_panel.mjs",
+      ".agents/skills/critique-panel/panel_schema.mjs",
+      ".agents/skills/design-studio-session/session.mjs",
+      ".agents/skills/transpose-to-figma/figma_parity.mjs",
+      ".agents/skills/transpose-to-figma/figma_token_drift.mjs",
+      ".agents/skills/transpose-to-figma/transpose.test.mjs",
+      ".agents/skills/transpose-to-figma/transpose.mjs",
+      ".agents/skills/design-sync/validate_cards.mjs",
+      ".agents/skills/packaged-artifact-smoke/postcondition.mjs",
+      ".agents/skills/design-tokens-pipeline/validate_tokens.mjs",
+      ".agents/skills/design-tokens-pipeline/style-dictionary.config.mjs",
+      ".agents/skills/design-tokens-pipeline/lib.mjs",
+      ".agents/skills/design-tokens-pipeline/extract_tokens.mjs",
+      ".agents/skills/design-tokens-pipeline/token_diff.mjs",
+      ".agents/skills/ui-drive/drive.mjs",
+      ".agents/skills/execution-grounded-bon/rerank.mjs",
+      ".agents/skills/ui-audit/_trace.mjs",
+      ".agents/skills/ui-audit/run_audit.mjs",
+      ".agents/skills/ui-audit/_smoke.mjs",
+      ".agents/skills/ui-audit/capture.mjs",
+      ".agents/skills/ui-audit/_rerun.mjs",
+      ".agents/skills/ui-audit/_admin-audit.mjs",
+      ".agents/skills/ui-audit/_mock-data.mjs",
+      ".agents/skills/ui-audit/visual_diff.mjs",
+      ".agents/skills/ui-audit/layout_lint.mjs",
+      ".agents/skills/ui-audit/critique_schema.mjs",
+      ".agents/skills/ui-audit/dead_button_crawl.mjs",
+      ".agents/skills/ui-audit/_p2probe.mjs",
+      ".agents/skills/ui-audit/axe_scan.mjs",
+      ".agents/skills/ui-audit/critique.mjs",
+      ".agents/skills/design-studio/loop.mjs",
+      ".agents/skills/design-studio/gates.mjs",
+      ".agents/skills/format-codex-sessions/scripts/render_codex_session.mjs",
+      ".agents/skills/critique-panel/tests/cli.test.mjs",
+      ".agents/skills/critique-panel/tests/panel_schema.test.mjs",
+      ".agents/skills/design-tokens-pipeline/tests/tokens.test.mjs",
+      ".agents/skills/ui-audit/tests/visual_diff.test.mjs",
+      ".agents/skills/ui-audit/tests/layout_lint.test.mjs",
+      ".agents/skills/ui-audit/tests/dead_button_component.test.mjs",
+      ".agents/skills/ui-audit/tests/run_audit.test.mjs",
+      ".agents/skills/ui-audit/tests/critique_persona.test.mjs",
+      ".agents/skills/ui-audit/tests/dead_button_crawl.test.mjs",
+      ".agents/skills/ui-audit/tests/capture.test.mjs",
+      ".agents/skills/ui-audit/tests/critique.test.mjs",
+      ".agents/skills/ui-audit/tests/axe_scan.test.mjs",
+      ".agents/skills/ui-audit/tests/uiclip_wrapper.test.mjs",
+      ".agents/skills/ui-audit/uicrit-pack/_test_pack.mjs",
+      ".agents/skills/chatgpt-apps/scripts/scaffold_node_ext_apps.mjs",
+      ".agents/skills/design-studio/tests/gates.test.mjs",
+      "agent-self/config/workflows/design-gate.mjs",
+      "agent-self/config/workflows/codex-auth-research-fanout.mjs",
+      "agent-self/config/workflows/plan-gate.mjs",
+      "skills/critique-panel/critique_panel.mjs",
+      "skills/critique-panel/panel_schema.mjs",
+      "skills/design-studio-session/session.mjs",
+      "skills/transpose-to-figma/figma_parity.mjs",
+      "skills/transpose-to-figma/figma_token_drift.mjs",
+      "skills/transpose-to-figma/transpose.test.mjs",
+      "skills/transpose-to-figma/transpose.mjs",
+      "skills/design-sync/validate_cards.mjs",
+      "skills/packaged-artifact-smoke/postcondition.mjs",
+      "skills/design-tokens-pipeline/validate_tokens.mjs",
+      "skills/design-tokens-pipeline/style-dictionary.config.mjs",
+      "skills/design-tokens-pipeline/lib.mjs",
+      "skills/design-tokens-pipeline/extract_tokens.mjs",
+      "skills/design-tokens-pipeline/token_diff.mjs",
+      "skills/ui-drive/drive.mjs",
+      "skills/execution-grounded-bon/rerank.mjs",
+      "skills/ui-audit/_trace.mjs",
+      "skills/ui-audit/run_audit.mjs",
+      "skills/ui-audit/_smoke.mjs",
+      "skills/ui-audit/capture.mjs",
+      "skills/ui-audit/_rerun.mjs",
+      "skills/ui-audit/_admin-audit.mjs",
+      "skills/ui-audit/_mock-data.mjs",
+      "skills/ui-audit/visual_diff.mjs",
+      "skills/ui-audit/layout_lint.mjs",
+      "skills/ui-audit/critique_schema.mjs",
+      "skills/ui-audit/dead_button_crawl.mjs",
+      "skills/ui-audit/_p2probe.mjs",
+      "skills/ui-audit/axe_scan.mjs",
+      "skills/ui-audit/critique.mjs",
+      "skills/design-studio/loop.mjs",
+      "skills/design-studio/gates.mjs",
+      "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+      "skills/critique-panel/tests/cli.test.mjs",
+      "skills/critique-panel/tests/panel_schema.test.mjs",
+      "skills/design-tokens-pipeline/tests/tokens.test.mjs",
+      "skills/ui-audit/tests/visual_diff.test.mjs",
+      "skills/ui-audit/tests/layout_lint.test.mjs",
+      "skills/ui-audit/tests/dead_button_component.test.mjs",
+      "skills/ui-audit/tests/run_audit.test.mjs",
+      "skills/ui-audit/tests/critique_persona.test.mjs",
+      "skills/ui-audit/tests/dead_button_crawl.test.mjs",
+      "skills/ui-audit/tests/capture.test.mjs",
+      "skills/ui-audit/tests/critique.test.mjs",
+      "skills/ui-audit/tests/axe_scan.test.mjs",
+      "skills/ui-audit/tests/uiclip_wrapper.test.mjs",
+      "skills/ui-audit/uicrit-pack/_test_pack.mjs",
+      "skills/chatgpt-apps/scripts/scaffold_node_ext_apps.mjs",
+      "skills/design-studio/tests/gates.test.mjs",
+      "hooks/figma-mirror/mirror_consumer.mjs",
+      "command-center/grounding/_s2_r2_guardvals.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/agent-lanes-codex/local-overrides/codex-orchestration.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/codex-orchestrator/tests/codex-probe.test.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/codex-orchestrator/tests/codex-orchestration.test.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/codex-orchestrator/src/codex-orchestration.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/codex-orchestrator/integrations/codex/probe.mjs",
+      "command-center/ssot/salvaged-from-scratch/tools/mcp/codex-orchestrator/src/orchestrator/codex.mjs",
+      "tools/fanout-schema/fanout_schema.mjs",
+      "tools/fanout-schema/lint_fanout_schemas.mjs",
+      "tools/fanout-schema/test_fanout_schema.mjs",
+      "tools/fanout-schema/test_preflight_mutations.mjs",
+      "tools/lib/codex-invocation.mjs",
+      "tools/lib/workspace.mjs",
+      "tools/lib/git-diff.mjs",
+      "tools/lib/security.mjs",
+      "tools/lib/handled-ledger.mjs",
+      "tools/lib/net-allowlist.mjs",
+      "tools/wf-timeout/h6_harness.mjs",
+      "tools/agentspec-js/test/clock.test.mjs",
+      "tools/agentspec-js/test/taxonomy.test.mjs",
+      "tools/agentspec-js/test/crosslang.test.mjs",
+      "tools/agentspec-js/test/retry.test.mjs",
+      "tools/agentspec-js/test/terminal.test.mjs",
+      "tools/agentspec-js/test/behaviour.test.mjs",
+      "tools/agentspec-js/test/helpers.mjs",
+      "tools/agentspec-js/test/census.test.mjs",
+      "tools/agentspec-js/test/validate.test.mjs",
+      "tools/agentspec-js/test/pysource.test.mjs",
+      "tools/agentspec-js/test/corpus.test.mjs",
+      "tools/agentspec-js/test/receipt.test.mjs",
+      "tools/agentspec-js/test/parity-shell.test.mjs",
+      "tools/agentspec-js/test/oracle.test.mjs",
+      "tools/agentspec-js/test/budget.test.mjs",
+      "tools/agentspec-js/test/progress.test.mjs",
+      "tools/agentspec-js/test/dispatchpolicy.test.mjs",
+      "tools/agentspec-js/test/canonical.test.mjs",
+      "tools/agentspec-js/test/argv.test.mjs",
+      "tools/agentspec-js/test/wire.test.mjs",
+      "tools/agentspec-js/test/envelope.test.mjs",
+      "tools/agentspec-js/test/spec.test.mjs",
+      "tools/agentspec-js/parity/emit_js.mjs",
+      "tools/agentspec-js/parity/emit_behaviour_js.mjs",
+      "tools/agentspec-js/parity/oracle.mjs",
+      "tools/agentspec-js/src/clock.mjs",
+      "tools/agentspec-js/src/dispatchpolicy.mjs",
+      "tools/agentspec-js/src/envelope.mjs",
+      "tools/agentspec-js/src/terminal.mjs",
+      "tools/agentspec-js/src/budget.mjs",
+      "tools/agentspec-js/src/taxonomy.mjs",
+      "tools/agentspec-js/src/validate.mjs",
+      "tools/agentspec-js/src/receipt.mjs",
+      "tools/agentspec-js/src/wire.mjs",
+      "tools/agentspec-js/src/spec.mjs",
+      "tools/agentspec-js/src/progress.mjs",
+      "tools/agentspec-js/src/pysource.mjs",
+      "tools/agentspec-js/src/index.mjs",
+      "tools/agentspec-js/src/corpus.mjs",
+      "tools/agentspec-js/src/behaviour.mjs",
+      "tools/agentspec-js/src/oracle.mjs",
+      "tools/agentspec-js/src/retry.mjs",
+      "tools/agentspec-js/src/version.mjs",
+      "tools/agentspec-js/src/argv.mjs",
+      "tools/agentspec-js/src/canonical.mjs",
+      "tools/lib/tests/git-diff.test.mjs",
+      "tools/lib/tests/codex-invocation.test.mjs",
+      "tools/lib/tests/handled-ledger.test.mjs",
+      "tools/lib/tests/workspace.test.mjs",
+      "tools/lib/tests/net-allowlist.test.mjs",
+      "tools/lib/tests/security.test.mjs",
+      "tools/mcp/fb-reels-uploader/fb-reels-mcp.mjs",
+      "tools/mcp/fb-reels-uploader/fb-reels-upload.mjs",
+      "tools/mcp/fb-reels-uploader/fb-session-export.mjs",
+      "tools/mcp/hacktricks-mcp-server/test/verify.test.mjs",
+      "tools/mcp/hacktricks-mcp-server/test/server.test.mjs",
+      "tools/mcp/hacktricks-mcp-server/test/corpus.test.mjs",
+      "tools/mcp/hacktricks-mcp-server/test/pure.test.mjs",
+      "tools/mcp/hacktricks-mcp-server/test/tools.test.mjs",
+      "tools/mcp/hacktricks-mcp-server/scripts/smoke.mjs",
+      "tools/mcp/cloud-hub/ovh-mcp/jest.config.mjs",
+      "tools/mcp/workstation-codex-bundle/scripts/deepsource-mcp-wrapper.mjs"
+    ],
+    "note": "This Linux worktree has no live ~/.claude/workflows tree and no rules/common/fan-out-contract.md. The repair is the in-repo runtime tools/wfa_fanout/pipeline.py, proven by both-states fault injection, not a patch of absent vendor workflow files."
+  },
+  "both_states": {
+    "mandatory": true,
+    "injected_hang_blocks_before_fix": true,
+    "injected_hang_does_not_block_after_fix": true,
+    "pre_fix": {
+      "barrier_resolved": false,
+      "elapsed_s": 1.200193838999894,
+      "hang_elapsed_s": 1.2001575249996677,
+      "hang_status": "RUNNING",
+      "wait_limit_s": 1.2
+    },
+    "post_fix": {
+      "barrier_resolved": true,
+      "durable_files": 8,
+      "elapsed_s": 0.20941116299991336,
+      "null_ids": [
+        "wu-hang"
+      ],
+      "ok_count": 7,
+      "partial": true,
+      "timeout_ids": [
+        "wu-hang"
+      ]
+    }
+  },
+  "tests": [
+    {
+      "id": "both-states-injected-hang",
+      "requirement": "the injected hang must block before the fix and not block after",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe1_both_states.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "partial-durable-on-disk",
+      "requirement": "the partial result must be durable on disk, not held in memory",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe2_durable_partial.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "deadline-per-agent-not-only-per-phase",
+      "requirement": "the deadline must be per-agent, not only per-phase - a phase deadline still loses every sibling's work",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe2_durable_partial.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "evidence": [
+    {
+      "id": "A-fault-injection-partial",
+      "claim": "A fault-injection run in which one agent hangs and the cohort still completes within the declared deadline with a recorded partial.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/wfa_fanout/pipeline.py:127",
+      "measurement": {
+        "barrier_resolved": true,
+        "durable_files": 8,
+        "elapsed_s": 0.20941116299991336,
+        "null_ids": [
+          "wu-hang"
+        ],
+        "ok_count": 7,
+        "partial": true,
+        "timeout_ids": [
+          "wu-hang"
+        ]
+      },
+      "probes": [
+        {
+          "id": "probe1",
+          "role": "source",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe1_both_states.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"both_states\": {\"hang_blocks_before_fix\": true, \"hang_does_not_block_after_fix\": true}, \"broken\": {\"barrier_resolved\": false, \"elapsed_s\": 1.200193838999894, \"hang_elapsed_s\": 1.2001575249996677, \"hang_status\": \"RUNNING\", \"wait_limit_s\": 1.2}, \"deadline_s\": 0.2, \"pass\": true, \"probe\": \"probe1-both-states-hang\", \"repaired\": {\"barrier_resolved\": true, \"durable_files\": 8, \"elapsed_s\": 0.20941116299991336, \"null_ids\": [\"wu-hang\"], \"ok_count\": 7, \"partial\": true, \"timeout_ids\": [\"wu-hang\"]}, \"unit_id\": \"WFA-0088\"}\nbroken_elapsed=1.200 repaired_elapsed=0.209 ok=7 timeout=['wu-hang']\nSUCCESS:WFA-0088-probe1 both-states hang blocks before, partial after"
+        }
+      ]
+    },
+    {
+      "id": "B-pre-fix-wait-all-control",
+      "claim": "Mechanically independent: the pre-fix control where the same injected hang blocks the cohort past the deadline, so the fix is proven by a state change and not by a single green run.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/wfa_fanout/pipeline.py:383",
+      "measurement": {
+        "barrier_resolved": false,
+        "elapsed_s": 1.200193838999894,
+        "hang_elapsed_s": 1.2001575249996677,
+        "hang_status": "RUNNING",
+        "wait_limit_s": 1.2
+      },
+      "probes": [
+        {
+          "id": "probe1",
+          "role": "pre-fix-control",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe1_both_states.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"both_states\": {\"hang_blocks_before_fix\": true, \"hang_does_not_block_after_fix\": true}, \"broken\": {\"barrier_resolved\": false, \"elapsed_s\": 1.200193838999894, \"hang_elapsed_s\": 1.2001575249996677, \"hang_status\": \"RUNNING\", \"wait_limit_s\": 1.2}, \"deadline_s\": 0.2, \"pass\": true, \"probe\": \"probe1-both-states-hang\", \"repaired\": {\"barrier_resolved\": true, \"durable_files\": 8, \"elapsed_s\": 0.20941116299991336, \"null_ids\": [\"wu-hang\"], \"ok_count\": 7, \"partial\": true, \"timeout_ids\": [\"wu-hang\"]}, \"unit_id\": \"WFA-0088\"}\nbroken_elapsed=1.200 repaired_elapsed=0.209 ok=7 timeout=['wu-hang']\nSUCCESS:WFA-0088-probe1 both-states hang blocks before, partial after"
+        }
+      ]
+    },
+    {
+      "id": "C-write-as-you-go-and-phase-deadline",
+      "claim": "Partials are fsynced per unit. A memory-only interrupt leaves no files. A phase-only deadline discards RAM siblings (durable_files=0) while the repaired full run keeps all sibling OK files.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/wfa_fanout/pipeline.py:64",
+      "measurement": {
+        "write_as_you_go": {
+          "durable_ok": 7,
+          "interrupted": true,
+          "kill_after_n_ok": 4
+        },
+        "memory_only": {
+          "durable_files": 0,
+          "interrupted": true
+        },
+        "phase_deadline": {
+          "durable_files": 0,
+          "lost_count": 8,
+          "phase_still_running": 1,
+          "ram_completed_count": 7
+        },
+        "full_repaired": {
+          "durable_files": 8,
+          "hang_status": "TIMEOUT",
+          "sibling_ok": 7
+        },
+        "static": {
+          "broken_slice_writes": false,
+          "pipeline_calls_atomic_write_json": true,
+          "self_timeout_branch": true,
+          "source": "tools/wfa_fanout/pipeline.py"
+        }
+      },
+      "probes": [
+        {
+          "id": "probe2",
+          "role": "verifier",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe2_durable_partial.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"deadline_s\": 0.2, \"full_repaired\": {\"durable_files\": 8, \"hang_status\": \"TIMEOUT\", \"sibling_ok\": 7}, \"memory_only\": {\"durable_files\": 0, \"interrupted\": true}, \"pass\": true, \"phase_deadline\": {\"durable_files\": 0, \"lost_count\": 8, \"phase_still_running\": 1, \"ram_completed_count\": 7}, \"probe\": \"probe2-durable-partial-and-phase-deadline\", \"static\": {\"broken_slice_writes\": false, \"pipeline_calls_atomic_write_json\": true, \"self_timeout_branch\": true, \"source\": \"tools/wfa_fanout/pipeline.py\"}, \"unit_id\": \"WFA-0088\", \"write_as_you_go\": {\"durable_ok\": 7, \"interrupted\": true, \"kill_after_n_ok\": 4}}\nwayg_ok=7 mem_files=0 phase_ram=7 phase_disk=0 full_disk=8\nSUCCESS:WFA-0088-probe2 durable partial; phase deadline loses siblings"
+        }
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "broken-wait-all",
+      "kind": "pre-fix-barrier",
+      "description": "Promise.all analogue: wait for every future with no per-agent timeout. After BROKEN_WAIT_S the hang is still RUNNING and barrier_resolved is false.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state": "broken-wait-all",
+      "good_state": "repaired-per-agent"
+    },
+    {
+      "id": "memory-only-hold",
+      "kind": "mutant-implementation",
+      "description": "Same per-agent deadline but results held in RAM until the barrier returns. Interrupt after N OK leaves zero files; write-as-you-go leaves the OK partials.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state": "memory-only-hold",
+      "good_state": "write-as-you-go"
+    },
+    {
+      "id": "phase-deadline-only",
+      "kind": "insufficient-deadline",
+      "description": "One phase clock. Siblings finish in RAM then the phase aborts because of the hang; durable_files=0. Proves a phase deadline still loses every sibling's work.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state": "phase-deadline",
+      "good_state": "per-agent-deadline"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "WFA-0088-probe2-durable-partial",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "notes": "Probe 2 does not trust probe 1's elapsed times. It interrupts write-as-you-go vs memory-only, runs the phase-deadline control, and AST-walks _pipeline_one for atomic_write_json and the self_timeout branch. Catalog reviewer_requirement asks for a human in a fresh context; that pass is not claimed."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe1_both_states.py",
+      "exit_code": 0,
+      "role": "both-states-hang-injection"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0088/probe2_durable_partial.py",
+      "exit_code": 0,
+      "role": "durable-partial-and-phase-deadline"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tools/wfa_fanout/pipeline.py",
+      "sha256": "3d3c1ff7ec293eee41b3521298d1d6665b643394fdb330edc914d2cc5589fc04",
+      "bytes": 13400,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/wfa_fanout/__init__.py",
+      "sha256": "794a08ac4b8644114a30e3a66485a4c403666164c8205a70bb340ff522b9eca2",
+      "bytes": 890,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/WFA-0088/probe1_both_states.py",
+      "sha256": "db4f95656868e51a7bcdb307665af55c66a25c75efac6fb23e1691ead74e441b",
+      "bytes": 6737,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/WFA-0088/probe2_durable_partial.py",
+      "sha256": "3c8ce1f764c58975320c22f2bed48b780065f68d6768bf9075067c9cd4d73283",
+      "bytes": 8002,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/WFA-0088/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "live:~/.claude/workflows is absent on this Linux worktree, so vendor saved-workflow .js/.mjs files were not patched in place. The class is eliminated in tools/wfa_fanout, which is the repair substrate this unit ships. WFA-0001 schema pack is also absent; this record is JSON and carries record_type=RepairRecord.",
+      "verdict": "DISCLOSED",
+      "settling_experiment": "Re-run both-states against live ~/.claude/workflows parallel() call sites when that tree is mounted."
+    }
+  ],
+  "dependencies_disclosed": {
+    "WFA-0086": "repair-intake baselines not present on this worktree",
+    "WFA-0045": "saved-workflow adapter not present on this worktree"
+  },
+  "timestamps": {
+    "ended_at": "2026-08-25T01:07:19Z"
+  },
+  "notes": "G-1 for WFA-0088: live named probes exit 0, RepairRecord state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No ADV rebuild. SUCCESS:WFA-0088"
+}

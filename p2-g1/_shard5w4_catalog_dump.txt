@@ -1,0 +1,600 @@
+total work_units: 2007
+
+===== BLD-0059 =====
+{
+ "_source_slice_file": "BLD-1.json",
+ "assigned_model_vendor_role": {
+  "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+  "model": "opus",
+  "role": "methodologist",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:BLD-0059",
+ "dependencies": [
+  "B09"
+ ],
+ "evidence_requirement": "Report the makespan with and without sampling, the sampling scheme's stated confidence, and the detection probability for a class-wide defect at a stated prevalence. A confidence number with no power calculation is not evidence.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "sampling-error",
+  "overclaim",
+  "resource-exhaustion"
+ ],
+ "id": "BLD-0059",
+ "inputs": [
+  "the per-unit reviewer_requirement fields across the merged catalog",
+  "measured reviewer wall-clock from B09",
+  "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11041 (expand re-verification when the sampled error rate exceeds the threshold)"
+ ],
+ "output_path": "command-center/receipts/BLD-0059.json",
+ "output_schema": "command-center/schema/scale-model.schema.json",
+ "owner_approval_required": false,
+ "phase": "13",
+ "question_or_target": "Question: at ten times the unit count, does the independent-reviewer requirement become the critical path, and what sampling scheme preserves the error bound? Every unit currently carries a reviewer requirement; model reviewer throughput, compute the resulting makespan, and design a stratified sampling scheme with a stated confidence plus the spec's own escalation rule - when the sampled error rate exceeds the threshold, re-verification expands to the entire affected class.  SCOPE BOUNDARY: CNF-0139 implements the class-expansion trigger and proves it fires. This unit contributes the reviewer-throughput MAKESPAN model that decides whether sampling is needed at all, and at what size.  [Phase 13 question answered: what would break at 10x scale]",
+ "retry_policy": "Two strikes then pivot: if the simulation cannot reach the claimed confidence twice, lower the claim rather than re-tuning the simulation.",
+ "reviewer_requirement": "One independent reviewer who recomputes the power calculation from the stated parameters and must reach the same sample size.",
+ "tests_required": [
+  "Simulation: the sampling scheme must detect an injected class-wide defect at the claimed confidence.",
+  "Control: a scheme that would pass a 20%-defective class must be rejected by the unit's own acceptance criterion.",
+  "Control: the escalation rule must be shown to fire on a simulated over-threshold sample."
+ ],
+ "timeout_seconds": 5400,
+ "title": "The serial reviewer gate as the binding constraint at 10x, and a defensible sampling scheme",
+ "tool_permissions": [
+  "Read",
+  "Write",
+  "Bash"
+ ]
+}
+
+===== CC-0009 =====
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "implementer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0009",
+ "dependencies": [
+  "CC-0003"
+ ],
+ "evidence_requirement": "For each manifest entry, cite the reader that opened it and the first parsed key or record count. 'The file exists' is insufficient for condition 12 - readability by the declared consumer is the claim.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "overclaim",
+  "detector-failure",
+  "green-not-live"
+ ],
+ "id": "CC-0009",
+ "inputs": [
+  "command-center/ARTIFACT-MANIFEST.json",
+  "the CC-0003 reducer (conditions 11 and 12)",
+  "_USER-PROMPTS.md:10643-10646, :11098 (final synthesis must verify the manifest on disk)"
+ ],
+ "output_path": "command-center/receipts/CC-0009.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "0",
+ "question_or_target": "Implementation target: completion conditions 11 and 12 (_USER-PROMPTS.md:10643-10644) require that an output was registered in the artifact manifest and that downstream consumers can read it. Ship register-on-write into ARTIFACT-MANIFEST.json plus a reader probe that opens every manifest entry with the consumer that claims to read it, so a registered-but-unreadable or registered-but-absent artifact fails the predicate instead of passing on the strength of its path string.",
+ "retry_policy": "Two strikes then pivot; do not weaken condition 12 to an existence check on a third attempt.",
+ "reviewer_requirement": "One independent reviewer who adds a phantom manifest entry and confirms it is rejected.",
+ "tests_required": [
+  "An artifact written without registration must fail the predicate.",
+  "A manifest entry whose path does not exist must fail (a file path in text is not proof the file exists).",
+  "A manifest entry that exists but does not parse with its declared consumer must fail.",
+  "Both-states: all currently-valid entries must pass, so the gate is not simply always-red."
+ ],
+ "timeout_seconds": 3600,
+ "title": "Enforce artifact-manifest registration and prove a downstream consumer can actually read each entry",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Edit",
+  "Bash"
+ ]
+}
+
+===== CC-0010 =====
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "baseline-custodian",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0010",
+ "dependencies": [],
+ "evidence_requirement": "Two mechanically independent signals that the tree was quiescent during the freeze window - for example a `git status` digest taken before and after AND a filesystem mtime scan over the tracked set - and the anchor SHA. A single quiescence check is one signal, not proof.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "uncontrolled-silence",
+  "overclaim",
+  "detector-failure"
+ ],
+ "id": "CC-0010",
+ "inputs": [
+  "command-center/BASELINE-SNAPSHOT.json and BASELINE-SNAPSHOT.md",
+  "_USER-PROMPTS.md:10652-10660 (Phase 0)",
+  "the working checkout plus the 5 remaining worktrees graded NEEDS-OWNER-DECISION",
+  "SHA 53c37c6c"
+ ],
+ "output_path": "command-center/receipts/CC-0010.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "0",
+ "question_or_target": "Question: what exactly is frozen at Phase 0? The baseline lane's snapshot ran while concurrent sibling agents mutated the tree - a sibling's transient red phase was captured as 4 test failures and then self-resolved - so every working-tree number in that snapshot is a timestamped sample and only SHA 53c37c6c is a valid rollback anchor. Implementation target: a freeze protocol that pins the SHA as the anchor, snapshots branches, worktrees, live deployments, caches, plugin settings, marketplaces, hooks, skills and MCPs, labels every working-tree measurement as SAMPLE, and refuses to emit BASELINE while the tree is being written.",
+ "retry_policy": "Two strikes then pivot to a scratch-clone freeze; do not attempt a third in-place freeze on a shared working tree.",
+ "reviewer_requirement": "One independent reviewer who verifies the SAMPLE-vs-BASELINE discrimination by racing the freeze themselves.",
+ "tests_required": [
+  "Adversarial control: run the freeze while a writer touches a tracked file -> must emit SAMPLE, never BASELINE.",
+  "Positive control: run against a quiesced scratch clone -> must emit BASELINE.",
+  "Rollback rehearsal: restore the anchor SHA into a scratch clone and confirm the recorded artifact digests reproduce.",
+  "The snapshot must enumerate all nine snapshot classes named at :10654 and mark any it could not read as NOT-CHECKED rather than empty."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Define a freeze that is actually a freeze, and forbid a baseline verdict from a mutating tree",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "PowerShell",
+  "Bash"
+ ]
+}
+
+===== CC-0012 =====
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "implementer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0012",
+ "dependencies": [
+  "CC-0002",
+  "CC-0003"
+ ],
+ "evidence_requirement": "Cite the freeze activation commit SHA and timestamp. A migration is only proven by executing it on real pre-freeze data and reading the post-migration artifact back off disk.",
+ "execution_substrate": "worktree-isolated",
+ "failure_classification": [
+  "green-not-live",
+  "detector-failure",
+  "dependency-blocked"
+ ],
+ "id": "CC-0012",
+ "inputs": [
+  "command-center/schema/ (receipt.schema.json and successors)",
+  "command-center/WORK-UNIT-CATALOG.json schema_version",
+  "_USER-PROMPTS.md:10660",
+  "rules/common/fan-out-contract.md section A10 (freeze the preamble once the first unit launches)"
+ ],
+ "output_path": "command-center/receipts/CC-0012.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "0",
+ "question_or_target": "Implementation target: spec :10660 requires the launchers and schemas be frozen once the first implementation wave starts, with changes admitted only through a versioned migration. Ship (a) a freeze flag with a recorded activation commit, (b) schema_version bump rules, (c) a migration script contract with a forward-and-back round-trip test, and (d) a gate that rejects an edit to a frozen schema that carries no version bump and no migration. This also closes the observed anti-pattern of editing a launcher mid-run, which leaves contradictory instructions live for units already in flight.",
+ "retry_policy": "Two strikes then pivot; if the gate produces false positives twice, narrow its path scope rather than loosening its rule.",
+ "reviewer_requirement": "One independent reviewer who attempts an unversioned schema edit and confirms it is rejected.",
+ "tests_required": [
+  "Mutation: change a frozen schema without a version bump -> gate red.",
+  "Positive: change it with a bump plus a migration plus a passing round-trip -> gate green.",
+  "Round-trip: migrate forward then back on real data -> byte-identical to the original.",
+  "Both-states: the gate must be silent on a non-frozen file, so it does not freeze the whole repo."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Freeze the schemas and launchers, and require a versioned migration for every later change",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Edit",
+  "Bash"
+ ]
+}
+
+===== CC-0019 =====
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "corpus-normalizer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0019",
+ "dependencies": [
+  "CC-0017",
+  "CC-0018"
+ ],
+ "evidence_requirement": "Every emitted record must carry a source anchor that re-resolves. Sample 20 records at random and re-open each cited file:line; report the resolve rate as a fraction, not as a pass. Report input count, emitted count and dropped count so the three reconcile.",
+ "execution_substrate": "cloud-batch",
+ "failure_classification": [
+  "uncontrolled-silence",
+  "overclaim",
+  "detector-failure"
+ ],
+ "id": "CC-0019",
+ "inputs": [
+  "~/.claude/harness-restore-20260806/ (Prompt One artifacts and _USER-PROMPTS.md)",
+  "07-OPTION-UNIVERSE, 08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG, 13-ARCHITECTURE-CANDIDATES, 17-DECISION-LOG",
+  "command-center/sources/REGISTER.md and sources/overlay.json",
+  "the CC-0017 schema and the CC-0018 ranking function"
+ ],
+ "output_path": "command-center/receipts/CC-0019.json",
+ "output_schema": "command-center/schema/claim-record.schema.json",
+ "owner_approval_required": false,
+ "phase": "1",
+ "question_or_target": "Implementation target: execute Phase 1 normalization over the real corpus - the 1.49 MB harness-restore corpus with 375 messages, the 29 contracted Prompt One artifacts (283 platform options, 284 workflow candidates, 108 blueprints, 58 council protocols, 72 presets, 11 architectures), prior test failures and incident notes - emitting canonical claim records with resolvable source lineage. Report the count of inputs DROPPED as a first-class number; a normalization that reports zero drops by construction has not measured anything.",
+ "retry_policy": "Two strikes then pivot to per-artifact ingestion with per-artifact receipts, so a single malformed source cannot fail the whole run a third time.",
+ "reviewer_requirement": "One independent reviewer who samples a different 20 records than the author and independently checks the anchors.",
+ "tests_required": [
+  "Random 20-record sample: every cited anchor must re-resolve to the quoted text.",
+  "Conservation: inputs = emitted + merged + dropped, with the dropped set enumerated and reasoned.",
+  "Detector control: a planted synthetic finding must appear in the output; if it does not, the ingester is silently skipping inputs.",
+  "Idempotence: a second run over an unchanged corpus must emit the same record ids."
+ ],
+ "timeout_seconds": 10800,
+ "title": "Run the corpus normalization: turn prior findings, option cards, claims, failures and incidents into canonical records",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Bash"
+ ]
+}
+
+===== CNF-0077 =====
+{
+ "_source_slice_file": "CNF-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "library-smoke-engineer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0077 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the blueprint list was enumerated from the filesystem and every entry has an exit code and artifact path or error. Any other terminal state is FAILED:CNF-0077 <classification> with the diagnostic tail attached.",
+ "dependencies": [
+  "CNF-0030",
+  "CNF-0074",
+  "B04"
+ ],
+ "evidence_requirement": "per blueprint: the invocation, exit code, and produced artifact path or the load error text",
+ "execution_substrate": "cloud-batch",
+ "failure_classification": [
+  "placeholder-blueprint",
+  "count-overclaim",
+  "load-error"
+ ],
+ "id": "CNF-0077",
+ "inputs": [
+  "the blueprint library directory",
+  "the catalog claim of the executable count",
+  "a clean execution environment per CNF-0030"
+ ],
+ "output_path": "command-center/confirmation/CNF-0077-blueprint-executability.json",
+ "output_schema": "command-center/schema/smoke-report.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "How many blueprints actually execute? Smoke-run every blueprint in the library from a clean state and report the MEASURED executable count, not the catalog claim. Question: does the measured count meet the declared floor, and which blueprints fail, error at load, or are placeholders?",
+ "retry_policy": "no blind retry. Re-runs are permitted ONLY as flake measurement and EVERY run's outcome is recorded; a green on run 7 of 7 does not overwrite the 6 reds, it is reported as 1/7",
+ "reviewer_requirement": "one reviewer whose only job is to re-run the DETECTOR CONTROL and confirm the probe fires on the known-broken fixture; a reviewer who only re-reads the result has verified nothing",
+ "tests_required": [
+  "a blueprint that loads but produces no artifact is not executable and is counted as a failure",
+  "the measured count is reported first and the catalog claim second, so the claim cannot anchor the measurement",
+  "enumerate blueprints from the filesystem, not from the catalog, or a missing file is invisible"
+ ],
+ "timeout_seconds": 14400,
+ "title": "Independent executability sweep over the entire blueprint library",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+
+===== CNF-0132 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "evidence-auditor",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0132",
+ "dependencies": [
+  "CNF-0129",
+  "B09"
+ ],
+ "evidence_requirement": "Publish the rank distribution and name every claim whose apparent N confirmations collapse to rank 1. Cite the shared upstream node for each collapse. The graph build must be an algorithm, not a judgement call: emit the edge list so a reader can recompute the ranks.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "single-signal",
+  "detector-failure",
+  "overclaim"
+ ],
+ "id": "CNF-0132",
+ "inputs": [
+  "all confirmation records emitted by bucket B09",
+  "command-center/CLAIM-REGISTRY.json (source lineage edges)",
+  "rules/common/single-signal-verification.md",
+  "CNF-0129 schema (source_probe / verifier_probe fingerprints)"
+ ],
+ "output_path": "command-center/receipts/CNF-0132.json",
+ "output_schema": "command-center/schema/evidence-integrity-report.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: for each confirmed claim, how many MECHANICALLY INDEPENDENT probe chains actually support it? Build the directed graph of confirmation -> probe -> upstream artifact/tool/source and compute an independence rank, where two confirmations sharing a single upstream input count as ONE signal regardless of how many agents produced them (rules/common/single-signal-verification.md rule 5).",
+ "retry_policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame, and record that the frame was frozen at a stated commit.",
+ "reviewer_requirement": "One reviewer who independently re-derives the rank of three sampled claims by hand and compares.",
+ "tests_required": [
+  "Planted control: two confirmations deliberately built on the same cached artifact must collapse to rank 1.",
+  "Planted control: two confirmations using different shells and different data fields must stay rank 2.",
+  "Partition check: every confirmation record appears in exactly one node set; counts sum to the record total.",
+  "Regression: adding a third genuinely independent probe must raise rank to 3 and not merely increment a counter."
+ ],
+ "timeout_seconds": 3600,
+ "title": "Independence graph: collapse confirmations that share one upstream source into a single signal",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+
+===== CNF-0133 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "calibration-auditor",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0133",
+ "dependencies": [
+  "CNF-0129",
+  "B08"
+ ],
+ "evidence_requirement": "Report the 2x2 confusion matrix with raw counts, not percentages alone, and the exact identity of every planted item so the run is auditable. Two signals: the confirmers' verdicts AND the mutation oracle that knows ground truth independently of them.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "false-pass",
+  "detector-failure",
+  "contamination",
+  "overclaim"
+ ],
+ "id": "CNF-0133",
+ "inputs": [
+  "B08 mutation corpus (surviving and killed mutants)",
+  "command-center/TEST-REGISTRY.json",
+  "CNF-0129 confirmation-record schema",
+  "command-center/CLAIM-REGISTRY.json"
+ ],
+ "output_path": "command-center/receipts/CNF-0133.json",
+ "output_schema": "command-center/schema/calibration-report.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: what is the measured false-pass rate of this bucket's confirmation pipeline? Inject a labelled set of claims into the live confirmation queue - some true, some falsified by a known mutation from the B08 mutation corpus - and measure how many false claims the confirmers CONFIRM. A confirmation layer with an unmeasured false-pass rate certifies nothing (spec:10640, 11026).",
+ "retry_policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run and may never be re-run in the hope of a CONFIRMED. Retry is permitted ONLY for an infrastructure fault (severed stream, quota, crashed runner) and the retry must be recorded in the confirmation record with its cause. Two strikes on the same error-fingerprint then pivot per AGENTS.md 4b.",
+ "reviewer_requirement": "Two reviewers: one checks the planting is blind, one checks the arithmetic of the confusion matrix.",
+ "tests_required": [
+  "The planted-false set must be indistinguishable in form from real claims (blind check by a third party).",
+  "Both-states: at least one planted-true claim must be CONFIRMED and at least one planted-false claim must be REFUTED, or the pipeline is measuring nothing.",
+  "Leakage control: no confirmer may be able to discover the planted list; verify by scanning their inputs.",
+  "Re-run stability: the false-pass rate must be re-measured on a second disjoint planted set before publication."
+ ],
+ "timeout_seconds": 7200,
+ "title": "Calibrate the confirmation pipeline itself against planted true and false claims",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+
+===== CNF-0136 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "confirmation-architect",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0136",
+ "dependencies": [
+  "CNF-0129"
+ ],
+ "evidence_requirement": "Cite the taxonomy mapping table by path:line and show one induced fault of each class with the resulting record. Quota state that cannot be measured must be emitted as NOT-CHECKED, not asserted.",
+ "execution_substrate": "worktree-isolated",
+ "failure_classification": [
+  "severed-stream",
+  "quota-429-storm",
+  "timeout-<n>s",
+  "duplicate-dispatch"
+ ],
+ "id": "CNF-0136",
+ "inputs": [
+  "CNF-0129 confirmation-record schema",
+  "rules/common/cross-vendor-dispatch.md sections 1, 2, 6, 7",
+  "command-center/events/EVENTS.jsonl",
+  "the program's vendor quota posture (advisory only; AgentBridge budget tooling is retired)"
+ ],
+ "output_path": "command-center/receipts/CNF-0136.json",
+ "output_schema": "command-center/schema/confirmation-tooling-receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Implementation target: a scheduler for the confirmation queue with staggered arrivals, per-vendor quota awareness and an explicit fault taxonomy, whose central invariant is that a 429 storm, a crashed runner, a severed stream or a timeout maps to BLOCKED with a named prerequisite - never to REFUTED and never to CONFIRMED. Spec:10577-10578 makes arrival rate a scheduler input.",
+ "retry_policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run and may never be re-run in the hope of a CONFIRMED. Retry is permitted ONLY for an infrastructure fault (severed stream, quota, crashed runner) and the retry must be recorded in the confirmation record with its cause. Two strikes on the same error-fingerprint then pivot per AGENTS.md 4b.",
+ "reviewer_requirement": "One reviewer who greps the emitted records for any REFUTED whose evidence is an infrastructure error string.",
+ "tests_required": [
+  "Fault injection: kill a runner mid-confirmation -> record must read BLOCKED severed-stream, not REFUTED.",
+  "Fault injection: induced 429 burst -> arrivals stagger and the record is BLOCKED quota, with no verdict.",
+  "Both-states: a genuine refutation under healthy infrastructure must still record REFUTED.",
+  "Idempotence: a re-queued BLOCKED unit must not create a duplicate confirmation record."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Confirmation-queue scheduler that cannot record an infrastructure fault as a refutation",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Edit",
+  "Bash"
+ ]
+}
+
+===== CNF-0147 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "environment-reproduction-engineer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0147",
+ "dependencies": [
+  "B08",
+  "CNF-0146"
+ ],
+ "evidence_requirement": "Report the delta list (green-with-network, red-without) with each test id, and the captured connection attempts. The blocker itself must be proven live by a control fetch that MUST fail.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "environment-dependent",
+  "detector-failure",
+  "green-not-live",
+  "false-pass"
+ ],
+ "id": "CNF-0147",
+ "inputs": [
+  "the full test and confirmation suite",
+  "an egress-blocking harness (firewall rule or proxy deny-all)",
+  "docs/validation/tools/hermetic_probe.py pattern (prior art on this estate)"
+ ],
+ "output_path": "command-center/receipts/CNF-0147.json",
+ "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: which confirmations and tests only pass because the machine had network access? Re-run the confirmation suite with egress denied and classify every new failure as (a) a genuine network dependency that must be declared, or (b) a silent download that invalidates the earlier green. Measured precedent on this estate: 14 tests were silently downloading get-pip.py while their own comments asserted they never download; a cache re-verify discarded the fixture and refetched.",
+ "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+ "reviewer_requirement": "One reviewer who re-runs three of the newly red tests with a packet-level capture.",
+ "tests_required": [
+  "Detector control: an intentional outbound fetch must fail while the block is active, proving the block is on.",
+  "Both-states: the same suite with egress restored must return to its baseline result set.",
+  "Attribution: every newly red test must be classified declared-dependency or silent-download, with no 'unknown' bucket left unresolved.",
+  "Cache interaction: run once with a warm cache and once cold to separate cache-masking from network-masking."
+ ],
+ "timeout_seconds": 10800,
+ "title": "Egress-blocked hermetic re-run: any test that silently downloads is a detector failure",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+
+===== CNF-0149 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "gpt-5-codex",
+  "role": "reproduction-engineer",
+  "vendor": "openai"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0149",
+ "dependencies": [
+  "B08"
+ ],
+ "evidence_requirement": "Emit the three-route byte table (archive, cat-file, show) for at least one file with a LF-normalisation control proving the routes differ ONLY in line endings, then the per-claim verdict under each checkout mode. Cite RELEASE-CHECKLIST.md by line when confirming or refuting its recipe.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "environment-dependent",
+  "detector-failure",
+  "green-not-live",
+  "stale-evidence"
+ ],
+ "id": "CNF-0149",
+ "inputs": [
+  "command-center/RELEASE-CHECKLIST.md (currently prescribes the archive recipe - confirm or refute)",
+  "tools/command-center/validate.py (REACH-6 working-tree hashing)",
+  "the CI formatter/lint invocations and their pinned versions",
+  "rules/common/windows-shell.md section 8b"
+ ],
+ "output_path": "command-center/receipts/CNF-0149.json",
+ "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: does each formatting, lint and hash claim hold on the bytes CI actually checks out? Reproduce under core.autocrlf true and false and against the stored blob obtained with 'git cat-file -p <rev>:<path>'. This unit must explicitly FORBID 'git archive | tar -x' as the blob source: measured on this repository it returns 3,837 bytes with 100 CRLF where cat-file returns 3,737 with 0, so a rule prescribing archive verifies the wrong bytes.",
+ "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+ "reviewer_requirement": "One reviewer who re-runs the three-route probe on a different file.",
+ "tests_required": [
+  "Control: all three routes must be byte-identical after LF normalisation, isolating EOL as the sole variable.",
+  "Known-broken control: a file deliberately committed with CRLF must be detected by the blob route.",
+  "Both-states: a genuinely mis-formatted file must fail under BOTH checkout modes.",
+  "REACH-6 specific: reproduce the recorded provenance hash from the blob and show the worktree hash differs."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Line-ending matrix: reproduce every formatter and gate claim against the git blob, not the worktree",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+
+===== CNF-0152 =====
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "environment-reproduction-engineer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0152",
+ "dependencies": [
+  "CNF-0146"
+ ],
+ "evidence_requirement": "One row per hostile shape with the verbatim error or a pass, and the exact path used. A crash that is caught and swallowed must be reported: the Phase-0 precedent is that swallowing the NUL crash would have made every count read as zero and been interpreted as 'the trees are empty'.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "environment-dependent",
+  "detector-failure",
+  "partial-artifact"
+ ],
+ "id": "CNF-0152",
+ "inputs": [
+  "the file-walking and packaging code paths",
+  "_USER-PROMPTS.md:11308, 11316-11317 (path-casing and long-path classes)",
+  "the Phase-0 enumerator defect record (NUL crash)"
+ ],
+ "output_path": "command-center/receipts/CNF-0152.json",
+ "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: do the claims survive a hostile filesystem layout? Reproduce under (a) a root exceeding 260 characters, (b) paths containing Windows reserved device names such as NUL/CON/AUX/PRN, which need the extended-length prefix and which already crashed one enumerator on this program with ValueError: path is on mount '\\\\.\\NUL', (c) case-distinct sibling names that a case-insensitive parser collides, (d) non-ASCII characters, and (e) spaces. Merged into one unit because they are one mechanism - hostile path shape - with five instantiations.",
+ "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+ "reviewer_requirement": "One reviewer who constructs a sixth hostile shape not in the list and reports whether it breaks anything.",
+ "tests_required": [
+  "Known-broken control: each hostile shape must break at least one deliberately naive implementation, proving the shapes are real hazards.",
+  "Both-states: the hardened implementation must pass all five while the naive one fails.",
+  "Silent-zero control: assert that a crash cannot be converted into a count of 0 anywhere in the walker.",
+  "Case collision: two files differing only in case must be detected, not silently deduplicated."
+ ],
+ "timeout_seconds": 7200,
+ "title": "Hostile path-shape reproduction: long paths, reserved device names, case collisions, non-ASCII, spaces",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}

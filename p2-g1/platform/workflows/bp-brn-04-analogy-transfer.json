@@ -1,0 +1,936 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-brn-04-analogy-transfer",
+  "name": "Analogy-Transfer Brainstorm",
+  "description": "Blueprint 15 of 96 (design card BP-BRN-04, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:824). MECHANISM: import a working mechanism from an unrelated domain and REQUIRE a cheap empirical transfer test before adoption. Two controls make it more than analogy-hunting: a NEUTRALITY gate (the problem statement must name zero estate-specific objects, or the search collapses back into in-domain answers) and a RETRODICTION control (the same neutral statement must rediscover a transfer that already worked - PageRank into the repo map - or the neutralisation step is broken and no verdict may be cited).",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative-work",
+    "research-and-evidence"
+  ],
+  "tags": [
+    "brainstorm",
+    "analogy-transfer",
+    "retrodiction-control",
+    "bp-brn-04"
+  ],
+  "flagship": false,
+  "params": {
+    "problem": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The problem where the estate keeps producing incremental variants"
+    },
+    "source_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 2,
+      "max_items": 12,
+      "description": "Unrelated domains to mine. One agent per domain, parallel and blind.",
+      "default": [
+        "information-retrieval",
+        "epidemiology",
+        "control-theory",
+        "mechanism-design",
+        "structural-engineering",
+        "immunology"
+      ]
+    },
+    "transfer_test": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The cheap empirical test a candidate mechanism must pass. A transfer with no cheap test is RESEARCH-ONLY and is never adopted on the strength of the analogy."
+    },
+    "retrodiction_target": {
+      "type": "string",
+      "default": "PageRank ranking transferred from web search into a symbol-centrality repo map",
+      "description": "A transfer that ALREADY worked in this estate. The control must rediscover it from the neutral statement; if it cannot, the neutralisation step is broken."
+    },
+    "research_budget_sources": {
+      "type": "integer",
+      "default": 24,
+      "minimum": 4,
+      "maximum": 200,
+      "description": "Upper bound on external sources reviewed per domain"
+    }
+  },
+  "roles": {
+    "neutraliser": {
+      "description": "Restates the problem in domain-neutral terms, naming zero estate-specific objects; this is the hard part and the whole search depends on it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "domain-miner": {
+      "description": "Searches ONE source domain for mechanisms that solve the neutral problem; must cite an external source, and is told explicitly NOT to ground in this repo",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "WebSearch",
+        "mcp__search-hub__web_search_exa",
+        "mcp__paper-search__search_arxiv",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "mapping-critic": {
+      "description": "Maps each candidate mechanism onto the estate's objects and attacks the mapping; rejects elegant non-solutions before any test is paid for",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "test-runner": {
+      "description": "Runs the cheap transfer test and the retrodiction control, and reports the raw result without interpreting it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - decides whether an adoptable transfer is actually adopted, and owns any licence question an import raises",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__paper-search__search_arxiv",
+      "mcp__codex__codex",
+      "Bash:python",
+      "Write(command-center/brainstorm/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "Edit"
+    ],
+    "require_owner_approval": [
+      "Write(platform/lib/**)"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/brainstorm/**"
+    ],
+    "forbid_write_paths": [
+      "platform/lib",
+      "platform/schema",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "allow_domains": [
+        "arxiv.org",
+        "github.com",
+        "acm.org",
+        "ieee.org",
+        "nature.com",
+        "openreview.net"
+      ],
+      "deny_domains": [
+        "example-content-farm.invalid"
+      ],
+      "offline_only": false,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "CC-BY-4.0",
+        "public-domain"
+      ],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == mapping_critic",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "an analogy is seductive to the model that generated it; the mapping critic must be a different vendor"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "gpt-5-codex",
+        "vendor": "openai"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "low-confidence",
+        "reviewer-refuted"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "statement-is-neutral": {
+      "predicate": "custom-expression",
+      "expression": "estate_specific_nouns_in_statement == 0 AND repo_paths_in_statement == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "retrodiction-control-fires": {
+      "predicate": "custom-expression",
+      "expression": "known_transfer_rediscovered == true AND control_ran_on_same_neutral_statement == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-adoption-without-a-test": {
+      "predicate": "custom-expression",
+      "expression": "adopted_transfers_without_test_result == 0 AND research_only_items_marked == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "neutralise",
+      "title": "S0 STATE the problem in domain-neutral terms - the hard part",
+      "kind": "task",
+      "role": "neutraliser",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WBRN-0401",
+        "title": "Restate the problem with zero estate-specific objects named",
+        "phase": "2B",
+        "question_or_target": "Rewrite the problem so that a specialist in an unrelated field could recognise it, naming no repo path, no tool name and no estate object.",
+        "inputs": [
+          "params.problem"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "neutraliser",
+          "basis": "the neutral statement determines everything downstream; effort is max on purpose"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/brainstorm/bp-brn-04/neutral-statement.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "the artifact lists every estate-specific noun that was REMOVED and what generic term replaced it, so the neutralisation is auditable instead of asserted",
+        "tests_required": [
+          "a statement containing a repo path fails the neutrality check",
+          "both-states control: the neutrality checker must FIRE on a statement containing 'command-center/' and PASS on the neutralised form"
+        ],
+        "reviewer_requirement": "the cross-vendor mapping critic confirms the statement is recognisable without the estate context",
+        "completion_sentinel": "SUCCESS:WBRN-0401 emitted when neutral-statement.json exists, parses, and the neutrality checker reports zero estate-specific nouns; otherwise FAILED:WBRN-0401 <reason>",
+        "retry_policy": "two strikes then pivot: ask the owner what the problem is ABOUT rather than attempting a third rewrite",
+        "failure_classification": [
+          "statement-not-neutral",
+          "spec-underspecified"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-04/neutral-statement.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0401",
+          "consumers": [
+            "neutrality-gate",
+            "mine",
+            "retrodiction-control"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neutrality-gate",
+      "title": "S0b The search cannot start on a contaminated statement",
+      "kind": "gate",
+      "depends_on": [
+        "neutralise"
+      ],
+      "gate_ref": "statement-is-neutral"
+    },
+    {
+      "id": "mine",
+      "title": "S1 SEARCH each source domain for mechanisms solving the neutral problem",
+      "kind": "fanout",
+      "depends_on": [
+        "neutrality-gate"
+      ],
+      "over": {
+        "source": "literal",
+        "items": [
+          "information-retrieval",
+          "epidemiology",
+          "control-theory",
+          "mechanism-design",
+          "structural-engineering",
+          "immunology"
+        ],
+        "item_var": "domain",
+        "key_field": "domain"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 400,
+      "max_items": 12,
+      "on_item_failure": "continue",
+      "timeout_seconds": 5400,
+      "body": [
+        {
+          "id": "mine-one-domain",
+          "title": "Mine one unrelated domain for a candidate mechanism",
+          "kind": "task",
+          "role": "domain-miner",
+          "timeout_seconds": 2400,
+          "tool_permissions": [
+            "Read",
+            "WebSearch",
+            "mcp__search-hub__web_search_exa",
+            "mcp__paper-search__search_arxiv",
+            "Write(command-center/brainstorm/**)"
+          ],
+          "work_unit": {
+            "id": "WBRN-0402",
+            "title": "Find mechanisms in one unrelated domain that solve the neutral problem",
+            "phase": "2B",
+            "question_or_target": "In the assigned domain only, find published mechanisms that solve the neutral problem. Cite an EXTERNAL source per mechanism; do NOT ground in this repo.",
+            "inputs": [
+              "command-center/brainstorm/bp-brn-04/neutral-statement.json",
+              "item.domain"
+            ],
+            "dependencies": [
+              "WBRN-0401"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "domain-miner",
+              "basis": "an ideation lens must cite an external domain source, so search quality is the product"
+            },
+            "tool_permissions": [
+              "Read",
+              "WebSearch",
+              "mcp__search-hub__web_search_exa",
+              "mcp__paper-search__search_arxiv",
+              "Write(command-center/brainstorm/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 2400,
+            "output_path": "command-center/brainstorm/bp-brn-04/mined/domain.json",
+            "output_schema": "command-center/schema/research-claim-record.schema.json",
+            "evidence_requirement": "every mechanism carries an external URL or DOI plus its licence; a paywalled source is recorded NOT-CHECKED rather than summarised from an abstract as if read",
+            "tests_required": [
+              "a mechanism citing a repo file instead of an external source fails the ideation-evidence check",
+              "a domain that yields nothing must emit a NULL result naming the search surface, not an empty file"
+            ],
+            "reviewer_requirement": "the mapping critic reads every mined mechanism before any mapping is attempted",
+            "completion_sentinel": "SUCCESS:WBRN-0402 emitted per domain when the domain artifact exists, parses, and every mechanism carries an external anchor; a barren domain emits FAILED:WBRN-0402 null-domain WITH its search surface",
+            "retry_policy": "one retry with a widened query, then record the null domain and continue on the survivors",
+            "failure_classification": [
+              "null-domain",
+              "source-unreachable",
+              "paywalled-not-checked"
+            ],
+            "owner_approval_required": false
+          },
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "prompt_hash"
+            ],
+            "store": "command-center/cache/bp-brn-04",
+            "ttl_seconds": 604800,
+            "verify_integrity": true,
+            "read_only": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.5,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "map",
+      "title": "S2 MAP each mechanism onto the estate's objects, cross-vendor critic with veto",
+      "kind": "council",
+      "depends_on": [
+        "mine"
+      ],
+      "council_spec_ref": "platform/council/presets/C-D38-triz-8.councilspec.json",
+      "participants_min": 3,
+      "participants_max": 8,
+      "timeout_seconds": 3600,
+      "stopping_rules": [
+        {
+          "id": "mappings-settled",
+          "expression": "objections_open == 0 AND independent_positions >= 2",
+          "applies_to": "council",
+          "minimum_conditions": "evidence_items >= 2",
+          "on_stop": "complete"
+        },
+        {
+          "id": "no-mechanism-maps",
+          "expression": "proof_of_impossibility == true",
+          "applies_to": "council",
+          "on_stop": "emit-partial"
+        }
+      ],
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-04/mappings.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0403",
+          "consumers": [
+            "transfer-test",
+            "verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "retrodiction-control",
+      "title": "S2b CONTROL - the SAME neutral statement must rediscover a transfer that already worked",
+      "kind": "task",
+      "role": "test-runner",
+      "depends_on": [
+        "map"
+      ],
+      "checkpoint": true,
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WBRN-0404",
+        "title": "Retrodiction control - rediscover a known past transfer from the neutral statement",
+        "phase": "2B",
+        "question_or_target": "Run the identical mining and mapping procedure against the retrodiction target and report whether the known transfer is rediscovered. This validates the instrument, not the idea.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-04/neutral-statement.json",
+          "params.retrodiction_target"
+        ],
+        "dependencies": [
+          "WBRN-0403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "test-runner",
+          "basis": "a control must be run by a role with no stake in the candidate transfers"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/brainstorm/bp-brn-04/retrodiction-control.json",
+        "output_schema": "command-center/schema/audit-detector-control.schema.json",
+        "evidence_requirement": "the control records the exact neutral statement it used and whether the known mechanism appeared in the mined set - a control that used a DIFFERENT statement measures nothing and must self-report as invalid",
+        "tests_required": [
+          "the control must FIRE (report not-rediscovered) when fed a deliberately contaminated statement",
+          "the control must PASS (report rediscovered) on the real neutral statement - a probe silent in both states measures nothing"
+        ],
+        "reviewer_requirement": "the mapping critic confirms the control used the same statement as the live run and not a friendlier paraphrase",
+        "completion_sentinel": "SUCCESS:WBRN-0404 emitted when retrodiction-control.json exists, parses, records the statement hash used, and states rediscovered true/false; otherwise FAILED:WBRN-0404 <reason>",
+        "retry_policy": "no retry - a re-run of a failed control on the same statement is the same measurement, not a second signal; escalate instead",
+        "failure_classification": [
+          "detector-failure",
+          "control-invalid",
+          "statement-not-neutral"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-04/retrodiction-control.json",
+          "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0404",
+          "consumers": [
+            "control-gate",
+            "verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control-gate",
+      "title": "S2c If the control did not rediscover a known transfer, NO verdict from this run may be cited",
+      "kind": "gate",
+      "depends_on": [
+        "retrodiction-control"
+      ],
+      "gate_ref": "retrodiction-control-fires"
+    },
+    {
+      "id": "transfer-test",
+      "title": "S3 TEST cheaply - a transfer with no test result is RESEARCH-ONLY",
+      "kind": "task",
+      "role": "test-runner",
+      "depends_on": [
+        "control-gate"
+      ],
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "WBRN-0405",
+        "title": "Run the cheap empirical transfer test on each surviving mapping",
+        "phase": "2B",
+        "question_or_target": "Execute the declared transfer_test against each mapping that survived the critic and record the raw result per mechanism.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-04/mappings.json",
+          "params.transfer_test"
+        ],
+        "dependencies": [
+          "WBRN-0403",
+          "WBRN-0404"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "test-runner",
+          "basis": "the test is the only thing standing between an elegant analogy and an adopted non-solution"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/brainstorm/bp-brn-04/transfer-tests.json",
+        "output_schema": "command-center/schema/benchmark-result.schema.json",
+        "evidence_requirement": "every result is a rerunnable command plus its exact output; a mechanism whose test could not be constructed is marked RESEARCH-ONLY rather than given a soft pass",
+        "tests_required": [
+          "a mechanism with no test result cannot reach verdict TRANSFERS",
+          "both-states control: mutate one mapping so the test must fail, confirm the recorded verdict flips to FAILS"
+        ],
+        "reviewer_requirement": "one independent reader re-runs one recorded command and confirms the output matches",
+        "completion_sentinel": "SUCCESS:WBRN-0405 emitted when transfer-tests.json exists, parses, and every surviving mapping carries either a test result or an explicit RESEARCH-ONLY marker; otherwise FAILED:WBRN-0405 <reason>",
+        "retry_policy": "two strikes then pivot: mark RESEARCH-ONLY rather than weakening the test until it passes",
+        "failure_classification": [
+          "test-unconstructible",
+          "detector-failure",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-04/transfer-tests.json",
+          "schema_ref": "command-center/schema/benchmark-result.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0405",
+          "consumers": [
+            "verdict",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verdict",
+      "title": "S4 VERDICT per mechanism - TRANSFERS, PARTIAL or FAILS, and never on the analogy alone",
+      "kind": "gate",
+      "depends_on": [
+        "transfer-test"
+      ],
+      "gate_ref": "no-adoption-without-a-test"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "one-transfer-passed",
+      "expression": "transfers_passing_test >= 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "known_transfer_rediscovered == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "domains-exhausted",
+      "expression": "domains_mined == domains_total",
+      "applies_to": "workflow",
+      "minimum_conditions": "known_transfer_rediscovered == true",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "instrument-broken",
+      "expression": "known_transfer_rediscovered == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 45,
+    "jitter": true,
+    "retry_on": [
+      "source-unreachable",
+      "quota-429-storm",
+      "null-domain"
+    ],
+    "no_retry_on": [
+      "control-invalid",
+      "owner-blocked",
+      "legal-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "null-domain",
+      "control-invalid",
+      "test-unconstructible",
+      "paywalled-not-checked"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-brn-04"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-brn-04",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-brn-04.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "prompt_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/bp-brn-04",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "neutral-statement-change",
+      "tool-version-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-brn-04-plan.json",
+    "forbid_tools": [
+      "WebSearch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__paper-search__search_arxiv",
+      "Bash:python",
+      "Write(command-center/brainstorm/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "unlikely",
+    "cost": {
+      "currency": "USD",
+      "min": 1.0,
+      "expected": 3.5,
+      "max": 11.0
+    },
+    "wallclock_seconds": {
+      "min": 900,
+      "expected": 3600,
+      "max": 9000
+    },
+    "tokens": {
+      "min": 150000,
+      "expected": 600000,
+      "max": 1800000
+    },
+    "tool_calls": {
+      "expected": 120,
+      "max": 500
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/brainstorm/bp-brn-04/**; reads the network read-only; any CODE import must go through the licence gate before it reaches platform/lib",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-brn-04.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "warn",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "tools/mutation-gate",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/repomap",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/ese-gate",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-BRN-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/repomap",
+      "tools/ese-gate"
+    ]
+  },
+  "outputs": {
+    "transfers": {
+      "path": "command-center/brainstorm/bp-brn-04/transfer-tests.json",
+      "schema_ref": "command-center/schema/benchmark-result.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate"
+      ]
+    },
+    "retrodiction_control": {
+      "path": "command-center/brainstorm/bp-brn-04/retrodiction-control.json",
+      "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "control-gate",
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 15,
+    "design_card": "BP-BRN-04",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:824",
+    "acquisition_route": "BUILD-NEW",
+    "state_v": [
+      "NEW"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "domain-neutral restatement gated for contamination, cross-domain literal fan-out with an EXTERNAL-source evidence standard, cross-vendor veto on the mapping, and a retrodiction control that must rediscover a transfer that already worked before any verdict may be cited",
+    "not_a_duplicate_because": "BP-BRN-03 questions constraints INSIDE the domain; this imports MECHANISMS from outside it. It is the only blueprint in this range whose evidence standard is an external domain source (its miners are explicitly told NOT to ground in the repo) and the only one carrying a retrodiction control.",
+    "contraindications": [
+      "an in-domain solution already exists - importing something exotic is invention theatre",
+      "the analogy cannot be tested cheaply - then the run can only ever emit RESEARCH-ONLY"
+    ],
+    "security_note": "Imported code carries a licence and a supply-chain risk. license_allowlist + require_owner_approval on Write(platform/lib/**) keep the import OUT of the build tree until the owner routes it through the licence and marketplace review. Mined text is untrusted DATA (treat_fetched_content_as_data), never instructions.",
+    "worked_examples": [
+      {
+        "name": "find a mechanism for ranking which of 2,007 work units to verify first",
+        "params": {
+          "problem": "Decide which of two thousand catalogued work units deserve independent verification first, given that verifying all of them is unaffordable",
+          "source_domains": [
+            "information-retrieval",
+            "epidemiology",
+            "mechanism-design"
+          ],
+          "transfer_test": "rank 40 units whose true defect status is already known and measure precision@10 against a random-order baseline",
+          "retrodiction_target": "PageRank ranking transferred from web search into a symbol-centrality repo map",
+          "research_budget_sources": 24
+        },
+        "expected_artifacts": [
+          "command-center/brainstorm/bp-brn-04/neutral-statement.json",
+          "command-center/brainstorm/bp-brn-04/mappings.json",
+          "command-center/brainstorm/bp-brn-04/retrodiction-control.json",
+          "command-center/brainstorm/bp-brn-04/transfer-tests.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WBRN-0405 with stopping rule one-transfer-passed fired",
+        "walkthrough": "S0 neutralises to `given a large set of items and a budget that covers only a fraction, order them so the most consequential are inspected first`, recording that `work unit`, `catalog` and `command-center/` were removed. S0b passes. S1 mines 3 domains: IR returns centrality and learning-to-rank; epidemiology returns contact-tracing prioritisation by secondary-case count; mechanism-design returns scoring rules that are proper. S2's cross-vendor critic vetoes the proper-scoring-rule mapping (no ground truth available at ranking time) and keeps dependency-centrality and secondary-case-count. S2b re-runs the identical procedure on the retrodiction target and rediscovers PageRank, so the instrument is validated. S3 measures precision@10 for both survivors against a random baseline. S4 records TRANSFERS for dependency-centrality, PARTIAL for secondary-case-count, and the run stops.",
+        "expected_gate_outcomes": {
+          "statement-is-neutral": "PASS - estate_specific_nouns_in_statement == 0",
+          "retrodiction-control-fires": "PASS - known_transfer_rediscovered == true",
+          "no-adoption-without-a-test": "PASS - both survivors carry a measured result"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a contaminated statement breaks the instrument",
+        "params": {
+          "problem": "Decide which of the 2,007 units in command-center/WORK-UNIT-CATALOG.json to verify first",
+          "source_domains": [
+            "information-retrieval",
+            "epidemiology"
+          ],
+          "transfer_test": "precision@10 on 40 units with known defect status"
+        },
+        "expected_artifacts": [
+          "command-center/brainstorm/bp-brn-04/neutral-statement.json"
+        ],
+        "expected_terminal_state": "FAILED:WBRN-0401 statement-not-neutral",
+        "walkthrough": "The statement names a repo path and an estate object, so repo_paths_in_statement == 1 and the statement-is-neutral gate fails with on_fail=repair. If a contaminated statement did reach the miners, they would return in-domain answers and the retrodiction control would report not-rediscovered, firing instrument-broken and escalating. Both arms exist so the failure is caught by a gate rather than shipped as a finding - this is the design card's benchmark that the neutralisation step is the fragile part.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "re-derive a known past transfer (PageRank -> repo map) from a neutral statement - if the blueprint cannot rediscover a transfer that already worked, the neutralisation step is broken",
+      "a problem with a trivial in-domain answer - expect the blueprint to say so rather than import something exotic"
+    ],
+    "unverified": "UNVERIFIED: no source is a workflow at all - the four cited transfers are the RESULTS of ad-hoc moves, and making the move repeatable is the contribution. Settling experiment: the retrodiction benchmark. Confidence: unlikely (20-45%) that any single run yields an adoptable transfer; very-likely (80-90%) that one in ten does, on the estate's own base rate.",
+    "council_presets_referenced": [
+      "platform/council/presets/C-D38-triz-8.councilspec.json",
+      "platform/council/protocols/p29-triz-contradiction.councilspec.json"
+    ],
+    "council_metric_binding": {
+      "independent_positions": "distinct mappings that survive the critic - fewer than 2 means the domains collapsed onto one idea",
+      "proof_of_impossibility": "the council can prove no mined mechanism maps onto the estate objects at all",
+      "objections_open": "a mapping still contested by the cross-vendor critic"
+    }
+  }
+}

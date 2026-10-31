@@ -1,0 +1,562 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "shared-prod-shard-fanout-build",
+  "name": "Rented-compute shard fan-out with mandatory PER-SHARD launch verification",
+  "description": "Blueprint 43 of 96 (BP-IMP-06). Runs many agent work units on rented job clusters when the LOCAL RAM ceiling - not the model - is the binding constraint. The distinctive mechanism is that launch is verified PER SHARD: the workspace is shared production, so a workspace-wide run count cannot distinguish this run's shards from anyone else's, and a shard chain has already silently never launched behind exactly that signal. Two further measured constraints are encoded as gates rather than prose: a submitted job carries NO job-level timeout unless one is set explicitly, and artifacts=N/N is not doneness without a content postcondition.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "data-science-knowledge-and-creative"],
+  "tags": ["remote-compute", "per-shard-verification", "shared-prod", "cost-metered"],
+  "flagship": false,
+
+  "params": {
+    "units": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 2,
+      "max_items": 1024,
+      "required": true,
+      "description": "Work units to shard. Below a few dozen, local is cheaper and this blueprint is contraindicated."
+    },
+    "cluster_spec": {
+      "type": "object",
+      "required": true,
+      "description": "Cluster shape, sized against the unit count in S0 rather than guessed",
+      "schema": {
+        "type": "object",
+        "required": ["node_type", "workers", "runtime_version"],
+        "properties": {
+          "node_type": { "type": "string", "minLength": 2 },
+          "workers": { "type": "integer", "minimum": 1, "maximum": 64 },
+          "runtime_version": { "type": "string", "minLength": 3 },
+          "autotermination_minutes": { "type": "integer", "minimum": 10, "maximum": 240 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "artifact_sink": {
+      "type": "path",
+      "required": true,
+      "description": "Where per-shard results land so the LOCAL session can read them after the remote run ends"
+    },
+    "job_timeout_seconds": {
+      "type": "integer",
+      "default": 7200,
+      "minimum": 300,
+      "maximum": 86400,
+      "description": "MANDATORY explicit value: a submitted job carries no job-level timeout by default, so an unset timeout is an unbounded spend"
+    },
+    "compute_credential": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference name only. Expiry of this credential has silently broken runs before, so S0 authenticates it rather than assuming it."
+    },
+    "route_if_gpu_shaped": {
+      "type": "enum",
+      "enum": ["stay", "modal", "runpod", "local"],
+      "default": "stay",
+      "description": "S0b: a GPU-shaped workload is not an agent-shaped workload and belongs on different compute"
+    }
+  },
+
+  "roles": {
+    "capacity-planner": {
+      "description": "Sizes the cluster against the measured unit count and authenticates the credential before anything is submitted",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:python", "mcp__cloud-hub__dbx_current_user", "mcp__cloud-hub__dbx_node_types"],
+      "speaking_rights": "always"
+    },
+    "shard-submitter": {
+      "description": "Submits the shard chain with an EXPLICIT per-job timeout and records the run id of each submission",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "mcp__cloud-hub__dbx_run_submit", "mcp__cloud-hub__dbx_job_create"],
+      "speaking_rights": "always"
+    },
+    "launch-verifier": {
+      "description": "Confirms THIS shard launched, by its own run id and its own postcondition - never by a workspace-wide count",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "tool_permissions": ["Read", "Bash:python", "mcp__cloud-hub__dbx_run_get", "mcp__cloud-hub__dbx_run_get_output"],
+      "speaking_rights": "always"
+    },
+    "cost-reporter": {
+      "description": "Reports metered spend and separates it from wall-clock confounds",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "tool_permissions": ["Read", "Bash:python", "mcp__cloud-hub__dbx_run_list"],
+      "speaking_rights": "on-request"
+    },
+    "owner": {
+      "description": "Decides whether rented compute is still in scope for this estate at all",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:python",
+      "mcp__cloud-hub__dbx_current_user",
+      "mcp__cloud-hub__dbx_node_types",
+      "mcp__cloud-hub__dbx_run_submit",
+      "mcp__cloud-hub__dbx_job_create",
+      "mcp__cloud-hub__dbx_run_get",
+      "mcp__cloud-hub__dbx_run_get_output",
+      "mcp__cloud-hub__dbx_run_list"
+    ],
+    "deny": ["mcp__cloud-hub__dbx_cluster_permanent_delete", "mcp__cloud-hub__dbx_secret_put", "WebFetch"],
+    "require_owner_approval": ["mcp__cloud-hub__dbx_cluster_create", "mcp__cloud-hub__dbx_warehouse_create"],
+    "network": "full",
+    "write_paths": ["command-center/compute/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"]
+  },
+
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "routes": [
+      {
+        "when": "stage_role == launch-verifier",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+        "reason": "the verification step is the one this blueprint exists for; it does not get the cheap route"
+      }
+    ],
+    "escalation": {
+      "on": ["timeout", "quota-429"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+      "max_escalations": 2
+    }
+  },
+
+  "gates": {
+    "credential-live": {
+      "predicate": "custom-expression",
+      "expression": "compute_credential_authenticated == true AND credential_value_logged == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "explicit-job-timeout": {
+      "predicate": "custom-expression",
+      "expression": "job_level_timeout_set == true AND job_timeout_seconds >= 300",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "per-shard-launch-verified": {
+      "predicate": "custom-expression",
+      "expression": "shards_launch_verified == shards_submitted AND inferred_from_workspace_count == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "artifacts-are-not-doneness": {
+      "predicate": "custom-expression",
+      "expression": "shards_with_content_postcondition == shards_submitted AND doneness_claimed_from_artifact_count == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "size-and-authenticate",
+      "title": "S0 SIZE the cluster against the unit count and AUTHENTICATE the credential",
+      "kind": "task",
+      "role": "capacity-planner",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BLD-0057",
+        "title": "Size rented compute against the measured unit count and prove the credential still authenticates before any submission",
+        "phase": "13",
+        "question_or_target": "Compute the shard count and cluster shape from the actual unit list (not a remembered shape), confirm the compute credential still authenticates with a whoami-class call, and decide whether the workload is agent-shaped (stay) or GPU-shaped (route elsewhere). Emit the shard manifest that every later stage keys on.",
+        "inputs": ["params.units", "params.cluster_spec", "params.job_timeout_seconds", "params.route_if_gpu_shaped"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "capacity-planner",
+          "basis": "mis-sizing is paid for in metered spend; this is not a cheap-route step"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:python", "mcp__cloud-hub__dbx_current_user"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/compute/shard-manifest.json",
+        "output_schema": "command-center/schema/scale-model.schema.json",
+        "evidence_requirement": "the whoami-class response proving the credential authenticates (identity only, never the credential value) plus the arithmetic from unit count to shard count to worker count, re-derivable from the manifest alone",
+        "tests_required": [
+          "an expired credential must FAIL this stage rather than surface later as an empty run",
+          "a unit list of 2 must produce a smaller cluster than a unit list of 600 - a sizing function that returns the same shape for both is not reading its input",
+          "both-states control: with route_if_gpu_shaped=modal a GPU-shaped workload must route AWAY, and an agent-shaped one must stay"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-derives the shard count from the unit list and re-runs the identity call, without reading the planner's rationale",
+        "completion_sentinel": "SUCCESS:BLD-0057 emitted only when shard-manifest.json exists, parses, names every shard with its unit set, and records an authenticated identity plus an explicit job timeout; otherwise FAILED:BLD-0057 <reason>",
+        "retry_policy": "two strikes then pivot; a second authentication failure is a credential-lifecycle matter for the owner - never re-issue or rotate it here",
+        "failure_classification": ["credential-expired", "sizing-unavailable", "wrong-compute-shape"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/compute/shard-manifest.json",
+          "schema_ref": "command-center/schema/scale-model.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BLD-0057",
+          "consumers": ["submit-shard-chain", "verify-each-launch"]
+        }
+      ]
+    },
+    {
+      "id": "credential-gate",
+      "title": "No submission against an unauthenticated credential",
+      "kind": "gate",
+      "depends_on": ["size-and-authenticate"],
+      "gate_ref": "credential-live"
+    },
+    {
+      "id": "submit-shard-chain",
+      "title": "S1 SUBMIT the shard chain with an EXPLICIT per-job timeout",
+      "kind": "task",
+      "role": "shard-submitter",
+      "depends_on": ["credential-gate"],
+      "work_unit_ref": "IMP-0446",
+      "timeout_seconds": 3600,
+      "produces": [
+        {
+          "path": "command-center/compute/submission-ledger.json",
+          "schema_ref": "command-center/schema/run-ledger.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:IMP-0446",
+          "consumers": ["timeout-gate", "verify-each-launch"]
+        }
+      ]
+    },
+    {
+      "id": "timeout-gate",
+      "title": "An unset job-level timeout is an unbounded spend, not a default",
+      "kind": "gate",
+      "depends_on": ["submit-shard-chain"],
+      "gate_ref": "explicit-job-timeout"
+    },
+    {
+      "id": "verify-each-launch",
+      "title": "S2 VERIFY LAUNCH PER SHARD by its own run id - never by a workspace-wide count",
+      "kind": "fanout",
+      "depends_on": ["timeout-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/compute/submission-ledger.json",
+        "item_var": "shard",
+        "key_field": "run_id"
+      },
+      "max_concurrency": 16,
+      "max_items": 1024,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "one-shard-launch-proof",
+          "title": "This run id, this state transition, this shard - a missing shard is NAMED",
+          "kind": "task",
+          "role": "launch-verifier",
+          "work_unit_ref": "TST-0148",
+          "timeout_seconds": 900,
+          "produces": [
+            {
+              "path": "command-center/compute/launch-proofs.json",
+              "schema_ref": "command-center/schema/reachability-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:TST-0148",
+              "consumers": ["launch-gate", "poll-to-completion"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "launch-gate",
+      "title": "Every submitted shard must be individually proven to have launched",
+      "kind": "gate",
+      "depends_on": ["verify-each-launch"],
+      "gate_ref": "per-shard-launch-verified"
+    },
+    {
+      "id": "poll-to-completion",
+      "title": "Poll until every shard is terminal by ITS OWN postcondition",
+      "kind": "loop",
+      "depends_on": ["launch-gate"],
+      "loop_var": "poll_round",
+      "body": [
+        {
+          "id": "poll-one-round",
+          "title": "One bounded polling pass over the outstanding shards",
+          "kind": "task",
+          "role": "launch-verifier",
+          "work_unit_ref": "ADV-0011",
+          "timeout_seconds": 1800
+        }
+      ],
+      "convergence": {
+        "max_iterations": 48,
+        "min_iterations": 1,
+        "converged_when": "shards_pending == 0 AND shards_postcondition_verified >= 1",
+        "no_progress_rounds": 6,
+        "metrics": [
+          { "name": "shards_pending", "direction": "decrease", "target": 0 },
+          { "name": "shards_postcondition_verified", "direction": "increase" },
+          { "name": "metered_cost_usd", "direction": "stabilize", "epsilon": 0.5 }
+        ],
+        "on_no_convergence": "fail"
+      }
+    },
+    {
+      "id": "doneness-gate",
+      "title": "artifacts=N/N is a count, not a content postcondition",
+      "kind": "gate",
+      "depends_on": ["poll-to-completion"],
+      "gate_ref": "artifacts-are-not-doneness"
+    },
+    {
+      "id": "collect-results",
+      "title": "S3 COLLECT per-shard results into the local-readable sink",
+      "kind": "task",
+      "role": "cost-reporter",
+      "depends_on": ["doneness-gate"],
+      "work_unit_ref": "ADV-0111",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/compute/shard-results.json",
+          "schema_ref": "command-center/schema/measurement-run.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0111",
+          "consumers": ["report-cost"]
+        }
+      ]
+    },
+    {
+      "id": "report-cost",
+      "title": "S4 REPORT metered spend, with timing confounds separated out",
+      "kind": "task",
+      "role": "cost-reporter",
+      "depends_on": ["collect-results"],
+      "work_unit_ref": "ADV-0086",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/compute/cost-report.json",
+          "schema_ref": "command-center/schema/architecture-cost-model.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0086",
+          "consumers": ["owner-compute-decision"]
+        }
+      ]
+    },
+    {
+      "id": "owner-compute-decision",
+      "title": "OWNER-DECISION: is rented compute still in scope for this estate, or is local/Modal the standing answer?",
+      "kind": "human_checkpoint",
+      "depends_on": ["report-cost"],
+      "prompt": "Measured spend, wall-clock, and per-shard verification results are attached. Keep this substrate, route future fan-outs to another provider, or retire remote fan-out for this estate?",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": true,
+      "options": ["keep", "route-elsewhere", "retire-remote-fanout"],
+      "decision_artifact": {
+        "path": "command-center/compute/owner-compute-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-shard-terminal-by-own-postcondition",
+      "expression": "shards_pending == 0 AND shards_with_content_postcondition == shards_submitted",
+      "applies_to": "workflow",
+      "minimum_conditions": "shards_launch_verified == shards_submitted",
+      "on_stop": "complete"
+    },
+    {
+      "id": "a-shard-never-launched",
+      "expression": "shards_launch_verified < shards_submitted",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "exponential",
+    "max_attempts": 4,
+    "backoff_seconds": 90,
+    "jitter": true,
+    "retry_on": ["quota-429-storm", "cluster-spinup-transient", "api-rate-limited"],
+    "no_retry_on": ["credential-expired", "shard-never-launched", "owner-blocked"]
+  },
+
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": ["shard-never-launched", "credential-expired", "cost-visibility-absent", "postcondition-missing"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-compute-decision",
+    "quarantine_path": "command-center/compute/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/shared-prod-shard-fanout-build",
+    "granularity": "work-unit",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "params_hash"],
+    "resume_from": "explicit-stage",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "fail"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/shared-prod-shard-fanout-build.jsonl",
+    "record": ["params", "tool_calls", "tool_results", "timings", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["network", "clock", "process-id"],
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "global",
+    "key_from": ["workflow_id", "params_hash", "inputs_hash"],
+    "store": "command-center/cache/shard-fanout",
+    "ttl_seconds": 43200,
+    "verify_integrity": true,
+    "invalidate_on": ["cluster-spec-change", "credential-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "permission-report"],
+    "plan_artifact": "command-center/dry-run/shared-prod-shard-fanout-build-plan.json",
+    "forbid_tools": [
+      "mcp__cloud-hub__dbx_run_submit",
+      "mcp__cloud-hub__dbx_job_create",
+      "mcp__cloud-hub__dbx_cluster_create",
+      "Bash:python"
+    ]
+  },
+
+  "estimate": {
+    "basis": "historical-measured",
+    "confidence": "roughly-even",
+    "measurement_source": "command-center/measurements/608-unit-shard-run.json",
+    "cost": { "currency": "USD", "min": 5.0, "expected": 60.0, "max": 400.0 },
+    "wallclock_seconds": { "min": 3600, "expected": 21600, "max": 86400 },
+    "tokens": { "min": 500000, "expected": 6000000, "max": 30000000 },
+    "tool_calls": { "expected": 800, "max": 5000 },
+    "impact": {
+      "risk": "high",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "metered spend on the owner's cloud account plus job runs in a SHARED production workspace; terminating the jobs stops the spend but the runs remain in the shared history",
+      "requires_owner_approval": true
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "presets", "cache-manifest", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/shared-prod-shard-fanout-build.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/codex-databricks-fanout",
+        "relation": "SPECIALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-06",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/codex-databricks-fanout@as-shipped"]
+  },
+
+  "outputs": {
+    "shard-results": {
+      "path": "command-center/compute/shard-results.json",
+      "schema_ref": "command-center/schema/measurement-run.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/PROGRAM-LEDGER.json"]
+    },
+    "cost-report": {
+      "path": "command-center/compute/cost-report.json",
+      "schema_ref": "command-center/schema/architecture-cost-model.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "600 units sharded into 24 chains on a shared production workspace.",
+      "the_recorded_failure": "chain 17 was submitted but never launched. The only progress signal in use was a workspace-wide run count, which was healthy because OTHER tenants' runs filled it. 25 units silently produced nothing and the run was reported complete",
+      "with_this_blueprint": "verify-each-launch keys on chain 17's OWN run id; the state never leaves PENDING; on_item_failure=abort stops the fan-out and launch-gate fails on shards_launch_verified < shards_submitted. The missing shard is NAMED, not averaged away",
+      "timeout_case": "chain 9's job was submitted with no job-level timeout and ran for 11 hours against a hung unit. timeout-gate now refuses the submission unless job_timeout_seconds is explicitly set",
+      "doneness_case": "chain 3 reports artifacts=25/25 but eight artifacts are 0-byte. doneness-gate fails on shards_with_content_postcondition < shards_submitted - a count is not a postcondition",
+      "credential_case": "the compute credential had expired between runs. size-and-authenticate fails FIRST with an identity call, so the failure is one clear stage rather than 24 empty shards. The credential is reported, never rotated here"
+    },
+    "distinctive_mechanism": "per-shard launch verification keyed on each shard's own run id, on a substrate where the global count is meaningless, plus an explicit-timeout gate and a content-postcondition gate over the artifact count",
+    "contraindications": [
+      "NOT for small fan-outs - local is cheaper and has better observability",
+      "NOT where the work needs the local filesystem",
+      "NOT when cost visibility is unavailable - metered spend without a cost report is an open-ended commitment"
+    ],
+    "not_a_duplicate_because": "BP-IMP-05 targets many REPOSITORIES on their own CI with a propose-only constraint; this targets many WORK UNITS on rented compute, and its defining gate is per-shard launch verification on a shared-tenant substrate."
+  }
+}

@@ -1,0 +1,743 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "crv.split-role-reviewer-panel",
+  "name": "Split-role reviewer panel over one diff",
+  "description": "Review a change with role-separated reviewers so no single reviewer's attention budget has to cover everything, then reconcile their findings. This is a FAN-OUT panel, deliberately NOT a council stage: there are no deliberation rounds, no consensus threshold and no rebuttal phase - each role reads the same diff in isolation and a reconciler dedupes. Reviewers READ; they do not execute, so this is never the only correctness gate.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "code-review",
+    "split-role",
+    "fan-out",
+    "dedupe"
+  ],
+  "flagship": true,
+  "params": {
+    "diff_path": {
+      "type": "path",
+      "required": true,
+      "description": "The three-dot diff under review (origin/main...HEAD)"
+    },
+    "language": {
+      "type": "enum",
+      "enum": [
+        "python",
+        "typescript",
+        "mixed",
+        "other"
+      ],
+      "default": "mixed",
+      "description": "Routes which language-specialist reviewer joins the panel"
+    },
+    "requirements_ref": {
+      "type": "path",
+      "description": "What the change was supposed to do, so a reviewer can judge fit"
+    },
+    "author_identity": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "Who wrote the diff; the author may not also be a reviewer"
+    },
+    "include_cross_vendor_role": {
+      "type": "boolean",
+      "default": true,
+      "description": "Add a Codex reviewer as a 4th role (a same-vendor panel shares blind spots)"
+    },
+    "min_unique_findings_per_role": {
+      "type": "integer",
+      "default": 1,
+      "minimum": 0,
+      "description": "A role with zero unique findings over a window is redundant and should be retired"
+    }
+  },
+  "roles": {
+    "senior-reviewer": {
+      "description": "Correctness, structure and maintainability of the delta",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "security-reviewer": {
+      "description": "Injection sinks, authz, secret handling, unsafe process spawning",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "consistency-reviewer": {
+      "description": "Agreement with existing repo conventions, naming and prior art",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "cross-vendor-reviewer": {
+      "description": "Independent Codex reviewer; a same-vendor panel shares the author's blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "reconciler": {
+      "description": "Dedupes findings across roles and ranks them; never authors a finding",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/review/**)"
+      ],
+      "write_paths": [
+        "command-center/review/**"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/review/**)",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/review/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "review_role == CROSS_VENDOR",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the 4th role only adds value if it is a different vendor"
+      },
+      {
+        "when": "review_role == CONSISTENCY",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "medium"
+        },
+        "reason": "convention matching does not need max effort"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "gpt-5-codex",
+        "vendor": "openai"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "author-exclusion": {
+      "predicate": "custom-expression",
+      "expression": "author_is_reviewer == false AND roles_dispatched >= 3",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "finding-evidence": {
+      "predicate": "custom-expression",
+      "expression": "findings_without_file_line == 0 AND findings_without_failure_scenario_downgraded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "route-by-language",
+      "title": "Pick the panel for this language",
+      "kind": "task",
+      "role": "reconciler",
+      "checkpoint": true,
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "CRV-4901",
+        "title": "Select the reviewer panel for the diff's language and risk surface",
+        "phase": "2B",
+        "question_or_target": "Given the diff and its declared language, name the 3-4 roles that will review it and the scope each owns, so no region of the diff is unowned and no two roles are given the same scope.",
+        "inputs": [
+          "params.diff_path",
+          "params.language",
+          "params.author_identity"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/review/crv-49-panel-assignment.json",
+        "output_schema": "command-center/schema/assignment-matrix.schema.json",
+        "evidence_requirement": "every diff hunk maps to exactly one owning role, cited by file and line range",
+        "tests_required": [
+          "both-states control: remove a role from the panel and the unowned-hunk count must rise above zero"
+        ],
+        "reviewer_requirement": "the security role's presence is asserted mechanically, not reviewed by a peer",
+        "completion_sentinel": "SUCCESS:CRV-4901 emitted only when the assignment covers every hunk, the author appears in no role, and at least three roles are assigned; otherwise FAILED:CRV-4901 <reason>",
+        "retry_policy": "two strikes then pivot to a single generalist reviewer and say so",
+        "failure_classification": [
+          "spec-underspecified",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "deterministic scope partition of the diff across declared roles"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-49-panel-assignment.json",
+          "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CRV-4901",
+          "consumers": [
+            "review-panel",
+            "dedupe-findings"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review-panel",
+      "title": "Each role reads the same diff in isolation",
+      "kind": "fanout",
+      "depends_on": [
+        "route-by-language"
+      ],
+      "over": {
+        "source": "literal",
+        "items": [
+          "SENIOR",
+          "SECURITY",
+          "CONSISTENCY",
+          "CROSS_VENDOR"
+        ],
+        "item_var": "review_role",
+        "key_field": "review_role"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 250,
+      "max_items": 8,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "role-review",
+          "title": "One role, one scope, no sibling output as prefix context",
+          "kind": "task",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob"
+          ],
+          "work_unit_ref": "ADV-0037",
+          "timeout_seconds": 2700
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "^\\s*$"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "author-exclusion",
+      "title": "The author may not be a reviewer",
+      "kind": "gate",
+      "depends_on": [
+        "review-panel"
+      ],
+      "gate_ref": "author-exclusion"
+    },
+    {
+      "id": "null-result-reprobe",
+      "title": "A silent reviewer on a large diff is a suspect measurement",
+      "kind": "repair_loop",
+      "depends_on": [
+        "author-exclusion"
+      ],
+      "target": [
+        "review-panel"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "detector-failure",
+        "severed-stream"
+      ],
+      "require_root_cause": true,
+      "escalate_to": "rank-and-emit",
+      "diagnose": {
+        "id": "diagnose-null-review",
+        "kind": "task",
+        "role": "reconciler",
+        "work_unit_ref": "ADV-0010"
+      },
+      "repair": {
+        "id": "rerun-narrowed-scope",
+        "kind": "task",
+        "role": "senior-reviewer",
+        "work_unit_ref": "ADV-0032"
+      },
+      "verify": {
+        "id": "verify-null-was-real",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "silent_roles_after_reprobe == 0 OR null_confirmed_on_narrowed_scope == true",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "dedupe-findings",
+      "title": "Collapse the same finding reported by several roles",
+      "kind": "task",
+      "depends_on": [
+        "null-result-reprobe"
+      ],
+      "role": "reconciler",
+      "work_unit": {
+        "id": "CRV-4902",
+        "title": "Dedupe findings across roles on (file, line, class) and record role-uniqueness",
+        "phase": "2B",
+        "question_or_target": "Collapse findings that name the same file, line and defect class, and record how many findings were UNIQUE to each role - a role with zero unique findings over a window is redundant and should be retired.",
+        "inputs": [
+          "command-center/review/crv-49-panel-assignment.json",
+          "command-center/review/crv-49-role-findings/"
+        ],
+        "dependencies": [
+          "CRV-4901"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "reconciliation is judgement over structured input, not a mechanical join"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/review/crv-49-deduped-findings.json",
+        "output_schema": "command-center/schema/meta-review-finding.schema.json",
+        "evidence_requirement": "every surviving finding keeps its originating role list and its file:line anchor",
+        "tests_required": [
+          "plant the identical finding in two roles and assert the deduped count is one, not two",
+          "both-states control: plant two findings that share a file but differ in line and assert they do NOT collapse"
+        ],
+        "reviewer_requirement": "the ranking stage re-reads the deduped set and may reopen a collapse",
+        "completion_sentinel": "SUCCESS:CRV-4902 emitted only when no two surviving findings share (file, line, class) and every finding still names at least one originating role; otherwise FAILED:CRV-4902 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the union un-deduped and label it so",
+        "failure_classification": [
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "set collapse on the (file, line, class) key with role provenance retained",
+        "not_a_duplicate_because": "this is a within-panel collapse of literally identical anchors; it is not the mechanism-level near-duplicate detection used on work units"
+      }
+    },
+    {
+      "id": "finding-evidence",
+      "title": "A finding without file:line or a failure scenario is a note, not a finding",
+      "kind": "gate",
+      "depends_on": [
+        "dedupe-findings"
+      ],
+      "gate_ref": "finding-evidence"
+    },
+    {
+      "id": "rank-and-emit",
+      "title": "Rank by severity and emit the panel report",
+      "kind": "task",
+      "depends_on": [
+        "finding-evidence"
+      ],
+      "role": "reconciler",
+      "work_unit_ref": "ADV-0022",
+      "produces": [
+        {
+          "path": "command-center/review/crv-49-panel-report.json",
+          "schema_ref": "command-center/schema/meta-review-finding.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json",
+            "crv.overclaim-scoping-review"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-roles-returned",
+      "expression": "roles_returned >= roles_dispatched AND author_is_reviewer == false",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "roles_dispatched >= 3"
+    },
+    {
+      "id": "panel-degraded-but-honest",
+      "expression": "quarantined_roles > 0 AND degradation_disclosed == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "rank-and-emit"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "detector-failure",
+      "severed-stream",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "rank-and-emit",
+    "quarantine_path": "command-center/quarantine/crv-49"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/crv-49",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/crv-49-panel.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "model_id"
+    ],
+    "store": "command-center/cache/crv-49",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/crv-49-plan.json",
+    "forbid_tools": [
+      "Write(command-center/review/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 1.2,
+      "max": 4.0
+    },
+    "wallclock_seconds": {
+      "expected": 1500,
+      "max": 4500
+    },
+    "tokens": {
+      "expected": 320000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/review/**; reads the repo",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/crv-49-panel.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CRV-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "agents/code-reviewer",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "agents/security-reviewer",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "agents/python-reviewer",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "agents/typescript-reviewer",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "agents/code-reviewer",
+      "commands/code-review"
+    ]
+  },
+  "outputs": {
+    "panel-report": {
+      "path": "command-center/review/crv-49-panel-report.json",
+      "schema_ref": "command-center/schema/meta-review-finding.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-CRV-01",
+    "card_index": 49,
+    "family": "D10-code-review",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "diff",
+      "oracle": "llm-panel",
+      "execution_required": false,
+      "mutation_target": "none",
+      "comparison_axis": "role-partition",
+      "output_type": "findings-ranked",
+      "information_barrier": false
+    },
+    "mechanism": "N reviewers with DISJOINT declared scopes read one diff in isolation; a reconciler collapses identical anchors and ranks. Recall comes from partition, not from deliberation.",
+    "contraindications": [
+      "NOT for a one-line change - the panel costs more than the diff is worth",
+      "NOT as the ONLY correctness gate: a reviewer READS, it does not EXECUTE - pair with a tst.* blueprint",
+      "NOT a council: no rounds, no consensus, no rebuttal - if you need deliberation use the D4-council family"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "planted-injection-sink",
+        "setup": "a diff carrying a deliberate command-injection sink",
+        "expected": "the security role reports it; a panel that misses it fails the benchmark"
+      },
+      {
+        "name": "clean-diff",
+        "setup": "a diff with no defects",
+        "expected": "few findings, and none manufactured; a nonzero blocking_count here is a false-positive failure"
+      }
+    ],
+    "why_not_a_duplicate": "BP-CRV-02 folds in git HISTORY to judge what the delta INTRODUCES; this is a role-partitioned read of the diff alone and is history-blind by construction.",
+    "unverified": "UNVERIFIED (roughly-even) that all four roles carry non-overlapping recall on this estate; settling experiment = run the panel over ten diffs and count findings unique to each role. A role with zero unique findings is redundant and min_unique_findings_per_role exists to make that measurable.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "review a 240-line auth refactor authored by the orchestrator",
+      "params": {
+        "diff_path": "command-center/review/inbox/auth-refactor.diff",
+        "language": "python",
+        "author_identity": "orchestrator",
+        "include_cross_vendor_role": true,
+        "min_unique_findings_per_role": 1
+      },
+      "narrative": "Four roles dispatched, four returned. The security role found one HIGH (a widened token scope); senior found two MEDIUM; consistency found one naming NOTE with no failure scenario, which the evidence gate downgrades rather than counting as a finding.",
+      "context": {
+        "author_is_reviewer": false,
+        "roles_dispatched": 4,
+        "roles_returned": 4,
+        "findings_without_file_line": 0,
+        "findings_without_failure_scenario_downgraded": true,
+        "silent_roles_after_reprobe": 0,
+        "null_confirmed_on_narrowed_scope": false,
+        "quarantined_roles": 1,
+        "degradation_disclosed": true,
+        "review_role": "SENIOR"
+      },
+      "expected_gate_pass": [
+        "author-exclusion",
+        "finding-evidence"
+      ],
+      "expected_stop": [
+        "all-roles-returned"
+      ],
+      "negative_control": {
+        "gate": "author-exclusion",
+        "overrides": {
+          "author_is_reviewer": true
+        },
+        "expected": false,
+        "why": "the author reviewing their own diff must fail the panel, not merely be noted"
+      }
+    }
+  }
+}

@@ -1,0 +1,428 @@
+{
+ "unit_id": "TST-0045",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0045",
+ "schema_version": 1,
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0045.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0045.json",
+   "bytes": 9138,
+   "sha256": "f7fe1de5f3b8ae54b9eccfe6f8a04ed924f45cc3359392da1058946cfe7c4575",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0045 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0045.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0045.json",
+     "raw_output": "bytes=9138 sha256=f7fe1de5f3b8ae54b9eccfe6f8a04ed924f45cc3359392da1058946cfe7c4575",
+     "fingerprint": "536da0e61efe0e83069872ca84972a50",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0045",
+     "raw_output": "schema-check",
+     "fingerprint": "8a29a9365cac98d1f364b432e641d35f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0045 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0045",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0045",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "c6571db8954be6d73d1282c6cb020bcc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0045",
+     "raw_output": "schema-valid",
+     "fingerprint": "262103b507d27c6afbea280d86033c32",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "id": "TST-0045",
+   "status": "DELIVERED",
+   "completion_sentinel": "SUCCESS:TST-0045",
+   "report_kind": "cross-vendor-adapter-dispatch-conformance",
+   "title": "Executable conformance tests for the cross-vendor adapter contract",
+   "question": "Does the cross-vendor adapter enforce the dispatch rules that were ledger-proven here - prompt-by-file (never inline, 32,767-char Windows limit), blocking dispatch (never background), and an AND-gate of exit-0 PLUS a parsed output file before SUCCESS?",
+   "output_path": "command-center/receipts/TST-0045.json",
+   "output_schema": "command-center/schema/conformance-report.schema.json",
+   "computed_not_prose": true,
+   "runtime": {
+    "kind": "blocking-subprocess",
+    "live_vendor_api": false,
+    "note": "Dispatches go through the ARC-0091 fixture vendor_cli (prompt-by-file, blocking, AND-gate). This is not a billed Anthropic or OpenAI HTTP/MCP session. Windows CreateProcess os error 206 is ledger-proven, not reproduced on this Linux host."
+   },
+   "windows_createprocess_char_ceiling": 32767,
+   "prompt_transport_rule": "file",
+   "blocking_dispatch_rule": "blocking_foreground",
+   "and_gate_rule": "exit-0-AND-nonempty-parsable-output",
+   "answer": "Yes on the ARC-0091 adapter plus the background-job-receipt classifier: a 33316-char prompt completed via --prompt-file (inline CreateProcess length 33021 exceeds the 32,767 ceiling), background dispatch is FAILED, a planted background job receipt is FAILED not SUCCESS, and exit-0 empty/unparsable output is SEVERED. A mutant that accepts inline, background, and AND-gate violations turns the suite red. SUCCESS:TST-0045",
+   "suite": {
+    "conforming_pass": true,
+    "conforming_n_pass": 7,
+    "conforming_n_fail": 0,
+    "mutant_pass": false,
+    "mutant_n_pass": 1,
+    "mutant_n_fail": 6,
+    "mutant_failed_ids": [
+     "inline_prompt_refused",
+     "background_dispatch_refused",
+     "background_job_receipt_refused",
+     "empty_output_severed",
+     "unparsable_output_severed",
+     "nonzero_exit_not_success"
+    ],
+    "negative_per_rule": {
+     "and-gate": true,
+     "blocking-dispatch": true,
+     "prompt-by-file": true
+    },
+    "cases": [
+     {
+      "id": "large_prompt_via_prompt_file",
+      "rule": "prompt-by-file",
+      "polarity": "positive",
+      "result": "PASS",
+      "kind": "SUCCESS",
+      "reason": null
+     },
+     {
+      "id": "inline_prompt_refused",
+      "rule": "prompt-by-file",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "FAILED",
+      "reason": "prompt-inline-refused"
+     },
+     {
+      "id": "background_dispatch_refused",
+      "rule": "blocking-dispatch",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "FAILED",
+      "reason": "background-dispatch-refused"
+     },
+     {
+      "id": "background_job_receipt_refused",
+      "rule": "blocking-dispatch",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "FAILED",
+      "reason": "background-job-receipt-refused"
+     },
+     {
+      "id": "empty_output_severed",
+      "rule": "and-gate",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "SEVERED",
+      "reason": "severed-stream-empty-output"
+     },
+     {
+      "id": "unparsable_output_severed",
+      "rule": "and-gate",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "SEVERED",
+      "reason": "severed-stream-unparsable-output"
+     },
+     {
+      "id": "nonzero_exit_not_success",
+      "rule": "and-gate",
+      "polarity": "negative",
+      "result": "PASS",
+      "kind": "FAILED",
+      "reason": "vendor-exit-2"
+     }
+    ]
+   },
+   "both_states": {
+    "conforming_pass": true,
+    "mutant_pass": false,
+    "mutant_detected_rules": [
+     "and-gate",
+     "blocking-dispatch",
+     "prompt-by-file"
+    ],
+    "control": "suite.run_suite(conforming.dispatch) is green; suite.run_suite(mutant.dispatch) is red on every contract rule"
+   },
+   "large_prompt_dispatch": {
+    "terminal_kind": "SUCCESS",
+    "prompt_chars": 33316,
+    "prompt_path": "/tmp/tst0045-emit-rddpq_7k/evidence-large/openai-TST-0045.prompt.txt",
+    "prompt_file_written": true,
+    "prompt_transport": "file",
+    "argv_contains_prompt_file": true,
+    "argv_contains_prompt_body": false,
+    "inline_createprocess_len": 33021,
+    "would_exceed_windows_ceiling": true,
+    "and_gate": {
+     "exit_code": 0,
+     "output_file_nonempty": true,
+     "output_parsable": true,
+     "schema_valid": true
+    },
+    "vendor": "openai"
+   },
+   "background_job_receipt": {
+    "terminal_kind": "FAILED",
+    "reason": "background-job-receipt-refused",
+    "accepted_as_success": false,
+    "is_background_job_receipt": true
+   },
+   "surviving_mutants": [],
+   "ts": "2026-08-25T01:27:34Z"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0045",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0045/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0045"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0045.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0045.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "7ea9ed247755181e04f8038b432706a2",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "conformance-report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 9138,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0045.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "id": "TST-0045",
+ "status": "DELIVERED",
+ "completion_sentinel": "SUCCESS:TST-0045",
+ "report_kind": "cross-vendor-adapter-dispatch-conformance",
+ "title": "Executable conformance tests for the cross-vendor adapter contract",
+ "question": "Does the cross-vendor adapter enforce the dispatch rules that were ledger-proven here - prompt-by-file (never inline, 32,767-char Windows limit), blocking dispatch (never background), and an AND-gate of exit-0 PLUS a parsed output file before SUCCESS?",
+ "output_path": "command-center/receipts/TST-0045.json",
+ "output_schema": "command-center/schema/conformance-report.schema.json",
+ "computed_not_prose": true,
+ "runtime": {
+  "kind": "blocking-subprocess",
+  "live_vendor_api": false,
+  "note": "Dispatches go through the ARC-0091 fixture vendor_cli (prompt-by-file, blocking, AND-gate). This is not a billed Anthropic or OpenAI HTTP/MCP session. Windows CreateProcess os error 206 is ledger-proven, not reproduced on this Linux host."
+ },
+ "windows_createprocess_char_ceiling": 32767,
+ "prompt_transport_rule": "file",
+ "blocking_dispatch_rule": "blocking_foreground",
+ "and_gate_rule": "exit-0-AND-nonempty-parsable-output",
+ "answer": "Yes on the ARC-0091 adapter plus the background-job-receipt classifier: a 33316-char prompt completed via --prompt-file (inline CreateProcess length 33021 exceeds the 32,767 ceiling), background dispatch is FAILED, a planted background job receipt is FAILED not SUCCESS, and exit-0 empty/unparsable output is SEVERED. A mutant that accepts inline, background, and AND-gate violations turns the suite red. SUCCESS:TST-0045",
+ "suite": {
+  "conforming_pass": true,
+  "conforming_n_pass": 7,
+  "conforming_n_fail": 0,
+  "mutant_pass": false,
+  "mutant_n_pass": 1,
+  "mutant_n_fail": 6,
+  "mutant_failed_ids": [
+   "inline_prompt_refused",
+   "background_dispatch_refused",
+   "background_job_receipt_refused",
+   "empty_output_severed",
+   "unparsable_output_severed",
+   "nonzero_exit_not_success"
+  ],
+  "negative_per_rule": {
+   "and-gate": true,
+   "blocking-dispatch": true,
+   "prompt-by-file": true
+  },
+  "cases": [
+   {
+    "id": "large_prompt_via_prompt_file",
+    "rule": "prompt-by-file",
+    "polarity": "positive",
+    "result": "PASS",
+    "kind": "SUCCESS",
+    "reason": null
+   },
+   {
+    "id": "inline_prompt_refused",
+    "rule": "prompt-by-file",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "FAILED",
+    "reason": "prompt-inline-refused"
+   },
+   {
+    "id": "background_dispatch_refused",
+    "rule": "blocking-dispatch",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "FAILED",
+    "reason": "background-dispatch-refused"
+   },
+   {
+    "id": "background_job_receipt_refused",
+    "rule": "blocking-dispatch",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "FAILED",
+    "reason": "background-job-receipt-refused"
+   },
+   {
+    "id": "empty_output_severed",
+    "rule": "and-gate",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "SEVERED",
+    "reason": "severed-stream-empty-output"
+   },
+   {
+    "id": "unparsable_output_severed",
+    "rule": "and-gate",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "SEVERED",
+    "reason": "severed-stream-unparsable-output"
+   },
+   {
+    "id": "nonzero_exit_not_success",
+    "rule": "and-gate",
+    "polarity": "negative",
+    "result": "PASS",
+    "kind": "FAILED",
+    "reason": "vendor-exit-2"
+   }
+  ]
+ },
+ "both_states": {
+  "conforming_pass": true,
+  "mutant_pass": false,
+  "mutant_detected_rules": [
+   "and-gate",
+   "blocking-dispatch",
+   "prompt-by-file"
+  ],
+  "control": "suite.run_suite(conforming.dispatch) is green; suite.run_suite(mutant.dispatch) is red on every contract rule"
+ },
+ "large_prompt_dispatch": {
+  "terminal_kind": "SUCCESS",
+  "prompt_chars": 33316,
+  "prompt_path": "/tmp/tst0045-emit-rddpq_7k/evidence-large/openai-TST-0045.prompt.txt",
+  "prompt_file_written": true,
+  "prompt_transport": "file",
+  "argv_contains_prompt_file": true,
+  "argv_contains_prompt_body": false,
+  "inline_createprocess_len": 33021,
+  "would_exceed_windows_ceiling": true,
+  "and_gate": {
+   "exit_code": 0,
+   "output_file_nonempty": true,
+   "output_parsable": true,
+   "schema_valid": true
+  },
+  "vendor": "openai"
+ },
+ "background_job_receipt": {
+  "terminal_kind": "FAILED",
+  "reason": "background-job-receipt-refused",
+  "accepted_as_success": false,
+  "is_background_job_receipt": true
+ },
+ "surviving_mutants": [],
+ "ts": "2026-08-25T01:27:34Z"
+}

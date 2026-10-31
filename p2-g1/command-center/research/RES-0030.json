@@ -1,0 +1,1018 @@
+{
+ "evidence": [
+  {
+   "claim": "RES-0030 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0030.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0030.json",
+     "raw_output": "bytes=25087 sha256=d4138103ca890b4a446dfea0274d667cbfc623e689607199585f296a6002782b",
+     "fingerprint": "568a97b9493f556fee12312f69f39440",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0030",
+     "raw_output": "schema-check",
+     "fingerprint": "aea8af6250e9d81eced6b30a75257700",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0030 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0030",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0030",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "772fb91ad137780fe0ada601e65c8da0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0030",
+     "raw_output": "schema-valid",
+     "fingerprint": "0effa7aad39f287ecc29b6f07f395c92",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0030",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0030.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0030",
+ "extensions": {
+  "legacy_root": {
+   "api_redirect_chain": [
+    {
+     "bytes": 198,
+     "content_type": "application/json; charset=utf-8",
+     "hop": 0,
+     "location": "https://api.github.com/repositories/846698999",
+     "reason": "Moved Permanently",
+     "sha256": "f6a863c0ae868f2531bafd270e8e80dacf6e836c5959165c2ea0065aea9d3e41",
+     "status": 301,
+     "url": "https://api.github.com/repos/block/goose"
+    },
+    {
+     "bytes": 6285,
+     "bytes_note": "api-json-includes-live-counters-not-pinned",
+     "content_type": "application/json; charset=utf-8",
+     "hop": 1,
+     "location": null,
+     "status": 200,
+     "url": "https://api.github.com/repositories/846698999"
+    }
+   ],
+   "canonical_full_name": "aaif-goose/goose",
+   "canonical_repo_url": "https://github.com/aaif-goose/goose",
+   "claims": [
+    {
+     "canonical_mechanism": "GitHub repo transfer: old owner pointer is a silent 301, not a second copy.",
+     "claim": "The Goose repository's current canonical location is https://github.com/aaif-goose/goose (full_name aaif-goose/goose, GitHub id 846698999). https://github.com/block/goose HTTP 301s there; https://api.github.com/repos/block/goose HTTP 301s to /repositories/846698999, which is the same transferred repo.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C6"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C1",
+     "named_settling_probe": "probe1_canonical_redirect.py",
+     "snapshot_sha256": null,
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:17Z",
+       "http_status": 301,
+       "permalink": "https://github.com/block/goose",
+       "rail": "html-redirect-probe",
+       "sha256": null
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:18Z",
+       "http_status": 301,
+       "permalink": "https://api.github.com/repos/block/goose",
+       "rail": "github-api-structured",
+       "sha256": "f6a863c0ae868f2531bafd270e8e80dacf6e836c5959165c2ea0065aea9d3e41"
+      }
+     ],
+     "strongest_caveat": "A future second transfer would 301 again; this measurement is the live hop list at freshness_stamp, not a forever-name.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "get_active_provider uses lead if turn_count < lead_turns OR in_fallback_mode; handle_completion_result enters fallback when turn_count >= lead_turns and consecutive task failures >= threshold.",
+     "claim": "The catalog's 'lead-to-worker escalation at a failure threshold' wording is false as a mechanism description. Lead-to-worker is turn-count (GOOSE_LEAD_TURNS, default 3). The failure threshold escalates the other way: worker-to-lead fallback.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [
+       "catalog-question-wording"
+      ],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C3"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C2",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:18Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs",
+       "rail": "structured-raw-source",
+       "sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+       "rail": "prose-docs",
+       "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+      }
+     ],
+     "strongest_caveat": "REFUTED is the catalog framing, not the existence of a switch. The switch exists; its failure-threshold direction is worker-to-lead.",
+     "verdict": "REFUTED"
+    },
+    {
+     "canonical_mechanism": "LeadWorkerProvider turn counter + failure_count + in_fallback_mode.",
+     "claim": "When lead/worker mode is enabled, Goose uses the lead model for the first GOOSE_LEAD_TURNS (default 3) then the worker; on consecutive task failures at/over the failure threshold it falls back to the lead for GOOSE_LEAD_FALLBACK_TURNS (default 2), then retries the worker.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C3",
+       "RES-0030-C4"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C2b",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:18Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs",
+       "rail": "structured-raw-source",
+       "sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+       "rail": "prose-docs",
+       "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+      }
+     ],
+     "strongest_caveat": "The feature was deleted from main on 2026-03-18 (C6). This claim is about parent commit 7f1ca37234db08ab173d48b97560e80f219124db, the last tree that still contains lead_worker.rs.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "DEFAULT_FAILURE_THRESHOLD = 2; max_failures_before_fallback: 2.",
+     "claim": "The default failure threshold is 2 consecutive task failures. Cited at crates/goose/src/providers/init.rs:45 and crates/goose/src/providers/lead_worker.rs:52; trigger conjunction at crates/goose/src/providers/lead_worker.rs:151.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C4"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C3",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:18Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs",
+       "rail": "structured-raw-source",
+       "sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md",
+       "rail": "prose-docs",
+       "sha256": "6900116b9fb34cada316bf42112e9e04b75047353416ddd06fb3db67031c2e0b"
+      }
+     ],
+     "strongest_caveat": "Task failure is heuristic (tool errors, 'error:' in tool output, user-correction phrases). A single indicator counts (failure_indicators >= 1). That is not an eval of quality.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "config.get_param::<usize>('GOOSE_LEAD_FAILURE_THRESHOLD').unwrap_or(DEFAULT_FAILURE_THRESHOLD).",
+     "claim": "The threshold is configurable, not hard-coded as the only value. GOOSE_LEAD_FAILURE_THRESHOLD is read in crates/goose/src/providers/init.rs:198 and passed to LeadWorkerProvider::new_with_settings. The integer 2 is the default when the config key is unset. The no-settings constructor also hard-codes 2.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C3"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C4",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:18Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs",
+       "rail": "structured-raw-source",
+       "sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md",
+       "rail": "prose-docs",
+       "sha256": "6900116b9fb34cada316bf42112e9e04b75047353416ddd06fb3db67031c2e0b"
+      }
+     ],
+     "strongest_caveat": "Configurable via env/config for the create_lead_worker_from_env path. Callers of LeadWorkerProvider::new() still get a hard-coded 2.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "Would require a comparative eval (fallback-to-lead vs retry-worker) with a measured delta. Docs assert a design rationale only.",
+     "claim": "There is evidence that lead/worker failure-threshold escalation beats retrying the same worker.",
+     "confidence_band": "remote",
+     "edges": {
+      "contradicts": [
+       "RES-0030-C2b-as-quality-claim"
+      ],
+      "duplicate_of": [],
+      "supports": []
+     },
+     "evidence_tier": "E3",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C5",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+       "rail": "prose-docs",
+       "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+      }
+     ],
+     "strongest_caveat": "Tutorial and env docs claim fallback helps when the worker 'gets tripped up'. PR #7989 comments ask why the feature was removed and do not supply an A/B. Absence of a published comparison is not proof the heuristic is worse; it is proof the 'beats retry' claim is not a measured fact. Graded E3: one rail (docs rationale) and no independent empirical rail.",
+     "verdict": "REFUTED"
+    },
+    {
+     "canonical_mechanism": "Feature deletion, not a rename. Historical extract is pinned to parent SHA.",
+     "claim": "Lead/worker was removed from current main: PR #7989 merged as 6435e1a85c97caffca810fafa6b000df962416be on 2026-03-18, deleting crates/goose/src/providers/lead_worker.rs. A GET of that path on main returns HTTP 404. Current env-var docs no longer mention GOOSE_LEAD_FAILURE_THRESHOLD.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [],
+      "duplicate_of": [],
+      "supports": [
+       "RES-0030-C2b"
+      ]
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C6",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": null,
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 404,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/crates/goose/src/providers/lead_worker.rs",
+       "rail": "current-main-absence-control",
+       "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:20Z",
+       "http_status": 200,
+       "permalink": "https://github.com/aaif-goose/goose/pull/7989",
+       "rail": "github-api-structured",
+       "sha256": "8dba3df928d4696d8bdc6961332588c6126b21e41ac2cab529bb18b9f550e0a7"
+      }
+     ],
+     "strongest_caveat": "A later restore would make main 200 again. Probe 2 re-checks the 404. Pinned parent SHA remains the citation target for C2b-C4.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "Documented in documentation/docs/guides/recipes/recipe-reference.md on current main.",
+     "claim": "Goose recipes are YAML (recommended) or JSON session packages with required title/description and at least one of instructions/prompt. They also have an optional retry block (max_retries + success checks). Recipe retry re-runs the same recipe; it is not lead/worker escalation.",
+     "confidence_band": "almost-certain",
+     "edges": {
+      "contradicts": [
+       "conflating-recipe-retry-with-lead-worker"
+      ],
+      "duplicate_of": [],
+      "supports": []
+     },
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-25T00:56:20Z",
+     "id": "RES-0030-C7",
+     "named_settling_probe": "probe2_threshold_locus.py",
+     "snapshot_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+     "source_lineage": [
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/recipe-reference.md",
+       "rail": "prose-docs",
+       "sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35"
+      },
+      {
+       "fetch_timestamp": "2026-08-25T00:56:19Z",
+       "http_status": 200,
+       "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/session-recipes.md",
+       "rail": "prose-docs",
+       "sha256": "3f7af2d8a73a918917eee907900e4143aa958135d8a350c1df3242c3d6e135eb"
+      }
+     ],
+     "strongest_caveat": "Recipe schema may grow; this extract is the live docs table at freshness_stamp. Subrecipes exist and were not fully torn down here.",
+     "verdict": "CONFIRMED"
+    }
+   ],
+   "completion_sentinel": "SUCCESS:RES-0030 in the receipt AND the resolved canonical URL with its redirect chain plus the escalation threshold at file:line",
+   "escalation_threshold": {
+    "catalog_framing_lead_to_worker_via_failure_threshold": "REFUTED",
+    "config_key": "GOOSE_LEAD_FAILURE_THRESHOLD",
+    "configurable": true,
+    "default": 2,
+    "direction": "worker-to-lead-fallback",
+    "failure_threshold_trigger": "after initial lead turns, consecutive task failures >= GOOSE_LEAD_FAILURE_THRESHOLD (default 2) switch back to the lead model",
+    "file_line": "crates/goose/src/providers/lead_worker.rs:151",
+    "hardcoded_default_also_present": true,
+    "lead_to_worker_trigger": "turn count (GOOSE_LEAD_TURNS, default 3)",
+    "loci": {
+     "config_read": "crates/goose/src/providers/init.rs:198",
+     "constructor_default": "crates/goose/src/providers/lead_worker.rs:52",
+     "env_docs": "documentation/docs/guides/environment-variables.md:142",
+     "hardcoded_default": "crates/goose/src/providers/init.rs:45",
+     "switch_log": "crates/goose/src/providers/lead_worker.rs:163",
+     "trigger": "crates/goose/src/providers/lead_worker.rs:151",
+     "tutorial": "documentation/docs/tutorials/lead-worker.md:77"
+    },
+    "permalinks": {
+     "config_read": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs#L198",
+     "constructor_default": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L52",
+     "env_docs": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md#L142",
+     "hardcoded_default": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs#L45",
+     "switch_log": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L163",
+     "trigger": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L151",
+     "tutorial": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md#L77"
+    },
+    "snippets": {
+     "config_read": ".get_param::<usize>(\"GOOSE_LEAD_FAILURE_THRESHOLD\")",
+     "constructor_default": "max_failures_before_fallback: 2, // Fallback after 2 consecutive failures",
+     "env_docs": "| `GOOSE_LEAD_FAILURE_THRESHOLD` | Consecutive failures before falling back to the lead model | Integer | 2 |",
+     "hardcoded_default": "const DEFAULT_FAILURE_THRESHOLD: usize = 2;",
+     "switch_log": "\"🔄 SWITCHING TO LEAD MODEL: Entering fallback mode after {} consecutive task failures - using lead model for {} turns\",",
+     "trigger": "if turn_count >= self.lead_turns",
+     "tutorial": "export GOOSE_LEAD_FAILURE_THRESHOLD=3          # Switch back to lead after 3 failures"
+    },
+    "unit": "consecutive task failures (heuristic, not API errors)"
+   },
+   "html_redirect_chain": [
+    {
+     "bytes": 0,
+     "content_type": "text/html; charset=utf-8",
+     "hop": 0,
+     "location": "https://github.com/aaif-goose/goose",
+     "reason": "Moved Permanently",
+     "sha256": null,
+     "status": 301,
+     "url": "https://github.com/block/goose"
+    },
+    {
+     "bytes": 387051,
+     "bytes_note": "html-200-body-volatile-not-hashed-as-evidence",
+     "content_type": "text/html; charset=utf-8",
+     "hop": 1,
+     "location": null,
+     "status": 200,
+     "url": "https://github.com/aaif-goose/goose"
+    }
+   ],
+   "measured_at": "2026-08-25T00:56:20Z",
+   "old_html_pointer": "https://github.com/block/goose",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "pinned_source_sha": "7f1ca37234db08ab173d48b97560e80f219124db",
+   "question": "What exactly triggers Goose's lead-to-worker escalation, at what failure threshold, and is there evidence the escalation beats retrying the same worker - noting the repository moved from block/goose to a new owner and the old pointer is a silent-redirect dependency?",
+   "recipes": {
+    "docs_rel": "documentation/docs/guides/recipes/recipe-reference.md",
+    "fixture_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+    "formats": [
+     ".yaml (recommended)",
+     ".json"
+    ],
+    "live_matches_fixture": true,
+    "live_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+    "required_fields": [
+     "title",
+     "description",
+     "instructions"
+    ],
+    "retry_field_present": true,
+    "retry_is_distinct_from_lead_worker": true,
+    "retry_note": "Recipe `retry.max_retries` re-runs the same recipe after failed success checks. That is same-worker retry, not lead/worker model escalation.",
+    "source": "live-main",
+    "source_lineage": [
+     {
+      "fetch_timestamp": "2026-08-25T00:56:19Z",
+      "http_status": 200,
+      "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/recipe-reference.md",
+      "rail": "prose-docs",
+      "sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35"
+     },
+     {
+      "fetch_timestamp": "2026-08-25T00:56:19Z",
+      "http_status": 200,
+      "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/session-recipes.md",
+      "rail": "prose-docs",
+      "sha256": "3f7af2d8a73a918917eee907900e4143aa958135d8a350c1df3242c3d6e135eb"
+     }
+    ]
+   },
+   "redirect_chain": [
+    {
+     "bytes": 0,
+     "content_type": "text/html; charset=utf-8",
+     "hop": 0,
+     "location": "https://github.com/aaif-goose/goose",
+     "reason": "Moved Permanently",
+     "sha256": null,
+     "status": 301,
+     "url": "https://github.com/block/goose"
+    },
+    {
+     "bytes": 387051,
+     "bytes_note": "html-200-body-volatile-not-hashed-as-evidence",
+     "content_type": "text/html; charset=utf-8",
+     "hop": 1,
+     "location": null,
+     "status": 200,
+     "url": "https://github.com/aaif-goose/goose"
+    }
+   ],
+   "removal_commit_url": "https://github.com/aaif-goose/goose/commit/6435e1a85c97caffca810fafa6b000df962416be",
+   "removal_pr_url": "https://github.com/aaif-goose/goose/pull/7989",
+   "removal_sha": "6435e1a85c97caffca810fafa6b000df962416be",
+   "repo_numeric_id": 846698999,
+   "schema_note": "RES-0001 has not landed research-claim-record.schema.json on this tree. This record carries the Phase-2 fields named by that unit (claim id, canonical mechanism, source lineage, E1-E4, Sherman-Kent band, named settling probe, edges, freshness, snapshot sha256) so it is re-checkable without pretending the global schema file exists.",
+   "title": "Extract Goose recipes and its lead/worker failure-threshold escalation mechanism"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0030",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0030.json",
+   "bytes": 25087,
+   "sha256": "d4138103ca890b4a446dfea0274d667cbfc623e689607199585f296a6002782b",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0030/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0030"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0030.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0030.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "c3a396edfccb0b57ec51c0ac799f1ee5",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 25087,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0030.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "api_redirect_chain": [
+  {
+   "bytes": 198,
+   "content_type": "application/json; charset=utf-8",
+   "hop": 0,
+   "location": "https://api.github.com/repositories/846698999",
+   "reason": "Moved Permanently",
+   "sha256": "f6a863c0ae868f2531bafd270e8e80dacf6e836c5959165c2ea0065aea9d3e41",
+   "status": 301,
+   "url": "https://api.github.com/repos/block/goose"
+  },
+  {
+   "bytes": 6285,
+   "bytes_note": "api-json-includes-live-counters-not-pinned",
+   "content_type": "application/json; charset=utf-8",
+   "hop": 1,
+   "location": null,
+   "status": 200,
+   "url": "https://api.github.com/repositories/846698999"
+  }
+ ],
+ "canonical_full_name": "aaif-goose/goose",
+ "canonical_repo_url": "https://github.com/aaif-goose/goose",
+ "claims": [
+  {
+   "canonical_mechanism": "GitHub repo transfer: old owner pointer is a silent 301, not a second copy.",
+   "claim": "The Goose repository's current canonical location is https://github.com/aaif-goose/goose (full_name aaif-goose/goose, GitHub id 846698999). https://github.com/block/goose HTTP 301s there; https://api.github.com/repos/block/goose HTTP 301s to /repositories/846698999, which is the same transferred repo.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C6"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C1",
+   "named_settling_probe": "probe1_canonical_redirect.py",
+   "snapshot_sha256": null,
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:17Z",
+     "http_status": 301,
+     "permalink": "https://github.com/block/goose",
+     "rail": "html-redirect-probe",
+     "sha256": null
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:18Z",
+     "http_status": 301,
+     "permalink": "https://api.github.com/repos/block/goose",
+     "rail": "github-api-structured",
+     "sha256": "f6a863c0ae868f2531bafd270e8e80dacf6e836c5959165c2ea0065aea9d3e41"
+    }
+   ],
+   "strongest_caveat": "A future second transfer would 301 again; this measurement is the live hop list at freshness_stamp, not a forever-name.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "get_active_provider uses lead if turn_count < lead_turns OR in_fallback_mode; handle_completion_result enters fallback when turn_count >= lead_turns and consecutive task failures >= threshold.",
+   "claim": "The catalog's 'lead-to-worker escalation at a failure threshold' wording is false as a mechanism description. Lead-to-worker is turn-count (GOOSE_LEAD_TURNS, default 3). The failure threshold escalates the other way: worker-to-lead fallback.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [
+     "catalog-question-wording"
+    ],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C3"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C2",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:18Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs",
+     "rail": "structured-raw-source",
+     "sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+     "rail": "prose-docs",
+     "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+    }
+   ],
+   "strongest_caveat": "REFUTED is the catalog framing, not the existence of a switch. The switch exists; its failure-threshold direction is worker-to-lead.",
+   "verdict": "REFUTED"
+  },
+  {
+   "canonical_mechanism": "LeadWorkerProvider turn counter + failure_count + in_fallback_mode.",
+   "claim": "When lead/worker mode is enabled, Goose uses the lead model for the first GOOSE_LEAD_TURNS (default 3) then the worker; on consecutive task failures at/over the failure threshold it falls back to the lead for GOOSE_LEAD_FALLBACK_TURNS (default 2), then retries the worker.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C3",
+     "RES-0030-C4"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C2b",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:18Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs",
+     "rail": "structured-raw-source",
+     "sha256": "e4d12951c0c7ad25a7636b4b02e62e496236dd6acbeabb1933ccbb1464d38041"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+     "rail": "prose-docs",
+     "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+    }
+   ],
+   "strongest_caveat": "The feature was deleted from main on 2026-03-18 (C6). This claim is about parent commit 7f1ca37234db08ab173d48b97560e80f219124db, the last tree that still contains lead_worker.rs.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "DEFAULT_FAILURE_THRESHOLD = 2; max_failures_before_fallback: 2.",
+   "claim": "The default failure threshold is 2 consecutive task failures. Cited at crates/goose/src/providers/init.rs:45 and crates/goose/src/providers/lead_worker.rs:52; trigger conjunction at crates/goose/src/providers/lead_worker.rs:151.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C4"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C3",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:18Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs",
+     "rail": "structured-raw-source",
+     "sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md",
+     "rail": "prose-docs",
+     "sha256": "6900116b9fb34cada316bf42112e9e04b75047353416ddd06fb3db67031c2e0b"
+    }
+   ],
+   "strongest_caveat": "Task failure is heuristic (tool errors, 'error:' in tool output, user-correction phrases). A single indicator counts (failure_indicators >= 1). That is not an eval of quality.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "config.get_param::<usize>('GOOSE_LEAD_FAILURE_THRESHOLD').unwrap_or(DEFAULT_FAILURE_THRESHOLD).",
+   "claim": "The threshold is configurable, not hard-coded as the only value. GOOSE_LEAD_FAILURE_THRESHOLD is read in crates/goose/src/providers/init.rs:198 and passed to LeadWorkerProvider::new_with_settings. The integer 2 is the default when the config key is unset. The no-settings constructor also hard-codes 2.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C3"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C4",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:18Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs",
+     "rail": "structured-raw-source",
+     "sha256": "042e38937fc5716128f611ac112ac14a22dd5e14c0b3dff656d359be1d0a3926"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md",
+     "rail": "prose-docs",
+     "sha256": "6900116b9fb34cada316bf42112e9e04b75047353416ddd06fb3db67031c2e0b"
+    }
+   ],
+   "strongest_caveat": "Configurable via env/config for the create_lead_worker_from_env path. Callers of LeadWorkerProvider::new() still get a hard-coded 2.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "Would require a comparative eval (fallback-to-lead vs retry-worker) with a measured delta. Docs assert a design rationale only.",
+   "claim": "There is evidence that lead/worker failure-threshold escalation beats retrying the same worker.",
+   "confidence_band": "remote",
+   "edges": {
+    "contradicts": [
+     "RES-0030-C2b-as-quality-claim"
+    ],
+    "duplicate_of": [],
+    "supports": []
+   },
+   "evidence_tier": "E3",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C5",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md",
+     "rail": "prose-docs",
+     "sha256": "d8f5728c1dfbeaf57f0cb6d562b8cf972eeef6994c84c79d0d5c8369a14d333b"
+    }
+   ],
+   "strongest_caveat": "Tutorial and env docs claim fallback helps when the worker 'gets tripped up'. PR #7989 comments ask why the feature was removed and do not supply an A/B. Absence of a published comparison is not proof the heuristic is worse; it is proof the 'beats retry' claim is not a measured fact. Graded E3: one rail (docs rationale) and no independent empirical rail.",
+   "verdict": "REFUTED"
+  },
+  {
+   "canonical_mechanism": "Feature deletion, not a rename. Historical extract is pinned to parent SHA.",
+   "claim": "Lead/worker was removed from current main: PR #7989 merged as 6435e1a85c97caffca810fafa6b000df962416be on 2026-03-18, deleting crates/goose/src/providers/lead_worker.rs. A GET of that path on main returns HTTP 404. Current env-var docs no longer mention GOOSE_LEAD_FAILURE_THRESHOLD.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [],
+    "duplicate_of": [],
+    "supports": [
+     "RES-0030-C2b"
+    ]
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C6",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": null,
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 404,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/crates/goose/src/providers/lead_worker.rs",
+     "rail": "current-main-absence-control",
+     "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:20Z",
+     "http_status": 200,
+     "permalink": "https://github.com/aaif-goose/goose/pull/7989",
+     "rail": "github-api-structured",
+     "sha256": "8dba3df928d4696d8bdc6961332588c6126b21e41ac2cab529bb18b9f550e0a7"
+    }
+   ],
+   "strongest_caveat": "A later restore would make main 200 again. Probe 2 re-checks the 404. Pinned parent SHA remains the citation target for C2b-C4.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "Documented in documentation/docs/guides/recipes/recipe-reference.md on current main.",
+   "claim": "Goose recipes are YAML (recommended) or JSON session packages with required title/description and at least one of instructions/prompt. They also have an optional retry block (max_retries + success checks). Recipe retry re-runs the same recipe; it is not lead/worker escalation.",
+   "confidence_band": "almost-certain",
+   "edges": {
+    "contradicts": [
+     "conflating-recipe-retry-with-lead-worker"
+    ],
+    "duplicate_of": [],
+    "supports": []
+   },
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-25T00:56:20Z",
+   "id": "RES-0030-C7",
+   "named_settling_probe": "probe2_threshold_locus.py",
+   "snapshot_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+   "source_lineage": [
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/recipe-reference.md",
+     "rail": "prose-docs",
+     "sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35"
+    },
+    {
+     "fetch_timestamp": "2026-08-25T00:56:19Z",
+     "http_status": 200,
+     "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/session-recipes.md",
+     "rail": "prose-docs",
+     "sha256": "3f7af2d8a73a918917eee907900e4143aa958135d8a350c1df3242c3d6e135eb"
+    }
+   ],
+   "strongest_caveat": "Recipe schema may grow; this extract is the live docs table at freshness_stamp. Subrecipes exist and were not fully torn down here.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0030 in the receipt AND the resolved canonical URL with its redirect chain plus the escalation threshold at file:line",
+ "escalation_threshold": {
+  "catalog_framing_lead_to_worker_via_failure_threshold": "REFUTED",
+  "config_key": "GOOSE_LEAD_FAILURE_THRESHOLD",
+  "configurable": true,
+  "default": 2,
+  "direction": "worker-to-lead-fallback",
+  "failure_threshold_trigger": "after initial lead turns, consecutive task failures >= GOOSE_LEAD_FAILURE_THRESHOLD (default 2) switch back to the lead model",
+  "file_line": "crates/goose/src/providers/lead_worker.rs:151",
+  "hardcoded_default_also_present": true,
+  "lead_to_worker_trigger": "turn count (GOOSE_LEAD_TURNS, default 3)",
+  "loci": {
+   "config_read": "crates/goose/src/providers/init.rs:198",
+   "constructor_default": "crates/goose/src/providers/lead_worker.rs:52",
+   "env_docs": "documentation/docs/guides/environment-variables.md:142",
+   "hardcoded_default": "crates/goose/src/providers/init.rs:45",
+   "switch_log": "crates/goose/src/providers/lead_worker.rs:163",
+   "trigger": "crates/goose/src/providers/lead_worker.rs:151",
+   "tutorial": "documentation/docs/tutorials/lead-worker.md:77"
+  },
+  "permalinks": {
+   "config_read": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs#L198",
+   "constructor_default": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L52",
+   "env_docs": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/guides/environment-variables.md#L142",
+   "hardcoded_default": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/init.rs#L45",
+   "switch_log": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L163",
+   "trigger": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/crates/goose/src/providers/lead_worker.rs#L151",
+   "tutorial": "https://github.com/aaif-goose/goose/blob/7f1ca37234db08ab173d48b97560e80f219124db/documentation/docs/tutorials/lead-worker.md#L77"
+  },
+  "snippets": {
+   "config_read": ".get_param::<usize>(\"GOOSE_LEAD_FAILURE_THRESHOLD\")",
+   "constructor_default": "max_failures_before_fallback: 2, // Fallback after 2 consecutive failures",
+   "env_docs": "| `GOOSE_LEAD_FAILURE_THRESHOLD` | Consecutive failures before falling back to the lead model | Integer | 2 |",
+   "hardcoded_default": "const DEFAULT_FAILURE_THRESHOLD: usize = 2;",
+   "switch_log": "\"🔄 SWITCHING TO LEAD MODEL: Entering fallback mode after {} consecutive task failures - using lead model for {} turns\",",
+   "trigger": "if turn_count >= self.lead_turns",
+   "tutorial": "export GOOSE_LEAD_FAILURE_THRESHOLD=3          # Switch back to lead after 3 failures"
+  },
+  "unit": "consecutive task failures (heuristic, not API errors)"
+ },
+ "html_redirect_chain": [
+  {
+   "bytes": 0,
+   "content_type": "text/html; charset=utf-8",
+   "hop": 0,
+   "location": "https://github.com/aaif-goose/goose",
+   "reason": "Moved Permanently",
+   "sha256": null,
+   "status": 301,
+   "url": "https://github.com/block/goose"
+  },
+  {
+   "bytes": 387051,
+   "bytes_note": "html-200-body-volatile-not-hashed-as-evidence",
+   "content_type": "text/html; charset=utf-8",
+   "hop": 1,
+   "location": null,
+   "status": 200,
+   "url": "https://github.com/aaif-goose/goose"
+  }
+ ],
+ "measured_at": "2026-08-25T00:56:20Z",
+ "old_html_pointer": "https://github.com/block/goose",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "pinned_source_sha": "7f1ca37234db08ab173d48b97560e80f219124db",
+ "question": "What exactly triggers Goose's lead-to-worker escalation, at what failure threshold, and is there evidence the escalation beats retrying the same worker - noting the repository moved from block/goose to a new owner and the old pointer is a silent-redirect dependency?",
+ "recipes": {
+  "docs_rel": "documentation/docs/guides/recipes/recipe-reference.md",
+  "fixture_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+  "formats": [
+   ".yaml (recommended)",
+   ".json"
+  ],
+  "live_matches_fixture": true,
+  "live_sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35",
+  "required_fields": [
+   "title",
+   "description",
+   "instructions"
+  ],
+  "retry_field_present": true,
+  "retry_is_distinct_from_lead_worker": true,
+  "retry_note": "Recipe `retry.max_retries` re-runs the same recipe after failed success checks. That is same-worker retry, not lead/worker model escalation.",
+  "source": "live-main",
+  "source_lineage": [
+   {
+    "fetch_timestamp": "2026-08-25T00:56:19Z",
+    "http_status": 200,
+    "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/recipe-reference.md",
+    "rail": "prose-docs",
+    "sha256": "632fe9ae5447b15831ab750b676045fa78e58eca804466cf0ad4c06f01e95f35"
+   },
+   {
+    "fetch_timestamp": "2026-08-25T00:56:19Z",
+    "http_status": 200,
+    "permalink": "https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/docs/guides/recipes/session-recipes.md",
+    "rail": "prose-docs",
+    "sha256": "3f7af2d8a73a918917eee907900e4143aa958135d8a350c1df3242c3d6e135eb"
+   }
+  ]
+ },
+ "redirect_chain": [
+  {
+   "bytes": 0,
+   "content_type": "text/html; charset=utf-8",
+   "hop": 0,
+   "location": "https://github.com/aaif-goose/goose",
+   "reason": "Moved Permanently",
+   "sha256": null,
+   "status": 301,
+   "url": "https://github.com/block/goose"
+  },
+  {
+   "bytes": 387051,
+   "bytes_note": "html-200-body-volatile-not-hashed-as-evidence",
+   "content_type": "text/html; charset=utf-8",
+   "hop": 1,
+   "location": null,
+   "status": 200,
+   "url": "https://github.com/aaif-goose/goose"
+  }
+ ],
+ "removal_commit_url": "https://github.com/aaif-goose/goose/commit/6435e1a85c97caffca810fafa6b000df962416be",
+ "removal_pr_url": "https://github.com/aaif-goose/goose/pull/7989",
+ "removal_sha": "6435e1a85c97caffca810fafa6b000df962416be",
+ "repo_numeric_id": 846698999,
+ "schema_note": "RES-0001 has not landed research-claim-record.schema.json on this tree. This record carries the Phase-2 fields named by that unit (claim id, canonical mechanism, source lineage, E1-E4, Sherman-Kent band, named settling probe, edges, freshness, snapshot sha256) so it is re-checkable without pretending the global schema file exists.",
+ "title": "Extract Goose recipes and its lead/worker failure-threshold escalation mechanism"
+}

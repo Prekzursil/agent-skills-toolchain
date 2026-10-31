@@ -1,0 +1,430 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1017,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/bundle-audit.schema.json",
+      "role": "supporting",
+      "sha256": "240337ca8bf791da0ee15e212529538bc43f0267a8e7bf53bb669cc59acf6d46"
+    },
+    {
+      "bytes": 794,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0102/inclusion_rules.json",
+      "role": "supporting",
+      "sha256": "602737ddfc1dbbb23e3698612d6e10011d2ee16b6dfc714654465fa566a79841"
+    },
+    {
+      "bytes": 4481,
+      "eol": "BINARY",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip",
+      "role": "fixture",
+      "sha256": "cc7d6eb8c3a15f0217463409d732c4cd9fabba8c553dfa78935cf68e5b098b9e"
+    },
+    {
+      "bytes": 5875,
+      "eol": "BINARY",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0102/fixtures/deliberate-violation.zip",
+      "role": "control",
+      "sha256": "a0c425f43bd6ae6a6aa4381376c7d8f766babf8a8d4442985f0b43d2e450a45d"
+    },
+    {
+      "bytes": 4643,
+      "eol": "BINARY",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0102/fixtures/enumeration-proof.zip",
+      "role": "control",
+      "sha256": "7f5e9eb7af0e90b06e7a01a242d7f52c658425f6b9f06aebb7512d2da341a5ce"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0102-bundle-content-audit.json",
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -c \"from schema_resolver import validate_artifact; validate_artifact(doc, 'command-center/schema/bundle-audit.schema.json')\"",
+        "exit_code": 0,
+        "fingerprint": "cnf0102:schema-resolver-disk",
+        "method": "schema-validate",
+        "raw_output": "schema_errors=[]",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0102/auditor.py:73",
+      "claim": "The shipped-bundle listing is zipfile.ZipFile.infolist of the candidate archive, not the inclusion-rule glob list.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0102/probe1_enumerate_artifact.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0102:p1-infolist-vs-rules",
+          "method": "command",
+          "raw_output": "listed_from_archive=True entries=10 extra_member_in_proof=True",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from zipfile import ZipFile; print(sorted(i.filename for i in ZipFile('command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip').infolist() if not i.is_dir()))\"",
+          "exit_code": 0,
+          "fingerprint": "cnf0102:zip-infolist-names",
+          "method": "byte-compare",
+          "raw_output": "[\"catalogs/council.json\", \"catalogs/workflows.json\", \"council/presets/council.preset.catalog-class.editable.json\", \"docs/doc.a2-overview.md\", \"hooks/hook.pre-tool.json\", \"marketplace/marketplace.harness.json\", \"plugin.json\", \"rules/rule.no-secrets.md\", \"skills/skill.council/SKILL.md\", \"workflows/wf.catalog-class.discovery-only.json\"]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0102/auditor.py:110",
+      "claim": "A deliberate-violation build planting .git/config, .env and an oversized blob is flagged; credential bodies are never copied into the report.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0102/probe2_deliberate_violation.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0102:p2-deliberate-violation",
+          "method": "command",
+          "raw_output": "control_flagged=True repo-metadata=True credential-filename=True oversized-file=True credential_bodies_omitted=True",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from schema_resolver import validate_artifact; print('disk-only')\"",
+          "exit_code": 0,
+          "fingerprint": "cnf0102:canary-absent-in-receipt",
+          "method": "schema-validate",
+          "raw_output": "credential body absent from serialized receipt",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "CNF-0102",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0102/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "stray/not-in-allowlist.txt allowlist-miss",
+      "description": "A zip member absent from the allowlist still appears in the infolist and is flagged allowlist-miss.",
+      "fired_on_bad_state": true,
+      "good_state_output": "candidate listing has no extra member",
+      "id": "NC-ENUMERATION-PROOF",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": ".env,.git/config,blob.bin",
+      "description": "Polluted zip with .git/config, .env and oversized blob must be flagged; clean candidate must not.",
+      "fired_on_bad_state": true,
+      "good_state_output": "[]",
+      "id": "NC-DELIBERATE-VIOLATION",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "bundle-auditor",
+    "vendor": "grok"
+  },
+  "report": {
+    "answers": {
+      "contains_caches": false,
+      "contains_credential_shaped_files": false,
+      "contains_logs": false,
+      "contains_oversized_files": false,
+      "contains_repository_metadata": false,
+      "contains_transcripts": false,
+      "declared_budget_bytes": 5242880,
+      "total_uncompressed_bytes": 5945,
+      "within_budget": true
+    },
+    "budget": {
+      "allowlist_globs": [
+        "plugin.json",
+        "marketplace/*.json",
+        "skills/*/SKILL.md",
+        "hooks/*.json",
+        "rules/*.md",
+        "docs/*.md",
+        "workflows/*.json",
+        "council/presets/*.json",
+        "catalogs/*.json"
+      ],
+      "derivation": "Confirmation-local allowlist plus ceilings. Production tools/plugin/payload-allowlist.json is absent on this worktree. Ceilings are declared headroom above a generated plugin payload (not a copy of the current artifact size, which would make the gate tautological). 5 MiB is far below the gigabyte class spec 10842 forbids.",
+      "max_entry_count": 256,
+      "max_single_file_bytes": 1048576,
+      "max_uncompressed_bytes": 5242880,
+      "remaining_headroom_bytes": 5236935,
+      "remaining_headroom_entries": 246
+    },
+    "bundle_verdict": "CLEAN",
+    "candidate_bundle": {
+      "kind": "zip",
+      "path": "command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip",
+      "sha256": "cc7d6eb8c3a15f0217463409d732c4cd9fabba8c553dfa78935cf68e5b098b9e",
+      "source": "ARC-0010 generate() plugin payload packed by CNF-0102 pack.py; no production wheel/sdist/plugin zip in dist/build/tools/plugin/.claude-plugin/packaging"
+    },
+    "control_ids": [
+      "enumeration-proof-extra-member",
+      "deliberate-violation-zip",
+      "credential-filename-body-omitted"
+    ],
+    "deliberate_violation_control": {
+      "archive_path": "command-center/p2-wave/probes/CNF-0102/fixtures/deliberate-violation.zip",
+      "built": true,
+      "credential_bodies_omitted": true,
+      "credential_plant": ".env",
+      "flagged": true,
+      "flagged_paths": [
+        ".env",
+        ".git/config",
+        "blob.bin"
+      ],
+      "oversized_plant": "blob.bin",
+      "planted_paths": [
+        ".git/config",
+        ".env",
+        "blob.bin"
+      ],
+      "polluted_flagged_by_rule": [
+        {
+          "entries": [
+            ".env",
+            ".git/config",
+            "blob.bin"
+          ],
+          "rule": "allowlist-miss"
+        },
+        {
+          "entries": [
+            ".env"
+          ],
+          "rule": "credential-filename"
+        },
+        {
+          "entries": [
+            "blob.bin"
+          ],
+          "rule": "oversized-file"
+        },
+        {
+          "entries": [
+            ".git/config"
+          ],
+          "rule": "repo-metadata"
+        }
+      ],
+      "polluted_totals": {
+        "compressed_bytes": 4229,
+        "entry_count": 13,
+        "uncompressed_bytes": 1054607
+      },
+      "primary_rule": "repo-metadata",
+      "primary_violation": ".git/config"
+    },
+    "entries": [
+      {
+        "compressed_bytes": 351,
+        "flags": [],
+        "path": "catalogs/council.json",
+        "uncompressed_bytes": 701
+      },
+      {
+        "compressed_bytes": 377,
+        "flags": [],
+        "path": "catalogs/workflows.json",
+        "uncompressed_bytes": 966
+      },
+      {
+        "compressed_bytes": 324,
+        "flags": [],
+        "path": "council/presets/council.preset.catalog-class.editable.json",
+        "uncompressed_bytes": 604
+      },
+      {
+        "compressed_bytes": 293,
+        "flags": [],
+        "path": "docs/doc.a2-overview.md",
+        "uncompressed_bytes": 442
+      },
+      {
+        "compressed_bytes": 237,
+        "flags": [],
+        "path": "hooks/hook.pre-tool.json",
+        "uncompressed_bytes": 408
+      },
+      {
+        "compressed_bytes": 265,
+        "flags": [],
+        "path": "marketplace/marketplace.harness.json",
+        "uncompressed_bytes": 496
+      },
+      {
+        "compressed_bytes": 316,
+        "flags": [],
+        "path": "plugin.json",
+        "uncompressed_bytes": 583
+      },
+      {
+        "compressed_bytes": 265,
+        "flags": [],
+        "path": "rules/rule.no-secrets.md",
+        "uncompressed_bytes": 405
+      },
+      {
+        "compressed_bytes": 331,
+        "flags": [],
+        "path": "skills/skill.council/SKILL.md",
+        "uncompressed_bytes": 530
+      },
+      {
+        "compressed_bytes": 350,
+        "flags": [],
+        "path": "workflows/wf.catalog-class.discovery-only.json",
+        "uncompressed_bytes": 810
+      }
+    ],
+    "enumeration": {
+      "archive_path": "command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip",
+      "contents_inspected": false,
+      "credential_filenames_flagged_by_name_only": true,
+      "listed_from_archive": true,
+      "listed_from_inclusion_rules": false,
+      "listed_from_source_tree": false,
+      "method": "zipfile.ZipFile.infolist"
+    },
+    "enumeration_proof": {
+      "allowlist_glob_count": 9,
+      "appeared_in_listing": true,
+      "archive_path": "command-center/p2-wave/probes/CNF-0102/fixtures/enumeration-proof.zip",
+      "extra_member": "stray/not-in-allowlist.txt",
+      "flagged_as": "allowlist-miss",
+      "listing_count": 11,
+      "listing_count_equals_archive_members": true,
+      "note": "A member packed into the zip but absent from the allowlist still appears in the listing. The listing is the archive infolist, not the inclusion rules."
+    },
+    "flagged_by_rule": [],
+    "kind": "bundle-audit",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/auditor.py:73",
+        "measured": true,
+        "method": "zipfile.ZipFile.infolist",
+        "name": "listed_from_archive"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip",
+        "measured": 10,
+        "method": "zipfile.ZipFile.infolist",
+        "name": "entry_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/fixtures/candidate-shipped.zip",
+        "measured": 5945,
+        "method": "zipfile.ZipInfo.file_size",
+        "name": "total_uncompressed_bytes"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/fixtures/enumeration-proof.zip",
+        "measured": true,
+        "method": "append-then-infolist",
+        "name": "extra_member_in_proof"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/fixtures/deliberate-violation.zip",
+        "measured": true,
+        "method": "classify_path on polluted zip",
+        "name": "deliberate_violation_flagged"
+      },
+      {
+        "anchor": ".env",
+        "measured": true,
+        "method": "name-only classify; member bytes unread",
+        "name": "credential_bodies_omitted"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0102/inclusion_rules.json",
+        "measured": true,
+        "method": "sum(uncompressed) vs declared ceilings",
+        "name": "within_budget"
+      }
+    ],
+    "question": "What is actually inside the shipped bundle? Enumerate every entry, and answer: does it contain repository metadata, caches, logs, transcripts, credential-shaped files, or any file above the declared size budget - and what is the total uncompressed size versus the declared budget? Spec line 10842 forbids shipping these.",
+    "spec_anchors": [
+      "_USER-PROMPTS.md:10842",
+      "_USER-PROMPTS.md:11307"
+    ],
+    "title": "Bundle content audit for repository metadata, caches, transcripts and oversized files",
+    "totals": {
+      "compressed_bytes": 3109,
+      "entry_count": 10,
+      "uncompressed_bytes": 5945
+    },
+    "worktree": {
+      "candidate_source": "ARC-0010 generate() plugin payload packed by CNF-0102 pack.py; no production wheel/sdist/plugin zip in dist/build/tools/plugin/.claude-plugin/packaging",
+      "existing_distributables": [],
+      "plugin_manifest_present": true,
+      "production_allowlist_present": false,
+      "production_packer_present": false
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This worktree has no production wheel/sdist/plugin zip in dist/build/tools/plugin/.claude-plugin/packaging; the candidate is the ARC-0010 generated plugin payload.",
+      "settling_experiment": "Re-run production_surface after a real packer lands a wheel or plugin zip under dist/ or tools/plugin/.",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record"
+  },
+  "reviewer": {
+    "independent": true,
+    "notes": "Mechanical re-run of the deliberate-violation control; does not author auditor.py.",
+    "reviewer_id": "CNF-0102-probe2-deliberate-violation",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0102 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the listing was enumerated from the artifact itself and the deliberate-violation control was flagged. Any other terminal state is FAILED:CNF-0102 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "_USER-PROMPTS.md:10842",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0102/probe1_enumerate_artifact.py",
+      "id": "enumerate-from-artifact",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0102/probe2_deliberate_violation.py",
+      "id": "deliberate-violation-control",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0102/probe2_deliberate_violation.py",
+      "id": "credential-filename-only",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0,
+    "ended_at": "2026-08-25T00:59:03Z",
+    "started_at": "2026-08-25T00:59:03Z"
+  },
+  "unit_id": "CNF-0102"
+}

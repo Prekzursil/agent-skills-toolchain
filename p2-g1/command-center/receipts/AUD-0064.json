@@ -1,0 +1,136 @@
+{
+  "artifacts": [
+    {
+      "bytes": 36176,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/audit/AUD-0064-monitor-surface-reachability.json",
+      "role": "primary",
+      "sha256": "a85987a25471c98abdd57ddf9ad6d3490615e66ea60ea7b27458bb71bd3c6aac"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0064/SUBAGENT-RETURN.json",
+      "claim": "Both named probes re-ran live this run and exited 0.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0064/probe1_surface_reachability.py",
+          "exit_code": 0,
+          "fingerprint": "5ee5877bdf93908cd402290c7e347fd7",
+          "method": "command",
+          "raw_output": "TABLE|live-agents|status=PRESENT|path=C:/Users/Prekzursil/.agents/skills/monitor-launcher/monitors.toml|routes=7\nTABLE|live-claude|status=PRESENT|path=C:/Users/Prekzursil/.claude/skills/monitor-launcher/monitors.toml|routes=7\nTABLE|repo-export|status=PRESENT|path=C:/Users/Prekzursil/p2-g1/skills/monitor-launcher/monitors.toml|routes=7\nLAUNCHER|mon|resolved=PRESENT|path=C:/Users/Prekzursil/.agents/skills/monitor-launcher/mon.cmd\nroutes=7 all entry scripts resolve on disk\nSUCCESS:AUD-0064-probe1 dispatcher surfaces enumerated fail-closed",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0064/probe2_each_route_once.py",
+          "exit_code": 0,
+          "fingerprint": "917228a5a095afa635c5ef659de764b9",
+          "method": "command",
+          "raw_output": "ROUTE|agentmon|RENDERED|['agentmon: tailing C:\\\\Users\\\\Prekzursil/.claude/projects\\\\C--Users-Prekzursil\\\\13dd0812-e887-4a76-9d0e-4c6e6d30a937\\\\subagents']\nROUTE|cockpit|RENDERED|['panes [1:codex] 2:agents 3:workflows 4:databricks 5:mcp 6:health tab=next q=quit']\nROUTE|codexmon|CRASHED|['Traceback (most recent call last):']\nROUTE|crcp|INTERACTIVE|['CRCP health monitor interval=30.0s snippet=C:\\\\Users\\\\Prekzursil\\\\source\\\\agent-skills-toolchain\\\\tools\\\\crcp\\\\reports\\\\wfmon_crcp_health.json']\nROUTE|csmon|INTERACTIVE|['Claude Science - csmon  (2026-10-25T18:20:52)']\nROUTE|p2r2e|CRASHED|['Traceback (most recent call last):']\nROUTE|wfmon|INTERACTIVE|['\\x1b[?1049h\\x1b[?1000h\\x1b[?1003h\\x1b[?1015h\\x1b[?1006h\\x1b[?25l\\x1b[?1004h\\x1b[>1u\\x1b[?2004h\\x1b]22;default\\x07']\nCONTROLS|empty-data=EMPTY|positive=RENDERED|both fired\nroutes attempted once each: 7 | CRASHED=2 INTERACTIVE=3 RENDERED=2\nSUCCESS:AUD-0064-probe2 every route launched once, outcomes classified not rounded",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0064/UNIT-ARTIFACT-MANIFEST.json",
+      "claim": "UNIT-ARTIFACT-MANIFEST.json carries a sha256 row matching the live artifact (CRLF normalized).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "compare UNIT-ARTIFACT-MANIFEST.json row sha256 for AUD-0064 against live artifact",
+          "fingerprint": "9d9c8bb2e8a021aa52ec2ad74711566d",
+          "method": "byte-compare",
+          "raw_output": "manifest sha256 == live artifact sha256 (a85987a25471c98a...)",
+          "role": "source"
+        },
+        {
+          "command": "recompute sha256 of command-center/audit/AUD-0064-monitor-surface-reachability.json after CRLF->LF normalization",
+          "fingerprint": "68a4ffa8c6f75a14d32e6e73128ba1cf",
+          "method": "byte-compare",
+          "raw_output": "recomputed digest equals manifest row (a85987a25471c98a...)",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/AUD-0064/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+      "artifact_path": "command-center/receipts/AUD-0064.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -I command-center/receipt_validate.py command-center/receipts/AUD-0064.json",
+        "raw_output": "ACCEPT:AUD-0064 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+        "exit_code": 0,
+        "fingerprint": "w4s4-admit:AUD-0064:rc0"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "t1-probe1_surface_reachability",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0064/probe1_surface_reachability.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0064-probe1 dispatcher surfaces enumerated fail-closed"
+    },
+    {
+      "id": "t2-probe2_each_route_once",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0064/probe2_each_route_once.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0064-probe2 every route launched once, outcomes classified not rounded"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CTRL-AUD-0064-empty-data-render",
+      "kind": "absent-input",
+      "description": "Catalog entry: one monitor pointed at a deliberately empty data source must be reported EMPTY rather than OK, and a positive source must RENDER; both controls fired in probe2.",
+      "bad_state_output": "CONTROLS|empty-data=EMPTY",
+      "good_state_output": "CONTROLS|positive=RENDERED|both fired",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "residual_unknowns": [],
+  "min_bytes_threshold": 1024,
+  "notes": "probes reconstructed for this Windows host: the host INVERTS the prior Linux record (3 registries PRESENT, mon launcher PRESENT); all 7 routes launched once each, outcomes classified not rounded (codexmon/p2r2e crash headless: findings, never rounded to RENDERED).; shard4-w4 resume 2026-10-26: receipt completed for the current receipt.schema.json - downstream_consumers/tests/negative_controls/residual_unknowns added; every row cites executions already recorded in this receipt's evidence block, the downstream-consumer row records a live receipt_validate.py admission run (ACCEPT captured); w3s4 independent reviewer closure preserved verbatim; the null failure placeholder (schema types failure as object) was dropped, zero information lost.",
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "claude-opus-5-5",
+    "role": "builder-shard4-w2",
+    "vendor": "anthropic"
+  },
+  "retry": {
+    "attempts": [],
+    "count": 0,
+    "policy": "at most 3 attempts, each in a DIFFERENT shell (pwsh7, git-bash, wsl bash); a repeat in the same shell is not a retry and must not be counted as one"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent reviewer closure (wave-3 shard-4, fresh context, did not build). Verified: artifact at catalog output_path exists/non-empty/parses and is not self-declared BLOCKED/FAILED; both named probes re-run LIVE by the reviewer via the g1 shim and exited 0; artifact sha256 recomputed (CRLF->LF) and matched against probes/AUD-0064/UNIT-ARTIFACT-MANIFEST.json primary row and the receipt artifacts row; receipt schema_errors=[] under the program's receipt_schema_gate. Disclosed, not gating per operative program practice: (1) strict class-profile layer (generic_report report{kind,observations,control_ids}) unmet by this receipt, a delta shared by 451 prior SUCCESS receipts and sibling wave-3 closures; (2) 12-condition predicate c6/c7/c8/c12 unsatisfied as built (evidence method duplication, no tests/controls/downstream keys), identical to sibling closures IMP-0442/IMP-0467.",
+    "reviewer_id": "AUD-0064-indep-reviewer-w3s4",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:AUD-0064 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "spec_anchor": "catalog:AUD-0064",
+  "state": "SUCCESS",
+  "timestamps": {
+    "ended_at": "2026-10-26T04:02:20Z",
+    "started_at": "2026-10-25T16:52:59Z"
+  },
+  "unit_id": "AUD-0064"
+}

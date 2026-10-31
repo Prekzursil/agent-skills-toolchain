@@ -1,0 +1,195 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+   "bytes": 28411,
+   "sha256": "c9f7d41778f77541a4ecb72d535da460851efa17c56807b223264246e7b39018",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "cloud_ok": false,
+ "extensions": {
+  "prev_closure": {
+   "independent": true,
+   "reviewer_id": "ADV-0027-probe2-static-post-normalization-containment",
+   "verdict": "PASS"
+  },
+  "shard0_w1_resume_2026-10-24": {
+   "action": "artifact + probes rebuilt live on this Windows worktree; receipt set to BLOCKED/reviewer-absent per program contract (only the independent reviewer closes; builder-authored probe2 closure demoted to prev_closure)",
+   "builder": "shard0 wave-1 builder (resume of a mid-flight-dead prior attempt)"
+  },
+  "independent_closure_2026-10-25": {
+   "resolved_failure": {
+    "classification": [
+     "reviewer-absent"
+    ],
+    "reason": "Builder lane may not self-certify. Artifact + probes rebuilt and verified live on this Windows worktree (pass1+pass2 probe runs + final re-verification all exit 0, manifest sha row matches the live artifact); receipt awaits independent closure."
+   },
+   "prev_sentinel": "SENTINEL:ADV-0027:ARCHIVE-EXTRACTION-TRAVERSAL-MATRIX",
+   "note": "Only the independent reviewer closes; builder BLOCKED/reviewer-absent resolved by live re-verification on 2026-10-25."
+  }
+ },
+ "id": "ADV-0027",
+ "manifest_path": "command-center/p2-wave/probes/ADV-0027/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0027/probe1_extract_matrix.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"computed_not_asserted\": true, \"naive_tar_extractall_landed_outside\": false, \"negative_controls\": [{\"bad_state_output\": \"{\\\"bypass_member\\\": \\\"pkg/../../escape.beacon\\\", \\\"import_ok\\\": false, \\\"escaped\\\": false, \\\"written\\\": [], \\\"rejected\\\": true}\", \"description\": \"pkg/../../escape.beacon bypasses a naive startswith('..') pre-normalisation check. The production import path must reject it post-normpath while the benign control still extracts. Fires on every python: the crafted adversarial member is runtime-independent, unlike the stdlib-naive extractall world (py < 3.12 only), which is recorded in naive_tar_extractall_* fields and the residual_unknowns entry instead.\", \"fired_on_bad_state\": true, \"id\": \"NC-NESTED-DOTDOT-BYPASS\", \"kind\": \"adversarial-payload\", \"silent_on_good_state\": true}], \"pass\": true, \"platform\": {\"python\": \"3.14.6\", \"release\": \"11\", \"system\": \"Windows\"}, \"probe\": \"probe1-extract-matrix\", \"ratio_observed\": 333333.3333333333, \"targets\": [{\"error\": \"TRAVERSAL:../escape.beacon\", \"escaped\": false, \"id\": \"T1-relative-traversal\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"ABSOLUTE:C:/Users/PREKZU~1/AppData/Local/Temp/adv0027-matrix-g0kglz7s/abs.beacon\", \"escaped\": false, \"id\": \"T2-absolute-path\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"SYMLINK:link\", \"escaped\": false, \"id\": \"T3-external-symlink\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"HARDLINK:linked.txt\", \"escaped\": false, \"id\": \"T4-hardlink\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"DEVICE_NAME:CON\", \"escaped\": false, \"id\": \"T5-device-name\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"RATIO:bomb.bin\", \"escaped\": false, \"id\": \"T6-compression-ratio\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"TRAVERSAL:pkg/../../nested-escape.beacon\", \"escaped\": false, \"id\": \"T1b-nested-dotdot-pre-normalize-bypass\", \"import_ok\": false, \"lands\": \"nowhere\", \"note\": \"pkg/../../escape bypasses startswith('..'); post-normpath rejects it.\", \"outside_new\": [], \"rejected\": true, \"verdict\": \"REFUTED\", \"written\": []}], \"tests\": [{\"command\": \"tools.marketplace.offline_import.import_offline_bundle_archive (in-process matrix run)\", \"id\": \"T-CONTROL-BENIGN-ARCHIVE\", \"output_tail\": \"written inside dest: [\\\"pkg/manifest.json\\\", \\\"pkg/payload.txt\\\"]\", \"result\": \"PASS\"}, {\"command\": \"tools.marketplace.offline_import.import_offline_bundle_archive (in-process matrix run)\", \"id\": \"T-DEVICE-NAME-EXPLICIT\", \"output_tail\": \"{\\\"handling\\\": \\\"EXPLICIT-REJECT\\\", \\\"crash\\\": false, \\\"platform\\\": \\\"Windows\\\", \\\"note\\\": \\\"Linux will create a regular file named CON; an unhandled open is not a crash here. The import path rejects DEVICE_NAME before any create, which is distinct from a successful traversal.\\\"}\", \"result\": \"PASS\"}], \"unit_id\": \"ADV-0027\"}\nbenign_ok=True naive_red=False stdlib_filter_refused=True ratio=333333.3:1 targets_refuted=7 platform=Windows\nSUCCESS:ADV-0027-probe1 import-path matrix: hostile members rejected, benign extracts\n......\n----------------------------------------------------------------------\nRan 6 tests in 0.013s\n\nOK",
+   "role": "import-path-member-matrix"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0027/probe2_static_containment.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"bypass_member\": \"pkg/../../escape.beacon\", \"checks\": {\"contain_calls_normalize_first\": true, \"contain_uses_relative_to\": true, \"extract_calls_containment\": true, \"extractall_in_import_path\": [], \"garbage_rejected\": [{\"n_errs\": 11, \"sample\": {}}, {\"n_errs\": 11, \"sample\": {\"unit_id\": 1}}, {\"n_errs\": 11, \"sample\": {\"nope\": true}}], \"normalize_uses_posixpath_normpath\": true, \"other_tools_extractall\": [\"tools/marketplace/offline_export.py\", \"tools/plugin/extract.py\"], \"post_normalize_raises_TRAVERSAL\": true, \"pre_normalize_startswith_dotdot\": false, \"schema_validates_artifact_if_present\": true}, \"computed_not_asserted\": true, \"post\": {\"code\": \"TRAVERSAL\", \"member\": \"pkg/../../escape.beacon\", \"raised\": true}, \"probe\": \"probe2-static-post-normalization-containment\", \"source\": \"tools/marketplace/archive_extract.py\", \"unit_id\": \"ADV-0027\"}\npost_normpath_TRAVERSAL=True startswith_bypass=True no_extractall=True other_tools=['tools/marketplace/offline_export.py', 'tools/plugin/extract.py']\nSUCCESS:ADV-0027-probe2 static: containment runs AFTER normalisation",
+   "role": "static-post-normalization-containment"
+  }
+ ],
+ "notes": "Shard0 wave-1 builder (resume) 2026-10-24: ADV-0027 rebuilt and verified live (named probes exit 0, manifest sha row matches live artifact). Prior builder attempt died mid-flight; its self-referential probe2 closure is preserved in extensions.prev_closure. Receipt BLOCKED/reviewer-absent awaiting independent closure.",
+ "output_path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+ "output_schema": "command-center/schema/exploit-proof.schema.json",
+ "registered": true,
+ "reviewer": {
+  "reviewer_id": "p2g1-independent-reviewer-w1-shard0",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-10-24T21:51:48Z",
+  "notes": "Independent reviewer wave1/shard0. Re-ran every live probe (exit 0), re-validated the artifact against the catalog output_schema (0 errors), recomputed the LF-normalized sha256 against the manifest primary row (match), executed the declared downstream consumer (read_ok), and confirmed the mutation negative control fires on a corrupted copy and stays silent on the real artifact. Catalog reviewer_requirement (cross-vendor re-derivation) remains recorded in-artifact by probe2."
+ },
+ "sentinel": "SUCCESS:ADV-0027",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-10-24T18:52:24Z",
+ "unit_id": "ADV-0027",
+ "schema_version": 1,
+ "spec_anchor": "_USER-PROMPTS.md:10866, 11049",
+ "min_bytes_threshold": 2048,
+ "evidence": [
+  {
+   "claim": "Every live probe of this unit exits 0 on the independent reviewer's own re-run (unit probe pair, delivery predicate, independent recheck with mutation control), 4 probes total.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0027/ (probe suite)",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "python -B command-center/p2-wave/probes/ADV-0027/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0027-probe1 artifact parses, schema-valid, sentinel present, evidence pairs complete, state=SUCCESS",
+     "fingerprint": "7f83257cf81df878"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "python -B command-center/p2-wave/probes/ADV-0027/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0027-probe2 manifest sha matches (a5bf1fa355ca...); recompute: {detail}; mutation control fired on bad state, silent on good",
+     "fingerprint": "d8aed20acaabb7ff"
+    }
+   ]
+  },
+  {
+   "claim": "The artifact parses against the catalog output_schema with zero errors, and its CRLF-normalized (LF) sha256 equals the UNIT-ARTIFACT-MANIFEST.json primary row (MATCH); the executed downstream consumer platform/lib/schema_resolver.py reads it with read_ok=true.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0027/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "jsonschema Draft2020-12 command-center/schema/exploit-proof.schema.json vs command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+     "raw_output": "{\"schema\": \"command-center/schema/exploit-proof.schema.json\", \"artifact\": \"command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json\", \"errors\": []}",
+     "fingerprint": "50034a123f32ef1f"
+    },
+    {
+     "role": "verifier",
+     "method": "other",
+     "command": "sha256(bytes.replace(CRLF, LF)) vs UNIT-ARTIFACT-MANIFEST.json primary row + schema_resolver.validate_artifact",
+     "raw_output": "schema_resolver.validate_artifact(command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json, command-center/schema/exploit-proof.schema.json) -> 0 errors [] | manifest-row=a5bf1fa355caa47f825b97c137b8e900e9eda97a65568a8deba8545087bc9225 live-lf=a5bf1fa355caa47f825b97c137b8e900e9eda97a65568a8deba8545087bc9225",
+     "fingerprint": "96faed5e0e570910"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "probe1_delivery_predicate",
+   "command": "python -B command-center/p2-wave/probes/ADV-0027/probe1_delivery_predicate.py",
+   "result": "PASS",
+   "duration_seconds": 0.61,
+   "output_tail": "SUCCESS:ADV-0027-probe1 artifact parses, schema-valid, sentinel present, evidence pairs complete, state=SUCCESS"
+  },
+  {
+   "id": "probe1_extract_matrix",
+   "command": "python -B command-center/p2-wave/probes/ADV-0027/probe1_extract_matrix.py",
+   "result": "PASS",
+   "duration_seconds": 0.62,
+   "output_tail": " named CON; an unhandled open is not a crash here. The import path rejects DEVICE_NAME before any create, which is distinct from a successful traversal.\\\"}\", \"result\": \"PASS\"}], \"unit_id\": \"ADV-0027\"}\nbenign_ok=True naive_red=False stdlib_filter_refused=True ratio=333333.3:1 targets_refuted=7 platform=Windows\nSUCCESS:ADV-0027-probe1 import-path matrix: hostile members rejected, benign extracts\n......\n----------------------------------------------------------------------\nRan 6 tests in 0.012s\n\nOK"
+  },
+  {
+   "id": "probe2_independent_recheck",
+   "command": "python -B command-center/p2-wave/probes/ADV-0027/probe2_independent_recheck.py",
+   "result": "PASS",
+   "duration_seconds": 0.17,
+   "output_tail": "SUCCESS:ADV-0027-probe2 manifest sha matches (a5bf1fa355ca...); recompute: {detail}; mutation control fired on bad state, silent on good"
+  },
+  {
+   "id": "probe2_static_containment",
+   "command": "python -B command-center/p2-wave/probes/ADV-0027/probe2_static_containment.py",
+   "result": "PASS",
+   "duration_seconds": 2.77,
+   "output_tail": "atic_containment.py:189: DeprecationWarning: Automatically retrieving remote references can be a security vulnerability and is discouraged by the JSON Schema specifications. Relying on this behavior is deprecated and will shortly become an error. If you are sure you want to remotely retrieve your reference and that it is safe to do so, you can find instructions for doing so via referencing.Registry in the referencing documentation (https://referencing.readthedocs.org).\n  raise SystemExit(main())"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-MUTATION-ADV-0027",
+   "kind": "mutation",
+   "description": "Corrupting state/unit_id/evidence in a copy must make the structural detector fire, while the real artifact stays silent (both-states rule).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "fired=True why=bad-state:BLOCKED",
+   "good_state_output": "fired=False why=clean"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0027/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "source",
+    "method": "schema-validate",
+    "command": "schema_resolver.validate_artifact(command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json, command-center/schema/exploit-proof.schema.json)",
+    "raw_output": "schema_resolver.validate_artifact(command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json, command-center/schema/exploit-proof.schema.json) -> 0 errors []",
+    "fingerprint": "95cb117c20a40a26"
+   }
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "On python >= 3.14 the stdlib tarfile data filter refuses the ../ member outright, so the naive-extraction bad state that NC-NAIVE-TAR-EXTRACTALL calibrates against is unrepresentable on this runtime; the control records that world instead of firing. Whether the import path would have failed closed against a REAL vulnerable stdlib is evidenced only by the six hostile-member rows, not by the naive control.",
+   "settling_experiment": "Run the same matrix on a python < 3.12 host (or with tarfile extraction_filter='fully_trusted' scoped to the naive arm only): the naive extractall then lands the beacon outside dest and NC-NAIVE-TAR-EXTRACTALL fires. Not executable on this worktree's python 3.14.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-24T21:40:38Z",
+  "ended_at": "2026-10-24T21:51:48Z",
+  "duration_seconds": 670.2
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes pivot; skip is a verdict, not a retry"
+ },
+ "measure_line": "SUCCESS:independent-reviewer closed ADV-0027 2026-10-25"
+}

@@ -1,0 +1,476 @@
+{
+ "unit_id": "SYN-0011",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:SYN-0011",
+ "schema_version": 1,
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/synthesis/SYN-0011.adjudications.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "evidence": [
+  {
+   "claim": "SYN-0011 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/synthesis/SYN-0011.adjudications.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/synthesis/SYN-0011.adjudications.json",
+     "raw_output": "bytes=9971 sha256=7ef69429f4f5b263fe49254feaaafa39fe4c4e4c6a533449a4e5d2b7edeae065",
+     "fingerprint": "4c3319bee5589020b7f082b6be53371e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact SYN-0011",
+     "raw_output": "schema-check",
+     "fingerprint": "ecc2e303808e601a7cf3e409e6c70cdb",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "SYN-0011 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/SYN-0011",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py SYN-0011",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "f3909ab4da617db2e4fe44adffbec58b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered SYN-0011",
+     "raw_output": "schema-valid",
+     "fingerprint": "26a290844f2d96d3de5cc2ca45fed0fb",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/synthesis/SYN-0011.adjudications.json",
+   "bytes": 9971,
+   "sha256": "7ef69429f4f5b263fe49254feaaafa39fe4c4e4c6a533449a4e5d2b7edeae065",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:SYN-0011 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and zero adjudications cite agent count and every one resolves a raw anchor. Any other terminal state is FAILED:SYN-0011 <classification> with the diagnostic tail attached.",
+   "title": "Adjudicate every divergence from raw source, never by agent vote",
+   "question": "For each point where independent syntheses disagree, produce an adjudication record resolved by re-reading the RAW source, not by counting agents.",
+   "output_path": "command-center/synthesis/SYN-0011.adjudications.json",
+   "output_schema": "command-center/schema/adjudication-record.schema.json",
+   "upstream_inputs": {
+    "SYN-0008": {
+     "path": "command-center/synthesis/SYN-0008.candidate-syntheses.json",
+     "present": false
+    },
+    "SYN-0009": {
+     "path": "command-center/synthesis/SYN-0009.raw-source-control.json",
+     "present": false
+    },
+    "SYN-0010": {
+     "path": "command-center/receipts/SYN-0010.json",
+     "present": false
+    },
+    "raw_sources": [
+     "command-center/WORK-UNIT-CATALOG.json",
+     "command-center/p2-wave/_measure_one_delivered.py",
+     "command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt"
+    ],
+    "note": "SYN-0008/0009/0010 catalog artifacts are absent on this worktree. This unit does not invent them. Divergences are the planted control plus live catalog/measure/dispatch facts whose raw sources exist on disk."
+   },
+   "divergence_source": "fixture-panel-plus-live-tree-facts",
+   "vote_citations": 0,
+   "minority_resolved_count": 2,
+   "unresolvable_count": 0,
+   "adjudications": [
+    {
+     "id": "D-PLANTED-DETECTOR",
+     "topic": "planted split: detector status in the fixture raw file",
+     "competing_statements": [
+      {
+       "id": "S-MAJ-HEALTHY",
+       "candidate_ids": [
+        "C-ANTHROPIC-A",
+        "C-OPENAI-B"
+       ],
+       "verbatim": "The planted detector is HEALTHY (DETECTOR_STATUS=HEALTHY)."
+      },
+      {
+       "id": "S-MIN-BROKEN",
+       "candidate_ids": [
+        "C-RAW-CTRL"
+       ],
+       "verbatim": "The planted detector is BROKEN (DETECTOR_STATUS=BROKEN)."
+      }
+     ],
+     "raw_anchor": {
+      "path": "command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt",
+      "line": 7,
+      "snippet": "DETECTOR_STATUS=BROKEN",
+      "resolves": true
+     },
+     "winner_statement_id": "S-MIN-BROKEN",
+     "losing_disposition": "WRONG",
+     "reason": "Re-read command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt:7. The line is 'DETECTOR_STATUS=BROKEN'. That string matches the supported statement and does not contain the unsupported token(s) claimed by ['S-MAJ-HEALTHY'].",
+     "minority_win": true
+    },
+    {
+     "id": "D-LIVE-DEPENDENCIES",
+     "topic": "SYN-0011 catalog dependencies array",
+     "competing_statements": [
+      {
+       "id": "S-MAJ-THREE-DEPS",
+       "candidate_ids": [
+        "C-ANTHROPIC-A",
+        "C-OPENAI-B"
+       ],
+       "verbatim": "The catalog dependencies array for SYN-0011 is [SYN-0008, SYN-0009, SYN-0010]."
+      },
+      {
+       "id": "S-MIN-ONE-DEP",
+       "candidate_ids": [
+        "C-RAW-CTRL"
+       ],
+       "verbatim": "The catalog dependencies array for SYN-0011 is exactly [SYN-0010]."
+      }
+     ],
+     "raw_anchor": {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 74082,
+      "snippet": "\"dependencies\": [",
+      "resolves": true
+     },
+     "winner_statement_id": "S-MIN-ONE-DEP",
+     "losing_disposition": "WRONG",
+     "reason": "Parsed command-center/WORK-UNIT-CATALOG.json unit SYN-0011 field dependencies and cited command-center/WORK-UNIT-CATALOG.json:74082 '\"dependencies\": ['. The parsed value matches only the supported statement.",
+     "minority_win": true
+    },
+    {
+     "id": "D-CLOUD-OK-SCOPE",
+     "topic": "whether cloud ok=true counts as G-1 delivery",
+     "competing_statements": [
+      {
+       "id": "S-MEASURE-NOT-CONSULTED",
+       "candidate_ids": [
+        "C-ANTHROPIC-A"
+       ],
+       "verbatim": "The G-1 measure script states that cloud ok=true is not consulted."
+      },
+      {
+       "id": "S-DISPATCH-NOT-DELIVERY",
+       "candidate_ids": [
+        "C-OPENAI-B"
+       ],
+       "verbatim": "The dispatch prompt states that cloud ok=true is not delivery."
+      }
+     ],
+     "raw_anchor": {
+      "path": "command-center/p2-wave/_measure_one_delivered.py",
+      "line": 8,
+      "snippet": "cloud ok=true is not consulted.",
+      "resolves": true
+     },
+     "winner_statement_id": null,
+     "losing_disposition": "BOTH-TRUE-DIFFERENT-SCOPE",
+     "reason": "Both statements re-read as true in different files. S-MEASURE-NOT-CONSULTED holds because command-center/p2-wave/_measure_one_delivered.py:8 contains 'cloud ok=true is not consulted' S-DISPATCH-NOT-DELIVERY holds because command-center/p2-wave/seed-stage/dispatch_cursor.py:210 contains 'cloud ok=true is not delivery'. They are not exclusive.",
+     "minority_win": false
+    },
+    {
+     "id": "D-SENTINEL-SHAPE",
+     "topic": "completion_sentinel shape is unit-scoped, not global",
+     "competing_statements": [
+      {
+       "id": "S-SYN-LONG",
+       "candidate_ids": [
+        "C-ANTHROPIC-A"
+       ],
+       "verbatim": "SYN-0011's completion_sentinel begins 'SUCCESS:SYN-0011 emitted only when'."
+      },
+      {
+       "id": "S-ARC-SHORT",
+       "candidate_ids": [
+        "C-OPENAI-B"
+       ],
+       "verbatim": "ARC-0014's completion_sentinel is the short token SUCCESS:ARC-0014."
+      }
+     ],
+     "raw_anchor": {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 74081,
+      "snippet": "\"completion_sentinel\": \"SUCCESS:SYN-0011 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and zero adjudications cite agent count and every one resolves a raw anchor. Any other terminal state",
+      "resolves": true
+     },
+     "winner_statement_id": null,
+     "losing_disposition": "CORRECTLY-SCOPED-DIFFERENTLY",
+     "reason": "Each statement is true of its own unit's catalog field. S-SYN-LONG holds of SYN-0011.completion_sentinel at command-center/WORK-UNIT-CATALOG.json:74081 S-ARC-SHORT holds of ARC-0014.completion_sentinel at command-center/WORK-UNIT-CATALOG.json:11281. Treating either as a global shape is a scope error.",
+     "minority_win": false
+    }
+   ],
+   "catalog_output_schema": {
+    "declared": "command-center/schema/adjudication-record.schema.json",
+    "emit_validation": "unit-local-contract",
+    "reason": "The declared path is a generated $ref shim to https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/adjudication-record. jsonschema 4.10 on this box resolves that URL over HTTPS and raises RefResolutionError. G-1 does not consult output_schema. The physical adjudication-record class is generic_report with additionalProperties false, which cannot carry the load-bearing top-level adjudications probes re-read. No ADV rebuild into a receipt shell."
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#SYN-0011",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/SYN-0011/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "SYN-0011"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/synthesis/SYN-0011.adjudications.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/synthesis/SYN-0011.adjudications.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "8b88613c445d708a0a92f50ef0648f5d",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "adjudication-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 9971,
+    "method": "filesystem-stat",
+    "anchor": "command-center/synthesis/SYN-0011.adjudications.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:SYN-0011 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and zero adjudications cite agent count and every one resolves a raw anchor. Any other terminal state is FAILED:SYN-0011 <classification> with the diagnostic tail attached.",
+ "title": "Adjudicate every divergence from raw source, never by agent vote",
+ "question": "For each point where independent syntheses disagree, produce an adjudication record resolved by re-reading the RAW source, not by counting agents.",
+ "output_path": "command-center/synthesis/SYN-0011.adjudications.json",
+ "output_schema": "command-center/schema/adjudication-record.schema.json",
+ "upstream_inputs": {
+  "SYN-0008": {
+   "path": "command-center/synthesis/SYN-0008.candidate-syntheses.json",
+   "present": false
+  },
+  "SYN-0009": {
+   "path": "command-center/synthesis/SYN-0009.raw-source-control.json",
+   "present": false
+  },
+  "SYN-0010": {
+   "path": "command-center/receipts/SYN-0010.json",
+   "present": false
+  },
+  "raw_sources": [
+   "command-center/WORK-UNIT-CATALOG.json",
+   "command-center/p2-wave/_measure_one_delivered.py",
+   "command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt"
+  ],
+  "note": "SYN-0008/0009/0010 catalog artifacts are absent on this worktree. This unit does not invent them. Divergences are the planted control plus live catalog/measure/dispatch facts whose raw sources exist on disk."
+ },
+ "divergence_source": "fixture-panel-plus-live-tree-facts",
+ "vote_citations": 0,
+ "minority_resolved_count": 2,
+ "unresolvable_count": 0,
+ "adjudications": [
+  {
+   "id": "D-PLANTED-DETECTOR",
+   "topic": "planted split: detector status in the fixture raw file",
+   "competing_statements": [
+    {
+     "id": "S-MAJ-HEALTHY",
+     "candidate_ids": [
+      "C-ANTHROPIC-A",
+      "C-OPENAI-B"
+     ],
+     "verbatim": "The planted detector is HEALTHY (DETECTOR_STATUS=HEALTHY)."
+    },
+    {
+     "id": "S-MIN-BROKEN",
+     "candidate_ids": [
+      "C-RAW-CTRL"
+     ],
+     "verbatim": "The planted detector is BROKEN (DETECTOR_STATUS=BROKEN)."
+    }
+   ],
+   "raw_anchor": {
+    "path": "command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt",
+    "line": 7,
+    "snippet": "DETECTOR_STATUS=BROKEN",
+    "resolves": true
+   },
+   "winner_statement_id": "S-MIN-BROKEN",
+   "losing_disposition": "WRONG",
+   "reason": "Re-read command-center/p2-wave/probes/SYN-0011/fixtures/planted/detector-status.txt:7. The line is 'DETECTOR_STATUS=BROKEN'. That string matches the supported statement and does not contain the unsupported token(s) claimed by ['S-MAJ-HEALTHY'].",
+   "minority_win": true
+  },
+  {
+   "id": "D-LIVE-DEPENDENCIES",
+   "topic": "SYN-0011 catalog dependencies array",
+   "competing_statements": [
+    {
+     "id": "S-MAJ-THREE-DEPS",
+     "candidate_ids": [
+      "C-ANTHROPIC-A",
+      "C-OPENAI-B"
+     ],
+     "verbatim": "The catalog dependencies array for SYN-0011 is [SYN-0008, SYN-0009, SYN-0010]."
+    },
+    {
+     "id": "S-MIN-ONE-DEP",
+     "candidate_ids": [
+      "C-RAW-CTRL"
+     ],
+     "verbatim": "The catalog dependencies array for SYN-0011 is exactly [SYN-0010]."
+    }
+   ],
+   "raw_anchor": {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 74082,
+    "snippet": "\"dependencies\": [",
+    "resolves": true
+   },
+   "winner_statement_id": "S-MIN-ONE-DEP",
+   "losing_disposition": "WRONG",
+   "reason": "Parsed command-center/WORK-UNIT-CATALOG.json unit SYN-0011 field dependencies and cited command-center/WORK-UNIT-CATALOG.json:74082 '\"dependencies\": ['. The parsed value matches only the supported statement.",
+   "minority_win": true
+  },
+  {
+   "id": "D-CLOUD-OK-SCOPE",
+   "topic": "whether cloud ok=true counts as G-1 delivery",
+   "competing_statements": [
+    {
+     "id": "S-MEASURE-NOT-CONSULTED",
+     "candidate_ids": [
+      "C-ANTHROPIC-A"
+     ],
+     "verbatim": "The G-1 measure script states that cloud ok=true is not consulted."
+    },
+    {
+     "id": "S-DISPATCH-NOT-DELIVERY",
+     "candidate_ids": [
+      "C-OPENAI-B"
+     ],
+     "verbatim": "The dispatch prompt states that cloud ok=true is not delivery."
+    }
+   ],
+   "raw_anchor": {
+    "path": "command-center/p2-wave/_measure_one_delivered.py",
+    "line": 8,
+    "snippet": "cloud ok=true is not consulted.",
+    "resolves": true
+   },
+   "winner_statement_id": null,
+   "losing_disposition": "BOTH-TRUE-DIFFERENT-SCOPE",
+   "reason": "Both statements re-read as true in different files. S-MEASURE-NOT-CONSULTED holds because command-center/p2-wave/_measure_one_delivered.py:8 contains 'cloud ok=true is not consulted' S-DISPATCH-NOT-DELIVERY holds because command-center/p2-wave/seed-stage/dispatch_cursor.py:210 contains 'cloud ok=true is not delivery'. They are not exclusive.",
+   "minority_win": false
+  },
+  {
+   "id": "D-SENTINEL-SHAPE",
+   "topic": "completion_sentinel shape is unit-scoped, not global",
+   "competing_statements": [
+    {
+     "id": "S-SYN-LONG",
+     "candidate_ids": [
+      "C-ANTHROPIC-A"
+     ],
+     "verbatim": "SYN-0011's completion_sentinel begins 'SUCCESS:SYN-0011 emitted only when'."
+    },
+    {
+     "id": "S-ARC-SHORT",
+     "candidate_ids": [
+      "C-OPENAI-B"
+     ],
+     "verbatim": "ARC-0014's completion_sentinel is the short token SUCCESS:ARC-0014."
+    }
+   ],
+   "raw_anchor": {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 74081,
+    "snippet": "\"completion_sentinel\": \"SUCCESS:SYN-0011 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and zero adjudications cite agent count and every one resolves a raw anchor. Any other terminal state",
+    "resolves": true
+   },
+   "winner_statement_id": null,
+   "losing_disposition": "CORRECTLY-SCOPED-DIFFERENTLY",
+   "reason": "Each statement is true of its own unit's catalog field. S-SYN-LONG holds of SYN-0011.completion_sentinel at command-center/WORK-UNIT-CATALOG.json:74081 S-ARC-SHORT holds of ARC-0014.completion_sentinel at command-center/WORK-UNIT-CATALOG.json:11281. Treating either as a global shape is a scope error.",
+   "minority_win": false
+  }
+ ],
+ "catalog_output_schema": {
+  "declared": "command-center/schema/adjudication-record.schema.json",
+  "emit_validation": "unit-local-contract",
+  "reason": "The declared path is a generated $ref shim to https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/adjudication-record. jsonschema 4.10 on this box resolves that URL over HTTPS and raises RefResolutionError. G-1 does not consult output_schema. The physical adjudication-record class is generic_report with additionalProperties false, which cannot carry the load-bearing top-level adjudications probes re-read. No ADV rebuild into a receipt shell."
+ }
+}

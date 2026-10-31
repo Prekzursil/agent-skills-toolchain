@@ -1,0 +1,51 @@
+{
+ "wave": "4",
+ "shard": "15",
+ "pass": "r2 (resume of the 2026-10-26 ~09:15 w4s15 review, whose agent run failed and whose 6 receipt closures are now adjudicated)",
+ "reviewer": "claude-opus-5-5 independent reviewer review:w4s15 r2 2026-10-26 (P2 workflow independent reviewer wave 4 shard 15, resumed)",
+ "units": 12,
+ "shard_units": ["RES-0086", "RES-0089", "RES-0091", "RES-0102", "RES-0103", "RES-0111",
+                 "RES-0112", "RES-0114", "RES-0128", "RES-0144", "RES-0151", "RES-0157"],
+ "resume_context": "first w4s15 pass (workspace _reviewer-w4s15/, battery verify_battery.py 2026-10-26 09:15-09:34) closed 6 BLOCKED receipts (RES-0112/0114/0128/0144/0151/0157) and confirmed 6 prior w3s16 closures under a declared schema_policy treating strict artifact-vs-output_schema conformance as 'non-gating census'. This r2 pass re-derived the checks from the unit contract and re-verified ALL 12 units live with fresh instruments; the schema_policy is rejected (see existing_closure_assessment).",
+ "instruments": [
+  "_reviewer-w4s15-r2/preflight.py + controls.py + probe_battery.py + receipt_check.py (reviewer-owned battery, fresh code)",
+  "D1: platform/lib/schema_resolver.validate_artifact (repo-canonical fail-closed resolver)",
+  "D2: _reviewer-w4s15-r2/preflight.d2_validate (reviewer's own ref-walker: loads declared shim, follows $ref to physical profile by mapping the platform/command-center schema tail onto the p2-g1 root, compiles with jsonschema, iter_errors directly; no resolver import)",
+  "B: every named probe re-executed live by this reviewer via subprocess (python -I / node), exit 0 required",
+  "C: sha256 recomputed CRLF->LF normalized over every primary artifact, matched against probes/<id>/UNIT-ARTIFACT-MANIFEST.json",
+  "E: receipt_schema_gate.validate_receipt + evaluate_full(verify_filesystem=True) on all 12 receipts",
+  "both-states controls: GREEN on RES-0002/RES-0003/RES-0005 (same declared classes, 0-error through BOTH D1 and D2); MUTATION-to-green RES-0128 + min_bytes_threshold:1024 -> 0/0; INVERSE-mutation RES-0005 -downstream_consumers -> red 1/1. Instruments are in force in both directions; the D-reds are content, not detector."
+ ],
+ "probe_protocol_note": "all 24 named probes re-executed exit 0 (probe_results.json); manifest sha256 rows match CRLF->LF-normalized live bytes for all 12 primaries. These do NOT cure check D.",
+ "receipts_modified": false,
+ "verdict_tally": {"PASS": 0, "FAIL": 12},
+ "verdicts": {
+  "RES-0086": "FAIL", "RES-0089": "FAIL", "RES-0091": "FAIL", "RES-0102": "FAIL",
+  "RES-0103": "FAIL", "RES-0111": "FAIL", "RES-0112": "FAIL", "RES-0114": "FAIL",
+  "RES-0128": "FAIL", "RES-0144": "FAIL", "RES-0151": "FAIL", "RES-0157": "FAIL"
+ },
+ "fail_reasons": {
+  "RES-0086": "D red (48): root missing required receipt_core fields (downstream_consumers, report, spec_anchor, ...) per research-claim-record profile. Green: A (SUCCESS sentinel), B (2/2), C-sha (norm match), E-receipt-schema.",
+  "RES-0089": "D red (1): reviewer block carries forbidden 'reviewers' key (additionalProperties) vs research-claim-record profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0091": "D red (18): root missing downstream_consumers, evidence, manifest_registration (+more) vs research-claim-record profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0102": "D red (2): evidence/0 and evidence/1 carry forbidden 'kind','path' keys vs measurement-run profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0103": "D red (2): reviewer carries forbidden 'defaults_to_refuted','scope_not_agreement' keys; reviewer/notes not of object type vs research-claim-record profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0111": "D red (23): evidence/0 missing required 'probes','verdict' + forbidden 'kind','line','path','snippet' keys; root missing required fields vs research-claim-record profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0112": "D red (1): reviewer carries forbidden 'default_when_insufficient','surviving_claims_strongest_caveat' keys vs research-claim-record profile. E ALSO red: receipt gate condition 3 blocking - declared artifact bytes 33345 != on-disk 34041 (receipt-vs-artifact byte binding broken). Green: A/B(2/2)/C-sha.",
+  "RES-0114": "D red (1): reviewer carries 6 forbidden keys (default, insufficient_evidence_rule, job, read_conclusion_first, refuted_claims, surviving_claims) vs research-claim-record profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0128": "D red (1): required root 'min_bytes_threshold' (integer) absent vs research-registry profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0144": "D red (1): required root 'min_bytes_threshold' (integer) absent vs measurement-run profile. Green: A/B(2/2)/C-sha/E.",
+  "RES-0151": "D red (31): receipt_core boilerplate absent (downstream_consumers, manifest_registration, residual_unknowns required; artifacts rows missing bytes/sha256; role enum) vs measurement-run profile. E ALSO red: receipt gate condition 6 blocking - evidence[0] source and verifier share method ['command'], not mechanically independent. Green: A (SUCCESS-prefixed sentinel; the embedded failure-form prose is template definition, not self-declaration)/B(2/2)/C-sha.",
+  "RES-0157": "A red: artifact sentinel literally begins 'FAILED:RES-0157 owner-host remesure finds 32 claimed sidecars absent, harvest same-vendor review, and condition 11 red on CC-0010' - self-declares non-delivery. D red (5): sentinel violates ^(SUCCESS:|SENTINEL:), downstream_consumers missing, manifest_registration.registered != true, +2. E ALSO red: receipt gate condition 6 blocking - evidence[0] source and verifier share method ['command']. Green: B(2/2 incl node .mjs)/C-sha."
+ },
+ "existing_closure_assessment": "ALL existing PASS closures over these 12 units are INVALID under the unit contract: the contract lists 'validate output_schema' among the checks that must ALL hold for reviewer PASS, and every one of the 12 artifacts violates its catalog-declared output_schema (D1 resolver and D2 reviewer walker agree exactly on every unit; both-states controls prove the instruments fire both ways). The first w4s15 pass's 'non-gating census' schema_policy is rejected: a declared output_schema is a fail-closed program constraint, and two prior independent reviews of the overlapping units (w3s17-r2 and r3, both 2026-10-26) reached the same ruling on the 5 shared units with identical error classes. Per the contract clause 'ANY fails -> verdict FAIL ... receipt unchanged', all 12 receipts were left byte-untouched; the SUCCESS/PASS/independent stamps they carry are therefore contradicted by three independent review passes and require ARTIFACT REBUILD to schema, not receipt re-stamping.",
+ "program_census": {
+  "receipts_on_disk": 1171,
+  "states": {"SUCCESS": 1114, "BLOCKED": 56, "MISSING-STATE": 1},
+  "reviewer_closed_green_face_value": 1099,
+  "sampled_strict_schema_over_closed_green": {"n": 60, "ok": 35, "red": 25, "estimated_invalid_rate": 0.42},
+  "note": "the 1099 face-value green overcounts true conformance by roughly the sampled 42% invalid rate; ~908 units additionally have no receipt at all"
+ },
+ "full_evidence": "_reviewer-w4s15-r2/ (preflight.py/preflight.json, controls.py, probe_battery.py/probe_results.json, receipt_check.py, census.json)",
+ "generated_at": "2026-10-26"
+}

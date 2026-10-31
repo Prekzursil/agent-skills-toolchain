@@ -1,0 +1,46 @@
+{
+ "id": "ADV-0090",
+ "unit_id": "ADV-0090",
+ "status": "DELIVERED",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:ADV-0090 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent",
+ "output_path": "command-center/adversarial/ADV-0090-rerun-until-green-laundering.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0090/probe1_delivery_predicate.py",
+   "exit_code": 0,
+   "role": "delivery-predicate",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"ADV-0090\",\n \"artifact_bytes\": 32138,\n \"targets\": 1,\n \"verdicts\": [\n  \"PARTIAL\"\n ],\n \"controls\": 1,\n \"negative_controls\": 1,\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:ADV-0090-probe1 predicate holds (1 targets, 1+1 controls)"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0090/probe2_independent_recheck.py",
+   "exit_code": 0,
+   "role": "independent-recheck",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"ADV-0090\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=ef5e26333446d906... rows=3\"\n   },\n   {\n    \"label\": \"flaky fixture both-states: bad fires flaky 6/10, good silent 10/10\",\n    \"ok\": true,\n    \"detail\": \"bad[:60]='exit_codes=[0, 0, 0, 0, 0, 0, 1, 1, 1, 1]; passes=6/10; fail' good[:60]='exit_codes=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; passes=10/10; fla'\"\n   },\n   {\n    \"label\": \"report.overall_verdict == top-level overall_verdict (PARTIAL, no green-laundering)\",\n    \"ok\": true,\n    \"detail\": \"report=PARTIAL top=PARTIAL\"\n   },\n   {\n    \"label\": \"probe1_answer == report.answer (single source of truth, no drift)\",\n    \"ok\": true,\n    \"detail\": \"len=332\"\n   },\n   {\n    \"label\": \"deterministic control recorded PASS 10/10\",\n    \"ok\": true,\n    \"detail\": \"rows=2 result=PASS\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICTOR-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:ADV-0090-probe2 manifest sha match, 5 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0090-rerun-until-green-laundering.json",
+   "bytes": 31785,
+   "sha256": "ef5e26333446d9063ed983575999c08da2054e16597fa4f5197929a2407d73f2",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/ADV-0090/UNIT-ARTIFACT-MANIFEST.json",
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Independent reviewer closure unavailable in builder shard; artifact + named probes + manifest sha all verify live this session."
+ },
+ "notes": "Resume 2026-10-25: prior builder artifact verified; probe2 re-derives the synthetic-6-of-10 flaky-fixture both-states control and the PARTIAL (not laundered-green) verdict consistency. No owner gate.",
+ "extensions": {
+  "builder": "shard1 wave-2 (resume) 2026-10-25",
+  "prior_builder": "died mid-flight; artifacts verified against the live contract, not rebuilt"
+ },
+ "ts": "2026-10-24T23:45:02Z"
+}

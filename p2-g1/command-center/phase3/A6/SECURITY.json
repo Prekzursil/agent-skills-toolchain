@@ -1,0 +1,315 @@
+{
+ "a6_design_json_present": false,
+ "adv_rebuild_circle": false,
+ "answer": "Trust boundary is the vendor RETURN path: last-message is untrusted DATA, quarantined as kind=untrusted-vendor-data with instructions_forbidden before any Claude-side read. Never-forward: credentials, raw tool-permission grants, hook configuration, absolute credential-store paths, proven with env canary ARC0041_CANARY_SECRET absent on the sealed outbound (walk=dump=True). Injection per-class catch rates {'role-spoof': {'n': 6, 'caught': 6, 'catch_rate': 1.0, 'zero_catches_is_p1': False}, 'instruction-override': {'n': 6, 'caught': 6, 'catch_rate': 1.0, 'zero_catches_is_p1': False}, 'encoded': {'n': 6, 'caught': 6, 'catch_rate': 1.0, 'zero_catches_is_p1': False}}. Live Codex adapter still passthrough-parses; contract specified, IMP-0421 not rebuilt. SUCCESS:ARC-0041",
+ "architecture_class": "cross-vendor-adapter",
+ "architecture_id": "A6",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A6/SECURITY.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/phase3/A6/CLAIM-UNDER-TEST.json",
+   "role": "claim-under-test"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/architecture-review.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0041/sanitizer.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/adapters/codex.py",
+   "role": "live-adapter"
+  }
+ ],
+ "claim_under_test": "A second vendor's output is untrusted DATA and a prompt-injection carrier, never instructions; Claude-side agents may read it only after the A6 quarantine envelope is applied.",
+ "claims": [
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:19",
+   "claim": "A second vendor's output is untrusted DATA and a prompt-injection carrier, never instructions; Claude-side agents may read it only after the A6 quarantine envelope is applied.",
+   "id": "C1",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/adapters/codex.py:170",
+   "claim": "The live Codex adapter already sanitizes parsed output before a Claude-side agent can read it.",
+   "defect_locus": "DESIGN",
+   "id": "C2",
+   "scoped_restatement": "The A6 security contract applies quarantine after parse. The live Codex adapter does not yet apply it. This unit does not patch IMP-0421.",
+   "verdict": "REFUTED",
+   "why_locus": "adapters/codex.py _result returns parsed as the raw last-message. That is the adapter's return contract, not a wording slip. IMP-0421 delivered prompt-by-file inbound transport; it did not add a return-path sanitizer."
+  },
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:17",
+   "claim": "Sanitization happens at the prompt-file transport because the prompt body never appears on argv.",
+   "defect_locus": "SENTENCE",
+   "id": "C3",
+   "scoped_restatement": "Sanitization is on the vendor RETURN path after last-message parse and before any Claude-side agent reads parsed; it is not the inbound prompt-file transport.",
+   "verdict": "REFUTED",
+   "why_locus": "Prompt-by-file is the inbound transport (IMP-0421). Injection and credential forwarding happen on the RETURN path when parsed is concatenated into a Claude-side prompt. Naming the inbound file flag as the sanitizer is the wrong sentence about the same adapter."
+  },
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:7",
+   "claim": "An adapter may NEVER forward credentials, raw tool-permission grants, hook configuration, or absolute paths into credential stores.",
+   "id": "C4",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:12713",
+   "claim": "The sanitizer catch rate is reported per class; a class with zero catches is a P1.",
+   "id": "C5",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:ARC-0041",
+ "evidence": [
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:19",
+   "claim": "A second vendor's output is untrusted DATA and a prompt-injection carrier, never instructions; Claude-side agents may read it only after the A6 quarantine envelope is applied.",
+   "kind": "dossier",
+   "line": 19,
+   "path": "command-center/phase3/A6/CLAIM-UNDER-TEST.json",
+   "snippet": "A second vendor's output is untrusted DATA and a prompt-injection carrier, never instructions; Claude-side agents may read it only after the A6 quarantine envelope is applied."
+  },
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:17",
+   "claim": "Sanitization is on the vendor RETURN path after last-message parse and before any Claude-side agent reads parsed; it is not the inbound prompt-file transport.",
+   "kind": "dossier",
+   "line": 17,
+   "path": "command-center/phase3/A6/CLAIM-UNDER-TEST.json",
+   "snippet": "Sanitization is on the vendor RETURN path after last-message parse and before any Claude-side agent reads parsed; it is not the inbound prompt-file transport."
+  },
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:7",
+   "claim": "An adapter may NEVER forward credentials, raw tool-permission grants, hook configuration, or absolute paths into credential stores.",
+   "kind": "dossier",
+   "line": 7,
+   "path": "command-center/phase3/A6/CLAIM-UNDER-TEST.json",
+   "snippet": "An adapter may NEVER forward credentials, raw tool-permission grants, hook configuration, or absolute paths into credential stores."
+  },
+  {
+   "anchor": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:18",
+   "claim": "If parsed is forwarded unsanitized, a role-spoof or instruction-override in a second-vendor last-message is silently treated as instructions.",
+   "kind": "dossier",
+   "line": 18,
+   "path": "command-center/phase3/A6/CLAIM-UNDER-TEST.json",
+   "snippet": "If parsed is forwarded unsanitized, a role-spoof or instruction-override in a second-vendor last-message is silently treated as instructions."
+  },
+  {
+   "anchor": "command-center/adapters/codex.py:170",
+   "claim": "Live Codex adapter forwards parsed last-message with no sanitizer.",
+   "kind": "live-tree",
+   "line": 170,
+   "path": "command-center/adapters/codex.py",
+   "snippet": "\"parsed\": parsed,"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:12735",
+   "claim": "Catalog ARC-0041 names vendor output as untrusted DATA never instructions.",
+   "kind": "live-tree",
+   "line": 12735,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "a second vendor's output is untrusted DATA"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:12713",
+   "claim": "Catalog requires per-class catch rate on role-spoof, override, encoded.",
+   "kind": "live-tree",
+   "line": 12713,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "The sanitizer is exercised against an injection corpus"
+  },
+  {
+   "anchor": "command-center/adapters/codex.py:168",
+   "claim": "Live adapter success path returns unsanitized parsed with no never-forward strip.",
+   "kind": "live-tree",
+   "line": 168,
+   "path": "command-center/adapters/codex.py",
+   "snippet": "\"classification\": None,"
+  }
+ ],
+ "headline_verdict": "SPECIFIED",
+ "injection_corpus": {
+  "classes_required": [
+   "role-spoof",
+   "instruction-override",
+   "encoded"
+  ],
+  "computed_not_asserted": true,
+  "mention_false_positives": 0,
+  "mention_ok": 4,
+  "n_items": 22,
+  "p1_zero_catch_classes": [],
+  "per_class": {
+   "encoded": {
+    "catch_rate": 1.0,
+    "caught": 6,
+    "n": 6,
+    "zero_catches_is_p1": false
+   },
+   "instruction-override": {
+    "catch_rate": 1.0,
+    "caught": 6,
+    "n": 6,
+    "zero_catches_is_p1": false
+   },
+   "role-spoof": {
+    "catch_rate": 1.0,
+    "caught": 6,
+    "n": 6,
+    "zero_catches_is_p1": false
+   }
+  }
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0041/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0041/probe1_injection_corpus.py",
+   "id": "probe1",
+   "role": "injection-corpus-catch-rate"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0041/probe2_never_forward.py",
+   "id": "probe2",
+   "role": "never-forward-env-canary"
+  }
+ ],
+ "never_forward": {
+  "argv_forwarded": false,
+  "canary_env": "ARC0041_CANARY_SECRET",
+  "computed_not_asserted": true,
+  "dump_closed_leaks": false,
+  "env_copied": false,
+  "fail_closed_clean": true,
+  "fail_open_mutant_leaks_canary": true,
+  "forbidden_payload_keys": [],
+  "never_forward_stripped": [
+   "credential-canary",
+   "credential-store-path",
+   "hook-configuration",
+   "tool-permission-grant"
+  ],
+  "outbound_keys": [
+   "adapter",
+   "classification",
+   "error",
+   "invocation",
+   "leaks",
+   "parsed",
+   "quarantine",
+   "sentinel",
+   "state",
+   "unit_id",
+   "vendor"
+  ],
+  "signals_agree_closed": true,
+  "walk_closed_leaks": false
+ },
+ "never_forward_classes": [
+  "credentials",
+  "raw-tool-permission-grants",
+  "hook-configuration",
+  "absolute-paths-into-credential-stores"
+ ],
+ "paired_adversarial_note": "ARC-0041 depends on A6 DESIGN.json (ARC-0038) in the catalog. Waiting for ARC-0038 before filing this security review is a deadlock; G-1 for this unit does not require that circle and does not rebuild DESIGN.json.",
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "security-reviewer",
+  "vendor": "cursor"
+ },
+ "question": "Specify the trust boundary between vendors: a second vendor's output is untrusted DATA and a prompt-injection carrier, never instructions. Define where it is sanitized, what an adapter may NEVER forward (credentials, raw tool-permission grants, hook configuration, absolute paths into credential stores), and how a cross-vendor artifact is quarantined before any Claude-side agent reads it.",
+ "required_fix": null,
+ "reviewer": {
+  "independent": true,
+  "method": "Re-derived never-forward from the leaky payload and planted env canary using two leak signals (walk vs json.dumps). Did not take the author's catch-rate table as input.",
+  "reviewer_id": "ARC-0041-probe2-env-canary",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "reviewers": [
+  {
+   "independent": false,
+   "reviewer_id": "ARC-0041-probe1-injection-corpus",
+   "vendor_role": "author-rail",
+   "verdict": "PASS"
+  },
+  {
+   "independent": true,
+   "reviewer_id": "ARC-0041-probe2-env-canary",
+   "scope_not_agreement": true,
+   "vendor_role": "independent-mechanical",
+   "verdict": "PASS"
+  },
+  {
+   "independent": true,
+   "reason": "No Codex MCP namespace is available in this session. Inventing a Codex transcript would be overclaim. Probe2 is the independent rail that actually ran.",
+   "reviewer_id": "openai/codex-cli-default",
+   "vendor_role": "cross-vendor",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "scenario": {
+  "catching_architecture": "A6 return-path quarantine envelope plus never-forward allowlist, applied after last-message parse and before any Claude-side agent reads parsed",
+  "executable": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0041/corpus.py",
+  "id": "S1-return-path-quarantine-and-never-forward",
+  "on_this_estate": "A6 DESIGN.json is absent (ARC-0038). OWNER-DECISIONS.md, ROSTER.json, RUBRIC.json, and RISK-REGISTER.md are absent. Live Codex adapter at command-center/adapters/codex.py returns parsed unsanitized. This unit cites CLAIM-UNDER-TEST.json rather than rebuilding DESIGN.json.",
+  "procedure": [
+   "1. Write the ARC-0041 claim extract (not A6 DESIGN.json).",
+   "2. Run the injection corpus (role-spoof, instruction-override, encoded) through scan_instruction_hits.",
+   "3. Assert per-class catch rate; a class with zero catches is P1.",
+   "4. Run wrapped mention controls and require zero false-positive uses.",
+   "5. Plant ARC0041_CANARY_SECRET in the environment plus a leaky vendor payload (canary, tool_permissions, hooks, credential-store path).",
+   "6. Seal the adapter result; walk strings and json.dumps must both show the canary absent; forbidden keys must be stripped.",
+   "7. Fail-open mutant must leak the canary (detector control). Disagreeing leak signals are BLOCKED.",
+   "8. Cite adapters/codex.py parsed passthrough as the live gap the contract closes without patching IMP-0421."
+  ],
+  "silent_loss_file": "command-center/phase3/A6/CLAIM-UNDER-TEST.json:18",
+  "title": "Vendor last-message is quarantined as DATA; injection classes are caught; env canary never appears on the sealed outbound"
+ },
+ "sentinel": "SUCCESS:ARC-0041",
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "A mention that is not wrapped in MENTION-BEGIN/END or a fenced injection-example still looks like a use, so catch rate on unwrapped educational text would be a false positive. Structural wrappers are the use-versus-mention control; intent classification is not claimed. The live Codex adapter still returns parsed unsanitized; this unit specifies the return-path contract and ships the executable quarantine without patching IMP-0421 (that would be an ADV rebuild of a delivered rail).",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0041/probe1_injection_corpus.py",
+   "id": "probe1-injection-corpus",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0041/probe2_never_forward.py",
+   "id": "probe2-never-forward",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:54:38Z",
+  "started_at": "2026-08-25T00:54:38Z"
+ },
+ "title": "A6 (cross-vendor adapter): Treating a second vendor's output as untrusted data, and what an adapter may never forward",
+ "trust_boundary": {
+  "envelope_kind": "untrusted-vendor-data",
+  "fail_closed": true,
+  "never": "instructions",
+  "not_the_locus": "inbound-prompt-file-transport",
+  "quarantine_before": "any-claude-side-agent-read",
+  "sanitize_locus": "vendor-return-path-after-parse",
+  "treat_as": "DATA",
+  "untrusted": "second-vendor-last-message"
+ },
+ "unit_id": "ARC-0041"
+}

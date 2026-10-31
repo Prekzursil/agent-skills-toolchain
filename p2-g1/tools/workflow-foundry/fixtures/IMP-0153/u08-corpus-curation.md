@@ -1,0 +1,1 @@
+Curate the corpus in strata. Generate ten cases per difficulty band, then hash each case id to assign its partition, and finally check that the held-out slice is empty of development runs by scanning the access log.

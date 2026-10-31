@@ -1,0 +1,38 @@
+### python -m pytest command-center/casualty/tests -q
+...............................                                          [100%]
+31 passed in 2.55s
+rc=0
+
+### python command-center/casualty/casualty_guard.py
+  FAIL P1-wiring: the worktree invokes the guard but the COMMITTED blob does not -- the wiring is uncommitted, so a fresh clone (and therefore CI) would not run it. Pass --allow-uncommitted-wiring only for a deliberate pre-commit dry run.
+  OK   P2-inventory: 8 instrument(s), all dispositioned and parseable
+  OK   P3-receipts: 2 receipt(s) reproduce their published digest and byte count
+  OK   P4-no-lost-work: ADV-0021 substantive at lane (6/6); ADV-0022 substantive at lane (6/6)
+  OK   P5-banners: 2 superseded output(s) banner-stamped
+  OK   P6-executed: 2 instrument(s) executed and emitted their marker
+FAILED:casualty-guard P1-wiring
+rc=1
+
+### python command-center/casualty/integration_redproof.py
+  PASS  C1-green: rc 0 and SUCCESS:casualty-guard on the real tree
+           returncode: 0
+           marker: SUCCESS:casualty-guard
+           tail: SUCCESS:casualty-guard 5 probe(s) green
+  PASS  C2-red-no-ci-line: rc 1 and FAILED:casualty-guard P1-wiring when the CI line is deleted
+           returncode: 1
+           marker: FAILED:casualty-guard P1-wiring
+           tail: FAILED:casualty-guard P1-wiring
+  PASS  C3-floor-raised: green at the declared floor, RED when the floor is raised above observed
+           observed: 31
+           green : {'ok': True, 'reason': 'collected 31 >= floor 27'}
+           broken: {'ok': False, 'reason': 'collected 31, below the declared floor 81 - a package is probably failing to import; tail: command-center/casualty/tests/test_casualty_guard.py::test_the_guard_emits_a_terminal_marker\n\n31 tests collected in 0.56s'}
+  PASS  C4-empty-suite: a tests directory with no tests FAILS closed
+           observed: 0
+           reason: collected NOTHING (floor 27); tail: no tests collected in 0.35s
+SUCCESS:integration-redproof 4 control(s) discriminate
+rc=0
+
+### python tools/measure-guard/suitefloor.py --suite casualty
+  OK   casualty: collected 31 >= floor 27
+SUCCESS:suite-floor 1 suite(s) at or above floor
+rc=0

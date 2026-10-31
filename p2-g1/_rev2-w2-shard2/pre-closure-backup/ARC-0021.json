@@ -1,0 +1,98 @@
+{
+ "schema_version": 1,
+ "unit_id": "ARC-0021",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ARC-0021",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0021]",
+ "min_bytes_threshold": 2048,
+ "artifacts": [
+  {
+   "path": "command-center/phase3/A3/MIGRATION.json",
+   "sha256": "54c6bc608e04be98586571bbb208b9a7b5e9d51228b4ef4b87d618434bcb26ea",
+   "bytes": 33121,
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Adopt-in-place pins the existing bytes of 6 claimed paths with zero rewrites; the drift detector fires on a planted mutation and stays silent on clean bytes.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0021/probe1_adopt.py:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0021/probe1_adopt.py",
+     "raw_output": "adopted paths=6 bytes_rewritten=0\nsha256_preservation=True pinned=6\ndrift_control fired_on_bad_state=True silent_on_good_state=True\nestate_files=10 unclaimed=4 missing_unclaimed=0 claimed_overlap=[]\narc0021_probe1 adopted=6 unclaimed=4 estate=10\nSUCCESS:ARC-0021-probe1 adopt-in-place pins bytes, zero rewrites",
+     "fingerprint": "ARC-0021:probe1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0021/probe2_uninstall.py",
+     "raw_output": "uninstalled claimed=6 leftovers=0\nunclaimed_preserved=4/4\n  bash-cmp lane control: same_rc=2 diff_rc=2 lane_ok=False\n  signal python-sha256: OK\n  signal python-bytes: OK\n  signal stat-size: OK\npreservation_two_signal=3/3\nnc_absent fired_on_bad_state=True silent_on_good_state=True\nforbidden_wipe_control planted_gone=True clean_run_destroyed_nothing=True\narc0021_probe2 claimed_removed=6 unclaimed_kept=4 signals=['python-sha256', 'python-bytes', 'stat-size']\nSUCCESS:ARC-0021-probe2 uninstall contract preserved unclaimed estate",
+     "fingerprint": "ARC-0021:probe2:verifier",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Uninstall removes only lockfile-claimed paths; the 4 unclaimed overlays survive under independent preservation signals; NC-ABSENT and the forbidden-wipe control pass both states.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0021/probe2_uninstall.py:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0021/probe2_uninstall.py",
+     "raw_output": "uninstalled claimed=6 leftovers=0\nunclaimed_preserved=4/4\n  bash-cmp lane control: same_rc=2 diff_rc=2 lane_ok=False\n  signal python-sha256: OK\n  signal python-bytes: OK\n  signal stat-size: OK\npreservation_two_signal=3/3\nnc_absent fired_on_bad_state=True silent_on_good_state=True\nforbidden_wipe_control planted_gone=True clean_run_destroyed_nothing=True\narc0021_probe2 claimed_removed=6 unclaimed_kept=4 signals=['python-sha256', 'python-bytes', 'stat-size']\nSUCCESS:ARC-0021-probe2 uninstall contract preserved unclaimed estate",
+     "fingerprint": "ARC-0021:probe2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0021/probe1_adopt.py",
+     "raw_output": "adopted paths=6 bytes_rewritten=0\nsha256_preservation=True pinned=6\ndrift_control fired_on_bad_state=True silent_on_good_state=True\nestate_files=10 unclaimed=4 missing_unclaimed=0 claimed_overlap=[]\narc0021_probe1 adopted=6 unclaimed=4 estate=10\nSUCCESS:ARC-0021-probe1 adopt-in-place pins bytes, zero rewrites",
+     "fingerprint": "ARC-0021:probe1:verifier",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-25T15:04:37Z",
+  "ended_at": "2026-10-25T15:05:00Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "max-3-fix-cycles-per-unit"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete and live-verified (_measure_one_delivered.py -> SUCCESS:delivered): artifact at output_path parses, carries the completion sentinel, both named probes exit 0, per-unit manifest row matches the CRLF-normalized sha256. state stays BLOCKED because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS and independent=true; only the independent reviewer closes. Not owner-gated; blanket build directive 2026-10-24 recorded as satisfied for the gate surface this unit carries.",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement"
+ },
+ "reviewer": {
+  "reviewer_id": "unassigned-independent-reviewer",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0021/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0021"
+ },
+ "produced_by": {
+  "model": "opus",
+  "role": "builder-shard-2-w2",
+  "vendor": "anthropic"
+ }
+}

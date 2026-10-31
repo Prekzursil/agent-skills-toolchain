@@ -1,0 +1,180 @@
+{
+ "AUD-0043": {
+  "id": "AUD-0043",
+  "output_path": "command-center/audit/AUD-0043-ci-local-invocation-parity.json",
+  "output_schema": "command-center/schema/audit-detector-control.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "title": "CI-versus-local invocation parity and packaging/import-path exposure",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: run the suite via python -m pytest from the source tree. Probe 2: pip install the built artifact into a fresh virtual environment and run the installed console script - by construction the source-tree run cannot detect a packaging or import-path regression.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0044": {
+  "id": "AUD-0044",
+  "output_path": "command-center/audit/AUD-0044-required-context-audit.json",
+  "output_schema": "command-center/schema/audit-drift.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "title": "Branch-protection required-context set versus the checks that actually run",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: the ruleset required_status_checks list from the API. Probe 2: the distinct check-run names reported on a recent merged PR - a required context whose name no workflow emits is permanently pending and a produced context that is not required gates nothing.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0047": {
+  "id": "AUD-0047",
+  "output_path": "command-center/audit/AUD-0047-workflow-path-filter-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "title": "Path-filter audit: triggers that exclude the very files the gate protects",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: evaluate each filter pattern against the gate's protected file list. Probe 2: search recent real runs for a commit that touched a protected file and confirm the gate job actually ran on it - the pattern evaluation is the model and the run history is the receipt.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0053": {
+  "id": "AUD-0053",
+  "output_path": "command-center/audit/AUD-0053-network-egress-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "title": "Network-egress dependency census across the test suite",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: run the suite with egress blocked and record every test that changes outcome. Probe 2: a socket-level trace on an unblocked run naming the destination hosts - the blocked run finds tests that DEPEND on the network and the trace finds tests that merely TOUCH it.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0055": {
+  "id": "AUD-0055",
+  "output_path": "command-center/audit/AUD-0055-skip-xfail-reason-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "title": "Skip and xfail census with reason validity",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: extract each marker with its reason and its git blame age. Probe 2: for a stratified sample, REMOVE the marker in a scratch worktree and run the test - the only way to know whether the stated reason still holds is to try it.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0057": {
+  "id": "AUD-0057",
+  "output_path": "command-center/audit/AUD-0057-assertion-strength-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "title": "Assertion-strength census: tests that never exercise the default they claim to protect",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: an AST pass computing, per parameter with a default, whether any test invokes the function without supplying it. Probe 2: for the highest-risk findings, an actual value mutation of the default in a scratch worktree, requiring the suite to stay GREEN to confirm the hole.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0064": {
+  "id": "AUD-0064",
+  "output_path": "command-center/audit/AUD-0064-monitor-surface-reachability.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01"
+  ],
+  "title": "Monitor and cockpit surface inventory and reachability",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: the dispatcher routing table enumerated statically. Probe 2: launch each route once and assert a non-empty, changing render - a pane that renders a fixed empty frame is indistinguishable from a working one on a static screenshot.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0066": {
+  "id": "AUD-0066",
+  "output_path": "command-center/audit/AUD-0066-scheduled-service-dependency.json",
+  "output_schema": "command-center/schema/audit-inventory.schema.json",
+  "dependencies": [
+   "B01"
+  ],
+  "title": "Scheduled tasks and background services the program depends on",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: the scheduled-task and service state as reported by the OS. Probe 2: an endpoint health check for each service that exposes one - a task reported as Running whose endpoint refuses connections is the finding, and the task state alone cannot show it.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "0"
+ },
+ "AUD-0069": {
+  "id": "AUD-0069",
+  "output_path": "command-center/audit/AUD-0069-option-card-body-dedup.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0068"
+  ],
+  "title": "Body-level deduplication over the 283 option cards",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: lexical near-duplicate detection over card bodies with planted-mutant calibration. Probe 2: an embedding-cosine rescan using the SAME planted mutants as controls, because a full rewrite lands in the same lexical band as a genuinely distinct card.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "1"
+ },
+ "AUD-0071": {
+  "id": "AUD-0071",
+  "output_path": "command-center/audit/AUD-0071-support-edge-graph.json",
+  "output_schema": "command-center/schema/audit-graph.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0068",
+   "AUD-0074"
+  ],
+  "title": "Support-edge and independent-corroboration graph",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: build support edges from explicit citation. Probe 2: collapse supports that share an upstream source into a single independent signal, then recount - the raw support count and the independent-source count are different numbers and only the second may be used for ranking.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "1"
+ },
+ "AUD-0072": {
+  "id": "AUD-0072",
+  "output_path": "command-center/audit/AUD-0072-confidence-status-normalization.json",
+  "output_schema": "command-center/schema/claim-record.schema.json",
+  "dependencies": [
+   "B01",
+   "AUD-0068"
+  ],
+  "title": "Confidence and verification-status normalization onto one vocabulary",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: lexical mapping of each phrase to a band. Probe 2: an unmapped-residue report listing every hedge that received no band - a normalizer that maps everything has almost certainly guessed, and the residue list is the honest output.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "1"
+ },
+ "AUD-0075": {
+  "id": "AUD-0075",
+  "output_path": "command-center/audit/AUD-0075-stale-premise-sweep.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "dependencies": [
+   "B01"
+  ],
+  "title": "Stale-premise sweep over pinned ground-truth facts with mechanically different re-probes",
+  "owner_approval_required": false,
+  "evidence_requirement": "Probe 1: for each pinned fact, a re-measurement using a different shell, a different data field, or a different instrument than the one named in the pin. Probe 2: an explicit record of WHICH probe produced the original claim - an undeclared source probe means zero signals, not one, and must be reported as such.",
+  "spec_anchor": null,
+  "slice": "AUD-1of1",
+  "phase": "1"
+ }
+}

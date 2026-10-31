@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0298",
+  "id": "TST-0298",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:TST-0298",
+  "title": "Paired statistical comparison with a pre-registered effect size and sample size",
+  "spec_anchor": "tools/bench/compare.py; catalog TST-0298",
+  "output_path": "command-center/receipts/TST-0298.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "role": "statistician",
+    "execution_substrate": "worktree-isolated",
+    "worktree": "/opt/p2/ast-integrate"
+  },
+  "answer": "Ad-hoc before/after numbers are replaced by tools/bench/compare.py. A comparison files min_effect_size and required_n (z-test formula, n=32 for effect=10 and assumed_sd=20 at alpha=0.05/power=0.80) with a timestamp that must precede the run. Every COMPARED delta is an interval (mean, lo, hi) plus n from a paired bootstrap over per-case differences; emit_delta() refuses a bare point estimate. n below the filed size yields NOT-CHECKED with no delta. A synthetic 10-point improvement is verdict=IMPROVEMENT; a zero-effect twin is verdict=NO-DETECT with an interval that contains 0.",
+  "pre_registration": {
+    "min_effect_size": 10.0,
+    "assumed_sd": 20.0,
+    "alpha": 0.05,
+    "power": 0.8,
+    "required_n": 32,
+    "filed_at": "2026-08-01T00:00:00Z",
+    "seed": 298,
+    "n_resamples": 2000,
+    "comparison_id": "TST-0298",
+    "level": 0.95,
+    "method": "paired-bootstrap",
+    "digest": "ed41de6932b143d103ff48ea1eb0ee8fca73b9e7009411a3db71b3d3a3d0fb57"
+  },
+  "pre_registration_precedes_run": true,
+  "known_effect_control": {
+    "ten_point": {
+      "status": "COMPARED",
+      "verdict": "IMPROVEMENT",
+      "delta": {
+        "mean": 10.0,
+        "lo": 10.0,
+        "hi": 10.0,
+        "n": 32,
+        "level": 0.95,
+        "method": "paired-bootstrap",
+        "n_resamples": 2000,
+        "seed": 298
+      },
+      "contains_zero": false
+    },
+    "zero_effect": {
+      "status": "COMPARED",
+      "verdict": "NO-DETECT",
+      "delta": {
+        "mean": 0.0,
+        "lo": 0.0,
+        "hi": 0.0,
+        "n": 32,
+        "level": 0.95,
+        "method": "paired-bootstrap",
+        "n_resamples": 2000,
+        "seed": 298
+      },
+      "contains_zero": true
+    }
+  },
+  "underpowered_guard": {
+    "status": "NOT-CHECKED",
+    "reason": "underpowered",
+    "n": 4,
+    "required_n": 32,
+    "emitted_delta": false
+  },
+  "late_preregistration_control": {
+    "status": "REJECTED",
+    "reason": "preregistration-postdates-run",
+    "emitted_delta": false
+  },
+  "evidence": [
+    {
+      "id": "E1-paired-bootstrap-interval",
+      "signal": 1,
+      "claim": "Paired bootstrap over per-case outcomes; interval published with n.",
+      "source_probe": "command-center/p2-wave/probes/TST-0298/probe2_known_effect.py",
+      "verifier_probe": "tools/bench/compare.py",
+      "result": "PASS",
+      "detail": "ten-point delta mean=10.0 lo=10.0 hi=10.0 n=32"
+    },
+    {
+      "id": "E2-prereg-precedes-run",
+      "signal": 2,
+      "claim": "A comparison whose pre-registration postdates the run is rejected.",
+      "source_probe": "command-center/p2-wave/probes/TST-0298/probe1_prereg_and_underpowered.py",
+      "verifier_probe": "tools/bench/compare.py",
+      "result": "PASS",
+      "detail": "late status=REJECTED reason=preregistration-postdates-run emitted_delta=False"
+    },
+    {
+      "id": "E3-underpowered-not-checked",
+      "signal": 3,
+      "claim": "When n is below the pre-registered size the platform emits NOT-CHECKED rather than a delta.",
+      "source_probe": "command-center/p2-wave/probes/TST-0298/probe1_prereg_and_underpowered.py",
+      "verifier_probe": "command-center/p2-wave/probes/TST-0298/fixtures/underpowered.json",
+      "result": "PASS",
+      "detail": "status=NOT-CHECKED n=4 required_n=32 emitted_delta=False"
+    },
+    {
+      "id": "E4-known-effect-control",
+      "signal": 4,
+      "claim": "Synthetic 10-point improvement is detected; zero effect is not.",
+      "source_probe": "command-center/p2-wave/probes/TST-0298/probe2_known_effect.py",
+      "verifier_probe": "tools/bench/synthetic.py",
+      "result": "PASS",
+      "detail": "ten=IMPROVEMENT zero=NO-DETECT zero_contains_zero=True"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-prereg-and-underpowered",
+      "name": "Pre-registration order and underpowered NOT-CHECKED, both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0298/probe1_prereg_and_underpowered.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "T2-known-effect-and-interval",
+      "name": "Paired bootstrap interval; 10-point vs zero; independent recompute; bare estimate refused",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0298/probe2_known_effect.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-late-preregistration",
+      "detail": "filed_at after run_started_at -> REJECTED preregistration-postdates-run, no delta",
+      "result": "PASS"
+    },
+    {
+      "id": "NC2-underpowered-four-rows",
+      "detail": "n=4 < required_n=32 -> NOT-CHECKED, no delta",
+      "result": "PASS"
+    },
+    {
+      "id": "NC3-bare-point-estimate",
+      "detail": "emit_delta(mean=10.0) raises BareEstimateError",
+      "result": "PASS"
+    },
+    {
+      "id": "NC4-zero-effect-not-detected",
+      "detail": "constant 0 paired difference -> verdict=NO-DETECT, interval contains 0",
+      "result": "PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0298-probe2-independent-recompute",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Named probe 2 re-runs paired_bootstrap_interval from the raw per-case differences and requires exact agreement with the published mean and interval, plus a hand-computed mean."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0298/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0298",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "artifacts": [
+    {
+      "path": "tools/bench/compare.py",
+      "role": "implementation",
+      "sha256": "74bb5998ab1d93320c8bd26ea7e6f8bf584861af04f77d1401f92f7fcdec79df",
+      "bytes": 12180,
+      "present": true
+    },
+    {
+      "path": "tools/bench/synthetic.py",
+      "role": "implementation",
+      "sha256": "07bb5058e5b5c040dddf7b6fe65b980500fd8c0fe434a333d7b83bbafdfb7616",
+      "bytes": 1042,
+      "present": true
+    }
+  ],
+  "timestamps": {
+    "pre_registration_filed_at": "2026-08-01T00:00:00Z",
+    "run_started_at": "2026-08-01T12:00:00Z",
+    "ended_at": "2026-08-25T00:46:16Z"
+  },
+  "residual_unknowns": [
+    "TST-0295 corpus and TST-0297 variance floor are not delivered in this worktree; known-effect rows are synthetic paired scores, not live workflow runs."
+  ],
+  "cloud_ok": false,
+  "notes": "G-1 for TST-0298: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild."
+}

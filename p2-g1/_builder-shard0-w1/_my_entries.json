@@ -1,0 +1,616 @@
+{
+ "ADV-0006": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "adversarial-refuter",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0006 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0006 <reason>.",
+  "dependencies": [
+   "B01",
+   "B12"
+  ],
+  "evidence_requirement": "Probe 1: mechanical quantifier extraction - regex the universal quantifiers and absolute numerics out of every claim, then check each against the cardinality of the evidence set actually cited (a claim saying 'every' backed by a 12-item sample is an overclaim by arithmetic, not by judgement). Probe 2 (mechanically different): for a stratified sample, attempt to find ONE counterexample outside the cited evidence set; success refutes the wider sentence while leaving the narrow one standing.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "single-signal"
+  ],
+  "id": "ADV-0006",
+  "inputs": [
+   "every claim with verdict CONFIRMED plus its recorded evidence anchors",
+   "rules/common/fan-out-contract.md C2 (5 of 8 measured refutations were overclaims, not broken code)",
+   "the quantifier vocabulary used in each claim (every, all, none, zero, always, recall=1.0)"
+  ],
+  "mechanism": "quantifier-vs-evidence-cardinality arithmetic, which is mechanical, plus a targeted counterexample hunt outside the cited set",
+  "not_a_duplicate_because": "ADV-0005 asks whether the claim is TRUE; this asks whether it is correctly SCOPED. On this estate 5 of 8 refutations were the second kind with the code fine.",
+  "output_path": "command-center/adversarial/ADV-0006-confirmed-claim-overclaim-audit.json",
+  "output_schema": "command-center/schema/refutation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "For each CONFIRMED claim, is the SENTENCE wider than the evidence that was actually gathered - and what is the correctly-scoped rewrite?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11064 (every surviving claim must state the strongest remaining caveat)",
+  "tests_required": [
+   "control: include 3 claims already known to be correctly scoped and require the audit to leave them CONFIRMED; an audit that flags everything is not discriminating"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Scope-versus-evidence overclaim audit of every CONFIRMED claim",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0019": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0019 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0019 <reason>.",
+  "dependencies": [
+   "B02"
+  ],
+  "evidence_requirement": "Probe 1: extract every tool/command token from instruction artifacts and set-difference it against the live inventory. Probe 2 (mechanically different): resolve each name through a second inventory source - Get-Command in PowerShell for binaries (which sees .cmd shims that a Git-Bash which misses) and the live MCP tool schema for MCP names.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "ADV-0019",
+  "inputs": [
+   "every instruction-bearing artifact (skills, rules, agent definitions, workflow prompts, command definitions)",
+   "the live inventory: installed plugins with enabled/disabled state, mounted MCP servers and their actual tool lists, commands on PATH",
+   "the known retired set (AgentBridge get_budget/check_budget) as a calibration case"
+  ],
+  "mechanism": "instruction-token to live-inventory set difference with a second, shell-independent resolver",
+  "not_a_duplicate_because": "ADV-0014 finds tools that changed SEMANTICS; this finds tools that are GONE and are still being instructed - a different query with a different fix (edit the instruction, not the call site).",
+  "output_path": "command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+  "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Which prompts, skills, rules, agents and workflow definitions still instruct an agent to call a tool, plugin or command that no longer exists in the live inventory?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11330, 11048",
+  "tests_required": [
+   "known-present control: a currently-available tool must NOT be flagged",
+   "known-absent control: the retired budget tools MUST be flagged, otherwise the detector is not reaching the instruction corpus"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Dead-reference sweep for retired tools, disabled plugins and removed capabilities",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0027": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "security-exploit-engineer",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0027 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0027 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: extract each crafted archive through the program's own import path in a sandbox and enumerate every file created, including outside the intended root. Probe 2 (mechanically different): static review of the extraction call for a per-member path-normalisation-and-containment check performed AFTER normalisation, since a pre-normalisation check is bypassable.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "sandbox-escape",
+   "platform-portability",
+   "supply-chain"
+  ],
+  "id": "ADV-0027",
+  "inputs": [
+   "the package install and offline-import extraction code",
+   "a crafted archive set: relative traversal, absolute path, external symlink, hardlink, NUL/CON device-named member, and a 10000:1 compression-ratio member",
+   "_USER-PROMPTS.md:10866 (offline export/import)"
+  ],
+  "mechanism": "crafted-archive member matrix executed through the real import path, with post-normalisation containment as the static counterpart",
+  "not_a_duplicate_because": "ADV-0117 covers Windows path hostility for NORMAL paths; this is adversarial archive content, where the attacker chooses the path.",
+  "output_path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does the install/import path accept an archive containing ../ traversal entries, absolute paths, symlinks pointing outside the extraction root, or a Windows device name - and where does each land?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10866, 11049",
+  "tests_required": [
+   "control: a benign archive must extract completely and correctly",
+   "the device-name member must be handled explicitly on Windows; an unhandled crash is a distinct finding from a successful traversal"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Archive extraction attacks against package install and offline import",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0028": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "security-exploit-engineer",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode. Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain",
+   "detector-failure"
+  ],
+  "id": "ADV-0028",
+  "inputs": [
+   "the signing and verification implementation and the trusted-key store",
+   "package variants: unsigned, truncated signature, signature over an older version of the content, signature by a key not in the trust store",
+   "_USER-PROMPTS.md:10855-10857 (provenance, signatures)"
+  ],
+  "mechanism": "variant matrix plus a deliberately degraded trust-store environment to expose fail-open behaviour",
+  "not_a_duplicate_because": "ADV-0062 verifies that a rebuild reproduces the SAME bytes; this verifies that the CHECK on those bytes cannot be skipped. Independent failures.",
+  "output_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10856-10857, 11108",
+  "tests_required": [
+   "control: a correctly signed package by a trusted key must install",
+   "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Signature and provenance verification bypass on install",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0029": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0029 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0029 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: resolve a private package name with a shadow public entry present at a higher version and record which artifact is fetched, by hash. Probe 2 (mechanically different): tamper one field of the index (a download URL, a hash) and re-resolve - if the resolver accepts the tampered entry the index has no integrity control, independent of the name-shadowing result.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain"
+  ],
+  "id": "ADV-0029",
+  "inputs": [
+   "the resolver and its source precedence rules",
+   "a local fixture registry plus a shadow entry with a higher version",
+   "the canonical index and whatever integrity control it has"
+  ],
+  "mechanism": "name-shadowing plus index-field tampering against the real resolver, decided by artifact hash rather than by log text",
+  "not_a_duplicate_because": "ADV-0064 detects typosquat NAMES in the registry (a listing problem); this attacks RESOLUTION precedence and index integrity (a client problem).",
+  "output_path": "command-center/adversarial/ADV-0029-dependency-confusion-index-poisoning.json",
+  "output_schema": "command-center/schema/supply-chain-attestation.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "If a public registry offers a package with the same name (or a higher version) as a private/internal one, which does the resolver choose - and can an index entry be added or altered without detection?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10848-10853, 11052",
+  "tests_required": [
+   "control: with no shadow entry present, resolution must select the private package, proving the harness is exercising the real resolver"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Dependency confusion and registry index poisoning against the resolver",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0033": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-threat-modeler",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0033 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0033 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run the identical probe payload in every substrate and record the four outcomes per substrate as a matrix. Probe 2 (mechanically different): read the router's selection logic and identify which substrate untrusted/third-party code is actually routed to, then check that cell of the matrix - a strong sandbox that untrusted code is never routed to provides zero protection.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "sandbox-escape",
+   "platform-portability",
+   "overclaim"
+  ],
+  "id": "ADV-0033",
+  "inputs": [
+   "the substrate router and its selection rules",
+   "a probe payload that attempts, in each substrate: read a credential path, list sibling processes, write outside its root, and open an outbound socket",
+   "orchestration-patterns skill: Windows has no native OS-level process sandbox"
+  ],
+  "mechanism": "identical-payload capability matrix across substrates joined to the router's actual routing decision",
+  "not_a_duplicate_because": "ADV-0022 tests the program's own permission metadata; this measures what the OS-level boundary really enforces, which no manifest can change.",
+  "output_path": "command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json",
+  "output_schema": "command-center/schema/threat-model.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "For each substrate the program will route work to (local process, worktree, WSL2, docker, cloud sandbox), what does the boundary actually prevent - filesystem reach, network egress, credential visibility, process visibility - and where does the router send untrusted code?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10574-10581, 11049",
+  "tests_required": [
+   "the probe must SUCCEED at all four actions in the deliberately unisolated local case, proving the probe can detect capability at all before any 'blocked' result is believed"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Isolation review of the execution-substrate ladder",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0037": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-threat-modeler",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0037 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0037 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run every credential path with the planted synthetic value present and grep all outputs - stdout, stderr, log files, event ledger, cache, crash dump - for the distinctive body. Probe 2 (mechanically different): force each path's ERROR branch (unset, malformed, expired-shaped) and repeat the sweep, because the leak usually lives in the exception formatter rather than the happy path.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "secret-exposure",
+   "detector-failure",
+   "privacy-leak"
+  ],
+  "id": "ADV-0037",
+  "inputs": [
+   "every code path that reads an environment variable, credential file or keychain entry",
+   "a planted synthetic credential with a distinctive non-authenticating body",
+   "AGENTS.md 9 (read-only diagnosis; never print the value; never modify any credential)"
+  ],
+  "mechanism": "planted-synthetic-value tracing through happy and error branches, with a deliberate-leak calibration run",
+  "not_a_duplicate_because": "ADV-0023 sweeps the corpus for secrets at rest; this traces the code paths that could put one there, especially the exception formatter.",
+  "output_path": "command-center/adversarial/ADV-0037-credential-diagnosis-path-leak.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does every credential-touching code path (presence checks, auth probes, error messages, logs, ledger entries, crash dumps) emit at most a zero-entropy prefix - and does any path print, persist or transmit the value?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11345, 11049",
+  "tests_required": [
+   "detector control: deliberately print the planted value once in a scratch run and confirm the sweep finds it, proving the sweep can detect a leak before its silence is trusted",
+   "HARD CONSTRAINT: no real credential is read, printed, rotated, revoked, unset or modified; the planted value is synthetic and is removed afterwards"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Adversarial review of the credential-diagnosis code path with a planted secret",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0038": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0038 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0038 <reason>.",
+  "dependencies": [
+   "B07",
+   "B13"
+  ],
+  "evidence_requirement": "Probe 1: revoke the fixture and immediately attempt install from each source, recording success and the warning emitted. Probe 2 (mechanically different): inspect each source's metadata for a revocation field at all - a source with no field for it cannot ever honour a revocation, which a timing test alone might miss if the cache happens to be cold.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain",
+   "stale-premise"
+  ],
+  "id": "ADV-0038",
+  "inputs": [
+   "the revocation/deprecation mechanism and every install source (cache, lockfile, offline bundle, mirror)",
+   "a fixture package published then revoked",
+   "_USER-PROMPTS.md:10864-10866"
+  ],
+  "mechanism": "per-source revocation honouring test plus a metadata-capability audit of each source",
+  "not_a_duplicate_because": "ADV-0066 attacks DOWNGRADE to an older vulnerable version; this attacks continued availability of a version explicitly withdrawn.",
+  "output_path": "command-center/adversarial/ADV-0038-revocation-propagation-to-caches.json",
+  "output_schema": "command-center/schema/supply-chain-attestation.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "After a package version is revoked or deprecated in the registry, can it still be installed from a local cache, a lockfile pin, an offline export or a mirror - and how long is the propagation delay?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10864, 11346",
+  "tests_required": [
+   "control: a non-revoked package must install from every source, so a broken source cannot be mistaken for working revocation",
+   "silent success from ANY source is a P1 finding; a loud refusal with a documented override is acceptable"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Revocation and deprecation propagation to already-cached packages",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0060": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0060 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0060 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector. Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain",
+   "sandbox-escape"
+  ],
+  "id": "ADV-0060",
+  "inputs": [
+   "the install/update/uninstall pipelines and every hook point they honour",
+   "a fixture package attempting execution through each available vector",
+   "the declared policy on lifecycle scripts"
+  ],
+  "mechanism": "per-vector beacon fixture cross-checked against a static enumeration of invocation points, so unexercised vectors are reported as gaps",
+  "not_a_duplicate_because": "ADV-0026 covers auto-loaded config in a CLONED REPO; this covers the PACKAGE INSTALL path, a different trust boundary with different code.",
+  "output_path": "command-center/adversarial/ADV-0060-install-lifecycle-script-policy.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Can a package cause code to run during install, update or uninstall - through a lifecycle script, a postinstall hook, an auto-loaded config or a build step - and is that execution sandboxed or refused?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10836",
+  "tests_required": [
+   "control: the beacon mechanism must be proven to work by running it directly once",
+   "all installs happen in a disposable sandbox"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Install-time script execution policy for packages",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0096": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "groupthink-red-teamer",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0096 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0096 <reason>.",
+  "dependencies": [
+   "B05",
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run the planted mutant set through the gate and record accept/reject per mutant class. Probe 2 (mechanically different): a second similarity space - if the gate uses lexical similarity, evaluate with embeddings, and vice versa; a mutant class that survives BOTH is a real gap, and a class caught by only one identifies which space the gate is blind in.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "groupthink",
+   "benchmark-gaming",
+   "detector-failure"
+  ],
+  "id": "ADV-0096",
+  "inputs": [
+   "the brainstorm uniqueness/dedup gate",
+   "a planted mutant set: exact rename, synonym swap, one-parameter fork, reordered composition, and a genuinely distinct idea",
+   "_USER-PROMPTS.md:11236-11237, 10937"
+  ],
+  "mechanism": "planted mutant-class matrix evaluated in two different similarity spaces to localise the gate's blind space",
+  "not_a_duplicate_because": "the same anti-padding problem this catalog itself is subject to; ADV-0114 applies the collapse check to SYNTHESIS output, where the population and the consequences differ.",
+  "output_path": "command-center/adversarial/ADV-0096-idea-count-gaming-uniqueness-gate.json",
+  "output_schema": "command-center/schema/council-pathology-sim.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "When a brainstorm is told to reach 100 unique ideas, does the uniqueness gate reject trivial rewordings, one-parameter forks and renamed duplicates - and what is its measured discrimination?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11236-11237, 10937",
+  "tests_required": [
+   "the genuinely distinct idea must be ACCEPTED; a gate that rejects everything satisfies the anti-gaming requirement while destroying the brainstorm and must be reported as a failure, not a pass"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Idea-count gaming: 100 'unique' ideas that are wording variants",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ },
+ "ADV-0124": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "platform-fault-injector",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0124 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0124 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix. Probe 2 (mechanically different): signal-source audit - determine which signals the monitor uses, and if any state is inferred from file mtimes alone, mark it structurally undecidable regardless of whether this run happened to classify it correctly.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "single-signal"
+  ],
+  "id": "ADV-0124",
+  "inputs": [
+   "the monitor and its liveness signals",
+   "scripted scenarios for each of the four states, including a long-running unit that produces no output for an extended period",
+   "_USER-PROMPTS.md:11315-11316; the estate finding that stall detection from file mtimes alone is impossible"
+  ],
+  "mechanism": "four-state confusion matrix plus a signal-source audit that flags structurally undecidable states",
+  "not_a_duplicate_because": "the spec lists the two monitor failures separately because a fix for one commonly creates the other; testing them as a matrix is what prevents that trade.",
+  "output_path": "command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json",
+  "output_schema": "command-center/schema/fault-injection-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does the monitor correctly distinguish these four states - work running with monitor alive, work running with monitor dead, work finished, and work genuinely stalled - or does it conflate any pair?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11315-11316",
+  "tests_required": [
+   "the finished-versus-stalled pair MUST be tested explicitly; on this estate an 11-hour-old finished agent was reported as a live stall, and only orchestrator state - not the filesystem - can separate them",
+   "control: the monitor must correctly report the plainly-running case"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Monitor liveness in both directions: dead monitor with live work, and idle work read as dead",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ },
+ "ADV-0127": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "platform-fault-injector",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0127 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0127 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: static audit classifying every timestamp as monotonic, UTC-aware, or naive-local, with file:line. Probe 2 (mechanically different): behavioural - run the affected paths under each clock scenario and record cache staleness, out-of-order event ids, and prematurely or never expiring leases; a naive timestamp that never crosses a boundary in testing is still a defect the static audit records.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "platform-portability",
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "ADV-0127",
+  "inputs": [
+   "every timestamp write, comparison and TTL computation",
+   "a controlled clock harness offering DST transition, timezone change and backward step",
+   "the append-only event log's ordering guarantee"
+  ],
+  "mechanism": "clock-class static audit paired with scenario execution under a controlled clock",
+  "not_a_duplicate_because": "the only unit treating TIME as the adversary; freshness units (ADV-0011, ADV-0016) assume the clock is correct and their conclusions depend on it.",
+  "output_path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+  "output_schema": "command-center/schema/fault-injection-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does any decision depend on a local, naive or non-monotonic clock - cache TTL expiry, event ordering, lease expiry, freshness checks, retry backoff - and what happens across a DST transition, a timezone change, or a backward clock adjustment?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11055, 11007",
+  "tests_required": [
+   "control: under a stable UTC clock all paths must behave normally, so a scenario failure is attributable to the clock change",
+   "the backward-step case must be distinguished from the DST case; only one of them can be handled by UTC storage alone"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Clock skew, timezone and DST effects on timestamps, TTLs and ordering",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ }
+}

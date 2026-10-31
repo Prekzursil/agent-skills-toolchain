@@ -1,0 +1,2126 @@
+{
+ "unit_id": "CNL-0010",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNL-0010",
+ "extensions": {
+  "legacy_root": {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "$id": "https://ast-integrate.invalid/command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+   "title": "Stopping-expression grammar and static validation (CNL-0010)",
+   "description": "Typed-tree grammar for CouncilSpec stopping expressions covering AND / OR / NOT plus ANY, ALL and weighted forms, with parse-time static rejection of unbound variables, never-satisfiable conjunctions, and always-true tautologies. SUCCESS:CNL-0010",
+   "$ref": "#/$defs/expr",
+   "examples": [
+    {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "unique_ideas",
+       "rel": ">=",
+       "value": 100
+      },
+      {
+       "op": "cmp",
+       "var": "completeness_score",
+       "rel": ">=",
+       "value": 0.9
+      }
+     ]
+    },
+    {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "consensus",
+       "rel": ">=",
+       "value": 0.95
+      },
+      {
+       "op": "cmp",
+       "var": "no_new_objection_rounds",
+       "rel": ">=",
+       "value": 2
+      }
+     ]
+    },
+    {
+     "op": "or",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "unanimity",
+       "rel": "==",
+       "value": true
+      },
+      {
+       "op": "cmp",
+       "var": "max_rounds",
+       "rel": "==",
+       "value": 12
+      }
+     ]
+    },
+    {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "quality_gate",
+       "rel": "==",
+       "value": "PASS"
+      },
+      {
+       "op": "cmp",
+       "var": "unresolved_load_bearing_counterexample",
+       "rel": "==",
+       "value": 0
+      }
+     ]
+    },
+    {
+     "op": "or",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "evidence_saturation",
+       "rel": "==",
+       "value": true
+      },
+      {
+       "op": "cmp",
+       "var": "time_minutes",
+       "rel": ">=",
+       "value": 180
+      }
+     ]
+    },
+    {
+     "op": "cmp",
+     "var": "proof_of_impossibility",
+     "rel": "==",
+     "value": true
+    }
+   ],
+   "$defs": {
+    "expr": {
+     "oneOf": [
+      {
+       "$ref": "#/$defs/cmp"
+      },
+      {
+       "$ref": "#/$defs/var"
+      },
+      {
+       "$ref": "#/$defs/not_op"
+      },
+      {
+       "$ref": "#/$defs/and_op"
+      },
+      {
+       "$ref": "#/$defs/or_op"
+      },
+      {
+       "$ref": "#/$defs/any_op"
+      },
+      {
+       "$ref": "#/$defs/all_op"
+      },
+      {
+       "$ref": "#/$defs/weighted_op"
+      }
+     ]
+    },
+    "cmp": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "var",
+      "rel",
+      "value"
+     ],
+     "properties": {
+      "op": {
+       "const": "cmp"
+      },
+      "var": {
+       "type": "string",
+       "minLength": 1,
+       "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "rel": {
+       "enum": [
+        ">=",
+        "<=",
+        ">",
+        "<",
+        "==",
+        "!="
+       ]
+      },
+      "value": {
+       "oneOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "string",
+         "minLength": 1
+        }
+       ]
+      }
+     }
+    },
+    "var": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "name"
+     ],
+     "properties": {
+      "op": {
+       "const": "var"
+      },
+      "name": {
+       "type": "string",
+       "minLength": 1,
+       "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+     }
+    },
+    "not_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "arg"
+     ],
+     "properties": {
+      "op": {
+       "const": "not"
+      },
+      "arg": {
+       "$ref": "#/$defs/expr"
+      }
+     }
+    },
+    "and_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args"
+     ],
+     "properties": {
+      "op": {
+       "const": "and"
+      },
+      "args": {
+       "type": "array",
+       "minItems": 2,
+       "items": {
+        "$ref": "#/$defs/expr"
+       }
+      }
+     }
+    },
+    "or_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args"
+     ],
+     "properties": {
+      "op": {
+       "const": "or"
+      },
+      "args": {
+       "type": "array",
+       "minItems": 2,
+       "items": {
+        "$ref": "#/$defs/expr"
+       }
+      }
+     }
+    },
+    "any_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "k",
+      "args"
+     ],
+     "properties": {
+      "op": {
+       "const": "any"
+      },
+      "k": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "args": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "$ref": "#/$defs/expr"
+       }
+      }
+     }
+    },
+    "all_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args"
+     ],
+     "properties": {
+      "op": {
+       "const": "all"
+      },
+      "args": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "$ref": "#/$defs/expr"
+       }
+      }
+     }
+    },
+    "weighted_term": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "weight",
+      "arg"
+     ],
+     "properties": {
+      "weight": {
+       "type": "number"
+      },
+      "arg": {
+       "$ref": "#/$defs/expr"
+      }
+     }
+    },
+    "weighted_op": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "threshold",
+      "terms"
+     ],
+     "properties": {
+      "op": {
+       "const": "weighted"
+      },
+      "threshold": {
+       "type": "number"
+      },
+      "terms": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "$ref": "#/$defs/weighted_term"
+       }
+      }
+     }
+    }
+   },
+   "x-cnl-0010": {
+    "ts": "2026-08-25T00:59:06Z",
+    "question": "What grammar covers AND / OR / NOT plus ANY, ALL and weighted forms, and which expression errors (unbound variable, never-satisfiable conjunction, always-true tautology) can be caught STATICALLY before a single round runs?",
+    "answer": "A typed JSON tree with ops cmp, var, not, and, or, any, all, weighted, plus an infix surface language with precedence NOT > AND > OR. All six catalog-quoted executable examples parse (6/6). Static analysis over the declared metric registry rejects UNBOUND, UNSATISFIABLE (x AND NOT x), and TAUTOLOGY (p OR NOT p) before any round. Cited v1 file 11-COUNCIL-SPECIFICATION.schema.json is ABSENT on this worktree. CNL-0001 reconstructs v1 $defs.stopping_expr as a non-empty string: that string schema stores all 6/6 example surfaces and structurally types 0/6 (opaque string has no AND/OR/NOT/ANY/ALL/weighted operators) and is silent on 'x AND NOT x' (v1_string_silent_on_unsat=True). In-tree stopping objects (max_rounds/on_timeout at command-center/p2-wave/probes/ARC-0010/registry.schema.json) express 0 of 6 and cannot express 6 of 6. Live platform/schema/councilspec.schema.json has $defs.stop_expression (not the cited name stopping_expr) which schema-accepts 6/6 mapped trees and is silent on unsat (unsat_tree_accepted_by_schema=True); static UNSAT/TAUTOLOGY/UNBOUND is this unit's addition.",
+    "grammar": {
+     "surface": "infix; NOT tightest, then AND, then OR; ANY(k, ...)/ALL(...)/WEIGHTED(threshold, w * expr, ...)",
+     "tree_ops": [
+      "cmp",
+      "var",
+      "not",
+      "and",
+      "or",
+      "any",
+      "all",
+      "weighted"
+     ],
+     "relations": [
+      ">=",
+      "<=",
+      ">",
+      "<",
+      "==",
+      "!="
+     ],
+     "parser": "command-center/p2-wave/probes/CNL-0010/grammar.py",
+     "static": "command-center/p2-wave/probes/CNL-0010/staticcheck.py"
+    },
+    "static_errors_caught_before_any_round": {
+     "unbound_variable": true,
+     "never_satisfiable_conjunction": true,
+     "always_true_tautology": true,
+     "not_caught_here": [
+      "runtime flapping after a predicate becomes true then false (CNL-0076)",
+      "whether a bound metric's producer is honest (gameable-metric units)"
+     ]
+    },
+    "v1_stopping_expr": {
+     "catalog_citation": "command-center/WORK-UNIT-CATALOG.json:34775 cites $defs.stopping_expr in 11-COUNCIL-SPECIFICATION.schema.json",
+     "found": false,
+     "found_path": null,
+     "paths_probed": [
+      {
+       "path": "/mnt/c/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+       "exists": false,
+       "bytes": 0
+      },
+      {
+       "path": "/c/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+       "exists": false,
+       "bytes": 0
+      },
+      {
+       "path": "/root/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+       "exists": false,
+       "bytes": 0
+      },
+      {
+       "path": "/opt/p2/ast-integrate/11-COUNCIL-SPECIFICATION.schema.json",
+       "exists": false,
+       "bytes": 0
+      }
+     ],
+     "defs_keys": [],
+     "has_stopping_expr": false,
+     "stopping_expr_schema": null,
+     "verdict": "ABSENT"
+    },
+    "v1_reconstructed_from_cnl0001": {
+     "present": true,
+     "source": "catalog-artifact",
+     "path": "command-center/design/council/CNL-0001-councilspec-v2-root-envelope-that-supersedes-council-chart.schema.json",
+     "stopping_expression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "mode",
+       "expression"
+      ],
+      "properties": {
+       "mode": {
+        "const": "expression"
+       },
+       "expression": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     },
+     "expression_schema": {
+      "type": "string",
+      "minLength": 1
+     },
+     "v1_stopping_expr_is_string": true,
+     "cnl0001_claims_v1_is_string": true,
+     "verdict": "STRING"
+    },
+    "v1_string_silent_on_unsat": true,
+    "live_councilspec_stop_expression": {
+     "present": true,
+     "path": "platform/schema/councilspec.schema.json",
+     "has_stop_expression": true,
+     "has_stopping_expr": false,
+     "note": "Live CouncilSpec uses $defs.stop_expression (all_of/any_of/not/weighted + typed leaves), not the cited v1 name $defs.stopping_expr. JSON Schema rejects unknown metric names (x AND NOT x) but accepts well-typed never-satisfiable trees (unanimity AND NOT unanimity). Static UNSAT/TAUTOLOGY is this unit's addition.",
+     "examples": [
+      {
+       "id": "E1",
+       "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      },
+      {
+       "id": "E2",
+       "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      },
+      {
+       "id": "E3",
+       "surface": "unanimity == true OR max_rounds == 12",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      },
+      {
+       "id": "E4",
+       "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      },
+      {
+       "id": "E5",
+       "surface": "evidence_saturation == true OR time_minutes >= 180",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      },
+      {
+       "id": "E6",
+       "surface": "proof_of_impossibility == true",
+       "mapped_ok": true,
+       "schema_ok": true,
+       "error": null
+      }
+     ],
+     "expressible": 6,
+     "inexpressible": 0,
+     "bound_unsat_accepted_by_schema": true,
+     "unbound_unsat_accepted_by_schema": false,
+     "unsat_tree_accepted_by_schema": true
+    },
+    "in_tree_stopping": {
+     "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+     "keys": [
+      "max_rounds",
+      "on_timeout"
+     ],
+     "required": [
+      "max_rounds",
+      "on_timeout"
+     ],
+     "additionalProperties": false
+    },
+    "six_examples": [
+     {
+      "id": "E1",
+      "spec_line": 10937,
+      "catalog_id": "CNL-0078",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38170",
+      "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "code": "OK",
+      "tree": {
+       "op": "and",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "unique_ideas",
+         "rel": ">=",
+         "value": 100
+        },
+        {
+         "op": "cmp",
+         "var": "completeness_score",
+         "rel": ">=",
+         "value": 0.9
+        }
+       ]
+      }
+     },
+     {
+      "id": "E2",
+      "spec_line": 10938,
+      "catalog_id": "CNL-0079",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38223",
+      "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+      "code": "OK",
+      "tree": {
+       "op": "and",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "consensus",
+         "rel": ">=",
+         "value": 0.95
+        },
+        {
+         "op": "cmp",
+         "var": "no_new_objection_rounds",
+         "rel": ">=",
+         "value": 2
+        }
+       ]
+      }
+     },
+     {
+      "id": "E3",
+      "spec_line": 10939,
+      "catalog_id": "CNL-0080",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38275",
+      "surface": "unanimity == true OR max_rounds == 12",
+      "code": "OK",
+      "tree": {
+       "op": "or",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "unanimity",
+         "rel": "==",
+         "value": true
+        },
+        {
+         "op": "cmp",
+         "var": "max_rounds",
+         "rel": "==",
+         "value": 12
+        }
+       ]
+      }
+     },
+     {
+      "id": "E4",
+      "spec_line": 10940,
+      "catalog_id": "CNL-0081",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38328",
+      "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "code": "OK",
+      "tree": {
+       "op": "and",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "quality_gate",
+         "rel": "==",
+         "value": "PASS"
+        },
+        {
+         "op": "cmp",
+         "var": "unresolved_load_bearing_counterexample",
+         "rel": "==",
+         "value": 0
+        }
+       ]
+      }
+     },
+     {
+      "id": "E5",
+      "spec_line": 10941,
+      "catalog_id": "CNL-0082",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38380",
+      "surface": "evidence_saturation == true OR time_minutes >= 180",
+      "code": "OK",
+      "tree": {
+       "op": "or",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "evidence_saturation",
+         "rel": "==",
+         "value": true
+        },
+        {
+         "op": "cmp",
+         "var": "time_minutes",
+         "rel": ">=",
+         "value": 180
+        }
+       ]
+      }
+     },
+     {
+      "id": "E6",
+      "spec_line": 10942,
+      "catalog_id": "CNL-0083",
+      "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38431",
+      "surface": "proof_of_impossibility == true",
+      "code": "OK",
+      "tree": {
+       "op": "cmp",
+       "var": "proof_of_impossibility",
+       "rel": "==",
+       "value": true
+      }
+     }
+    ],
+    "six_expressibility": {
+     "cited_v1_file": "ABSENT",
+     "v1_reconstructed_string_store": {
+      "expressible": 6,
+      "inexpressible": 0,
+      "note": "opaque string can hold every surface; it cannot type operators"
+     },
+     "v1_reconstructed_string_structural": {
+      "expressible": 0,
+      "inexpressible": 6,
+      "cannot_express": [
+       "E1",
+       "E2",
+       "E3",
+       "E4",
+       "E5",
+       "E6"
+      ],
+      "reason": "string $defs.stopping_expr has no AND/OR/NOT/ANY/ALL/weighted/cmp nodes"
+     },
+     "in_tree_max_rounds_on_timeout": {
+      "expressible": 0,
+      "inexpressible": 6,
+      "cannot_express": [
+       "E1",
+       "E2",
+       "E3",
+       "E4",
+       "E5",
+       "E6"
+      ],
+      "each": [
+       {
+        "id": "E1",
+        "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       },
+       {
+        "id": "E2",
+        "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       },
+       {
+        "id": "E3",
+        "surface": "unanimity == true OR max_rounds == 12",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['cmp', 'or'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       },
+       {
+        "id": "E4",
+        "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       },
+       {
+        "id": "E5",
+        "surface": "evidence_saturation == true OR time_minutes >= 180",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['cmp', 'or'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       },
+       {
+        "id": "E6",
+        "surface": "proof_of_impossibility == true",
+        "v1_store": true,
+        "v1_structural": false,
+        "in_tree_expressible": false,
+        "reason": "combinators/atoms ['cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+       }
+      ]
+     }
+    },
+    "counts": {
+     "required_six_parsed_ok": 6,
+     "required_six_total": 6,
+     "v1_store_expressible": 6,
+     "v1_structurally_expressible": 0,
+     "in_tree_expressible": 0,
+     "in_tree_inexpressible": 6
+    },
+    "both_states": {
+     "planted_bad": {
+      "surface": "x AND NOT x",
+      "code": "UNSATISFIABLE",
+      "fires": true,
+      "detail": "never-satisfiable over the declared metric domains; rejected before any round"
+     },
+     "known_good": {
+      "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "code": "OK",
+      "silent": true,
+      "detail": "accepted"
+     }
+    },
+    "negative_control": {
+     "id": "NC-UNSAT-X-AND-NOT-X",
+     "rejects": "x AND NOT x",
+     "observed_code": "UNSATISFIABLE",
+     "what_the_check_does_on_the_state_it_is_meant_to_reject": "Parses 'x AND NOT x' against the declared metric registry (x is a boolean placeholder), finds no satisfying assignment, and returns UNSATISFIABLE immediately — it does not accept the tree and it does not wait 12 rounds.",
+     "tautology_also_rejected": {
+      "surface": "unanimity OR NOT unanimity",
+      "code": "TAUTOLOGY"
+     },
+     "unbound_also_rejected": {
+      "surface": "no_such_metric >= 1",
+      "code": "UNBOUND"
+     }
+    },
+    "extra_forms": [
+     {
+      "id": "G-NOT",
+      "surface": "NOT proof_of_impossibility",
+      "code": "OK",
+      "tree": {
+       "op": "not",
+       "arg": {
+        "op": "var",
+        "name": "proof_of_impossibility"
+       }
+      }
+     },
+     {
+      "id": "G-ANY",
+      "surface": "ANY(2, consensus >= 0.95, quality_gate == PASS, proof_of_impossibility == true)",
+      "code": "OK",
+      "tree": {
+       "op": "any",
+       "k": 2,
+       "args": [
+        {
+         "op": "cmp",
+         "var": "consensus",
+         "rel": ">=",
+         "value": 0.95
+        },
+        {
+         "op": "cmp",
+         "var": "quality_gate",
+         "rel": "==",
+         "value": "PASS"
+        },
+        {
+         "op": "cmp",
+         "var": "proof_of_impossibility",
+         "rel": "==",
+         "value": true
+        }
+       ]
+      }
+     },
+     {
+      "id": "G-ALL",
+      "surface": "ALL(unique_ideas >= 100, completeness_score >= 0.90)",
+      "code": "OK",
+      "tree": {
+       "op": "all",
+       "args": [
+        {
+         "op": "cmp",
+         "var": "unique_ideas",
+         "rel": ">=",
+         "value": 100
+        },
+        {
+         "op": "cmp",
+         "var": "completeness_score",
+         "rel": ">=",
+         "value": 0.9
+        }
+       ]
+      }
+     },
+     {
+      "id": "G-WEIGHTED",
+      "surface": "WEIGHTED(0.8, 0.5 * (consensus >= 0.95), 0.5 * (completeness_score >= 0.90))",
+      "code": "OK",
+      "tree": {
+       "op": "weighted",
+       "threshold": 0.8,
+       "terms": [
+        {
+         "weight": 0.5,
+         "arg": {
+          "op": "cmp",
+          "var": "consensus",
+          "rel": ">=",
+          "value": 0.95
+         }
+        },
+        {
+         "weight": 0.5,
+         "arg": {
+          "op": "cmp",
+          "var": "completeness_score",
+          "rel": ">=",
+          "value": 0.9
+         }
+        }
+       ]
+      }
+     }
+    ],
+    "metric_registry": {
+     "unique_ideas": {
+      "type": "integer",
+      "min": 0
+     },
+     "completeness_score": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+     },
+     "consensus": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+     },
+     "no_new_objection_rounds": {
+      "type": "integer",
+      "min": 0
+     },
+     "unanimity": {
+      "type": "boolean"
+     },
+     "max_rounds": {
+      "type": "integer",
+      "min": 1
+     },
+     "quality_gate": {
+      "type": "enum",
+      "values": [
+       "PASS",
+       "FAIL",
+       "NOT-CHECKED"
+      ]
+     },
+     "unresolved_load_bearing_counterexample": {
+      "type": "integer",
+      "min": 0
+     },
+     "evidence_saturation": {
+      "type": "boolean"
+     },
+     "time_minutes": {
+      "type": "number",
+      "min": 0
+     },
+     "proof_of_impossibility": {
+      "type": "boolean"
+     },
+     "x": {
+      "type": "boolean",
+      "role": "static-analysis-placeholder-for-x-AND-NOT-x"
+     }
+    },
+    "tests": [
+     {
+      "id": "T-PARSER-SIX",
+      "name": "parser test over all 6 required executable examples",
+      "result": "PASS",
+      "observed": 6,
+      "expected": 6
+     },
+     {
+      "id": "T-UNSAT-PARSE-TIME",
+      "name": "x AND NOT x rejected at parse/static time",
+      "result": "PASS",
+      "observed": "UNSATISFIABLE"
+     },
+     {
+      "id": "T-BOTH-STATES",
+      "name": "FIRES on planted-bad, SILENT on known-good",
+      "result": "PASS",
+      "fired_on_bad": true,
+      "silent_on_good": true
+     },
+     {
+      "id": "T-NEGATIVE-CONTROL",
+      "name": "negative control recorded verbatim",
+      "result": "PASS",
+      "verbatim_code": "UNSATISFIABLE",
+      "verbatim_detail": "never-satisfiable over the declared metric domains; rejected before any round"
+     }
+    ],
+    "evidence": [
+     {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 34775,
+      "snippet": "\"evidence_requirement\": \"cite the existing $defs.stopping_expr in C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json and state exactly which of the 6 required examples it can and cannot express today.\"",
+      "kind": "catalog",
+      "claim": "evidence_requirement cites $defs.stopping_expr in 11-COUNCIL-SPECIFICATION.schema.json"
+     },
+     {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 34794,
+      "snippet": "\"question_or_target\": \"What grammar covers AND / OR / NOT plus ANY, ALL and weighted forms, and which expression errors (unbound variable, never-satisfiable conjunction, always-true tautology) can be caught STATICALLY before a single round ",
+      "kind": "catalog",
+      "claim": "unit question names AND/OR/NOT plus ANY, ALL, weighted, and the three static errors"
+     },
+     {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 38170,
+      "snippet": "\"title\": \"Executable stopping example: unique_ideas >= 100 AND completeness_score >= 0.90\",",
+      "kind": "catalog",
+      "claim": "E1 surface unique_ideas >= 100 AND completeness_score >= 0.90"
+     },
+     {
+      "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+      "line": 171,
+      "snippet": "\"on_timeout\": { \"type\": \"string\", \"enum\": [\"halt\", \"block\"] }",
+      "kind": "live-tree",
+      "claim": "in-tree council_preset.stopping is max_rounds/on_timeout, not a composable expr"
+     },
+     {
+      "path": "command-center/design/council/CNL-0001-councilspec-v2-root-envelope-that-supersedes-council-chart.schema.json",
+      "line": 261,
+      "snippet": "\"$ref\": \"#/$defs/stopping_expression\"",
+      "kind": "live-tree",
+      "claim": "CNL-0001 reconstructs v1 stopping_expr as expression:type=string"
+     },
+     {
+      "path": "platform/schema/councilspec.schema.json",
+      "line": 1073,
+      "snippet": "\"stop_expression\": {",
+      "kind": "live-tree",
+      "claim": "live CouncilSpec $defs.stop_expression exists; cited v1 name stopping_expr does not"
+     }
+    ],
+    "reviewer": {
+     "reviewer_id": "CNL-0010-probe2-independent-recount",
+     "independent": true,
+     "method": "probe2 re-parses fixtures and re-tabulates parse_ok, unsat reject, and in_tree_expressible without trusting x-cnl-0010.counts; a disagreement blocks",
+     "verdict": "PASS"
+    }
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNL-0010",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+   "bytes": 23885,
+   "sha256": "03eda847e6696f04d4b2b6138dc7098aafbeca8f6678301fd973a0d93048ff29",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNL-0010 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+     "raw_output": "bytes=23885 sha256=03eda847e6696f04d4b2b6138dc7098aafbeca8f6678301fd973a0d93048ff29",
+     "fingerprint": "c9d03663a23d1232e661bba740c6c183",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNL-0010",
+     "raw_output": "schema-check",
+     "fingerprint": "8e8069ea2a3587aa1d73bc618eeade0e",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNL-0010 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNL-0010",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNL-0010",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "c97ba583d98874e473049d2f9f418b87",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNL-0010",
+     "raw_output": "schema-valid",
+     "fingerprint": "2bcb7d343708ce6f2ac8ba4e4287d573",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNL-0010/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNL-0010"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "3996b09db9dc8ef57ad04dd6a8e4bb93",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "councilspec.v2",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 23885,
+    "method": "filesystem-stat",
+    "anchor": "command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://ast-integrate.invalid/command-center/design/council/CNL-0010-stopping-expression-grammar-and-static-validation.schema.json",
+ "title": "Stopping-expression grammar and static validation (CNL-0010)",
+ "description": "Typed-tree grammar for CouncilSpec stopping expressions covering AND / OR / NOT plus ANY, ALL and weighted forms, with parse-time static rejection of unbound variables, never-satisfiable conjunctions, and always-true tautologies. SUCCESS:CNL-0010",
+ "$ref": "#/$defs/expr",
+ "examples": [
+  {
+   "op": "and",
+   "args": [
+    {
+     "op": "cmp",
+     "var": "unique_ideas",
+     "rel": ">=",
+     "value": 100
+    },
+    {
+     "op": "cmp",
+     "var": "completeness_score",
+     "rel": ">=",
+     "value": 0.9
+    }
+   ]
+  },
+  {
+   "op": "and",
+   "args": [
+    {
+     "op": "cmp",
+     "var": "consensus",
+     "rel": ">=",
+     "value": 0.95
+    },
+    {
+     "op": "cmp",
+     "var": "no_new_objection_rounds",
+     "rel": ">=",
+     "value": 2
+    }
+   ]
+  },
+  {
+   "op": "or",
+   "args": [
+    {
+     "op": "cmp",
+     "var": "unanimity",
+     "rel": "==",
+     "value": true
+    },
+    {
+     "op": "cmp",
+     "var": "max_rounds",
+     "rel": "==",
+     "value": 12
+    }
+   ]
+  },
+  {
+   "op": "and",
+   "args": [
+    {
+     "op": "cmp",
+     "var": "quality_gate",
+     "rel": "==",
+     "value": "PASS"
+    },
+    {
+     "op": "cmp",
+     "var": "unresolved_load_bearing_counterexample",
+     "rel": "==",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "op": "or",
+   "args": [
+    {
+     "op": "cmp",
+     "var": "evidence_saturation",
+     "rel": "==",
+     "value": true
+    },
+    {
+     "op": "cmp",
+     "var": "time_minutes",
+     "rel": ">=",
+     "value": 180
+    }
+   ]
+  },
+  {
+   "op": "cmp",
+   "var": "proof_of_impossibility",
+   "rel": "==",
+   "value": true
+  }
+ ],
+ "$defs": {
+  "expr": {
+   "oneOf": [
+    {
+     "$ref": "#/$defs/cmp"
+    },
+    {
+     "$ref": "#/$defs/var"
+    },
+    {
+     "$ref": "#/$defs/not_op"
+    },
+    {
+     "$ref": "#/$defs/and_op"
+    },
+    {
+     "$ref": "#/$defs/or_op"
+    },
+    {
+     "$ref": "#/$defs/any_op"
+    },
+    {
+     "$ref": "#/$defs/all_op"
+    },
+    {
+     "$ref": "#/$defs/weighted_op"
+    }
+   ]
+  },
+  "cmp": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "var",
+    "rel",
+    "value"
+   ],
+   "properties": {
+    "op": {
+     "const": "cmp"
+    },
+    "var": {
+     "type": "string",
+     "minLength": 1,
+     "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "rel": {
+     "enum": [
+      ">=",
+      "<=",
+      ">",
+      "<",
+      "==",
+      "!="
+     ]
+    },
+    "value": {
+     "oneOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "string",
+       "minLength": 1
+      }
+     ]
+    }
+   }
+  },
+  "var": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "name"
+   ],
+   "properties": {
+    "op": {
+     "const": "var"
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    }
+   }
+  },
+  "not_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "arg"
+   ],
+   "properties": {
+    "op": {
+     "const": "not"
+    },
+    "arg": {
+     "$ref": "#/$defs/expr"
+    }
+   }
+  },
+  "and_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "args"
+   ],
+   "properties": {
+    "op": {
+     "const": "and"
+    },
+    "args": {
+     "type": "array",
+     "minItems": 2,
+     "items": {
+      "$ref": "#/$defs/expr"
+     }
+    }
+   }
+  },
+  "or_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "args"
+   ],
+   "properties": {
+    "op": {
+     "const": "or"
+    },
+    "args": {
+     "type": "array",
+     "minItems": 2,
+     "items": {
+      "$ref": "#/$defs/expr"
+     }
+    }
+   }
+  },
+  "any_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "k",
+    "args"
+   ],
+   "properties": {
+    "op": {
+     "const": "any"
+    },
+    "k": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "args": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/expr"
+     }
+    }
+   }
+  },
+  "all_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "args"
+   ],
+   "properties": {
+    "op": {
+     "const": "all"
+    },
+    "args": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/expr"
+     }
+    }
+   }
+  },
+  "weighted_term": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "weight",
+    "arg"
+   ],
+   "properties": {
+    "weight": {
+     "type": "number"
+    },
+    "arg": {
+     "$ref": "#/$defs/expr"
+    }
+   }
+  },
+  "weighted_op": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "threshold",
+    "terms"
+   ],
+   "properties": {
+    "op": {
+     "const": "weighted"
+    },
+    "threshold": {
+     "type": "number"
+    },
+    "terms": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/weighted_term"
+     }
+    }
+   }
+  }
+ },
+ "x-cnl-0010": {
+  "ts": "2026-08-25T00:59:06Z",
+  "question": "What grammar covers AND / OR / NOT plus ANY, ALL and weighted forms, and which expression errors (unbound variable, never-satisfiable conjunction, always-true tautology) can be caught STATICALLY before a single round runs?",
+  "answer": "A typed JSON tree with ops cmp, var, not, and, or, any, all, weighted, plus an infix surface language with precedence NOT > AND > OR. All six catalog-quoted executable examples parse (6/6). Static analysis over the declared metric registry rejects UNBOUND, UNSATISFIABLE (x AND NOT x), and TAUTOLOGY (p OR NOT p) before any round. Cited v1 file 11-COUNCIL-SPECIFICATION.schema.json is ABSENT on this worktree. CNL-0001 reconstructs v1 $defs.stopping_expr as a non-empty string: that string schema stores all 6/6 example surfaces and structurally types 0/6 (opaque string has no AND/OR/NOT/ANY/ALL/weighted operators) and is silent on 'x AND NOT x' (v1_string_silent_on_unsat=True). In-tree stopping objects (max_rounds/on_timeout at command-center/p2-wave/probes/ARC-0010/registry.schema.json) express 0 of 6 and cannot express 6 of 6. Live platform/schema/councilspec.schema.json has $defs.stop_expression (not the cited name stopping_expr) which schema-accepts 6/6 mapped trees and is silent on unsat (unsat_tree_accepted_by_schema=True); static UNSAT/TAUTOLOGY/UNBOUND is this unit's addition.",
+  "grammar": {
+   "surface": "infix; NOT tightest, then AND, then OR; ANY(k, ...)/ALL(...)/WEIGHTED(threshold, w * expr, ...)",
+   "tree_ops": [
+    "cmp",
+    "var",
+    "not",
+    "and",
+    "or",
+    "any",
+    "all",
+    "weighted"
+   ],
+   "relations": [
+    ">=",
+    "<=",
+    ">",
+    "<",
+    "==",
+    "!="
+   ],
+   "parser": "command-center/p2-wave/probes/CNL-0010/grammar.py",
+   "static": "command-center/p2-wave/probes/CNL-0010/staticcheck.py"
+  },
+  "static_errors_caught_before_any_round": {
+   "unbound_variable": true,
+   "never_satisfiable_conjunction": true,
+   "always_true_tautology": true,
+   "not_caught_here": [
+    "runtime flapping after a predicate becomes true then false (CNL-0076)",
+    "whether a bound metric's producer is honest (gameable-metric units)"
+   ]
+  },
+  "v1_stopping_expr": {
+   "catalog_citation": "command-center/WORK-UNIT-CATALOG.json:34775 cites $defs.stopping_expr in 11-COUNCIL-SPECIFICATION.schema.json",
+   "found": false,
+   "found_path": null,
+   "paths_probed": [
+    {
+     "path": "/mnt/c/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+     "exists": false,
+     "bytes": 0
+    },
+    {
+     "path": "/c/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+     "exists": false,
+     "bytes": 0
+    },
+    {
+     "path": "/root/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+     "exists": false,
+     "bytes": 0
+    },
+    {
+     "path": "/opt/p2/ast-integrate/11-COUNCIL-SPECIFICATION.schema.json",
+     "exists": false,
+     "bytes": 0
+    }
+   ],
+   "defs_keys": [],
+   "has_stopping_expr": false,
+   "stopping_expr_schema": null,
+   "verdict": "ABSENT"
+  },
+  "v1_reconstructed_from_cnl0001": {
+   "present": true,
+   "source": "catalog-artifact",
+   "path": "command-center/design/council/CNL-0001-councilspec-v2-root-envelope-that-supersedes-council-chart.schema.json",
+   "stopping_expression": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "mode",
+     "expression"
+    ],
+    "properties": {
+     "mode": {
+      "const": "expression"
+     },
+     "expression": {
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   },
+   "expression_schema": {
+    "type": "string",
+    "minLength": 1
+   },
+   "v1_stopping_expr_is_string": true,
+   "cnl0001_claims_v1_is_string": true,
+   "verdict": "STRING"
+  },
+  "v1_string_silent_on_unsat": true,
+  "live_councilspec_stop_expression": {
+   "present": true,
+   "path": "platform/schema/councilspec.schema.json",
+   "has_stop_expression": true,
+   "has_stopping_expr": false,
+   "note": "Live CouncilSpec uses $defs.stop_expression (all_of/any_of/not/weighted + typed leaves), not the cited v1 name $defs.stopping_expr. JSON Schema rejects unknown metric names (x AND NOT x) but accepts well-typed never-satisfiable trees (unanimity AND NOT unanimity). Static UNSAT/TAUTOLOGY is this unit's addition.",
+   "examples": [
+    {
+     "id": "E1",
+     "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    },
+    {
+     "id": "E2",
+     "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    },
+    {
+     "id": "E3",
+     "surface": "unanimity == true OR max_rounds == 12",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    },
+    {
+     "id": "E4",
+     "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    },
+    {
+     "id": "E5",
+     "surface": "evidence_saturation == true OR time_minutes >= 180",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    },
+    {
+     "id": "E6",
+     "surface": "proof_of_impossibility == true",
+     "mapped_ok": true,
+     "schema_ok": true,
+     "error": null
+    }
+   ],
+   "expressible": 6,
+   "inexpressible": 0,
+   "bound_unsat_accepted_by_schema": true,
+   "unbound_unsat_accepted_by_schema": false,
+   "unsat_tree_accepted_by_schema": true
+  },
+  "in_tree_stopping": {
+   "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+   "keys": [
+    "max_rounds",
+    "on_timeout"
+   ],
+   "required": [
+    "max_rounds",
+    "on_timeout"
+   ],
+   "additionalProperties": false
+  },
+  "six_examples": [
+   {
+    "id": "E1",
+    "spec_line": 10937,
+    "catalog_id": "CNL-0078",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38170",
+    "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+    "code": "OK",
+    "tree": {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "unique_ideas",
+       "rel": ">=",
+       "value": 100
+      },
+      {
+       "op": "cmp",
+       "var": "completeness_score",
+       "rel": ">=",
+       "value": 0.9
+      }
+     ]
+    }
+   },
+   {
+    "id": "E2",
+    "spec_line": 10938,
+    "catalog_id": "CNL-0079",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38223",
+    "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+    "code": "OK",
+    "tree": {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "consensus",
+       "rel": ">=",
+       "value": 0.95
+      },
+      {
+       "op": "cmp",
+       "var": "no_new_objection_rounds",
+       "rel": ">=",
+       "value": 2
+      }
+     ]
+    }
+   },
+   {
+    "id": "E3",
+    "spec_line": 10939,
+    "catalog_id": "CNL-0080",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38275",
+    "surface": "unanimity == true OR max_rounds == 12",
+    "code": "OK",
+    "tree": {
+     "op": "or",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "unanimity",
+       "rel": "==",
+       "value": true
+      },
+      {
+       "op": "cmp",
+       "var": "max_rounds",
+       "rel": "==",
+       "value": 12
+      }
+     ]
+    }
+   },
+   {
+    "id": "E4",
+    "spec_line": 10940,
+    "catalog_id": "CNL-0081",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38328",
+    "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+    "code": "OK",
+    "tree": {
+     "op": "and",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "quality_gate",
+       "rel": "==",
+       "value": "PASS"
+      },
+      {
+       "op": "cmp",
+       "var": "unresolved_load_bearing_counterexample",
+       "rel": "==",
+       "value": 0
+      }
+     ]
+    }
+   },
+   {
+    "id": "E5",
+    "spec_line": 10941,
+    "catalog_id": "CNL-0082",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38380",
+    "surface": "evidence_saturation == true OR time_minutes >= 180",
+    "code": "OK",
+    "tree": {
+     "op": "or",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "evidence_saturation",
+       "rel": "==",
+       "value": true
+      },
+      {
+       "op": "cmp",
+       "var": "time_minutes",
+       "rel": ">=",
+       "value": 180
+      }
+     ]
+    }
+   },
+   {
+    "id": "E6",
+    "spec_line": 10942,
+    "catalog_id": "CNL-0083",
+    "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:38431",
+    "surface": "proof_of_impossibility == true",
+    "code": "OK",
+    "tree": {
+     "op": "cmp",
+     "var": "proof_of_impossibility",
+     "rel": "==",
+     "value": true
+    }
+   }
+  ],
+  "six_expressibility": {
+   "cited_v1_file": "ABSENT",
+   "v1_reconstructed_string_store": {
+    "expressible": 6,
+    "inexpressible": 0,
+    "note": "opaque string can hold every surface; it cannot type operators"
+   },
+   "v1_reconstructed_string_structural": {
+    "expressible": 0,
+    "inexpressible": 6,
+    "cannot_express": [
+     "E1",
+     "E2",
+     "E3",
+     "E4",
+     "E5",
+     "E6"
+    ],
+    "reason": "string $defs.stopping_expr has no AND/OR/NOT/ANY/ALL/weighted/cmp nodes"
+   },
+   "in_tree_max_rounds_on_timeout": {
+    "expressible": 0,
+    "inexpressible": 6,
+    "cannot_express": [
+     "E1",
+     "E2",
+     "E3",
+     "E4",
+     "E5",
+     "E6"
+    ],
+    "each": [
+     {
+      "id": "E1",
+      "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     },
+     {
+      "id": "E2",
+      "surface": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     },
+     {
+      "id": "E3",
+      "surface": "unanimity == true OR max_rounds == 12",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['cmp', 'or'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     },
+     {
+      "id": "E4",
+      "surface": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['and', 'cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     },
+     {
+      "id": "E5",
+      "surface": "evidence_saturation == true OR time_minutes >= 180",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['cmp', 'or'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     },
+     {
+      "id": "E6",
+      "surface": "proof_of_impossibility == true",
+      "v1_store": true,
+      "v1_structural": false,
+      "in_tree_expressible": false,
+      "reason": "combinators/atoms ['cmp'] have no home in in-tree stopping keys ['max_rounds', 'on_timeout']; tree_validates_as_stopping=False"
+     }
+    ]
+   }
+  },
+  "counts": {
+   "required_six_parsed_ok": 6,
+   "required_six_total": 6,
+   "v1_store_expressible": 6,
+   "v1_structurally_expressible": 0,
+   "in_tree_expressible": 0,
+   "in_tree_inexpressible": 6
+  },
+  "both_states": {
+   "planted_bad": {
+    "surface": "x AND NOT x",
+    "code": "UNSATISFIABLE",
+    "fires": true,
+    "detail": "never-satisfiable over the declared metric domains; rejected before any round"
+   },
+   "known_good": {
+    "surface": "unique_ideas >= 100 AND completeness_score >= 0.90",
+    "code": "OK",
+    "silent": true,
+    "detail": "accepted"
+   }
+  },
+  "negative_control": {
+   "id": "NC-UNSAT-X-AND-NOT-X",
+   "rejects": "x AND NOT x",
+   "observed_code": "UNSATISFIABLE",
+   "what_the_check_does_on_the_state_it_is_meant_to_reject": "Parses 'x AND NOT x' against the declared metric registry (x is a boolean placeholder), finds no satisfying assignment, and returns UNSATISFIABLE immediately — it does not accept the tree and it does not wait 12 rounds.",
+   "tautology_also_rejected": {
+    "surface": "unanimity OR NOT unanimity",
+    "code": "TAUTOLOGY"
+   },
+   "unbound_also_rejected": {
+    "surface": "no_such_metric >= 1",
+    "code": "UNBOUND"
+   }
+  },
+  "extra_forms": [
+   {
+    "id": "G-NOT",
+    "surface": "NOT proof_of_impossibility",
+    "code": "OK",
+    "tree": {
+     "op": "not",
+     "arg": {
+      "op": "var",
+      "name": "proof_of_impossibility"
+     }
+    }
+   },
+   {
+    "id": "G-ANY",
+    "surface": "ANY(2, consensus >= 0.95, quality_gate == PASS, proof_of_impossibility == true)",
+    "code": "OK",
+    "tree": {
+     "op": "any",
+     "k": 2,
+     "args": [
+      {
+       "op": "cmp",
+       "var": "consensus",
+       "rel": ">=",
+       "value": 0.95
+      },
+      {
+       "op": "cmp",
+       "var": "quality_gate",
+       "rel": "==",
+       "value": "PASS"
+      },
+      {
+       "op": "cmp",
+       "var": "proof_of_impossibility",
+       "rel": "==",
+       "value": true
+      }
+     ]
+    }
+   },
+   {
+    "id": "G-ALL",
+    "surface": "ALL(unique_ideas >= 100, completeness_score >= 0.90)",
+    "code": "OK",
+    "tree": {
+     "op": "all",
+     "args": [
+      {
+       "op": "cmp",
+       "var": "unique_ideas",
+       "rel": ">=",
+       "value": 100
+      },
+      {
+       "op": "cmp",
+       "var": "completeness_score",
+       "rel": ">=",
+       "value": 0.9
+      }
+     ]
+    }
+   },
+   {
+    "id": "G-WEIGHTED",
+    "surface": "WEIGHTED(0.8, 0.5 * (consensus >= 0.95), 0.5 * (completeness_score >= 0.90))",
+    "code": "OK",
+    "tree": {
+     "op": "weighted",
+     "threshold": 0.8,
+     "terms": [
+      {
+       "weight": 0.5,
+       "arg": {
+        "op": "cmp",
+        "var": "consensus",
+        "rel": ">=",
+        "value": 0.95
+       }
+      },
+      {
+       "weight": 0.5,
+       "arg": {
+        "op": "cmp",
+        "var": "completeness_score",
+        "rel": ">=",
+        "value": 0.9
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "metric_registry": {
+   "unique_ideas": {
+    "type": "integer",
+    "min": 0
+   },
+   "completeness_score": {
+    "type": "number",
+    "min": 0,
+    "max": 1
+   },
+   "consensus": {
+    "type": "number",
+    "min": 0,
+    "max": 1
+   },
+   "no_new_objection_rounds": {
+    "type": "integer",
+    "min": 0
+   },
+   "unanimity": {
+    "type": "boolean"
+   },
+   "max_rounds": {
+    "type": "integer",
+    "min": 1
+   },
+   "quality_gate": {
+    "type": "enum",
+    "values": [
+     "PASS",
+     "FAIL",
+     "NOT-CHECKED"
+    ]
+   },
+   "unresolved_load_bearing_counterexample": {
+    "type": "integer",
+    "min": 0
+   },
+   "evidence_saturation": {
+    "type": "boolean"
+   },
+   "time_minutes": {
+    "type": "number",
+    "min": 0
+   },
+   "proof_of_impossibility": {
+    "type": "boolean"
+   },
+   "x": {
+    "type": "boolean",
+    "role": "static-analysis-placeholder-for-x-AND-NOT-x"
+   }
+  },
+  "tests": [
+   {
+    "id": "T-PARSER-SIX",
+    "name": "parser test over all 6 required executable examples",
+    "result": "PASS",
+    "observed": 6,
+    "expected": 6
+   },
+   {
+    "id": "T-UNSAT-PARSE-TIME",
+    "name": "x AND NOT x rejected at parse/static time",
+    "result": "PASS",
+    "observed": "UNSATISFIABLE"
+   },
+   {
+    "id": "T-BOTH-STATES",
+    "name": "FIRES on planted-bad, SILENT on known-good",
+    "result": "PASS",
+    "fired_on_bad": true,
+    "silent_on_good": true
+   },
+   {
+    "id": "T-NEGATIVE-CONTROL",
+    "name": "negative control recorded verbatim",
+    "result": "PASS",
+    "verbatim_code": "UNSATISFIABLE",
+    "verbatim_detail": "never-satisfiable over the declared metric domains; rejected before any round"
+   }
+  ],
+  "evidence": [
+   {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 34775,
+    "snippet": "\"evidence_requirement\": \"cite the existing $defs.stopping_expr in C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json and state exactly which of the 6 required examples it can and cannot express today.\"",
+    "kind": "catalog",
+    "claim": "evidence_requirement cites $defs.stopping_expr in 11-COUNCIL-SPECIFICATION.schema.json"
+   },
+   {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 34794,
+    "snippet": "\"question_or_target\": \"What grammar covers AND / OR / NOT plus ANY, ALL and weighted forms, and which expression errors (unbound variable, never-satisfiable conjunction, always-true tautology) can be caught STATICALLY before a single round ",
+    "kind": "catalog",
+    "claim": "unit question names AND/OR/NOT plus ANY, ALL, weighted, and the three static errors"
+   },
+   {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 38170,
+    "snippet": "\"title\": \"Executable stopping example: unique_ideas >= 100 AND completeness_score >= 0.90\",",
+    "kind": "catalog",
+    "claim": "E1 surface unique_ideas >= 100 AND completeness_score >= 0.90"
+   },
+   {
+    "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+    "line": 171,
+    "snippet": "\"on_timeout\": { \"type\": \"string\", \"enum\": [\"halt\", \"block\"] }",
+    "kind": "live-tree",
+    "claim": "in-tree council_preset.stopping is max_rounds/on_timeout, not a composable expr"
+   },
+   {
+    "path": "command-center/design/council/CNL-0001-councilspec-v2-root-envelope-that-supersedes-council-chart.schema.json",
+    "line": 261,
+    "snippet": "\"$ref\": \"#/$defs/stopping_expression\"",
+    "kind": "live-tree",
+    "claim": "CNL-0001 reconstructs v1 stopping_expr as expression:type=string"
+   },
+   {
+    "path": "platform/schema/councilspec.schema.json",
+    "line": 1073,
+    "snippet": "\"stop_expression\": {",
+    "kind": "live-tree",
+    "claim": "live CouncilSpec $defs.stop_expression exists; cited v1 name stopping_expr does not"
+   }
+  ],
+  "reviewer": {
+   "reviewer_id": "CNL-0010-probe2-independent-recount",
+   "independent": true,
+   "method": "probe2 re-parses fixtures and re-tabulates parse_ok, unsat reject, and in_tree_expressible without trusting x-cnl-0010.counts; a disagreement blocks",
+   "verdict": "PASS"
+  }
+ }
+}

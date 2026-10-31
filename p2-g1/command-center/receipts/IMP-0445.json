@@ -1,0 +1,909 @@
+{
+  "unit_id": "IMP-0445",
+  "schema_version": 1,
+  "state": "SUCCESS",
+  "sentinel": "SENTINEL:IMP-0445:HEADROOM-GUARD-COMMIT-CHARGE",
+  "spec_anchor": "_USER-PROMPTS.md:10582 (preserve local commit headroom); catalog IMP-0445",
+  "title": "Commit-charge headroom guard preserving a rescue shell",
+  "min_bytes_threshold": 128,
+  "cloud_ok": false,
+  "registered": true,
+  "output_path": "command-center/receipts/IMP-0445.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "completion_sentinel": "SENTINEL:IMP-0445:HEADROOM-GUARD-COMMIT-CHARGE",
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:32Z",
+    "ended_at": "2026-08-25T01:00:32Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry; never respond to this guard by killing a shared service"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0445.json",
+      "role": "primary",
+      "exists": true,
+      "bytes": 23435,
+      "sha256": "1d66e5948097025edf741efce981b05016d34a0f83963ae1105bf35c03c64aa5",
+      "eol": "LF",
+      "note": "sha256/bytes of this receipt file after the final write; row may lag by the self-hash field — live measure hashes the file."
+    },
+    {
+      "path": "tools/headroom_guard/guard.py",
+      "bytes": 6471,
+      "sha256": "debcf342cb6fa9b6b06e0acf5b72f4e15e4654f0e0e200a24c22498e6dad0f23",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/headroom_guard/commit_charge.py",
+      "bytes": 4673,
+      "sha256": "3850d4f09b61e029dcabbfc9920f3f0cf502fd111be768c4e3ad6de9f2e59c04",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/headroom_guard/ramp.py",
+      "bytes": 3862,
+      "sha256": "e1668f31bb38afb27218de19388cf9d5037e8417e550657034cece15a72a7041",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0445/probe1_threshold.py",
+      "bytes": 5696,
+      "sha256": "9f7bb373e218fcb9c82b20c5b37e7342a9ae2a8a87f99d6b56bb118782a0febd",
+      "exists": true,
+      "role": "control",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0445/probe2_ram_control.py",
+      "bytes": 4596,
+      "sha256": "bf1e96673d6565bc055570d42c1e5c5b7e7e56d4bbecc96acbda7a45b2e8cb1f",
+      "exists": true,
+      "role": "control",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "/proc/meminfo:Committed_AS",
+      "claim": "The guard reads the commit-charge pair Committed_AS/CommitLimit, not RAM-percent. Live on this Linux box: committed=24134983680 limit=131956703232 ratio=0.1829 ram_percent=5.4310 swap/pagefile=0.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read /proc/meminfo Committed_AS CommitLimit MemTotal MemAvailable SwapTotal",
+          "raw_output": "{\"commit_headroom_bytes\": 107821719552, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.182901, \"committed_bytes\": 24134983680, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 5.431, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 14333067264, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}",
+          "fingerprint": "d1b39e4b7d711e1dcd970b08a7d5b95e",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -c headroom_guard.commit_charge.read_live()",
+          "raw_output": "{\"commit_headroom_bytes\": 107821719552, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.182901, \"committed_bytes\": 24134983680, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 5.431, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 14333067264, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}",
+          "fingerprint": "78571e469e7d7c067b0b325c01642a38",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "anchor": "tools/headroom_guard/ramp.py:approach_to_ceiling_run",
+      "claim": "Approach-to-ceiling: live mmap raised Committed_AS by 268574720 bytes (counter_rose=True); synthetic ramp fired at c8.6 (ratio=0.8599999999627471) while RAM-percent stayed 14.99999999650754% (uninformative); spawn after fire ok=True.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -c headroom_guard.ramp.approach_to_ceiling_run()",
+          "raw_output": "{\"delta\": 268574720, \"fire_count\": 7, \"first_fire\": \"c8.6\", \"spawn\": {\"argv\": [\"/usr/bin/python3\", \"-c\", \"import os; os._exit(0)\"], \"error\": \"\", \"ok\": true, \"returncode\": 0}}",
+          "fingerprint": "e727630818291735ed5228b370d9f15c",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe1_threshold.py",
+          "raw_output": "named probe1 re-runs the synthetic threshold, live rise, and spawn-after-fire",
+          "fingerprint": "7c4941b948e1206c2e86ad44070eac8c",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "anchor": "tools/headroom_guard/guard.py:HeadroomGuard.decide",
+      "claim": "RAM-percent alone is not the signal: commit-high/RAM-low fires the guard (fired=True, ram_only=False) while commit-low/RAM-high does not (fired=False, ram_only=True). Shed(kill sshd) refused killed_pids=[].",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -c both-states commit-high/RAM-low vs commit-low/RAM-high",
+          "raw_output": "{\"estate_fired\": true, \"estate_ram_only\": false, \"killed\": [], \"shed_refused\": true, \"trap_fired\": false, \"trap_ram_only\": true}",
+          "fingerprint": "363c1f1e5a99ab9059c54aeeabae45bb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe2_ram_control.py",
+          "raw_output": "named probe2 re-runs the RAM-percent control and refuse-kill",
+          "fingerprint": "96339c8656c4c4ab9fd86fb60f68ac19",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "threshold-synthetic-commit-charge",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe1_threshold.py",
+      "result": "PASS"
+    },
+    {
+      "id": "ram-percent-control-would-not-have-fired",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe2_ram_control.py",
+      "result": "PASS"
+    },
+    {
+      "id": "spawn-after-fire",
+      "command": "subprocess python3 -c 'import os; os._exit(0)'",
+      "result": "PASS"
+    },
+    {
+      "id": "never-kill-shared-service",
+      "command": "HeadroomGuard.shed(ShedRequest(mode='kill', target_name='sshd'))",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0445-C1-wrong-counter-read",
+      "kind": "both-states",
+      "description": "Commit-high/RAM-low must fire the real guard and stay silent for RAM-percent; commit-low/RAM-high must do the opposite.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"action\": \"REFUSE_RAISE_CONCURRENCY\", \"allow_raise\": false, \"counter_read\": \"Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)\", \"current_concurrency\": 2, \"fired\": true, \"kill_shared_service\": false, \"readout\": {\"commit_headroom_bytes\": 1395864372, \"commit_limit_bytes\": 10737418240, \"commit_ratio\": 0.8699999999254941, \"committed_bytes\": 9341553868}, \"reasons\": [\"commit-ratio-ceiling\"], \"requested_concurrency\": 3}",
+      "good_state_output": "{\"action\": \"ALLOW_RAISE\", \"allow_raise\": true, \"counter_read\": \"Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)\", \"current_concurrency\": 2, \"fired\": false, \"kill_shared_service\": false, \"readout\": {\"commit_headroom_bytes\": 7516192768, \"commit_limit_bytes\": 10737418240, \"commit_ratio\": 0.3, \"committed_bytes\": 3221225472}, \"reasons\": [], \"requested_concurrency\": 3}"
+    },
+    {
+      "id": "IMP0445-C2-guard-kills-shared-service",
+      "kind": "mutation",
+      "description": "A kill request against sshd must be refused and kill nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"action\": \"REFUSE_RAISE_CONCURRENCY\", \"killed_pids\": [], \"protected_hit\": true, \"reason\": \"retry_policy: never respond to this guard by killing a shared service; refuse-raise only\", \"refused\": true}",
+      "good_state_output": "killed_pids=[]"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0445-probe1-threshold",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "G-1 named probes re-run the threshold test and the RAM-percent control independently of this emitter. Catalog also asks for owner sign-off because the guard throttles the owner's machine; that sign-off is recorded as residual, not silently asserted."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0445/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0445/probe1_threshold.py",
+      "artifact_path": "command-center/receipts/IMP-0445.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe1_threshold.py",
+        "raw_output": "named probe1 re-runs the synthetic threshold, live rise, and spawn-after-fire",
+        "fingerprint": "7c4941b948e1206c2e86ad44070eac8c",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "HeadroomGuard.decide (IMP-0444 concurrency governor seam)",
+      "artifact_path": "tools/headroom_guard/guard.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -c headroom_guard.commit_charge.read_live()",
+        "raw_output": "{\"commit_headroom_bytes\": 107821719552, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.182901, \"committed_bytes\": 24134983680, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 5.431, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 14333067264, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}",
+        "fingerprint": "78571e469e7d7c067b0b325c01642a38",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Catalog reviewer_requirement also names owner sign-off because this guard throttles the owner's machine. OWNER-DECISIONS.md is not present on this worktree; G-1 does not treat that as BLOCKED.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Record an explicit owner accept/reject of the 0.85 ratio and 512 MiB rescue reserve in command-center/OWNER-DECISIONS.md."
+    },
+    {
+      "claim": "Windows PDH Memory\\Committed Bytes / Commit Limit were not read on this Linux worktree. Linux Committed_AS/CommitLimit is the measured analog.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run read_live on a Windows host with pagefile configured."
+    },
+    {
+      "claim": "Declared output_schema command-center/schema/receipt.schema.json is on this worktree. G-1 does not require schema validation. IMP-0444 receipt is not present; this unit ships the guard API the governor would consult.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Validate this receipt against receipt.schema.json once IMP-0433 is green."
+    }
+  ],
+  "report": {
+    "kind": "commit-charge-headroom-guard",
+    "implementation": "tools/headroom_guard/guard.py",
+    "api": "HeadroomGuard.decide(current_concurrency, requested_concurrency, snapshot=...)",
+    "live_snapshot": {
+      "committed_bytes": 24134983680,
+      "commit_limit_bytes": 131956703232,
+      "commit_headroom_bytes": 107821719552,
+      "commit_ratio": 0.182901,
+      "ram_used_bytes": 14333067264,
+      "ram_total_bytes": 263913410560,
+      "ram_percent": 5.431,
+      "pagefile_bytes": 0,
+      "label": "live:/proc/meminfo",
+      "source": "proc-meminfo",
+      "host": "linux",
+      "fields_read": [
+        "Committed_AS",
+        "CommitLimit",
+        "MemTotal",
+        "MemAvailable",
+        "SwapTotal"
+      ],
+      "windows_counters": [
+        "Memory\\Committed Bytes",
+        "Memory\\Commit Limit"
+      ]
+    },
+    "pagefile_or_swap_bytes": 0,
+    "overcommit_memory": "0",
+    "approach_to_ceiling": {
+      "live_commit_rise": {
+        "before_committed_bytes": 24134983680,
+        "after_committed_bytes": 24403558400,
+        "committed_delta_bytes": 268574720,
+        "requested_bytes": 268435456,
+        "counter_rose": true,
+        "fields_read": [
+          "Committed_AS",
+          "CommitLimit",
+          "MemTotal",
+          "MemAvailable",
+          "SwapTotal"
+        ],
+        "source": "proc-meminfo"
+      },
+      "pre_fire_count": 8,
+      "fire_count": 7,
+      "first_fire_label": "c8.6",
+      "first_fire_commit_ratio": 0.8599999999627471,
+      "ram_percent_at_first_fire": 14.99999999650754,
+      "ram_percent_stayed_uninformative": true,
+      "spawn_after_fire": {
+        "argv": [
+          "/usr/bin/python3",
+          "-c",
+          "import os; os._exit(0)"
+        ],
+        "error": "",
+        "ok": true,
+        "returncode": 0
+      },
+      "spawn_succeeded_after_fire": true,
+      "steps": [
+        {
+          "label": "c7.0",
+          "committed_bytes": 7516192768,
+          "commit_ratio": 0.7,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c7.2",
+          "committed_bytes": 7730941132,
+          "commit_ratio": 0.7199999999254942,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c7.4",
+          "committed_bytes": 7945689497,
+          "commit_ratio": 0.7399999999441207,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c7.6",
+          "committed_bytes": 8160437862,
+          "commit_ratio": 0.7599999999627471,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c7.8",
+          "committed_bytes": 8375186227,
+          "commit_ratio": 0.7799999999813736,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c8.0",
+          "committed_bytes": 8589934592,
+          "commit_ratio": 0.8,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c8.2",
+          "committed_bytes": 8804682956,
+          "commit_ratio": 0.8199999999254942,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c8.4",
+          "committed_bytes": 9019431321,
+          "commit_ratio": 0.8399999999441207,
+          "ram_percent": 14.99999999650754,
+          "fired": false,
+          "action": "ALLOW_RAISE",
+          "reasons": [],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c8.6",
+          "committed_bytes": 9234179686,
+          "commit_ratio": 0.8599999999627471,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c8.8",
+          "committed_bytes": 9448928051,
+          "commit_ratio": 0.8799999999813736,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c9.0",
+          "committed_bytes": 9663676416,
+          "commit_ratio": 0.9,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c9.2",
+          "committed_bytes": 9878424780,
+          "commit_ratio": 0.9199999999254942,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c9.4",
+          "committed_bytes": 10093173145,
+          "commit_ratio": 0.9399999999441206,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c9.6",
+          "committed_bytes": 10307921510,
+          "commit_ratio": 0.9599999999627471,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling",
+            "rescue-shell-headroom"
+          ],
+          "ram_only_would_fire": false
+        },
+        {
+          "label": "c9.8",
+          "committed_bytes": 10522669875,
+          "commit_ratio": 0.9799999999813735,
+          "ram_percent": 14.99999999650754,
+          "fired": true,
+          "action": "REFUSE_RAISE_CONCURRENCY",
+          "reasons": [
+            "commit-ratio-ceiling",
+            "rescue-shell-headroom"
+          ],
+          "ram_only_would_fire": false
+        }
+      ],
+      "syn_limit": 10737418240
+    },
+    "estate_signature_decision": {
+      "fired": true,
+      "allow_raise": false,
+      "action": "REFUSE_RAISE_CONCURRENCY",
+      "reasons": [
+        "commit-ratio-ceiling"
+      ],
+      "kill_shared_service": false,
+      "counter_read": "Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)",
+      "readout": {
+        "committed_bytes": 9341553868,
+        "commit_limit_bytes": 10737418240,
+        "commit_headroom_bytes": 1395864372,
+        "commit_ratio": 0.8699999999254941
+      },
+      "current_concurrency": 2,
+      "requested_concurrency": 3
+    },
+    "wrong_counter_trap_decision": {
+      "fired": false,
+      "allow_raise": true,
+      "action": "ALLOW_RAISE",
+      "reasons": [],
+      "kill_shared_service": false,
+      "counter_read": "Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)",
+      "readout": {
+        "committed_bytes": 3221225472,
+        "commit_limit_bytes": 10737418240,
+        "commit_headroom_bytes": 7516192768,
+        "commit_ratio": 0.3
+      },
+      "current_concurrency": 2,
+      "requested_concurrency": 3
+    },
+    "ram_only_control": {
+      "threshold_percent": 80.0,
+      "estate_would_fire": false,
+      "trap_would_fire": true
+    },
+    "shed_kill_sshd": {
+      "action": "REFUSE_RAISE_CONCURRENCY",
+      "killed_pids": [],
+      "protected_hit": true,
+      "reason": "retry_policy: never respond to this guard by killing a shared service; refuse-raise only",
+      "refused": true
+    },
+    "config": {
+      "rescue_shell_reserve_bytes": 536870912,
+      "commit_fire_ratio": 0.85
+    },
+    "questions": {
+      "which_counter_does_the_guard_read": {
+        "answer": "Committed_AS against CommitLimit (snapshot.committed_bytes / snapshot.commit_limit_bytes)",
+        "not": "MemAvailable/MemTotal RAM-percent, working set, or Task Manager physical memory",
+        "linux_keys": [
+          "Committed_AS",
+          "CommitLimit",
+          "MemTotal",
+          "MemAvailable",
+          "SwapTotal"
+        ],
+        "windows_keys": [
+          "Memory\\Committed Bytes",
+          "Memory\\Commit Limit"
+        ],
+        "windows_live_on_this_worktree": false
+      },
+      "does_it_fire_before_the_box_loses_process_creation": {
+        "answer": true,
+        "how": "Synthetic commit-charge ramp fires at ratio 0.85 with 512 MiB rescue reserve still required. After that fire, a live subprocess spawn returned {'argv': ['/usr/bin/python3', '-c', 'import os; os._exit(0)'], 'error': '', 'ok': True, 'returncode': 0}. This unit does not drive the live CommitLimit (TST-0103's load test).",
+        "spawn_after_fire": {
+          "argv": [
+            "/usr/bin/python3",
+            "-c",
+            "import os; os._exit(0)"
+          ],
+          "error": "",
+          "ok": true,
+          "returncode": 0
+        }
+      }
+    },
+    "dependency_IMP_0444_receipt_present": false
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "synthetic-commit-threshold",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe1_threshold.py"
+    },
+    {
+      "id": "probe2",
+      "role": "ram-percent-control-and-refuse-kill",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0445/probe2_ram_control.py"
+    }
+  ],
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "systems-implementer",
+    "execution_substrate": "linux-local"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "the live box was driven to CommitLimit (that is TST-0103)",
+      "IMP-0444 concurrency governor is delivered",
+      "owner sign-off is on disk"
+    ]
+  },
+  "kind": "commit-charge-headroom-guard",
+  "implementation": "tools/headroom_guard/guard.py",
+  "api": "HeadroomGuard.decide(current_concurrency, requested_concurrency, snapshot=...)",
+  "live_snapshot": {
+    "committed_bytes": 24134983680,
+    "commit_limit_bytes": 131956703232,
+    "commit_headroom_bytes": 107821719552,
+    "commit_ratio": 0.182901,
+    "ram_used_bytes": 14333067264,
+    "ram_total_bytes": 263913410560,
+    "ram_percent": 5.431,
+    "pagefile_bytes": 0,
+    "label": "live:/proc/meminfo",
+    "source": "proc-meminfo",
+    "host": "linux",
+    "fields_read": [
+      "Committed_AS",
+      "CommitLimit",
+      "MemTotal",
+      "MemAvailable",
+      "SwapTotal"
+    ],
+    "windows_counters": [
+      "Memory\\Committed Bytes",
+      "Memory\\Commit Limit"
+    ]
+  },
+  "pagefile_or_swap_bytes": 0,
+  "overcommit_memory": "0",
+  "approach_to_ceiling": {
+    "live_commit_rise": {
+      "before_committed_bytes": 24134983680,
+      "after_committed_bytes": 24403558400,
+      "committed_delta_bytes": 268574720,
+      "requested_bytes": 268435456,
+      "counter_rose": true,
+      "fields_read": [
+        "Committed_AS",
+        "CommitLimit",
+        "MemTotal",
+        "MemAvailable",
+        "SwapTotal"
+      ],
+      "source": "proc-meminfo"
+    },
+    "pre_fire_count": 8,
+    "fire_count": 7,
+    "first_fire_label": "c8.6",
+    "first_fire_commit_ratio": 0.8599999999627471,
+    "ram_percent_at_first_fire": 14.99999999650754,
+    "ram_percent_stayed_uninformative": true,
+    "spawn_after_fire": {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import os; os._exit(0)"
+      ],
+      "error": "",
+      "ok": true,
+      "returncode": 0
+    },
+    "spawn_succeeded_after_fire": true,
+    "steps": [
+      {
+        "label": "c7.0",
+        "committed_bytes": 7516192768,
+        "commit_ratio": 0.7,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c7.2",
+        "committed_bytes": 7730941132,
+        "commit_ratio": 0.7199999999254942,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c7.4",
+        "committed_bytes": 7945689497,
+        "commit_ratio": 0.7399999999441207,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c7.6",
+        "committed_bytes": 8160437862,
+        "commit_ratio": 0.7599999999627471,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c7.8",
+        "committed_bytes": 8375186227,
+        "commit_ratio": 0.7799999999813736,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c8.0",
+        "committed_bytes": 8589934592,
+        "commit_ratio": 0.8,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c8.2",
+        "committed_bytes": 8804682956,
+        "commit_ratio": 0.8199999999254942,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c8.4",
+        "committed_bytes": 9019431321,
+        "commit_ratio": 0.8399999999441207,
+        "ram_percent": 14.99999999650754,
+        "fired": false,
+        "action": "ALLOW_RAISE",
+        "reasons": [],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c8.6",
+        "committed_bytes": 9234179686,
+        "commit_ratio": 0.8599999999627471,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c8.8",
+        "committed_bytes": 9448928051,
+        "commit_ratio": 0.8799999999813736,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c9.0",
+        "committed_bytes": 9663676416,
+        "commit_ratio": 0.9,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c9.2",
+        "committed_bytes": 9878424780,
+        "commit_ratio": 0.9199999999254942,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c9.4",
+        "committed_bytes": 10093173145,
+        "commit_ratio": 0.9399999999441206,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c9.6",
+        "committed_bytes": 10307921510,
+        "commit_ratio": 0.9599999999627471,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling",
+          "rescue-shell-headroom"
+        ],
+        "ram_only_would_fire": false
+      },
+      {
+        "label": "c9.8",
+        "committed_bytes": 10522669875,
+        "commit_ratio": 0.9799999999813735,
+        "ram_percent": 14.99999999650754,
+        "fired": true,
+        "action": "REFUSE_RAISE_CONCURRENCY",
+        "reasons": [
+          "commit-ratio-ceiling",
+          "rescue-shell-headroom"
+        ],
+        "ram_only_would_fire": false
+      }
+    ],
+    "syn_limit": 10737418240
+  },
+  "estate_signature_decision": {
+    "fired": true,
+    "allow_raise": false,
+    "action": "REFUSE_RAISE_CONCURRENCY",
+    "reasons": [
+      "commit-ratio-ceiling"
+    ],
+    "kill_shared_service": false,
+    "counter_read": "Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)",
+    "readout": {
+      "committed_bytes": 9341553868,
+      "commit_limit_bytes": 10737418240,
+      "commit_headroom_bytes": 1395864372,
+      "commit_ratio": 0.8699999999254941
+    },
+    "current_concurrency": 2,
+    "requested_concurrency": 3
+  },
+  "wrong_counter_trap_decision": {
+    "fired": false,
+    "allow_raise": true,
+    "action": "ALLOW_RAISE",
+    "reasons": [],
+    "kill_shared_service": false,
+    "counter_read": "Committed_AS/CommitLimit (committed_bytes/commit_limit_bytes)",
+    "readout": {
+      "committed_bytes": 3221225472,
+      "commit_limit_bytes": 10737418240,
+      "commit_headroom_bytes": 7516192768,
+      "commit_ratio": 0.3
+    },
+    "current_concurrency": 2,
+    "requested_concurrency": 3
+  },
+  "ram_only_control": {
+    "threshold_percent": 80.0,
+    "estate_would_fire": false,
+    "trap_would_fire": true
+  },
+  "shed_kill_sshd": {
+    "action": "REFUSE_RAISE_CONCURRENCY",
+    "killed_pids": [],
+    "protected_hit": true,
+    "reason": "retry_policy: never respond to this guard by killing a shared service; refuse-raise only",
+    "refused": true
+  },
+  "config": {
+    "rescue_shell_reserve_bytes": 536870912,
+    "commit_fire_ratio": 0.85
+  },
+  "questions": {
+    "which_counter_does_the_guard_read": {
+      "answer": "Committed_AS against CommitLimit (snapshot.committed_bytes / snapshot.commit_limit_bytes)",
+      "not": "MemAvailable/MemTotal RAM-percent, working set, or Task Manager physical memory",
+      "linux_keys": [
+        "Committed_AS",
+        "CommitLimit",
+        "MemTotal",
+        "MemAvailable",
+        "SwapTotal"
+      ],
+      "windows_keys": [
+        "Memory\\Committed Bytes",
+        "Memory\\Commit Limit"
+      ],
+      "windows_live_on_this_worktree": false
+    },
+    "does_it_fire_before_the_box_loses_process_creation": {
+      "answer": true,
+      "how": "Synthetic commit-charge ramp fires at ratio 0.85 with 512 MiB rescue reserve still required. After that fire, a live subprocess spawn returned {'argv': ['/usr/bin/python3', '-c', 'import os; os._exit(0)'], 'error': '', 'ok': True, 'returncode': 0}. This unit does not drive the live CommitLimit (TST-0103's load test).",
+      "spawn_after_fire": {
+        "argv": [
+          "/usr/bin/python3",
+          "-c",
+          "import os; os._exit(0)"
+        ],
+        "error": "",
+        "ok": true,
+        "returncode": 0
+      }
+    }
+  },
+  "dependency_IMP_0444_receipt_present": false
+}

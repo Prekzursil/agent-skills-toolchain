@@ -1,0 +1,562 @@
+{
+ "IMP-0095": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Input-hash invalidation is exactly specifiable.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0095",
+  "dependencies": [
+   "IMP-0094"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) changing one input hash flips the stored verdict to STALE; (2) an age-based sweep independently marks a verdict older than its freshness window as STALE even when no input hash changed \u2014 the advisory database is an input the registry cannot hash.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "advisory-decay",
+   "overclaim",
+   "uncontrolled-silence"
+  ],
+  "id": "IMP-0095",
+  "inputs": [
+   "PINNED GROUND TRUTH: a green CI run DECAYS; gate-deps/osv-scanner queries a live advisory DB",
+   "IMP-0094 score",
+   "IMP-0098 vulnerability ingestion"
+  ],
+  "output_path": "command-center/receipts/IMP-0095.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Implement freshness semantics so a stored quality score, vulnerability verdict, or conformance result carries the timestamp and input hashes it was computed from, and is marked STALE (and recomputed) when any input changes \u2014 because a green result computed last week against a live advisory database is not a control for today.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm STALE is never rendered as PASS in any surface, including summary views.",
+  "tests_required": [
+   "tools/marketplace/tests/test_verdict_freshness.py::test_input_change_marks_stale",
+   "tools/marketplace/tests/test_verdict_freshness.py::test_age_alone_marks_stale",
+   "NEGATIVE CONTROL: a fresh verdict with unchanged inputs stays valid in the same run"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Score and verdict decay: recompute when an input changes",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0096": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Deciding what makes a benchmark claim reproducible is the substance of the unit.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0096",
+  "dependencies": [
+   "IMP-0094"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the attached record validates and contains every required reproducibility field; (2) the reproduction command is actually executed once in a clean environment and produces a result within the declared tolerance. A schema-valid record that cannot be re-run is not evidence.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "benchmark-gaming",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "IMP-0096",
+  "inputs": [
+   "_USER-PROMPTS.md:10860 (benchmark evidence)",
+   "_USER-PROMPTS.md:11385 (benchmark results show the intended improvement)",
+   "IMP-0094 score"
+  ],
+  "output_path": "command-center/receipts/IMP-0096.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/benchmark-evidence.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Let a package version attach benchmark results, each carrying the harness version, the case set identifier, the environment fingerprint and a reproduction command \u2014 so a performance claim is an artifact someone else can re-run rather than a number in a description.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must re-run one attached benchmark on different hardware and record the deviation.",
+  "tests_required": [
+   "tools/marketplace/tests/test_benchmark_evidence.py::test_record_completeness",
+   "tools/marketplace/tests/test_benchmark_evidence.py::test_reproduction_command_runs",
+   "NEGATIVE CONTROL: a record with a missing environment fingerprint must be rejected"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Benchmark evidence attachment with a reproducibility recipe",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0102": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Ranking determinism and index correctness are mechanically checkable.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0102",
+  "dependencies": [
+   "IMP-0067"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the same query run 50 times returns one distinct result ordering; (2) the index rebuilt from a shuffled document order returns the identical ordering. Tie-breaking must be by a stable key, and the test must include an actual tie.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "resolver-nondeterminism",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0102",
+  "inputs": [
+   "_USER-PROMPTS.md:10861 (search, categories, tags, collections)",
+   ".claude-plugin/marketplace.json plugins[].skills[] (the real searchable corpus)",
+   "IMP-0076 measurement-only stance"
+  ],
+  "output_path": "command-center/receipts/IMP-0102.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Build a BM25-style index over package name, description, tags and skill names with a total ordering that is stable across runs and independent of insertion order, and with no popularity term \u2014 ranking must be explainable from the query and the document alone.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm the index covers the skills[] entries, not only top-level descriptions, since that is where the real corpus lives.",
+  "tests_required": [
+   "tools/marketplace/tests/test_search_determinism.py::test_repeat_and_shuffle_invariance",
+   "tools/marketplace/tests/test_search_recall.py::test_known_package_is_findable_by_name_and_by_skill",
+   "NEGATIVE CONTROL: a query with no matches returns an explicit empty result, distinguishable from an index error"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Deterministic lexical search index over the registry",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0107": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "A digest disagreement is a potential supply-chain attack, not a merge problem.",
+   "role": "security-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0107",
+  "dependencies": [
+   "IMP-0106"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a planted digest divergence produces a conflict record containing both digests and both sources; (2) an install of that version is refused, verified by a filesystem census showing nothing written. Recording without refusing is a half-implemented control.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "signature-bypass",
+   "provenance-loss",
+   "owner-blocked"
+  ],
+  "id": "IMP-0107",
+  "inputs": [
+   "IMP-0106 mirror sync",
+   "_USER-PROMPTS.md:11058 (source manipulation refuter)",
+   "IMP-0084 lockfile digests"
+  ],
+  "output_path": "command-center/receipts/IMP-0107.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Define and implement what happens when a mirror holds a different digest for the same package version than upstream: never silently prefer one, emit a conflict record naming both digests, and fail closed for installs of that version until resolved.",
+  "retry_policy": "no retry: a digest conflict is a security event requiring human resolution",
+  "reviewer_requirement": "Security reviewer must confirm there is no configuration that silently makes one side authoritative.",
+  "tests_required": [
+   "tools/marketplace/tests/test_mirror_conflict.py::test_divergence_recorded_and_install_refused",
+   "NEGATIVE CONTROL: matching digests install normally in the same run",
+   "the conflict must persist across restarts until explicitly resolved"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Mirror conflict policy when upstream and mirror disagree",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0122": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Backoff behaviour is measurable against a fake server with an exact timing oracle.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0122",
+  "dependencies": [
+   "IMP-0074"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) against a fake server returning 429 with Retry-After, the observed inter-request intervals match the declared policy within tolerance; (2) the request arrival histogram for a 50-item batch shows staggering rather than a single burst, measured server-side. Client-side intent is not evidence of server-side arrival shape.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "uncontrolled-silence",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "IMP-0122",
+  "inputs": [
+   "_USER-PROMPTS.md:10577 (stagger arrivals to avoid 429 thundering-herd failures)",
+   "_USER-PROMPTS.md:11008 (rate-limit tests)",
+   "_USER-PROMPTS.md:11318 (429 arrival-rate storm)"
+  ],
+  "output_path": "command-center/receipts/IMP-0122.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Implement the network client so a batch of installs staggers its arrivals, honours Retry-After, backs off exponentially with jitter, and surfaces a 429 storm as a named condition rather than as a cascade of individual failures \u2014 treating arrival rate as a scheduler input per the scaling doctrine.",
+  "retry_policy": "the unit's own policy under test; implementation retries are bounded exponential with jitter, max 5, then a named 429-storm condition",
+  "reviewer_requirement": "Reviewer must confirm jitter is genuinely random and not a fixed offset that re-synchronises the herd.",
+  "tests_required": [
+   "tools/marketplace/tests/test_rate_limit_client.py::test_retry_after_is_honoured",
+   "tools/marketplace/tests/test_rate_limit_client.py::test_batch_arrivals_are_staggered",
+   "NEGATIVE CONTROL: a client without staggering must produce a burst histogram, proving the measurement discriminates"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Rate-limit-aware registry client with jittered arrival staggering",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0133": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "spec-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0133",
+  "dependencies": [
+   "IMP-0129"
+  ],
+  "evidence_requirement": "Two signals: (1) a fixture with a literal token in a param fails export with a named violation; (2) an independent grep of the exported bytes for the fixture token returns zero hits.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "overclaim",
+   "schema-invalid"
+  ],
+  "id": "IMP-0133",
+  "inputs": [
+   "tools/agentspec/agentspec/spec.py:112-119",
+   "tools/lib/security.mjs",
+   "_USER-PROMPTS.md:10579-10580 (never bundle auth)"
+  ],
+  "output_path": "command-center/receipts/IMP-0133.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: give Workflow a typed `params` surface so a blueprint is instantiable rather than hardcoded. Acceptance: a param declared `secret_ref` NEVER carries a literal value in the serialized workflow (it carries an env/secret-store reference), and the export path refuses to write a workflow whose params hold a value matching a credential-shaped pattern.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "cross-vendor reviewer (Codex) plus one Claude adversarial reviewer - secret-adjacent surface",
+  "tests_required": [
+   "credential-shaped literal in a param must FAIL export; the secret_ref twin must PASS",
+   "mutation: weaken the pattern to match nothing and the leak test must go red"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Add a typed workflow parameter model (Param, defaults, required, enum, secret-ref)",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0138": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "spec-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0138",
+  "dependencies": [
+   "IMP-0129"
+  ],
+  "evidence_requirement": "Two signals: (1) an out-of-taxonomy reason string fails validation; (2) a table-driven test asserts one policy outcome per taxonomy family with no family unmapped (set difference computed, not eyeballed).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "detector-failure"
+  ],
+  "id": "IMP-0138",
+  "inputs": [
+   "tools/agentspec/agentspec/taxonomy.py",
+   "tools/agentspec/agentspec/spec.py"
+  ],
+  "output_path": "command-center/receipts/IMP-0138.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: add `on_failure` (abort | continue | quarantine | escalate | repair) per node, keyed by tools/agentspec/agentspec/taxonomy.py families so policy branches on the FAMILY, not on a substring of an error message. Acceptance: a policy naming a reason outside the closed taxonomy fails validation.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "every taxonomy family has exactly one mapped policy (computed set difference == empty)",
+   "an out-of-taxonomy reason must FAIL validation"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Add a per-node failure policy expressed over the closed taxonomy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0146": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0146",
+  "dependencies": [
+   "IMP-0129",
+   "IMP-0130",
+   "IMP-0131",
+   "IMP-0132"
+  ],
+  "evidence_requirement": "Two signals: (1) round-trip byte equality over every fixture; (2) the same check run against the committed blob bytes (git cat-file) as well as the working tree, so a CRLF-only difference cannot masquerade as a pass.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "IMP-0146",
+  "inputs": [
+   "tools/agentspec/agentspec/canonical.py",
+   "rules/common/windows-shell.md (8b: blob vs archive)"
+  ],
+  "output_path": "command-center/receipts/IMP-0146.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: extend tools/agentspec/agentspec/canonical.py so any Workflow (including the new node types) exports to a canonical form and re-imports to an equal object. Acceptance: export(import(export(w))) == export(w) byte-for-byte, on LF bytes obtained via `git cat-file -p` (NOT `git archive`, which returns CRLF on this box and would silently validate the wrong bytes).",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "idempotent round trip over all fixtures including every new node type",
+   "CRLF working-tree copy and LF blob copy both round-trip (the recorded EOL trap)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Implement canonical export/import with a byte-stable round trip",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0151": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0151",
+  "dependencies": [
+   "IMP-0150"
+  ],
+  "evidence_requirement": "Two signals: (1) a filesystem audit shows zero writes under the live trees during a run (mtime snapshot before/after); (2) a known repo-only and a known live-only artifact are both classified correctly.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "IMP-0151",
+  "inputs": [
+   "~/.claude/skills",
+   "~/.agents/skills",
+   "rules/common/harness-vcs-hygiene.md"
+  ],
+  "output_path": "command-center/receipts/IMP-0151.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: enumerate workflow-shaped capabilities in ~/.claude and ~/.agents (skills, commands, agents, hooks) READ-ONLY. Acceptance: the adapter never writes to a live tree, and it records repo-vs-live divergence per artifact rather than assuming either side is authoritative - two-directional drift is measured on this estate (5 of 88 rules files byte-identical).",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "zero live-tree writes (mtime set equality before/after)",
+   "repo-only and live-only controls classified correctly in both directions"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Build the discovery adapter for installed skills, plugins and the LIVE harness trees",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0153": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0153",
+  "dependencies": [
+   "IMP-0150"
+  ],
+  "evidence_requirement": "Two signals: (1) a hand-labelled 30-doc control set scores precision/recall as NUMBERS; (2) a mention-only control document yields zero candidates.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0153",
+  "inputs": [
+   "docs/",
+   "guides/",
+   "harness-sota-2026-07-18-corpus/",
+   "tools/harness-corpus"
+  ],
+  "output_path": "command-center/receipts/IMP-0153.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: mine prose corpora (docs/, guides/, harness corpora, prompt transcripts) for described-but-never-implemented workflows. Acceptance: the extractor distinguishes USE from MENTION - a document that describes a workflow to criticize it must not be harvested as a candidate. This estate has hit use-vs-mention roughly eight times in one session, usually inside the probe itself.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "mention-only control yields 0 candidates; use control yields >=1 (both-states)",
+   "precision and recall reported as computed numbers on the labelled control set"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Build the discovery adapter for documentation, papers and session transcripts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash",
+   "WebSearch",
+   "WebFetch"
+  ]
+ },
+ "IMP-0160": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "adapter-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0160",
+  "dependencies": [
+   "IMP-0129",
+   "IMP-0132"
+  ],
+  "evidence_requirement": "Two signals: (1) rtv-pdr.js imports and validates clean; (2) its fan-out width in the imported plan equals the width counted by reading the script (two independent derivations of the same number).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "green-not-live"
+  ],
+  "id": "IMP-0160",
+  "inputs": [
+   "workflows/rtv-pdr.js",
+   ".claude/workflows (live)",
+   "tools/agentspec/agentspec/spec.py"
+  ],
+  "output_path": "command-center/receipts/IMP-0160.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: translate a saved Workflow script (the injected agent/parallel/phase globals) into a typed Workflow. Acceptance: workflows/rtv-pdr.js - the ONLY saved workflow in this repo, measured this session - imports, validates, and its fan-out shape is preserved; anything not expressible is recorded in the lossy-import ledger rather than dropped.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "rtv-pdr.js round-trips through import + validate",
+   "an inexpressible construct is written to the lossy ledger, not silently dropped (both-states)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Build the import adapter for Claude Code saved workflows (.mjs) to the typed Workflow",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0161": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "adapter-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0161",
+  "dependencies": [
+   "IMP-0135"
+  ],
+  "evidence_requirement": "Two signals: (1) a background-flagged profile is refused at import with a named reason; (2) the imported plan's argv is built through agentspec.argv (AST assertion, no local argv builder).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "severed-stream",
+   "win-arg-limit",
+   "schema-invalid"
+  ],
+  "id": "IMP-0161",
+  "inputs": [
+   "tools/codex/profiles/schemas/fanout.schema.json",
+   "tools/fanout-schema/fanout_schema.mjs",
+   "rules/common/cross-vendor-dispatch.md"
+  ],
+  "output_path": "command-center/receipts/IMP-0161.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: translate tools/codex/profiles/schemas/fanout.schema.json instances into typed Workflows. Acceptance: the translation preserves the dispatch-safety properties agentspec owns - no fire-and-forget, explicit timeout, prompt routed off argv - and a profile that violates any of them is REFUSED at import rather than imported and left to fail at run time.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "fire-and-forget profile refused at import (both-states: the blocking twin imports)",
+   "no local argv builder is introduced (AST assertion)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Build the import adapter for Codex fan-out profiles",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ }
+}

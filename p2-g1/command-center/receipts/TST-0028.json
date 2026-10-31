@@ -1,0 +1,367 @@
+{
+ "answer": "5 of 8 recorded steps (62.5%) re-execute without live network or credentials (local compute plus a clock frozen from the recording). The other 3 steps are enumerated by reason: network (fetch_external to TEST-NET-1 192.0.2.1, socket not opened on offline replay), credential (TST0028_LIVE_TOKEN is never copied into the recording), and GUI (no UI capture). Live wall-clock is not identically replayable; the recorded unix_ns is frozen on replay. Local-only excluding clock is 4/8 (50.0%). _USER-PROMPTS.md and command-center/schema/test-receipt.schema.json are absent on this worktree; the harness is the delivery substrate, not a production agent runtime. SUCCESS:TST-0028",
+ "artifacts": [
+  {
+   "bytes": 13385,
+   "exists": true,
+   "path": "command-center/receipts/TST-0028.json",
+   "role": "primary",
+   "sha256": "7bda8f03bbca69ab6b1f2215d6dba0a866e364d8c4de91f24dc4008ba6a114bb"
+  },
+  {
+   "bytes": 12214,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0028/harness.py",
+   "role": "supporting",
+   "sha256": "c448073441b8d3ff937622cdadb915ed8d971a99d105bc1faac825199937e00b"
+  },
+  {
+   "bytes": 15454,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0028/subject/workflow.py",
+   "role": "supporting",
+   "sha256": "05e0cc59da04d00550e7556a4810d67aa859abebec376090c6feea49f9b1b88a"
+  },
+  {
+   "bytes": 3269,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0028/probe1_identical_replay.py",
+   "role": "supporting",
+   "sha256": "30f6e6d8b526fdf9cf17d24d4c0eaf724d25ae05ec8ce46d9f1ec03b9d3e327b"
+  },
+  {
+   "bytes": 4005,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0028/probe2_planted_change.py",
+   "role": "supporting",
+   "sha256": "3c6295341499e4aa43c7f2513ad8644273365c00df382b2ea273b6e62e91a8ac"
+  }
+ ],
+ "catalog_inputs_present": {
+  "_USER-PROMPTS.md": false
+ },
+ "completion_sentinel": "SUCCESS:TST-0028",
+ "evidence": [
+  {
+   "anchor": "replayability.non_replayable_enumerated_by_reason",
+   "claim": "Replayability without live network or credentials is 62.5% (5/8); non-replayable steps are enumerated by reason.",
+   "kind": "live-probe",
+   "path": "command-center/p2-wave/probes/TST-0028/harness.py"
+  },
+  {
+   "anchor": "fetch_external/credential_gate/gui_capture",
+   "claim": "Record actually attempts TEST-NET-1 and probes credential/GUI presence.",
+   "kind": "live-probe",
+   "path": "command-center/p2-wave/probes/TST-0028/subject/workflow.py"
+  },
+  {
+   "anchor": "identical_replay.empty",
+   "claim": "Identical builds produce an empty semantic artifact and trace diff.",
+   "kind": "live-probe",
+   "path": "command-center/p2-wave/probes/TST-0028/harness.py"
+  },
+  {
+   "anchor": "planted_behaviour_change.empty==false",
+   "claim": "A planted PLAN_MARKER change without matching intent shows in both diffs.",
+   "kind": "live-probe",
+   "path": "command-center/p2-wave/probes/TST-0028/harness.py"
+  }
+ ],
+ "execution_substrate": "worktree-isolated",
+ "id": "TST-0028",
+ "implementation": {
+  "harness": "command-center/p2-wave/probes/TST-0028/harness.py",
+  "isolation": "Two (actually four) copies of subject/ are materialised in a TemporaryDirectory. Record runs in build-a; replay of the same inputs runs in build-b (identical), build-c (PLAN_MARKER planted), and build-d (comment-only). Child processes drop PYTHONPATH and TST0028_LIVE_TOKEN. This is not a git worktree; the snapshot has no checkout requirement.",
+  "subject": "command-center/p2-wave/probes/TST-0028/subject/workflow.py"
+ },
+ "materialised_builds": {
+  "comment_replay": "build-d-comment",
+  "identical_replay": "build-b",
+  "parent": "tst0028-14gnt7j_",
+  "planted_replay": "build-c-planted",
+  "record": "build-a",
+  "side_by_side": true
+ },
+ "min_bytes_threshold": 256,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0028/probe1_identical_replay.py",
+   "fingerprint": "30f6e6d8b526fdf9cf17d24d4c0eaf724d25ae05ec8ce46d9f1ec03b9d3e327b",
+   "id": "probe1",
+   "role": "identical-replay-empty-diff"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0028/probe2_planted_change.py",
+   "fingerprint": "3c6295341499e4aa43c7f2513ad8644273365c00df382b2ea273b6e62e91a8ac",
+   "id": "probe2",
+   "role": "planted-behaviour-change"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "A comment on the PLAN_MARKER line must not fire the behaviour diff.",
+   "fired_on_bad_state": true,
+   "id": "NC-comment-only-plant",
+   "observed_comment_only_empty": true,
+   "observed_planted_non_empty": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema_declared": "command-center/schema/test-receipt.schema.json",
+ "output_schema_present": true,
+ "produced_at": "2026-08-25T00:58:36Z",
+ "question": "Spec Phase 10 layer 11 (:10999). Target: record real executions (inputs, tool calls, artifacts) and replay them against a changed build, diffing the artifact set and the decision trace. A behaviour change with no corresponding intent is a regression candidate. What fraction of a recorded run is replayable without live network or credentials?",
+ "recorded": {
+  "artifact_set": {
+   "digest.txt": "4186be99a04ba8c6e15d6ca9dc42663a1b7849b06989059f2d2a263be9229c0e",
+   "report.json": "a63ef9c988cbf912bdec1bfc89ed47c5df2d5ca6592cc1a02f690268472bad8a"
+  },
+  "credential_gate": {
+   "credential_name": "TST0028_LIVE_TOKEN",
+   "credential_present": false,
+   "reason": "credential",
+   "status": "blocked"
+  },
+  "decision_trace_ids": [
+   "load_inputs",
+   "plan",
+   "digest_tool",
+   "stamp_clock",
+   "compose_report"
+  ],
+  "decision_trace_sha256": "46c052717eb60dd74a78b8fca15cb9977ea39cf4c000f82b64dcad03e5207bf1",
+  "fetch_external": {
+   "elapsed_ms": 252.4,
+   "error_type": "TimeoutError",
+   "host": "192.0.2.1",
+   "port": 1,
+   "reason": "network",
+   "status": "blocked"
+  },
+  "frozen_clock_unix_ns": 1787619516855457571,
+  "gui_capture": {
+   "detail": "UI capture is not replayable without a live GUI session. This step records the block; it does not screenshot.",
+   "display_present": false,
+   "reason": "GUI",
+   "status": "blocked"
+  },
+  "plan_marker": "accept-v1",
+  "step_count": 8,
+  "step_ids": [
+   "load_inputs",
+   "plan",
+   "digest_tool",
+   "fetch_external",
+   "credential_gate",
+   "stamp_clock",
+   "gui_capture",
+   "compose_report"
+  ],
+  "tool_call_count": 8
+ },
+ "replayability": {
+  "denominator_steps": 8,
+  "non_replayable_enumerated_by_reason": [
+   {
+    "outcome": "blocked",
+    "reason": "network",
+    "reason_class": "network",
+    "replayable_if_frozen_from_recording": false,
+    "replayable_without_live_network_or_credentials": false,
+    "step_id": "fetch_external",
+    "why": "Step opens a TCP connection to TEST-NET-1 (192.0.2.1). Offline replay skips the socket."
+   },
+   {
+    "outcome": "blocked",
+    "reason": "credential",
+    "reason_class": "credential",
+    "replayable_if_frozen_from_recording": false,
+    "replayable_without_live_network_or_credentials": false,
+    "step_id": "credential_gate",
+    "why": "Step requires TST0028_LIVE_TOKEN. The value is never copied into the recording; offline replay does not read credentials."
+   },
+   {
+    "outcome": "ok",
+    "reason": "clock",
+    "reason_class": "clock",
+    "replayable_if_frozen_from_recording": true,
+    "replayable_without_live_network_or_credentials": true,
+    "step_id": "stamp_clock",
+    "why": "Live wall-clock (time.time_ns) is not identically replayable. The recorded unix_ns is frozen on replay."
+   },
+   {
+    "outcome": "blocked",
+    "reason": "GUI",
+    "reason_class": "gui",
+    "replayable_if_frozen_from_recording": false,
+    "replayable_without_live_network_or_credentials": false,
+    "step_id": "gui_capture",
+    "why": "UI capture needs a live GUI session. This harness records the block and does not screenshot."
+   }
+  ],
+  "reasons_present": [
+   "GUI",
+   "clock",
+   "credential",
+   "network"
+  ],
+  "replayable_local_only": {
+   "count": 4,
+   "note": "Excludes clock, network, credential, and GUI.",
+   "percent": 50.0,
+   "step_ids": [
+    "load_inputs",
+    "plan",
+    "digest_tool",
+    "compose_report"
+   ]
+  },
+  "replayable_without_live_network_or_credentials": {
+   "count": 5,
+   "note": "Frozen recorded clock is allowed. Network, credential, and GUI steps are excluded.",
+   "percent": 62.5,
+   "step_ids": [
+    "load_inputs",
+    "plan",
+    "digest_tool",
+    "stamp_clock",
+    "compose_report"
+   ]
+  }
+ },
+ "report_kind": "test-receipt",
+ "residual_unknowns": [
+  {
+   "id": "TST-0028-R1",
+   "summary": "command-center/schema/test-receipt.schema.json is absent on this worktree; the catalog names it as output_schema. This receipt follows the test-receipt shape used by sibling units (unit_id/state/sentinel/evidence/tests/reviewer/artifacts) without claiming schema validation against a missing file."
+  },
+  {
+   "id": "TST-0028-R2",
+   "summary": "_USER-PROMPTS.md is absent, so :10999 cannot be re-read. The catalog question_or_target is the spec anchor used."
+  },
+  {
+   "id": "TST-0028-R3",
+   "summary": "No production agent runtime (platform/ record-replay) is on this worktree. The measured fraction is for the TST-0028 subject workflow, not a live editor session."
+  },
+  {
+   "id": "TST-0028-R4",
+   "summary": "Cross-vendor human reviewer was not dispatched; probe2 is an independent measurement fingerprint, not an other-vendor fresh-context person."
+  }
+ ],
+ "reviewer": {
+  "grants_owner_signoff": false,
+  "independent": true,
+  "reviewer_id": "TST-0028-probe2-planted-behaviour-change",
+  "scope": "Starts from a second materialised build with PLAN_MARKER planted; does not take the identical-replay empty hashes as evidence that the detector fires.",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0028",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=TST-0028] question_or_target + tests_required + evidence_requirement",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0028/probe1_identical_replay.py",
+   "id": "test_identical_build_replays_with_an_empty_diff",
+   "name": "identical materialised builds replay with empty artifact and trace diffs",
+   "observable": "semantic artifact_set and decision_trace diffs are empty",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0028/probe2_planted_change.py",
+   "id": "test_a_planted_behaviour_change_shows_up_in_the_diff",
+   "name": "planted PLAN_MARKER change appears in artifact set and decision trace",
+   "observable": "both artifact_set and decision_trace diffs are non-empty",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0028/probe2_planted_change.py",
+   "id": "test_comment_only_mutation_is_not_a_behaviour_change",
+   "name": "comment-only plant on PLAN_MARKER line stays empty-diff",
+   "observable": "comment-only materialised build produces an empty semantic diff",
+   "result": "PASS"
+  }
+ ],
+ "tests_live": {
+  "comment_only_control": {
+   "artifact_set": {
+    "changed": [],
+    "empty": true,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "decision_trace": {
+    "changed": [],
+    "empty": true,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "empty": true,
+   "record_plan_marker": "accept-v1",
+   "replay_plan_marker": "accept-v1"
+  },
+  "identical_replay": {
+   "artifact_set": {
+    "changed": [],
+    "empty": true,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "decision_trace": {
+    "changed": [],
+    "empty": true,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "empty": true,
+   "record_plan_marker": "accept-v1",
+   "replay_plan_marker": "accept-v1"
+  },
+  "planted_behaviour_change": {
+   "artifact_set": {
+    "changed": [
+     {
+      "path": "digest.txt",
+      "record_sha256": "4186be99a04ba8c6e15d6ca9dc42663a1b7849b06989059f2d2a263be9229c0e",
+      "replay_sha256": "0d1cfe49a2a525088dfaa4b4b1f10afef28c624d9676a4d5326356d2520491a7"
+     },
+     {
+      "path": "report.json",
+      "record_sha256": "a63ef9c988cbf912bdec1bfc89ed47c5df2d5ca6592cc1a02f690268472bad8a",
+      "replay_sha256": "201c32d696c1b858011dbdf25aef7ff6c0b54883ccef3ed09c2abbe59ea4f30b"
+     }
+    ],
+    "empty": false,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "decision_trace": {
+    "changed": [
+     {
+      "id": "compose_report",
+      "record_sha256": "7cd27c4dc0677dfc04da37e58e1d4439b98f78af5582c06f3e9111eecf1379c8",
+      "replay_sha256": "d0cf0ebf654a1481e33c626a9af10744af10e984c2858a971087ab28908ec9a5"
+     },
+     {
+      "id": "digest_tool",
+      "record_sha256": "a533482ad461d755a72fab52a563dc5027c107e1f4944734f49844b6d6e3ff31",
+      "replay_sha256": "55a9611524889c5b2c06e71dac367a885a049ba52cdb19463309452ad28d60da"
+     },
+     {
+      "id": "plan",
+      "record_sha256": "19245ee2283e1201175615af5e2f729265bf38db4ebfee8af39685765bc55792",
+      "replay_sha256": "4f1c983012ba571906f19bc7988b6f371585fec8cb0878c50d3a3e5fd00e8be4"
+     }
+    ],
+    "empty": false,
+    "only_in_record": [],
+    "only_in_replay": []
+   },
+   "empty": false,
+   "record_plan_marker": "accept-v1",
+   "replay_plan_marker": "accept-v2-planted"
+  }
+ },
+ "title": "Differential replay harness: record, replay, diff",
+ "unit_id": "TST-0028"
+}

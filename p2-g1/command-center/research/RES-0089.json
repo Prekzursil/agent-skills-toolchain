@@ -1,0 +1,990 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0089.json",
+      "bytes": 23493,
+      "sha256": "a97ef305a0550f825e2f3ca12be224244992364d005ec540c527378ffa9170ba",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "RES-0089 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/research/RES-0089.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/research/RES-0089.json",
+          "raw_output": "bytes=23493 sha256=a97ef305a0550f825e2f3ca12be224244992364d005ec540c527378ffa9170ba",
+          "fingerprint": "1d609660bd9948525ef001bc5fd71fae",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact RES-0089",
+          "raw_output": "schema-check",
+          "fingerprint": "c8de1ea7eb6b4318718bbd6dc1dd769d",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "RES-0089 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0089",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0089",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "3959eb4ab32a0ff7cf37701eb5551fb3",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered RES-0089",
+          "raw_output": "schema-valid",
+          "fingerprint": "881f7cc4f40825cac3e30e3b1c7950d5",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "schema-resolver",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema.",
+    "reviewers": [
+      {
+        "id": "R-A",
+        "partition": [
+          "carlini-2021",
+          "local-canary-g1",
+          "oren-2024",
+          "shi-2024"
+        ]
+      },
+      {
+        "id": "R-B",
+        "partition": [
+          "deng-2024",
+          "golchin-2024",
+          "mirzadeh-2024",
+          "roberts-2024",
+          "yang-2023"
+        ]
+      }
+    ]
+  },
+  "sentinel": "SUCCESS:RES-0089",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/research/RES-0089.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "unit_id": "RES-0089",
+  "extensions": {
+    "legacy_root": {
+      "answer": {
+        "can_disqualify_a_result": [
+          "oren-permutation-exchangeability",
+          "local-canary-g1"
+        ],
+        "e3_cannot_promote": [],
+        "false_positive_unmeasured": [
+          "golchin-guided-instruction",
+          "roberts-timeline-cutoff",
+          "deng-ts-guessing",
+          "mirzadeh-gsm-symbolic",
+          "carlini-extraction-canary",
+          "yang-llm-decontaminator"
+        ],
+        "methods": [
+          "canary strings / unique-sequence extraction (Carlini 2021; local exact-match)",
+          "held-out perturbation of item order (Oren 2024) or of names/numbers (Mirzadeh 2024)",
+          "timeline / cutoff natural experiment (Roberts 2024)",
+          "membership inference Min-K% Prob (Shi 2024)",
+          "guided completion / slot guessing (Golchin 2024; Deng 2024)",
+          "rephrased-sample LLM decontaminator (Yang 2023 Table 5)"
+        ],
+        "program_planned_benchmark": "No HumanEval/SWE-bench/GSM8K/LiveCodeBench corpus is named on this tree. The live planned evaluation is G-1 over WORK-UNIT-CATALOG.json.",
+        "shown_to_work": [
+          "oren-permutation-exchangeability",
+          "shi-mink-prob",
+          "golchin-guided-instruction",
+          "roberts-timeline-cutoff",
+          "deng-ts-guessing",
+          "mirzadeh-gsm-symbolic",
+          "carlini-extraction-canary",
+          "local-canary-g1",
+          "yang-llm-decontaminator"
+        ],
+        "which_would_be_vulnerable": [
+          {
+            "benchmark": "ast-integrate-work-unit-catalog-g1",
+            "reason": "Measure re-runs named probes; reciting SUCCESS:UNIT from training data cannot satisfy G-1.",
+            "verdict": "NOT-VULNERABLE-TO-SENTINEL-MEMORIZATION"
+          },
+          {
+            "benchmark": "catalog-as-static-qa",
+            "reason": "The catalog is a public static artifact. Timeline analysis (Roberts) would treat post-crawl model training as contaminated for any memorization test on catalog text.",
+            "verdict": "VULNERABLE-IF-SCORED-WITHOUT-LIVE-PROBES"
+          },
+          {
+            "benchmark": "any-static-github-hosted-public-test-split",
+            "reason": "Jacovi/Sainz-class n-gram leakage plus Roberts cutoff. This program has not yet named which public suite it will adopt (RES-0093).",
+            "verdict": "VULNERABLE"
+          }
+        ]
+      },
+      "applied_result": {
+        "benchmark_id": "ast-integrate-work-unit-catalog-g1",
+        "benchmark_path": "command-center/WORK-UNIT-CATALOG.json",
+        "both_states": {
+          "canary": "RES0089-PLANTED-ORACLE-NGRAM-7f3a9c2e1b44 unique benchmark case body",
+          "clean_exact_hit": false,
+          "clean_ngram3_overlap": 0,
+          "clean_path": "command-center/p2-wave/probes/RES-0089/fixtures/clean-boilerplate.txt",
+          "fires_on_planted": true,
+          "measured_fpr_on_clean_control": 0.0,
+          "measured_tpr_on_planted_control": 1.0,
+          "planted_exact_hit": true,
+          "planted_ngram3_overlap": 3,
+          "planted_path": "command-center/p2-wave/probes/RES-0089/fixtures/planted-benchmark-case.txt",
+          "second_signal_canary_in_clean_bytes": false,
+          "second_signal_canary_in_planted_bytes": true,
+          "second_signal_sha256_clean": "6af4093833e8efe500c17260d0cb42f26697de93355a29c9276a880250a3a9db",
+          "second_signal_sha256_planted": "3d9e4ccd738eb964aad487d49139e1dbf5fb161215fc67dee90f88f763f8b420",
+          "silent_on_clean": true
+        },
+        "computed_not_asserted": true,
+        "detector_applied": "unique-canary-exact-match plus 3-gram overlap",
+        "live_prompt_scan": {
+          "extra_hit_count": 0,
+          "files_scanned": 85,
+          "hits_including_planted_fixture": [
+            {
+              "exact": true,
+              "path": "command-center/p2-wave/probes/RES-0089/fixtures/planted-benchmark-case.txt"
+            }
+          ],
+          "hits_outside_planted_fixture": []
+        },
+        "measure_path": "command-center/p2-wave/_measure_one_delivered.py",
+        "verdict": "APPLIED-PASS",
+        "vulnerability": "G-1 re-runs probes, so reciting a completion sentinel from training data cannot satisfy the measure (cloud ok=true is explicitly not delivery). The catalog file itself is a public static artifact: if later scored as a memorization/Q-A test without live probes, it is timeline-vulnerable once crawled. Unique-canary FPR on the clean boilerplate control is 0; extra prompt-surface hits outside the planted fixture must stay 0.",
+        "why_this_benchmark": "This tree has no published HumanEval/SWE-bench/GSM8K suite. The only evaluation this program actually runs is G-1: live named probes over catalog work units. That is the planned (and live) benchmark set on this worktree."
+      },
+      "canonical_mechanism": "permutation-exchangeability + unique-canary + timeline-cutoff + held-out-perturbation",
+      "claim_id": "RES-0089-contamination-detectors",
+      "claims": [
+        {
+          "anchor": "detector_table ids oren/roberts/carlini/mirzadeh/yang",
+          "claim": "Three detector families named in the unit question (canary, held-out perturbation, timeline) each have at least one paper with an effect size AND a baseline.",
+          "id": "C1",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "detector_table.may_disqualify_a_result",
+          "claim": "Only detectors with a measured or exact FPR may disqualify a result. On this record that is Oren (0.05-by-construction) and local-canary-g1 (FPR=0.0).",
+          "id": "C2",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "probe1_detector_table.py e3_promoted_mutant",
+          "claim": "A headline without a baseline is E3 and cannot promote. Probe1 rejects e3-headline-only-control when may_promote=true.",
+          "id": "C3",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/_measure_one_delivered.py",
+          "claim": "This program's live G-1 benchmark is not defeated by training-data memorization of completion sentinels.",
+          "id": "C4",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "applied_result",
+          "claim": "The strongest locally runnable detector (unique canary) was applied to this program's G-1 surface: planted fires, clean is silent, extra prompt hits = 0.",
+          "id": "C5",
+          "verdict": "CONFIRMED"
+        }
+      ],
+      "confidence_band": "medium",
+      "dependencies_on_this_tree": {
+        "RES-0001": "schema-missing",
+        "RES-0003": "grader-missing"
+      },
+      "detector_table": [
+        {
+          "arxiv": "2310.17623",
+          "baseline": "Same 1.4B model, 1-duplication injections stay above 0.05 (BoolQ dup=1: permutation p=0.099, sharded p=0.156; HellaSwag dup=1: permutation p=0.485, sharded p=0.478)",
+          "caveat": "Requires token likelihoods and an exchangeable item order. Cannot run on this worktree (no model logprob endpoint). Fails open on non-exchangeable sets (authors heuristically filter MMLU subsets).",
+          "doi": "10.48550/arXiv.2310.17623",
+          "effect_size": "MNLI 1000 examples injected 10 times: permutation p=0.009, sharded p=1.96e-11",
+          "evidence_tier": "E1",
+          "false_positive_rate": "0.05-by-construction",
+          "family": "held-out-perturbation",
+          "fpr_note": "Type I error equals the chosen significance level under the exchangeability null (no contamination => all orderings equally likely). Not an empirically fitted FPR on a foreign corpus.",
+          "id": "oren-permutation-exchangeability",
+          "may_disqualify_a_result": true,
+          "may_promote": true,
+          "name": "Canonical-order vs shuffled-order likelihood (permutation / sharded rank)",
+          "paper_id": "oren-2024",
+          "section_or_figure": "Table 1 (controlled 1.4B Wikitext injection); abstract (exact false-positive guarantees)",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2310.16789",
+          "baseline": "Strongest reference-free baseline LOSS/PPL: AUC 0.67; TPR@5%FPR 19.3%",
+          "caveat": "Needs token probabilities. WikiMIA uses Wikipedia timestamps as ground truth; that label process does not transfer to this program's G-1 oracles. Cannot disqualify a result here.",
+          "doi": "10.48550/arXiv.2310.16789",
+          "effect_size": "WikiMIA average AUC 0.72; average TPR@5%FPR 22.2%",
+          "evidence_tier": "E1",
+          "false_positive_rate": "0.05-operating-point-on-WikiMIA",
+          "family": "membership-inference",
+          "fpr_note": "Table 5 reports TPR at FPR=5% on WikiMIA member/non-member splits. That 5% is the chosen ROC operating point on WikiMIA, not a Type I guarantee on a different benchmark. FPR for disqualifying this program's scores is UNMEASURED.",
+          "id": "shi-mink-prob",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Min-K% Prob (mean log-likelihood of lowest-k% tokens)",
+          "paper_id": "shi-2024",
+          "section_or_figure": "Table 1 (AUC on WikiMIA); Appendix Table 6 (TPR@5%FPR); \u00a74.3 k=20",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2308.08493",
+          "baseline": "ChatGPT-Cheat? strict evaluation on GPT-4: 0/14 (0.00%); Algorithm 1 ROUGE-L on GPT-3.5: 7/14 (50.00%), i.e. chance on 14 binary partition labels",
+          "caveat": "Requires querying the suspect model plus a GPT-4 judge. Safety filters made ChatGPT-Cheat? unusable on GPT-4 (0/14 strict).",
+          "doi": "10.48550/arXiv.2308.08493",
+          "effect_size": "Algorithm 2 GPT-4 ICL: 14/14 (100%) on GPT-4 partitions and 13/14 (92.86%) on GPT-3.5 partitions",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "guided-completion",
+          "fpr_note": "Table 3 is partition-level agreement with human labels, not a per-instance false-positive rate for the GPT-4 ICL judge. The judge's own FPR is UNMEASURED, so this detector cannot disqualify a result.",
+          "id": "golchin-guided-instruction",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Guided instruction completion vs general instruction (Time Travel)",
+          "paper_id": "golchin-2024",
+          "section_or_figure": "Table 3 overall accuracy vs human partition labels",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2310.10628",
+          "baseline": "Same model, post-cutoff: odds ratio 1.000 (95% CI 0.986-1.014), not significant (Table 1 After column)",
+          "caveat": "Needs dated items, a published cutoff, and a popularity proxy. This program's G-1 oracles are not Codeforces-style dated problems.",
+          "doi": "10.48550/arXiv.2310.10628",
+          "effect_size": "GPT-4 Codeforces: GitHub Presence odds ratio 1.045 (95% CI 1.039-1.051) before cutoff; prose reports ~4.5% odds increase per log GitHub Presence unit pre-cutoff",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "timeline",
+          "fpr_note": "This is a regression association, not a binary detector with a measured FPR. A significant pre-cutoff slope is evidence of contamination but cannot disqualify a single benchmark item.",
+          "id": "roberts-timeline-cutoff",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Pre/post training-cutoff pass-rate vs GitHub presence",
+          "paper_id": "roberts-2024",
+          "section_or_figure": "Table 1 GPT-4 Codeforces Pass Rate; \u00a7Results GitHub Presence paragraph",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2311.09783",
+          "baseline": "Same Table 3 TruthfulQA EM: ChatGPT 0.12, GPT-4 0.10. Fully contaminated ChatGPT ~100% EM (Figure 4). The paper explicitly says the remaining-option candidate list can be large/infinite, so a 25% 4-way chance baseline is NOT a number this paper reports and is not used here. \u00a74.2.2 prose assigns 57% EM to ChatGPT, which matches Table 3's GPT-4 cell (0.57) not ChatGPT's (0.52); this row follows Table 3.",
+          "caveat": "Needs a multiple-choice test set. This program's G-1 oracles are not MC items.",
+          "doi": "10.18653/v1/2024.naacl-long.482",
+          "effect_size": "Table 3 MMLU Question-Multichoice EM: ChatGPT 0.52, GPT-4 0.57; Figure 4 fine-tuned-on-MMLU ChatGPT ~100% EM",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "guided-completion",
+          "fpr_note": "Table 3 EM is not a false-positive rate. Format-learning can raise slot-guessing without item memorization. Cannot disqualify.",
+          "id": "deng-ts-guessing",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Testset Slot Guessing (mask a wrong MC option / unlikely word)",
+          "paper_id": "deng-2024",
+          "section_or_figure": "Table 3 Question-Multichoice EM; Figure 4 (~100% after fine-tune); \u00a74.2.2 prose",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2410.05229",
+          "baseline": "Same model, GSM8K 100-template subset 87.0; Symbolic-M1 (one clause removed) 84.4 (\u00b12.36). Figure 4 is qualitative on names-only vs numbers; no names-only mean is tabulated for this model, so none is cited.",
+          "caveat": "21/25 models sit >1 stddev above the GSM-Symbolic center on the original 100 GSM8K templates \u2014 suggestive, not a disqualifier.",
+          "doi": "10.48550/arXiv.2410.05229",
+          "effect_size": "Gemma2-9b-it GSM-Symbolic 79.1 (\u00b12.99) (Appendix Table 1 Symbolic column)",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "held-out-perturbation",
+          "fpr_note": "A drop on re-instantiated items can be genuine reasoning fragility rather than contamination (authors discuss both). Using the drop as a contamination detector has UNMEASURED FPR.",
+          "id": "mirzadeh-gsm-symbolic",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Symbolic template re-instantiation (names/numbers) of GSM8K items",
+          "paper_id": "mirzadeh-2024",
+          "section_or_figure": "\u00a74.1-4.2; Figure 2 dashed GSM8K line; Appendix Table 1 Gemma2-9b-it row",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2012.07805",
+          "baseline": "Top-n sampling ranked by raw LM perplexity: 9% memorized; temperature sampling: 3%. Among 600,000 honest generations, at least 604 (0.1%) contain memorized text",
+          "caveat": "Shows memorization exists; does not by itself disqualify a leaderboard score.",
+          "doi": "10.5555/3483845.3483995",
+          "effect_size": "Best attack configuration: 67% of inspected candidates are verbatim training examples",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "canary",
+          "fpr_note": "67% is precision of ranked candidates after manual+OpenAI confirmation, not the FPR of a benchmark-contamination detector. Unique inserted canaries can have FPR near 0 if the string is not in the clean corpus; that FPR is measured locally in detector local-canary-g1, not in this paper.",
+          "id": "carlini-extraction-canary",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "Training-data extraction / unique-sequence memorization",
+          "paper_id": "carlini-2021",
+          "section_or_figure": "\u00a7Results: 604/1800 unique memorized; best config 67%; 604/600000 = 0.1%",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "none-local-measurement",
+          "baseline": "TPR=0.0 / FPR=0.0 on clean boilerplate fixture (exact match and 3-gram overlap)",
+          "caveat": "Only disqualifies a surface that contains this unique canary. Does not detect paraphrased leakage or model-weight contamination.",
+          "doi": "none-local-measurement",
+          "effect_size": "TPR=1.0 on planted fixture (exact match and 3-gram overlap)",
+          "evidence_tier": "E1",
+          "false_positive_rate": "0.0",
+          "family": "canary",
+          "fpr_note": "Measured on the clean boilerplate control in this probe directory. Second signal: canary bytes present in planted file, absent in clean file.",
+          "id": "local-canary-g1",
+          "may_disqualify_a_result": true,
+          "may_promote": true,
+          "name": "Unique planted oracle string vs boilerplate (applied to this program's G-1)",
+          "paper_id": "local-canary-g1",
+          "section_or_figure": "command-center/p2-wave/probes/RES-0089/ngram_canary.py both_states()",
+          "shown_to_work": true
+        },
+        {
+          "arxiv": "2311.04850",
+          "baseline": "Same Table 5 10-gram F1 = 0.000 on all three rephrased-English columns (and on rephrased-Chinese); random-detection F1 = 0.500. Same Table 2 Llama-2-13B original 5-shot MMLU 54.8.",
+          "caveat": "Needs training-set access plus a GPT-4 judge. The 85.9 figure is 0-shot after 16-epoch fine-tune on rephrased MMLU; original 54.8 is 5-shot. Shot-count is not matched.",
+          "doi": "10.48550/arXiv.2311.04850",
+          "effect_size": "LLM decontaminator F1 on MMLU rephrased-English: Algebra 0.960, Sociology 0.940, US History 0.970 (Table 5). Llama-2-13B MMLU after 16-epoch fine-tune on rephrased full prompt: 85.9 (Table 2 / Figure 1)",
+          "evidence_tier": "E1",
+          "false_positive_rate": "UNMEASURED",
+          "family": "held-out-perturbation",
+          "fpr_note": "Table 5 reports pair-classification F1, not a Type I rate for disqualifying a leaderboard score. Cannot disqualify this program's results.",
+          "id": "yang-llm-decontaminator",
+          "may_disqualify_a_result": false,
+          "may_promote": true,
+          "name": "LLM decontaminator (embedding top-k + GPT-4 same-item judge) vs n-gram on rephrased samples",
+          "paper_id": "yang-2023",
+          "section_or_figure": "Table 5 (MMLU detection F1); Table 2 (Llama-2-13B MMLU 54.8 vs 85.9)",
+          "shown_to_work": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "oren-2024",
+          "note": "exact FPR is the disqualification bar",
+          "to": "C2",
+          "type": "supports"
+        },
+        {
+          "from": "roberts-2024",
+          "note": "timeline family has effect and post-cutoff null baseline",
+          "to": "C1",
+          "type": "supports"
+        },
+        {
+          "from": "golchin-table3-chatgpt-cheat",
+          "note": "ChatGPT-Cheat? scores 0/14 strict on GPT-4 because safety filters emit 'suspicious' rather than instances",
+          "to": "sainz-style-prompt-extraction",
+          "type": "contradiction"
+        },
+        {
+          "from": "min-k-wikiMIA-fpr",
+          "note": "WikiMIA 5% FPR does not transfer to G-1 oracles",
+          "to": "disqualify-this-program",
+          "type": "independence-collapse"
+        }
+      ],
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-25T00:57:56Z",
+      "id": "RES-0089",
+      "named_settling_probe": "command-center/p2-wave/probes/RES-0089/probe2_applied_control.py",
+      "output_schema_declared": "command-center/schema/research-claim-record.schema.json",
+      "output_schema_on_disk": true,
+      "question": "What methods detect training-data contamination and benchmark gaming (canary strings, held-out perturbation, timeline analysis), which have been shown to work, and which of this program's own planned benchmarks would be vulnerable?",
+      "snapshot_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+      "source_lineage": [
+        {
+          "id": "catalog-RES-0089",
+          "note": "unit contract, tests_required, completion_sentinel",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+          "status": "captured"
+        },
+        {
+          "id": "register",
+          "note": "listed input; missing on this worktree",
+          "path": "command-center/sources/REGISTER.md",
+          "status": "captured"
+        },
+        {
+          "id": "05-ECO",
+          "note": "listed input; Windows harness path not on this Linux tree",
+          "path": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+          "status": "ABSENT"
+        },
+        {
+          "arxiv": "2310.17623",
+          "fetched": "2026-08-25",
+          "id": "oren-2024",
+          "status": "fetched-html-table-1"
+        },
+        {
+          "arxiv": "2310.16789",
+          "fetched": "2026-08-25",
+          "id": "shi-2024",
+          "status": "fetched-html-table-1-and-appendix-table-6"
+        },
+        {
+          "arxiv": "2308.08493",
+          "fetched": "2026-08-25",
+          "id": "golchin-2024",
+          "status": "fetched-html-table-3"
+        },
+        {
+          "arxiv": "2310.10628",
+          "fetched": "2026-08-25",
+          "id": "roberts-2024",
+          "status": "fetched-html-table-1"
+        },
+        {
+          "arxiv": "2311.09783",
+          "fetched": "2026-08-25",
+          "id": "deng-2024",
+          "status": "fetched-html-table-3-and-figure-4"
+        },
+        {
+          "arxiv": "2410.05229",
+          "fetched": "2026-08-25",
+          "id": "mirzadeh-2024",
+          "status": "fetched-html-appendix-table-1"
+        },
+        {
+          "arxiv": "2012.07805",
+          "fetched": "2026-08-25",
+          "id": "carlini-2021",
+          "status": "fetched-usenix-pdf"
+        },
+        {
+          "arxiv": "2311.04850",
+          "fetched": "2026-08-25",
+          "id": "yang-2023",
+          "status": "fetched-html-tables-2-and-5"
+        }
+      ],
+      "strongest_surviving_counterargument": "Min-K% and guided-instruction look stronger on leaderboard contamination than a unique canary, but both have UNMEASURED FPR for disqualifying this program's scores. Treating WikiMIA TPR@5%FPR as a license to throw out a G-1 unit would itself be an uncalibrated false positive.",
+      "title": "Determine how benchmark contamination and gaming are detected, and which detectors work"
+    }
+  },
+  "schema_version": 1,
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0089",
+  "min_bytes_threshold": 1,
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/RES-0089/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "RES-0089"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/research/RES-0089.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0089.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "ea22472cc6c70e37b8f75199766eef0c",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "defects": [],
+  "report": {
+    "kind": "research-claim-record",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 23493,
+        "method": "filesystem-stat",
+        "anchor": "command-center/research/RES-0089.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "answer": {
+    "can_disqualify_a_result": [
+      "oren-permutation-exchangeability",
+      "local-canary-g1"
+    ],
+    "e3_cannot_promote": [],
+    "false_positive_unmeasured": [
+      "golchin-guided-instruction",
+      "roberts-timeline-cutoff",
+      "deng-ts-guessing",
+      "mirzadeh-gsm-symbolic",
+      "carlini-extraction-canary",
+      "yang-llm-decontaminator"
+    ],
+    "methods": [
+      "canary strings / unique-sequence extraction (Carlini 2021; local exact-match)",
+      "held-out perturbation of item order (Oren 2024) or of names/numbers (Mirzadeh 2024)",
+      "timeline / cutoff natural experiment (Roberts 2024)",
+      "membership inference Min-K% Prob (Shi 2024)",
+      "guided completion / slot guessing (Golchin 2024; Deng 2024)",
+      "rephrased-sample LLM decontaminator (Yang 2023 Table 5)"
+    ],
+    "program_planned_benchmark": "No HumanEval/SWE-bench/GSM8K/LiveCodeBench corpus is named on this tree. The live planned evaluation is G-1 over WORK-UNIT-CATALOG.json.",
+    "shown_to_work": [
+      "oren-permutation-exchangeability",
+      "shi-mink-prob",
+      "golchin-guided-instruction",
+      "roberts-timeline-cutoff",
+      "deng-ts-guessing",
+      "mirzadeh-gsm-symbolic",
+      "carlini-extraction-canary",
+      "local-canary-g1",
+      "yang-llm-decontaminator"
+    ],
+    "which_would_be_vulnerable": [
+      {
+        "benchmark": "ast-integrate-work-unit-catalog-g1",
+        "reason": "Measure re-runs named probes; reciting SUCCESS:UNIT from training data cannot satisfy G-1.",
+        "verdict": "NOT-VULNERABLE-TO-SENTINEL-MEMORIZATION"
+      },
+      {
+        "benchmark": "catalog-as-static-qa",
+        "reason": "The catalog is a public static artifact. Timeline analysis (Roberts) would treat post-crawl model training as contaminated for any memorization test on catalog text.",
+        "verdict": "VULNERABLE-IF-SCORED-WITHOUT-LIVE-PROBES"
+      },
+      {
+        "benchmark": "any-static-github-hosted-public-test-split",
+        "reason": "Jacovi/Sainz-class n-gram leakage plus Roberts cutoff. This program has not yet named which public suite it will adopt (RES-0093).",
+        "verdict": "VULNERABLE"
+      }
+    ]
+  },
+  "applied_result": {
+    "benchmark_id": "ast-integrate-work-unit-catalog-g1",
+    "benchmark_path": "command-center/WORK-UNIT-CATALOG.json",
+    "both_states": {
+      "canary": "RES0089-PLANTED-ORACLE-NGRAM-7f3a9c2e1b44 unique benchmark case body",
+      "clean_exact_hit": false,
+      "clean_ngram3_overlap": 0,
+      "clean_path": "command-center/p2-wave/probes/RES-0089/fixtures/clean-boilerplate.txt",
+      "fires_on_planted": true,
+      "measured_fpr_on_clean_control": 0.0,
+      "measured_tpr_on_planted_control": 1.0,
+      "planted_exact_hit": true,
+      "planted_ngram3_overlap": 3,
+      "planted_path": "command-center/p2-wave/probes/RES-0089/fixtures/planted-benchmark-case.txt",
+      "second_signal_canary_in_clean_bytes": false,
+      "second_signal_canary_in_planted_bytes": true,
+      "second_signal_sha256_clean": "6af4093833e8efe500c17260d0cb42f26697de93355a29c9276a880250a3a9db",
+      "second_signal_sha256_planted": "3d9e4ccd738eb964aad487d49139e1dbf5fb161215fc67dee90f88f763f8b420",
+      "silent_on_clean": true
+    },
+    "computed_not_asserted": true,
+    "detector_applied": "unique-canary-exact-match plus 3-gram overlap",
+    "live_prompt_scan": {
+      "extra_hit_count": 0,
+      "files_scanned": 85,
+      "hits_including_planted_fixture": [
+        {
+          "exact": true,
+          "path": "command-center/p2-wave/probes/RES-0089/fixtures/planted-benchmark-case.txt"
+        }
+      ],
+      "hits_outside_planted_fixture": []
+    },
+    "measure_path": "command-center/p2-wave/_measure_one_delivered.py",
+    "verdict": "APPLIED-PASS",
+    "vulnerability": "G-1 re-runs probes, so reciting a completion sentinel from training data cannot satisfy the measure (cloud ok=true is explicitly not delivery). The catalog file itself is a public static artifact: if later scored as a memorization/Q-A test without live probes, it is timeline-vulnerable once crawled. Unique-canary FPR on the clean boilerplate control is 0; extra prompt-surface hits outside the planted fixture must stay 0.",
+    "why_this_benchmark": "This tree has no published HumanEval/SWE-bench/GSM8K suite. The only evaluation this program actually runs is G-1: live named probes over catalog work units. That is the planned (and live) benchmark set on this worktree."
+  },
+  "canonical_mechanism": "permutation-exchangeability + unique-canary + timeline-cutoff + held-out-perturbation",
+  "claim_id": "RES-0089-contamination-detectors",
+  "claims": [
+    {
+      "anchor": "detector_table ids oren/roberts/carlini/mirzadeh/yang",
+      "claim": "Three detector families named in the unit question (canary, held-out perturbation, timeline) each have at least one paper with an effect size AND a baseline.",
+      "id": "C1",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "detector_table.may_disqualify_a_result",
+      "claim": "Only detectors with a measured or exact FPR may disqualify a result. On this record that is Oren (0.05-by-construction) and local-canary-g1 (FPR=0.0).",
+      "id": "C2",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "probe1_detector_table.py e3_promoted_mutant",
+      "claim": "A headline without a baseline is E3 and cannot promote. Probe1 rejects e3-headline-only-control when may_promote=true.",
+      "id": "C3",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/_measure_one_delivered.py",
+      "claim": "This program's live G-1 benchmark is not defeated by training-data memorization of completion sentinels.",
+      "id": "C4",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "applied_result",
+      "claim": "The strongest locally runnable detector (unique canary) was applied to this program's G-1 surface: planted fires, clean is silent, extra prompt hits = 0.",
+      "id": "C5",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "confidence_band": "medium",
+  "dependencies_on_this_tree": {
+    "RES-0001": "schema-missing",
+    "RES-0003": "grader-missing"
+  },
+  "detector_table": [
+    {
+      "arxiv": "2310.17623",
+      "baseline": "Same 1.4B model, 1-duplication injections stay above 0.05 (BoolQ dup=1: permutation p=0.099, sharded p=0.156; HellaSwag dup=1: permutation p=0.485, sharded p=0.478)",
+      "caveat": "Requires token likelihoods and an exchangeable item order. Cannot run on this worktree (no model logprob endpoint). Fails open on non-exchangeable sets (authors heuristically filter MMLU subsets).",
+      "doi": "10.48550/arXiv.2310.17623",
+      "effect_size": "MNLI 1000 examples injected 10 times: permutation p=0.009, sharded p=1.96e-11",
+      "evidence_tier": "E1",
+      "false_positive_rate": "0.05-by-construction",
+      "family": "held-out-perturbation",
+      "fpr_note": "Type I error equals the chosen significance level under the exchangeability null (no contamination => all orderings equally likely). Not an empirically fitted FPR on a foreign corpus.",
+      "id": "oren-permutation-exchangeability",
+      "may_disqualify_a_result": true,
+      "may_promote": true,
+      "name": "Canonical-order vs shuffled-order likelihood (permutation / sharded rank)",
+      "paper_id": "oren-2024",
+      "section_or_figure": "Table 1 (controlled 1.4B Wikitext injection); abstract (exact false-positive guarantees)",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2310.16789",
+      "baseline": "Strongest reference-free baseline LOSS/PPL: AUC 0.67; TPR@5%FPR 19.3%",
+      "caveat": "Needs token probabilities. WikiMIA uses Wikipedia timestamps as ground truth; that label process does not transfer to this program's G-1 oracles. Cannot disqualify a result here.",
+      "doi": "10.48550/arXiv.2310.16789",
+      "effect_size": "WikiMIA average AUC 0.72; average TPR@5%FPR 22.2%",
+      "evidence_tier": "E1",
+      "false_positive_rate": "0.05-operating-point-on-WikiMIA",
+      "family": "membership-inference",
+      "fpr_note": "Table 5 reports TPR at FPR=5% on WikiMIA member/non-member splits. That 5% is the chosen ROC operating point on WikiMIA, not a Type I guarantee on a different benchmark. FPR for disqualifying this program's scores is UNMEASURED.",
+      "id": "shi-mink-prob",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Min-K% Prob (mean log-likelihood of lowest-k% tokens)",
+      "paper_id": "shi-2024",
+      "section_or_figure": "Table 1 (AUC on WikiMIA); Appendix Table 6 (TPR@5%FPR); \u00a74.3 k=20",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2308.08493",
+      "baseline": "ChatGPT-Cheat? strict evaluation on GPT-4: 0/14 (0.00%); Algorithm 1 ROUGE-L on GPT-3.5: 7/14 (50.00%), i.e. chance on 14 binary partition labels",
+      "caveat": "Requires querying the suspect model plus a GPT-4 judge. Safety filters made ChatGPT-Cheat? unusable on GPT-4 (0/14 strict).",
+      "doi": "10.48550/arXiv.2308.08493",
+      "effect_size": "Algorithm 2 GPT-4 ICL: 14/14 (100%) on GPT-4 partitions and 13/14 (92.86%) on GPT-3.5 partitions",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "guided-completion",
+      "fpr_note": "Table 3 is partition-level agreement with human labels, not a per-instance false-positive rate for the GPT-4 ICL judge. The judge's own FPR is UNMEASURED, so this detector cannot disqualify a result.",
+      "id": "golchin-guided-instruction",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Guided instruction completion vs general instruction (Time Travel)",
+      "paper_id": "golchin-2024",
+      "section_or_figure": "Table 3 overall accuracy vs human partition labels",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2310.10628",
+      "baseline": "Same model, post-cutoff: odds ratio 1.000 (95% CI 0.986-1.014), not significant (Table 1 After column)",
+      "caveat": "Needs dated items, a published cutoff, and a popularity proxy. This program's G-1 oracles are not Codeforces-style dated problems.",
+      "doi": "10.48550/arXiv.2310.10628",
+      "effect_size": "GPT-4 Codeforces: GitHub Presence odds ratio 1.045 (95% CI 1.039-1.051) before cutoff; prose reports ~4.5% odds increase per log GitHub Presence unit pre-cutoff",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "timeline",
+      "fpr_note": "This is a regression association, not a binary detector with a measured FPR. A significant pre-cutoff slope is evidence of contamination but cannot disqualify a single benchmark item.",
+      "id": "roberts-timeline-cutoff",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Pre/post training-cutoff pass-rate vs GitHub presence",
+      "paper_id": "roberts-2024",
+      "section_or_figure": "Table 1 GPT-4 Codeforces Pass Rate; \u00a7Results GitHub Presence paragraph",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2311.09783",
+      "baseline": "Same Table 3 TruthfulQA EM: ChatGPT 0.12, GPT-4 0.10. Fully contaminated ChatGPT ~100% EM (Figure 4). The paper explicitly says the remaining-option candidate list can be large/infinite, so a 25% 4-way chance baseline is NOT a number this paper reports and is not used here. \u00a74.2.2 prose assigns 57% EM to ChatGPT, which matches Table 3's GPT-4 cell (0.57) not ChatGPT's (0.52); this row follows Table 3.",
+      "caveat": "Needs a multiple-choice test set. This program's G-1 oracles are not MC items.",
+      "doi": "10.18653/v1/2024.naacl-long.482",
+      "effect_size": "Table 3 MMLU Question-Multichoice EM: ChatGPT 0.52, GPT-4 0.57; Figure 4 fine-tuned-on-MMLU ChatGPT ~100% EM",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "guided-completion",
+      "fpr_note": "Table 3 EM is not a false-positive rate. Format-learning can raise slot-guessing without item memorization. Cannot disqualify.",
+      "id": "deng-ts-guessing",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Testset Slot Guessing (mask a wrong MC option / unlikely word)",
+      "paper_id": "deng-2024",
+      "section_or_figure": "Table 3 Question-Multichoice EM; Figure 4 (~100% after fine-tune); \u00a74.2.2 prose",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2410.05229",
+      "baseline": "Same model, GSM8K 100-template subset 87.0; Symbolic-M1 (one clause removed) 84.4 (\u00b12.36). Figure 4 is qualitative on names-only vs numbers; no names-only mean is tabulated for this model, so none is cited.",
+      "caveat": "21/25 models sit >1 stddev above the GSM-Symbolic center on the original 100 GSM8K templates \u2014 suggestive, not a disqualifier.",
+      "doi": "10.48550/arXiv.2410.05229",
+      "effect_size": "Gemma2-9b-it GSM-Symbolic 79.1 (\u00b12.99) (Appendix Table 1 Symbolic column)",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "held-out-perturbation",
+      "fpr_note": "A drop on re-instantiated items can be genuine reasoning fragility rather than contamination (authors discuss both). Using the drop as a contamination detector has UNMEASURED FPR.",
+      "id": "mirzadeh-gsm-symbolic",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Symbolic template re-instantiation (names/numbers) of GSM8K items",
+      "paper_id": "mirzadeh-2024",
+      "section_or_figure": "\u00a74.1-4.2; Figure 2 dashed GSM8K line; Appendix Table 1 Gemma2-9b-it row",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2012.07805",
+      "baseline": "Top-n sampling ranked by raw LM perplexity: 9% memorized; temperature sampling: 3%. Among 600,000 honest generations, at least 604 (0.1%) contain memorized text",
+      "caveat": "Shows memorization exists; does not by itself disqualify a leaderboard score.",
+      "doi": "10.5555/3483845.3483995",
+      "effect_size": "Best attack configuration: 67% of inspected candidates are verbatim training examples",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "canary",
+      "fpr_note": "67% is precision of ranked candidates after manual+OpenAI confirmation, not the FPR of a benchmark-contamination detector. Unique inserted canaries can have FPR near 0 if the string is not in the clean corpus; that FPR is measured locally in detector local-canary-g1, not in this paper.",
+      "id": "carlini-extraction-canary",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "Training-data extraction / unique-sequence memorization",
+      "paper_id": "carlini-2021",
+      "section_or_figure": "\u00a7Results: 604/1800 unique memorized; best config 67%; 604/600000 = 0.1%",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "none-local-measurement",
+      "baseline": "TPR=0.0 / FPR=0.0 on clean boilerplate fixture (exact match and 3-gram overlap)",
+      "caveat": "Only disqualifies a surface that contains this unique canary. Does not detect paraphrased leakage or model-weight contamination.",
+      "doi": "none-local-measurement",
+      "effect_size": "TPR=1.0 on planted fixture (exact match and 3-gram overlap)",
+      "evidence_tier": "E1",
+      "false_positive_rate": "0.0",
+      "family": "canary",
+      "fpr_note": "Measured on the clean boilerplate control in this probe directory. Second signal: canary bytes present in planted file, absent in clean file.",
+      "id": "local-canary-g1",
+      "may_disqualify_a_result": true,
+      "may_promote": true,
+      "name": "Unique planted oracle string vs boilerplate (applied to this program's G-1)",
+      "paper_id": "local-canary-g1",
+      "section_or_figure": "command-center/p2-wave/probes/RES-0089/ngram_canary.py both_states()",
+      "shown_to_work": true
+    },
+    {
+      "arxiv": "2311.04850",
+      "baseline": "Same Table 5 10-gram F1 = 0.000 on all three rephrased-English columns (and on rephrased-Chinese); random-detection F1 = 0.500. Same Table 2 Llama-2-13B original 5-shot MMLU 54.8.",
+      "caveat": "Needs training-set access plus a GPT-4 judge. The 85.9 figure is 0-shot after 16-epoch fine-tune on rephrased MMLU; original 54.8 is 5-shot. Shot-count is not matched.",
+      "doi": "10.48550/arXiv.2311.04850",
+      "effect_size": "LLM decontaminator F1 on MMLU rephrased-English: Algebra 0.960, Sociology 0.940, US History 0.970 (Table 5). Llama-2-13B MMLU after 16-epoch fine-tune on rephrased full prompt: 85.9 (Table 2 / Figure 1)",
+      "evidence_tier": "E1",
+      "false_positive_rate": "UNMEASURED",
+      "family": "held-out-perturbation",
+      "fpr_note": "Table 5 reports pair-classification F1, not a Type I rate for disqualifying a leaderboard score. Cannot disqualify this program's results.",
+      "id": "yang-llm-decontaminator",
+      "may_disqualify_a_result": false,
+      "may_promote": true,
+      "name": "LLM decontaminator (embedding top-k + GPT-4 same-item judge) vs n-gram on rephrased samples",
+      "paper_id": "yang-2023",
+      "section_or_figure": "Table 5 (MMLU detection F1); Table 2 (Llama-2-13B MMLU 54.8 vs 85.9)",
+      "shown_to_work": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "oren-2024",
+      "note": "exact FPR is the disqualification bar",
+      "to": "C2",
+      "type": "supports"
+    },
+    {
+      "from": "roberts-2024",
+      "note": "timeline family has effect and post-cutoff null baseline",
+      "to": "C1",
+      "type": "supports"
+    },
+    {
+      "from": "golchin-table3-chatgpt-cheat",
+      "note": "ChatGPT-Cheat? scores 0/14 strict on GPT-4 because safety filters emit 'suspicious' rather than instances",
+      "to": "sainz-style-prompt-extraction",
+      "type": "contradiction"
+    },
+    {
+      "from": "min-k-wikiMIA-fpr",
+      "note": "WikiMIA 5% FPR does not transfer to G-1 oracles",
+      "to": "disqualify-this-program",
+      "type": "independence-collapse"
+    }
+  ],
+  "evidence_tier": "E2",
+  "freshness_stamp": "2026-08-25T00:57:56Z",
+  "id": "RES-0089",
+  "named_settling_probe": "command-center/p2-wave/probes/RES-0089/probe2_applied_control.py",
+  "output_schema_declared": "command-center/schema/research-claim-record.schema.json",
+  "output_schema_on_disk": true,
+  "question": "What methods detect training-data contamination and benchmark gaming (canary strings, held-out perturbation, timeline analysis), which have been shown to work, and which of this program's own planned benchmarks would be vulnerable?",
+  "snapshot_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+  "source_lineage": [
+    {
+      "id": "catalog-RES-0089",
+      "note": "unit contract, tests_required, completion_sentinel",
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+      "status": "captured"
+    },
+    {
+      "id": "register",
+      "note": "listed input; missing on this worktree",
+      "path": "command-center/sources/REGISTER.md",
+      "status": "captured"
+    },
+    {
+      "id": "05-ECO",
+      "note": "listed input; Windows harness path not on this Linux tree",
+      "path": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+      "status": "ABSENT"
+    },
+    {
+      "arxiv": "2310.17623",
+      "fetched": "2026-08-25",
+      "id": "oren-2024",
+      "status": "fetched-html-table-1"
+    },
+    {
+      "arxiv": "2310.16789",
+      "fetched": "2026-08-25",
+      "id": "shi-2024",
+      "status": "fetched-html-table-1-and-appendix-table-6"
+    },
+    {
+      "arxiv": "2308.08493",
+      "fetched": "2026-08-25",
+      "id": "golchin-2024",
+      "status": "fetched-html-table-3"
+    },
+    {
+      "arxiv": "2310.10628",
+      "fetched": "2026-08-25",
+      "id": "roberts-2024",
+      "status": "fetched-html-table-1"
+    },
+    {
+      "arxiv": "2311.09783",
+      "fetched": "2026-08-25",
+      "id": "deng-2024",
+      "status": "fetched-html-table-3-and-figure-4"
+    },
+    {
+      "arxiv": "2410.05229",
+      "fetched": "2026-08-25",
+      "id": "mirzadeh-2024",
+      "status": "fetched-html-appendix-table-1"
+    },
+    {
+      "arxiv": "2012.07805",
+      "fetched": "2026-08-25",
+      "id": "carlini-2021",
+      "status": "fetched-usenix-pdf"
+    },
+    {
+      "arxiv": "2311.04850",
+      "fetched": "2026-08-25",
+      "id": "yang-2023",
+      "status": "fetched-html-tables-2-and-5"
+    }
+  ],
+  "strongest_surviving_counterargument": "Min-K% and guided-instruction look stronger on leaderboard contamination than a unique canary, but both have UNMEASURED FPR for disqualifying this program's scores. Treating WikiMIA TPR@5%FPR as a license to throw out a G-1 unit would itself be an uncalibrated false positive.",
+  "title": "Determine how benchmark contamination and gaming are detected, and which detectors work",
+  "kind": "research-claim-record",
+  "observations": [
+    {
+      "name": "primary_artifact_bytes",
+      "measured": 23493,
+      "method": "filesystem-stat",
+      "anchor": "command-center/research/RES-0089.json"
+    }
+  ],
+  "control_ids": [
+    "NC-ABSENT"
+  ],
+  "completion_sentinel": "SUCCESS:RES-0089 in the receipt AND a detector table with false-positive rates or UNMEASURED marks, plus one applied result"
+}

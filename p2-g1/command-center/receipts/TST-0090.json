@@ -1,0 +1,158 @@
+{
+  "answer": "No. After expiry exactly one reclaimer wins, the fencing token is incremented, and the thawed original's write is REJECTED with its stale token recorded. Timeout-alone takeover (token not incremented) still accepts the zombie write, so a timeout is not sufficient.",
+  "artifacts": [
+    {
+      "bytes": 19489,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0090/fencing_lease.py",
+      "role": "primary-implementation",
+      "sha256": "10f9fb1f5cd607d5b582e1caddb04ae077ad62a49b853b39813406cf2bd9d783"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0090",
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0090/fencing_lease.py:reclaim",
+      "claim": "Expired lease permits exactly one reclaim; two concurrent reclaimers do not both win; unexpired lease blocks reclaim (both-states on FencingClaimStore.reclaim).",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe1_reclaim_once.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"both_states\": {\"acquired\": {\"current_holder\": \"orig\", \"current_token\": 1, \"holder_id\": \"orig\", \"reason\": \"acquired\", \"status\": \"GRANTED\", \"token\": 1, \"unit_id\": \"UNIT-BOTH\"}, \"both_states\": true, \"expired\": {\"current_holder\": \"late-reclaimer\", \"current_token\": 2, \"holder_id\": \"late-reclaimer\", \"previous_token\": 1, \"reason\": \"reclaimed\", \"status\": \"GRANTED\", \"token\": 2, \"unit_id\": \"UNIT-BOTH\"}, \"same_function\": \"FencingClaimStore.reclaim\", \"unexpired\": {\"current_holder\": \"orig\", \"current_token\": 1, \"holder_id\": \"early-reclaimer\", \"reason\": \"lease-unexpired\", \"status\": \"DENIED\", \"token\": null, \"unit_id\": \"UNIT-BOTH\"}}, \"concurrent\": {\"all_exactly_one\": true, \"distinct_winners\": 6, \"failed_trials\": 0, \"n_trials\": 16, \"n_workers\": 8, \"sample\": [{\"denied_count\": 7, \"grant_count\": 1, \"ok\": true, \"trial\": 0, \"winner\": \"reclaimer-01\", \"winner_token\": 2}, {\"denied_count\": 7, \"grant_count\": 1, \"ok\": true, \"trial\": 1, \"winner\": \"reclaimer-06\", \"winner_token\": 2}, {\"denied_count\": 7, \"grant_count\": 1, \"ok\": true, \"trial\": 2, \"winner\": \"reclaimer-05\", \"winner_token\": 2}], \"winner_counts\": {\"reclaimer-01\": 2, \"reclaimer-02\": 2, \"reclaimer-03\": 2, \"reclaimer-04\": 3, \"reclaimer-05\": 5, \"reclaimer-06\": 2}}, \"exactly_one\": {\"acquired\": {\"current_holder\": \"orig\", \"current_token\": 1, \"holder_id\": \"orig\", \"reason\": \"acquired\", \"status\": \"GRANTED\", \"token\": 1, \"unit_id\": \"UNIT-ONCE\"}, \"exactly_one\": true, \"first_reclaim\": {\"current_holder\": \"reclaimer-a\", \"current_token\": 2, \"holder_id\": \"reclaimer-a\", \"previous_token\": 1, \"reason\": \"reclaimed\", \"status\": \"GRANTED\", \"token\": 2, \"unit_id\": \"UNIT-ONCE\"}, \"grant_count\": 1, \"second_reclaim\": {\"current_holder\": \"reclaimer-a\", \"current_token\": 2, \"holder_id\": \"reclaimer-b\", \"reason\": \"lease-unexpired\", \"status\": \"DENIED\", \"token\": null, \"unit_id\": \"UNIT-ONCE\"}}, \"pass\": true, \"probe\": \"probe1-reclaim-once\", \"unit_id\": \"TST-0090\"}\nSUCCESS:TST-0090-probe1 expired lease permits exactly one reclaim; unexpired blocks; concurrent reclaimers do not both win",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0090/fencing_lease.py:commit_receipt",
+      "claim": "A run in which the original dispatcher is frozen past lease expiry, the unit is reclaimed and completed, and the thawed original's write is REJECTED with its stale token recorded. The timeout-only mutant accepts that write.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe2_stale_token.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"ast\": {\"commit_compares_token\": true, \"mutant_bump_does_not_add\": true, \"pass\": true, \"production_bump_adds_one\": true}, \"both_states\": {\"fencing_rejects_zombie\": true, \"timeout_only_accepts_zombie\": true}, \"fencing\": {\"orig_token\": 1, \"reclaim_token\": 2, \"reclaimer_status\": \"COMMITTED\", \"stale_token\": 1, \"stale_token_recorded\": true, \"thawed_reason\": \"stale-fencing-token\", \"thawed_status\": \"REJECTED\", \"winner_payload\": \"SUCCESS from reclaimer\"}, \"pass\": true, \"probe\": \"probe2-stale-token\", \"timeout_only_mutant\": {\"accepts_zombie_write\": true, \"orig_token\": 1, \"reclaim_token\": 1, \"thawed_reason\": \"committed\", \"thawed_status\": \"COMMITTED\"}, \"unit_id\": \"TST-0090\"}\nSUCCESS:TST-0090-probe2 thawed original write rejected by fencing token; timeout-only mutant still commits",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_run": {
+    "orig_token": 1,
+    "reclaim_token": 2,
+    "reclaimer_status": "COMMITTED",
+    "stale_token_recorded": true,
+    "thawed_reason": "stale-fencing-token",
+    "thawed_status": "REJECTED",
+    "winner_payload": "SUCCESS from reclaimer"
+  },
+  "hypothesis": "A monotonically increasing fencing token, not lease TTL alone, is what makes reclaim safe: a thawed original presenting the pre-reclaim token cannot commit a receipt after a successor has reclaimed and completed.",
+  "id": "TST-0090",
+  "injected_fault": {
+    "kind": "zombie-dispatcher",
+    "mechanism": "Original dispatcher is frozen (no renew) past TTL; a successor reclaims and commits; the thawed original then presents its stale fencing token.",
+    "target": "work-unit receipt commit after lease expiry"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0090/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Same reclaim() path: DENIED lease-unexpired before TTL, GRANTED with token+1 after TTL.",
+      "fired_on_bad_state": true,
+      "id": "TST-0090-C1-unexpired-vs-expired",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "TimeoutOnlyClaimStore.reclaim does not increment the fencing token; the thawed original then COMMITs. Production FencingClaimStore rejects with stale-fencing-token.",
+      "fired_on_bad_state": true,
+      "id": "TST-0090-C2-timeout-only-mutant",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 TST-0090: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0090",
+  "observations": [
+    {
+      "id": "OBS-1-exactly-one-reclaim",
+      "observed": "After expiry the first reclaim is GRANTED with token=original+1; a second reclaim is DENIED lease-unexpired."
+    },
+    {
+      "id": "OBS-2-stale-token-rejected",
+      "observed": "Thawed original write status=REJECTED reason=stale-fencing-token stale_token=1 recorded=True."
+    },
+    {
+      "id": "OBS-3-timeout-only-unsafe",
+      "observed": "The timeout-only mutant reclaims without incrementing the token, and the thawed original COMMITTED \u2014 proving TTL takeover without a fencing token is not safe."
+    }
+  ],
+  "output_path": "command-center/receipts/TST-0090.json",
+  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+  "premise": {
+    "action": "Created probes/TST-0090 and a file-backed fencing-token claim store because IMP-0409's crash-safe work-claim protocol is not on this tree. Did not exit on predicate:absent. TST-0089 (monitor-death) is a distinct observation and was not required to measure token fencing.",
+    "catalog_inputs": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "imp0409_work_claim_absent": true,
+    "probes_dir_was_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "fault-injection-engineer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question": "Phase 9 requires work claims, file leases, conflict detection and duplicate-work suppression. When the dispatcher holding a unit's lease dies, a new dispatcher may reclaim after lease expiry, and the ORIGINAL must be unable to commit a late result afterwards. Can a zombie dispatcher that wakes after expiry still write a receipt?",
+  "report_kind": "fault_injection_receipt",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the timeout-only mutant plus AST scan of commit_receipt/_bump_token; not a self-attested prose review.",
+    "reviewer_id": "TST-0090-probe2-timeout-only-mutant",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0090",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0090 _USER-PROMPTS.md:10972-10975",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe1_reclaim_once.py",
+      "exit_code": 0,
+      "id": "test_expired_lease_permits_exactly_one_reclaim",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe1_reclaim_once.py",
+      "exit_code": 0,
+      "id": "test_two_concurrent_reclaimers_do_not_both_win",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe1_reclaim_once.py",
+      "exit_code": 0,
+      "id": "test_unexpired_lease_blocks_reclaim",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0090/probe2_stale_token.py",
+      "exit_code": 0,
+      "id": "test_thawed_original_write_is_rejected_by_the_fencing_token",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:27:23Z",
+    "started_at": "2026-08-25T01:27:23Z"
+  },
+  "title": "Orphaned work must be reclaimable exactly once: lease expiry with a fencing token",
+  "unit_id": "TST-0090"
+}

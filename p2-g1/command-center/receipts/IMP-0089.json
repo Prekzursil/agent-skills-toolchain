@@ -1,0 +1,228 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8943,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0089.json",
+   "role": "primary",
+   "sha256": "7095c03b24192f892e28257eff9f73f6df735fc340071b70dd91938c81d25a48"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0089.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0089/probe1_offline.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0089/probe1_offline.py",
+    "exit_code": 0,
+    "fingerprint": "da3ded0e2aec88c1a08910e36ac9bd9e",
+    "method": "command",
+    "raw_output": "offline rollback census+health-check",
+    "role": "verifier"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0089.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0089/probe2_missing_blob.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0089/probe2_missing_blob.py",
+    "exit_code": 0,
+    "fingerprint": "65ec90c9a8faff65a89e12e25d2db163",
+    "method": "command",
+    "raw_output": "missing blob refuse vs substitute mutant",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "offline-census-and-healthcheck",
+   "claim": "Rolling back demo-pkg 3.0.0 -> 1.0.0 from the local blob store with sockets patched yields a file census identical to the census taken at original 1.0.0 install, and the plugin health-check reports 1.0.0. A census match with a wrong self-reported version would fail this probe.",
+   "confidence": "almost-certain",
+   "measured": {
+    "census_match": true,
+    "census_v1": {
+     "health.json": "db1da783bd1f116f048d7d3c839bcdef658ebb43f8efe3b28061850a612cae43",
+     "healthcheck.py": "ac11fc4a2c1f804166507f46c9b6ef610607af84186b21df45250c72e5edcaba",
+     "payload/a.txt": "9d45fe360da4262022fa31736f6c2640e912b0a2bdb2ab98fc4021bb1b2bc79c",
+     "payload/b.txt": "6b96c774b1e3d15b8fee26bb5893da1678f3703b5c3955228d35f5cfd7b9634e",
+     "plugin.json": "7cf138ab7f9c4624cf96b1a2d80a217a615cc7cf0550ae155e952d878a892686"
+    },
+    "egress_attempts": 0,
+    "fetch_calls": 0,
+    "foreign_survived": true,
+    "healthcheck_version": "1.0.0"
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0089/probe1_offline.py",
+     "exit_code": 0,
+     "fingerprint": "22017fa6cf68f8e5f95e12ee7c17ccef",
+     "method": "command",
+     "raw_output": "census_match=True healthcheck=1.0.0",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+     "exit_code": 0,
+     "fingerprint": "afb41e2d9c50003727fbd509cb608c93",
+     "method": "command",
+     "raw_output": "PASS test_rollback_uses_no_network",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "missing-blob-refuse",
+   "claim": "When the 1.0.0 blob is deleted from the local store, rollback to 1.0.0 refuses and leaves 3.0.0 in place. A substituting implementation that picks another cached version does not refuse and lands on 2.0.0, so the test discriminates.",
+   "confidence": "almost-certain",
+   "measured": {
+    "live_version_after_refuse": "3.0.0",
+    "mutant_census_equals_v1": false,
+    "mutant_landed_version": "2.0.0",
+    "mutant_substituted": true,
+    "refused": true
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0089/probe2_missing_blob.py",
+     "exit_code": 0,
+     "fingerprint": "bf1e2c11836053f0dd5b5663174e6398",
+     "method": "command",
+     "raw_output": "refused=True mutant_substituted=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+     "exit_code": 0,
+     "fingerprint": "e805826f786edbb503c59d7c11204106",
+     "method": "command",
+     "raw_output": "PASS test_missing_blob_refuses_rather_than_substitutes",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "rollback-then-forward-install",
+   "claim": "Rollback 3.0.0 -> 1.0.0 then forward-install 3.0.0 from the local store returns the owned-file census to the original 3.0.0 census. User-authored files outside the projection survive both hops.",
+   "confidence": "almost-certain",
+   "measured": {
+    "after_forward_version": "3.0.0",
+    "after_rollback_version": "1.0.0",
+    "census_match": true
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0089/probe1_offline.py",
+     "exit_code": 0,
+     "fingerprint": "e3981bbdbe5f8b1b623d3e7197621313",
+     "method": "command",
+     "raw_output": "forward_install_census_match=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+     "exit_code": 0,
+     "fingerprint": "6fbacac62820afafc6ba2645d5ab464c",
+     "method": "command",
+     "raw_output": "PASS test_rollback_then_forward_install_restores_original_census",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_classification_checked": [
+  "data-loss",
+  "green-not-live",
+  "overclaim"
+ ],
+ "implementation": {
+  "blob_store": "tools/marketplace/blob_store.py",
+  "marketplace_rollback": "tools/marketplace/rollback.py",
+  "network": "none \u2014 local blobs only; missing exact digest refuses",
+  "placement_call_site": "tools/plugin/placement.py:place_owned_files",
+  "plugin_transaction": "tools/plugin/rollback_transaction.py",
+  "user_data_rule": "set-difference restore: delete only previously owned projection paths absent from the target blob; never rmtree the plugin root"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0089/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "substituting_rollback lands on a different cached version",
+   "description": "Known-broken substitute-another-blob rollback must fail the missing-blob test; honest rollback_offline must refuse.",
+   "fired_on_bad_state": true,
+   "good_state_output": "MissingBlobError, live version unchanged",
+   "id": "c-substitute",
+   "kind": "known-broken-implementation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "",
+   "description": "rollback then forward-install returns original census",
+   "fired_on_bad_state": true,
+   "good_state_output": "census_v3 restored",
+   "id": "c-roundtrip",
+   "kind": "round-trip-census",
+   "silent_on_good_state": true
+  }
+ ],
+ "question_or_target": "Implement rollback to a specific previously installed version using only locally cached blobs (no network required), reusing the Phase-5 rollback transaction so the user-data guarantees are identical, and refusing when the target version's blob is no longer present rather than silently rolling back to a different version.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0026/IMP-0086/IMP-0121 catalog artifacts are not delivered on this Linux worktree. This unit implements the local-blob rollback path and a Phase-5-style transaction at tools/plugin/rollback_transaction.py. It does not claim those dependency receipts exist.",
+   "settling_experiment": "When IMP-0026 and IMP-0086 receipts are delivered, re-bind marketplace.rollback_offline to those modules and re-run the named probes.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Reviewer requirement: run rollback with egress blocked. probe1 patches socket.connect/create_connection/getaddrinfo and asserts zero attempts while restoring 1.0.0 from the local store.",
+  "reviewer_id": "IMP-0089-probe1-egress-blocked",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0089",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0089",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+   "id": "test_rollback_uses_no_network",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+   "id": "test_missing_blob_refuses_rather_than_substitutes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_rollback_offline.py",
+   "id": "test_rollback_then_forward_install_restores_original_census",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:13Z",
+  "started_at": "2026-08-25T00:59:13Z"
+ },
+ "title": "Marketplace rollback to a previously installed version from the local store",
+ "unit_id": "IMP-0089"
+}

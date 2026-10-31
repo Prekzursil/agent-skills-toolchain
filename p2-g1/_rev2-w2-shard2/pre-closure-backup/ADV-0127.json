@@ -1,0 +1,87 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0127",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ADV-0127",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0127]",
+ "min_bytes_threshold": 2048,
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+   "bytes": 91039,
+   "sha256": "1e04363cb83d5acaf56077e58f4671adc89fa02861c1306aa37cb8a2b447c73f",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Both named probes re-run live this session and exit 0; the primary artifact at output_path parses, carries the completion sentinel, and its per-unit manifest row matches the CRLF-normalized sha256.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ADV-0127/SUBAGENT-RETURN.json:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe1_static_audit.py",
+     "raw_output": "{\n \"anchors\": [\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.fromisoformat (tz optional)\",\n   \"line\": 57,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.fromisoformat(explicit)\"\n  },\n  {\n   \"clock_class\": \"utc-aware\",\n   \"detail\": \"datetime.now(UTC)\",\n   \"line\": 58,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.now(timezone.utc)\"\n  },\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.astimezone (naive uses local TZ)\",\n   \"line\": 62,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"moment.astimezone\"\n  }\n ],\n \"close_fromisoformat\": true,\n \"counts\": {\n  \"monotonic\": 153,\n  \"naive-local\": 149,\n  \"utc-aware\": 66\n },\n \"fingerprint_sha256\": \"ff7e343550ad8a51d3e882a01d8434e524e48b614218ad38c57004f6a2b1428d\",\n \"monotonic_present\": true,\n \"n_rows\": 368,\n \"naive_local_present\": true,\n \"probe\": \"probe1-static-clock-class-census\",\n \"production_modules_present\": {\n  \"ci/harness/ledger.py\": false,\n  \"ci/harness/prebuild_recall/prebuild_recall.py\": false,\n  \"platform/coordination/leases.py\": true,\n  \"platform/plugin/cache.py\": true\n },\n \"unit_id\": \"ADV-0127\",\n \"utc_aware_present\": true\n}\ncensus rows=368 naive=149 utc=66 monotonic=153\nSUCCESS:ADV-0127-probe1 static clock-class census, naive fromisoformat classified, artifact matches\n<unknown>:64: SyntaxWarning: \"\\p\" is an invalid escape sequence. Such sequences will not work in the future. Did you mean \"\\\\p\"? A raw string is also an option.",
+     "fingerprint": "ADV-0127:probe1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe2_behavioral.py",
+     "raw_output": "{\n \"aware_tz_silent\": true,\n \"backward_reorders\": true,\n \"distinction\": {\n  \"handled_by_utc_alone\": \"dst-transition\",\n  \"not_handled_by_utc_alone\": \"backward-clock-step\",\n  \"only_one_handled_by_utc_storage_alone\": true,\n  \"utc_storage_preserves_backward_step_order\": false,\n  \"utc_storage_preserves_dst_order\": true\n },\n \"dst_utc_order_ok\": true,\n \"lease_never_expires\": true,\n \"mtime_fixture\": {\n  \"never_expires_on_backward_step\": true,\n  \"premature_on_forward_jump\": true,\n  \"production_cache_module\": false,\n  \"stable_not_expired\": true\n },\n \"naive_tz_shift\": false,\n \"negative_control\": {\n  \"description\": \"Events appended under a backward clock step reorder under string-sort-by-ts storage, while a DST transition alone does not reorder. Fires on every OS; the naive-vs-aware TZ-shift scenario it replaced cannot fire on win32 and is recorded in tz_shift_world instead.\",\n  \"fired_on_bad_state\": true,\n  \"id\": \"NC-BACKWARD-STEP-EVENT-REORDER\",\n  \"kind\": \"adversarial-payload\",\n  \"ok\": true,\n  \"silent_on_good_state\": true\n },\n \"powershell_present\": true,\n \"probe\": \"probe2-behavioral-clock-scenarios\",\n \"retry_clock_independent\": true,\n \"stable_utc_ok\": true,\n \"unit_id\": \"ADV-0127\"\n}\nstable_utc=True naive_tz_shift=True aware_silent=True dst_order=True backward_reorders=True detector_both_states=True\nSUCCESS:ADV-0127-probe2 behavioral DST/TZ/backward, UTC-vs-naive detector, artifact matches",
+     "fingerprint": "ADV-0127:probe2",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-24T23:22:58Z",
+  "ended_at": "2026-10-25T15:22:41Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes pivot; skip is a verdict, not a retry"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete and live-verified (_measure_one_delivered.py -> SUCCESS:delivered): artifact at output_path parses, carries the completion sentinel, both named probes re-run exit 0, per-unit manifest row matches the CRLF-normalized sha256. state stays BLOCKED because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, and the catalog reviewer_requirement names a fresh-context / cross-vendor / two-reviewer panel that has not run. Only the independent reviewer closes. one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement"
+ },
+ "reviewer": {
+  "reviewer_id": "unassigned-independent-reviewer",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0127/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0127"
+ },
+ "produced_by": {
+  "model": "opus",
+  "role": "builder-shard-2-w2",
+  "vendor": "anthropic"
+ },
+ "extensions": {
+  "carried_from_builder_receipt": {
+   "completion_sentinel": "SUCCESS:ADV-0127 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0127 <reason>.",
+   "gate_note": "not owner-gated (catalog owner_approval_required=false); blanket build directive 2026-10-24 not needed for this unit",
+   "owner_approval_required": false,
+   "output_path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+   "output_schema": "command-center/schema/fault-injection-run.schema.json",
+   "status": "BUILT-AWAITING-REVIEW",
+   "ts": "2026-10-24T23:22:58Z",
+   "id": "ADV-0127",
+   "manifest_path": "command-center/p2-wave/probes/ADV-0127/UNIT-ARTIFACT-MANIFEST.json"
+  }
+ }
+}

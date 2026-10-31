@@ -1,0 +1,628 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0269",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0269",
+  "spec_anchor": "_USER-PROMPTS.md:11172-11244 (hallucinated expertise :11241)",
+  "profile": "council-participants-module",
+  "min_bytes_threshold": 128,
+  "artifact_paths": [
+    "tools/council/participants/select_expertise.py",
+    "command-center/receipts/IMP-0269.json",
+    "command-center/p2-wave/probes/IMP-0269/probe1_tag_precision.py",
+    "command-center/p2-wave/probes/IMP-0269/probe2_bogus_claim.py",
+    "command-center/p2-wave/probes/IMP-0269/fixtures/labelled-tags.json",
+    "command-center/p2-wave/probes/IMP-0269/fixtures/competence-bank.json",
+    "command-center/p2-wave/probes/IMP-0269/fixtures/candidates.json"
+  ],
+  "test_ids": [
+    "IMP-0269-probe1-tag-precision-recall",
+    "IMP-0269-probe2-bogus-claim-rejected"
+  ],
+  "negative_control_ids": [
+    "IMP-0269-NC-assertion-only-must-not-seat",
+    "IMP-0269-NC-tags-only-would-seat-mallory"
+  ],
+  "reviewer_verdict": "PASS",
+  "artifacts": [
+    {
+      "path": "tools/council/participants/select_expertise.py",
+      "bytes": 15265,
+      "sha256": "ad0f16cd459f604e062fc9d415a047b135131a4a84e2dd9081724dbca947401b",
+      "exists": true,
+      "role": "implementation"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0269/probe1_tag_precision.py",
+      "bytes": 2354,
+      "sha256": "ac0c3eb1b3977617b530c7b6c635c2c3e7b75249138a1035a24feeaaa03e0701",
+      "exists": true,
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0269/probe2_bogus_claim.py",
+      "bytes": 3800,
+      "sha256": "0aac5442e2ff31c491b126f5a20873eda29522292f75ac6a9721d4e7808b61d3",
+      "exists": true,
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0269/fixtures/labelled-tags.json",
+      "bytes": 2066,
+      "sha256": "43e4714031aa8c9469c95bbf9280212116c5a79ed93b48fafe1e8cbf807b9e10",
+      "exists": true,
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0269/fixtures/competence-bank.json",
+      "bytes": 2254,
+      "sha256": "692ef7e1f38942cfc82cb3c4943dfd7ca21c6903d8120ef0b55410922bb1c152",
+      "exists": true,
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0269/fixtures/candidates.json",
+      "bytes": 1961,
+      "sha256": "ac53a3e09b0f87ba028a648443020d2f51abfe5eb9645d7872b5d22e4af476b8",
+      "exists": true,
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Tag matching on the 12-row labelled fixture has precision=1.000 and recall=1.000 (tp=6 tn=6 fp=0 fn=0); taxidermy does not match tax-law; taxation aliases to tax-law.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0269/fixtures/labelled-tags.json",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe1_tag_precision.py",
+          "exit_code": 0,
+          "raw_output": "{\"alias_matched\": true, \"f1\": 1.0, \"fn\": 0, \"fp\": 0, \"n\": 12, \"near_miss_rejected\": true, \"pass\": true, \"precision\": 1.0, \"probe\": \"probe1-tag-precision-recall\", \"recall\": 1.0, \"tn\": 6, \"tp\": 6, \"unit_id\": \"IMP-0269\"}\nprecision=1.000 recall=1.000 tp=6 tn=6 fp=0 fn=0\nSUCCESS:IMP-0269-probe1 tag matching precision/recall"
+        },
+        {
+          "role": "verifier",
+          "method": "in-process",
+          "command": "select_expertise.tag_match_metrics(labelled-tags.json)",
+          "exit_code": 0,
+          "raw_output": "{\"fn\": 0, \"fp\": 0, \"precision\": 1.0, \"recall\": 1.0, \"tn\": 6, \"tp\": 6}"
+        }
+      ]
+    },
+    {
+      "claim": "Each seated domain_authority carries a passing probe_result (seated=['alice-crypto', 'blake-tax']). Unseated claimants ['mallory-asserted-crypto', 'ned-wrong-crypto', 'olga-overclaim-ua'] prove the probe can reject: mallory assertion-only, ned below-baseline, olga confident on the unanswerable control.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/council/participants/select_expertise.py:select_expertise",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe2_bogus_claim.py",
+          "exit_code": 0,
+          "raw_output": "{\"each_seat_has_probe_result\": true, \"mallory_seated\": false, \"pass\": true, \"probe\": \"probe2-bogus-claim-rejected\", \"probe_is_load_bearing\": true, \"seated_ids\": [\"alice-crypto\", \"blake-tax\"], \"unchecked_would_seat_mallory\": true, \"unit_id\": \"IMP-0269\", \"unseated_ids\": [\"mallory-asserted-crypto\", \"ned-wrong-crypto\", \"olga-overclaim-ua\"], \"unseated_reasons\": {\"mallory-asserted-crypto\": \"hallucinated-expertise\", \"ned-wrong-crypto\": \"hallucinated-expertise\", \"olga-overclaim-ua\": \"hallucinated-expertise-unanswerable-overclaim\"}}\nseated=['alice-crypto', 'blake-tax'] unseated=['mallory-asserted-crypto', 'ned-wrong-crypto', 'olga-overclaim-ua'] load_bearing=True\nSUCCESS:IMP-0269-probe2 bogus expertise claim rejected"
+        },
+        {
+          "role": "verifier",
+          "method": "in-process",
+          "command": "select_expertise.select_expertise(candidates, competence-bank)",
+          "exit_code": 0,
+          "raw_output": "{\"baseline\": 0.5, \"seated\": [{\"declared_expertise\": [\"cryptography\"], \"matched_tags\": [\"cryptography\"], \"model\": \"recorded-answers\", \"participant_id\": \"alice-crypto\", \"probe_results\": [{\"accepted\": [\"128\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"128\", \"item_id\": \"crypto-q1\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"256\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"256\", \"item_id\": \"crypto-q2\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"integer factorization\", \"integer-factorization\", \"factoring\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"integer factorization\", \"item_id\": \"crypto-q3\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"true\", \"yes\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"yes\", \"item_id\": \"crypto-q4\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"I-DO-NOT-KNOW\", \"item_id\": \"crypto-ua\", \"kind\": \"unanswerable\", \"overclaim\": false, \"passed\": true}], \"reason\": \"demonstrated-competence\", \"role\": \"domain_authority\", \"score\": 1.0, \"vendor\": \"fixture\"}, {\"declared_expertise\": [\"taxation\"], \"matched_tags\": [\"tax-law\"], \"model\": \"recorded-answers\", \"participant_id\": \"blake-tax\", \"probe_results\": [{\"accepted\": [\"irs\", \"internal revenue service\"], \"assertion_only\": false, \"domain\": \"tax-law\", \"given\": \"IRS\", \"item_id\": \"tax-q1\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"tax exempt nonprofit\", \"tax-exempt-nonprofit\", \"nonprofit\"], \"assertion_only\": false, \"domain\": \"tax-law\", \"given\": \"tax-exempt-nonprofit\", \"item_id\": \"tax-q2\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"365\", \"one year\", \"1 year\"], \"assertion_only\": false, \"domain\": \"tax-law\", \"given\": \"365\", \"item_id\": \"tax-q3\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"false\", \"no\"], \"assertion_only\": false, \"domain\": \"tax-law\", \"given\": \"no\", \"item_id\": \"tax-q4\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [], \"assertion_only\": false, \"domain\": \"tax-law\", \"given\": \"unknown\", \"item_id\": \"tax-ua\", \"kind\": \"unanswerable\", \"overclaim\": false, \"passed\": true}], \"reason\": \"demonstrated-competence\", \"role\": \"domain_authority\", \"score\": 1.0, \"vendor\": \"fixture\"}], \"seated_ids\": [\"alice-crypto\", \"blake-tax\"], \"skipped_no_overlap\": [\"pat-frontend\"], \"unseated_claimants\": [{\"declared_expertise\": [\"cryptography\"], \"matched_tags\": [\"cryptography\"], \"participant_id\": \"mallory-asserted-crypto\", \"probe_results\": [{\"accepted\": [\"128\"], \"assertion_only\": true, \"domain\": \"cryptography\", \"given\": \"\", \"item_id\": \"crypto-q1\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"256\"], \"assertion_only\": true, \"domain\": \"cryptography\", \"given\": \"\", \"item_id\": \"crypto-q2\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"integer factorization\", \"integer-factorization\", \"factoring\"], \"assertion_only\": true, \"domain\": \"cryptography\", \"given\": \"\", \"item_id\": \"crypto-q3\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"true\", \"yes\"], \"assertion_only\": true, \"domain\": \"cryptography\", \"given\": \"\", \"item_id\": \"crypto-q4\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [], \"assertion_only\": true, \"domain\": \"cryptography\", \"given\": \"\", \"item_id\": \"crypto-ua\", \"kind\": \"unanswerable\", \"overclaim\": false, \"passed\": false}], \"reason\": \"hallucinated-expertise\", \"score\": 0.0}, {\"declared_expertise\": [\"crypto\"], \"matched_tags\": [\"cryptography\"], \"participant_id\": \"ned-wrong-crypto\", \"probe_results\": [{\"accepted\": [\"128\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"256\", \"item_id\": \"crypto-q1\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"256\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"128\", \"item_id\": \"crypto-q2\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"integer factorization\", \"integer-factorization\", \"factoring\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"discrete log\", \"item_id\": \"crypto-q3\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [\"true\", \"yes\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"no\", \"item_id\": \"crypto-q4\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": false}, {\"accepted\": [], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"I-DO-NOT-KNOW\", \"item_id\": \"crypto-ua\", \"kind\": \"unanswerable\", \"overclaim\": false, \"passed\": true}], \"reason\": \"hallucinated-expertise\", \"score\": 0.0}, {\"declared_expertise\": [\"cryptography\"], \"matched_tags\": [\"cryptography\"], \"participant_id\": \"olga-overclaim-ua\", \"probe_results\": [{\"accepted\": [\"128\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"128\", \"item_id\": \"crypto-q1\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"256\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"256\", \"item_id\": \"crypto-q2\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"integer factorization\", \"integer-factorization\", \"factoring\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"factoring\", \"item_id\": \"crypto-q3\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [\"true\", \"yes\"], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"true\", \"item_id\": \"crypto-q4\", \"kind\": \"verifiable\", \"overclaim\": false, \"passed\": true}, {\"accepted\": [], \"assertion_only\": false, \"domain\": \"cryptography\", \"given\": \"4f3a9cdeadbeef\", \"item_id\": \"crypto-ua\", \"kind\": \"unanswerable\", \"overclaim\": true, \"passed\": false}], \"reason\": \"hallucinated-expertise-unanswerable-overclaim\", \"score\": 1.0}], \"unseated_ids\": [\"mallory-asserted-crypto\", \"ned-wrong-crypto\", \"olga-overclaim-ua\"]}"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "IMP-0269-probe1-tag-precision-recall",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe1_tag_precision.py",
+      "result": "PASS",
+      "output_tail": "{\"alias_matched\": true, \"f1\": 1.0, \"fn\": 0, \"fp\": 0, \"n\": 12, \"near_miss_rejected\": true, \"pass\": true, \"precision\": 1.0, \"probe\": \"probe1-tag-precision-recall\", \"recall\": 1.0, \"tn\": 6, \"tp\": 6, \"unit_id\": \"IMP-0269\"}\nprecision=1.000 recall=1.000 tp=6 tn=6 fp=0 fn=0\nSUCCESS:IMP-0269-probe1 tag matching precision/recall"
+    },
+    {
+      "id": "IMP-0269-probe2-bogus-claim-rejected",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe2_bogus_claim.py",
+      "result": "PASS",
+      "output_tail": "lory\": true, \"unit_id\": \"IMP-0269\", \"unseated_ids\": [\"mallory-asserted-crypto\", \"ned-wrong-crypto\", \"olga-overclaim-ua\"], \"unseated_reasons\": {\"mallory-asserted-crypto\": \"hallucinated-expertise\", \"ned-wrong-crypto\": \"hallucinated-expertise\", \"olga-overclaim-ua\": \"hallucinated-expertise-unanswerable-overclaim\"}}\nseated=['alice-crypto', 'blake-tax'] unseated=['mallory-asserted-crypto', 'ned-wrong-crypto', 'olga-overclaim-ua'] load_bearing=True\nSUCCESS:IMP-0269-probe2 bogus expertise claim rejected"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP-0269-NC-assertion-only-must-not-seat",
+      "kind": "known-broken-fixture",
+      "description": "mallory-asserted-crypto declares cryptography with empty probe_answers. The selector must refuse domain_authority and list the claimant.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mallory unseated reason=hallucinated-expertise",
+      "good_state_output": "alice-crypto seated with passing probe_result"
+    },
+    {
+      "id": "IMP-0269-NC-tags-only-would-seat-mallory",
+      "kind": "mutation",
+      "description": "select_claimed_tags_unchecked seats mallory; the production selector must not. If both paths agree, the probe is not load-bearing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "unchecked=['alice-crypto', 'blake-tax', 'mallory-asserted-crypto', 'ned-wrong-crypto', 'olga-overclaim-ua']",
+      "good_state_output": "seated=['alice-crypto', 'blake-tax']"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0269-probe2-bogus-claim",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Named probe2 starts from the fixtures, not from this receipt: it re-imports select_expertise.py and checks that assertion-only and below-baseline claimants are refused while genuine recorded answers are seated with attached probe results."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0269/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "timestamps": {
+    "started_at": "2026-08-24T18:37:00Z",
+    "ended_at": "2026-08-25T00:55:44Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0265 (participant registry) is not delivered on this worktree; the selector accepts candidate dicts with declared_expertise rather than reading a live registry.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run selection against tools/council/participants/registry.py once IMP-0265 is delivered."
+    },
+    {
+      "claim": "Competence answers here are fixture-recorded, not live model calls. The selector's contract is that seating requires a passing probe result; administering that probe to a live vendor is TST-0270.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Wire score_competence to a live answerer under TST-0270."
+    }
+  ],
+  "report": {
+    "kind": "council-participants-module",
+    "module": "tools/council/participants/select_expertise.py",
+    "module_sha256": "ad0f16cd459f604e062fc9d415a047b135131a4a84e2dd9081724dbca947401b",
+    "falsifiable_question": "Can a participant that merely asserts expertise be seated as the domain authority without passing the probe?",
+    "falsifiable_answer": "No. Assertion-only claimants are unseated.",
+    "tag_match_metrics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 6,
+      "fp": 0,
+      "tn": 6,
+      "fn": 0
+    },
+    "selection": {
+      "seated_ids": [
+        "alice-crypto",
+        "blake-tax"
+      ],
+      "unseated_ids": [
+        "mallory-asserted-crypto",
+        "ned-wrong-crypto",
+        "olga-overclaim-ua"
+      ],
+      "skipped_no_overlap": [
+        "pat-frontend"
+      ],
+      "baseline": 0.5,
+      "seated": [
+        {
+          "participant_id": "alice-crypto",
+          "role": "domain_authority",
+          "declared_expertise": [
+            "cryptography"
+          ],
+          "matched_tags": [
+            "cryptography"
+          ],
+          "score": 1.0,
+          "reason": "demonstrated-competence",
+          "vendor": "fixture",
+          "model": "recorded-answers",
+          "probe_results": [
+            {
+              "item_id": "crypto-q1",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "128",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "128"
+              ]
+            },
+            {
+              "item_id": "crypto-q2",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "256",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "256"
+              ]
+            },
+            {
+              "item_id": "crypto-q3",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "integer factorization",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "integer factorization",
+                "integer-factorization",
+                "factoring"
+              ]
+            },
+            {
+              "item_id": "crypto-q4",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "yes",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "true",
+                "yes"
+              ]
+            },
+            {
+              "item_id": "crypto-ua",
+              "domain": "cryptography",
+              "kind": "unanswerable",
+              "given": "I-DO-NOT-KNOW",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": []
+            }
+          ]
+        },
+        {
+          "participant_id": "blake-tax",
+          "role": "domain_authority",
+          "declared_expertise": [
+            "taxation"
+          ],
+          "matched_tags": [
+            "tax-law"
+          ],
+          "score": 1.0,
+          "reason": "demonstrated-competence",
+          "vendor": "fixture",
+          "model": "recorded-answers",
+          "probe_results": [
+            {
+              "item_id": "tax-q1",
+              "domain": "tax-law",
+              "kind": "verifiable",
+              "given": "IRS",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "irs",
+                "internal revenue service"
+              ]
+            },
+            {
+              "item_id": "tax-q2",
+              "domain": "tax-law",
+              "kind": "verifiable",
+              "given": "tax-exempt-nonprofit",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "tax exempt nonprofit",
+                "tax-exempt-nonprofit",
+                "nonprofit"
+              ]
+            },
+            {
+              "item_id": "tax-q3",
+              "domain": "tax-law",
+              "kind": "verifiable",
+              "given": "365",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "365",
+                "one year",
+                "1 year"
+              ]
+            },
+            {
+              "item_id": "tax-q4",
+              "domain": "tax-law",
+              "kind": "verifiable",
+              "given": "no",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "false",
+                "no"
+              ]
+            },
+            {
+              "item_id": "tax-ua",
+              "domain": "tax-law",
+              "kind": "unanswerable",
+              "given": "unknown",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": []
+            }
+          ]
+        }
+      ],
+      "unseated_claimants": [
+        {
+          "participant_id": "mallory-asserted-crypto",
+          "reason": "hallucinated-expertise",
+          "score": 0.0,
+          "matched_tags": [
+            "cryptography"
+          ],
+          "declared_expertise": [
+            "cryptography"
+          ],
+          "probe_results": [
+            {
+              "item_id": "crypto-q1",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "",
+              "passed": false,
+              "assertion_only": true,
+              "overclaim": false,
+              "accepted": [
+                "128"
+              ]
+            },
+            {
+              "item_id": "crypto-q2",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "",
+              "passed": false,
+              "assertion_only": true,
+              "overclaim": false,
+              "accepted": [
+                "256"
+              ]
+            },
+            {
+              "item_id": "crypto-q3",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "",
+              "passed": false,
+              "assertion_only": true,
+              "overclaim": false,
+              "accepted": [
+                "integer factorization",
+                "integer-factorization",
+                "factoring"
+              ]
+            },
+            {
+              "item_id": "crypto-q4",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "",
+              "passed": false,
+              "assertion_only": true,
+              "overclaim": false,
+              "accepted": [
+                "true",
+                "yes"
+              ]
+            },
+            {
+              "item_id": "crypto-ua",
+              "domain": "cryptography",
+              "kind": "unanswerable",
+              "given": "",
+              "passed": false,
+              "assertion_only": true,
+              "overclaim": false,
+              "accepted": []
+            }
+          ]
+        },
+        {
+          "participant_id": "ned-wrong-crypto",
+          "reason": "hallucinated-expertise",
+          "score": 0.0,
+          "matched_tags": [
+            "cryptography"
+          ],
+          "declared_expertise": [
+            "crypto"
+          ],
+          "probe_results": [
+            {
+              "item_id": "crypto-q1",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "256",
+              "passed": false,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "128"
+              ]
+            },
+            {
+              "item_id": "crypto-q2",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "128",
+              "passed": false,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "256"
+              ]
+            },
+            {
+              "item_id": "crypto-q3",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "discrete log",
+              "passed": false,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "integer factorization",
+                "integer-factorization",
+                "factoring"
+              ]
+            },
+            {
+              "item_id": "crypto-q4",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "no",
+              "passed": false,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "true",
+                "yes"
+              ]
+            },
+            {
+              "item_id": "crypto-ua",
+              "domain": "cryptography",
+              "kind": "unanswerable",
+              "given": "I-DO-NOT-KNOW",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": []
+            }
+          ]
+        },
+        {
+          "participant_id": "olga-overclaim-ua",
+          "reason": "hallucinated-expertise-unanswerable-overclaim",
+          "score": 1.0,
+          "matched_tags": [
+            "cryptography"
+          ],
+          "declared_expertise": [
+            "cryptography"
+          ],
+          "probe_results": [
+            {
+              "item_id": "crypto-q1",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "128",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "128"
+              ]
+            },
+            {
+              "item_id": "crypto-q2",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "256",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "256"
+              ]
+            },
+            {
+              "item_id": "crypto-q3",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "factoring",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "integer factorization",
+                "integer-factorization",
+                "factoring"
+              ]
+            },
+            {
+              "item_id": "crypto-q4",
+              "domain": "cryptography",
+              "kind": "verifiable",
+              "given": "true",
+              "passed": true,
+              "assertion_only": false,
+              "overclaim": false,
+              "accepted": [
+                "true",
+                "yes"
+              ]
+            },
+            {
+              "item_id": "crypto-ua",
+              "domain": "cryptography",
+              "kind": "unanswerable",
+              "given": "4f3a9cdeadbeef",
+              "passed": false,
+              "assertion_only": false,
+              "overclaim": true,
+              "accepted": []
+            }
+          ]
+        }
+      ]
+    },
+    "unchecked_tag_only_ids": [
+      "alice-crypto",
+      "blake-tax",
+      "mallory-asserted-crypto",
+      "ned-wrong-crypto",
+      "olga-overclaim-ua"
+    ],
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "live vendor APIs were called",
+      "IMP-0265 registry exists on this worktree"
+    ]
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "tag-precision-recall",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe1_tag_precision.py"
+    },
+    {
+      "id": "probe2",
+      "role": "bogus-claim-rejected",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0269/probe2_bogus_claim.py"
+    }
+  ]
+}

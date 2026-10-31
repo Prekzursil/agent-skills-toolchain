@@ -1,0 +1,62 @@
+=== guard state per tree ===
+  repo/skills    lines=286   bytes~11110  old-guard@[280]  __isMain@-
+  repo/.agents   lines=286   bytes~11110  old-guard@[280]  __isMain@-
+  live/daily     lines=367   bytes~16045  old-guard@-  __isMain@[357, 361]
+  live/vault     lines=367   bytes~16045  old-guard@-  __isMain@[357, 361]
+
+=== differ: repo/skills  vs  live/daily ===
+  repo lines 286 = common 277 + repo-only 9 -> OK
+  live lines 367 = common 277 + live-only 90 -> OK
+  two-directional? True
+
+  repo-only NON-BLANK NON-COMMENT lines: 8
+    - window.__uiAuditMut = 0;
+    - window.__uiAuditMo = new MutationObserver(() => { window.__uiAuditMut++; });
+    - try { await testPage.evaluate(() => { window.__uiAuditMut = 0; }); } catch { /* OK */ }
+    - let mutations = 0;
+    - try { mutations = await testPage.evaluate(() => window.__uiAuditMut ?? 0); } catch { /* navigated mid-eval */ 
+    - else if (mutations > 0) effect = 'dom';
+    - else if (reqCount > 0) effect = 'network';
+    - if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {
+
+  live-only NON-BLANK NON-COMMENT lines: 56  (showing 30)
+    + import { realpathSync } from 'node:fs';
+    + }
+    + }
+    + const pageErrors = [];
+    + const onPageError = (e) => { pageErrors.push((e && e.message) ? e.message.split('\n')[0] : String(e)); };
+    + window.__uiAuditSigs = new Set();
+    + const sig = (m) => {
+    + const el = m.target instanceof Element
+    + ? m.target
+    + : (m.target && m.target.parentElement) || null;
+    + if (!el) return m.type + '|<detached>';
+    + let path = '';
+    + let node = el;
+    + for (let d = 0; d < 4 && node && node.parentElement; d++) {
+    + path = Array.prototype.indexOf.call(node.parentElement.children, node) + '/' + path;
+    + node = node.parentElement;
+    + }
+    + const cls = el.classList ? Array.from(el.classList).slice(0, 3).join('.') : '';
+    + return m.type + '|' + el.tagName + '#' + (el.id || '') + '.' + cls + '|' + path;
+    + };
+    + window.__uiAuditMo = new MutationObserver((recs) => {
+    + for (const m of recs) window.__uiAuditSigs.add(sig(m));
+    + });
+    + testPage.on('pageerror', onPageError);
+    + reqCount = 0;
+    + await new Promise(r => setTimeout(r, waitAfterClick));
+    + let noiseSigs = [];
+    + try { noiseSigs = await testPage.evaluate(() => Array.from(window.__uiAuditSigs)); } catch { /* OK */ }
+    + const noiseReq = reqCount;
+    + pageErrors.length = 0;
+
+  declarations only in LIVE : ['__isMain', 'attributed', 'cls', 'el', 'noiseReq', 'noiseSet', 'noisiest', 'onPageError', 'pageErrors', 'sig', 'throwing']
+  declarations only in REPO : []
+
+VERDICT: H-DIVERGED
+  -> a whole-file copy-back would import 56 unreviewed live-only lines.
+  -> the round-1 residual and the audit both called this a one-line
+     change / plain copy-back. Both sentences are REFUTED by this diff.
+
+SUCCESS:s2-r2-deadbutton verdict=H-DIVERGED

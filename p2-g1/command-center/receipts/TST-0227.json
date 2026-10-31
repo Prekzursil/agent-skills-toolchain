@@ -1,0 +1,256 @@
+{
+  "answer": "Yes. Through the live session workspace broker, a write from one session into another session's worktree or artifact root is denied with code SESS_CROSS_SESSION_WRITE and an alert that names both session ids; an independent pre/post sha256 of the victim tree is unchanged; a write inside the actor's own session root succeeds in the same run; the deny was observed while a second session process was genuinely alive under /proc.",
+  "artifacts": [
+    {
+      "path": "tools/lib/workspace.py",
+      "bytes": 10477,
+      "sha256": "1de6f1b36afeeb2248f9359b118dfb844889c16ffe7d52e42d2f20ddedb39697",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "tools/lib/tests/test_workspace_containment.py",
+      "bytes": 3459,
+      "sha256": "4b62756fb5eeafc3bee245e9c788d8b1883354691088dff2db822e8bd3f50da7",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+      "bytes": 3554,
+      "sha256": "7b2e7864bbb867e0f1a6def75e830c2c7aa6009286800ec6efc8418756c6273c",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0227/probe2_concurrent_active.py",
+      "bytes": 4837,
+      "sha256": "8582795fc21580025e0e5bbf6c5c3efac04736b067e9133b113d89136ca36c6d",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "cloud_ok": false,
+  "condition11": false,
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/TST-0227.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py TST-0227",
+        "raw_output": "deferred until after this receipt and per-unit manifest exist",
+        "fingerprint": "dec72eae1ba7b9f26d11aecc931bbd2a"
+      }
+    },
+    {
+      "consumer": "command-center/receipt_validate.py",
+      "artifact_path": "command-center/receipts/TST-0227.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/receipt_validate.py command-center/receipts/TST-0227.json",
+        "raw_output": "ACCEPT:TST-0227 C1 parses; C2 schema-valid; C3 catalog; C4 sentinel binds",
+        "fingerprint": "95ffd26e750d1ee98ee9c1836e47b124",
+        "exit_code": 0
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A cross-session worktree write is refused with SESS_CROSS_SESSION_WRITE. The denial alert names both actor_session_id and victim_session_id.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/lib/workspace.py:SessionBroker.write_file",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+          "raw_output": "{\"cross_session_write\": {\"alert\": {\"actor_session_id\": \"sess-A\", \"code\": \"SESS_CROSS_SESSION_WRITE\", \"message\": \"cross-session write denied: actor_session_id=sess-A attempted to write '/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt' into victim_session_id=sess-B (SESS_CROSS_SESSION_WRITE)\", \"names_both\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt\", \"ts\": \"2026-08-25T01:10:24+00:00\", \"victim_session_id\": \"sess-B\"}, \"artifact_unchanged\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"denied\": true, \"oob_file_exists\": false, \"post_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"post_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"pre_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"pre_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"worktree_unchanged\": true}, \"mutation_unmediated_write\": {\"created\": true, \"hash_changed\": true, \"restored\": true}, \"own_session_write\": {\"artifact_ok\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/A/worktree/own-write.txt\", \"worktree_ok\": true}, \"pass\": true, \"probe\": \"probe1-both-states\", \"unit_id\": \"TST-0227\"}\nown=True deny=True alert_names_both=True wt_unchanged=True unmediated_mutates=True\nSUCCESS:TST-0227-probe1 both-states own-write vs cross-session deny",
+          "fingerprint": "624e94b3be83dda45f2e589b846d542d",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools python3 -B tools/lib/tests/test_workspace_containment.py",
+          "raw_output": "assertions=9 pass=True\nSUCCESS:test_workspace_containment",
+          "fingerprint": "1af4e65d9f949a8dafee502fcfc93a4b",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Independent pre/post sha256 of the victim session worktree and artifact root is unchanged after the denied write; oob_path_exists is false for the planted payload. An unmediated Path.write_bytes of the same payload does change the hash, so the probe is not vacuously green.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+          "raw_output": "{\"cross_session_write\": {\"alert\": {\"actor_session_id\": \"sess-A\", \"code\": \"SESS_CROSS_SESSION_WRITE\", \"message\": \"cross-session write denied: actor_session_id=sess-A attempted to write '/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt' into victim_session_id=sess-B (SESS_CROSS_SESSION_WRITE)\", \"names_both\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt\", \"ts\": \"2026-08-25T01:10:24+00:00\", \"victim_session_id\": \"sess-B\"}, \"artifact_unchanged\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"denied\": true, \"oob_file_exists\": false, \"post_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"post_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"pre_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"pre_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"worktree_unchanged\": true}, \"mutation_unmediated_write\": {\"created\": true, \"hash_changed\": true, \"restored\": true}, \"own_session_write\": {\"artifact_ok\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/A/worktree/own-write.txt\", \"worktree_ok\": true}, \"pass\": true, \"probe\": \"probe1-both-states\", \"unit_id\": \"TST-0227\"}\nown=True deny=True alert_names_both=True wt_unchanged=True unmediated_mutates=True\nSUCCESS:TST-0227-probe1 both-states own-write vs cross-session deny",
+          "fingerprint": "624e94b3be83dda45f2e589b846d542d",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "independent_tree_hash(victim) pre/post + oob_path_exists(cross-session-write.txt)",
+          "raw_output": "worktree_unchanged=true artifact_unchanged=true oob_file_exists=false unmediated_mutates=true",
+          "fingerprint": "fd219834e80f3e30a8eb7f721fc15adb",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Both-states control: a write inside the actor's own worktree and artifact root succeeds in the same run.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+          "raw_output": "{\"cross_session_write\": {\"alert\": {\"actor_session_id\": \"sess-A\", \"code\": \"SESS_CROSS_SESSION_WRITE\", \"message\": \"cross-session write denied: actor_session_id=sess-A attempted to write '/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt' into victim_session_id=sess-B (SESS_CROSS_SESSION_WRITE)\", \"names_both\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/B/worktree/cross-session-write.txt\", \"ts\": \"2026-08-25T01:10:24+00:00\", \"victim_session_id\": \"sess-B\"}, \"artifact_unchanged\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"denied\": true, \"oob_file_exists\": false, \"post_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"post_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"pre_artifact_sha256\": \"351b1d7b6423efb7617900bea7f878b2a85478a6c3c6de2c2e4b6ed02d4ff875\", \"pre_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"worktree_unchanged\": true}, \"mutation_unmediated_write\": {\"created\": true, \"hash_changed\": true, \"restored\": true}, \"own_session_write\": {\"artifact_ok\": true, \"path\": \"/tmp/tst0227-p1-mgle9czw/A/worktree/own-write.txt\", \"worktree_ok\": true}, \"pass\": true, \"probe\": \"probe1-both-states\", \"unit_id\": \"TST-0227\"}\nown=True deny=True alert_names_both=True wt_unchanged=True unmediated_mutates=True\nSUCCESS:TST-0227-probe1 both-states own-write vs cross-session deny",
+          "fingerprint": "624e94b3be83dda45f2e589b846d542d",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools python3 -B tools/lib/tests/test_workspace_containment.py",
+          "raw_output": "assertions=9 pass=True\nSUCCESS:test_workspace_containment",
+          "fingerprint": "1af4e65d9f949a8dafee502fcfc93a4b",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Concurrency: the victim session is a live OS process (/proc/<pid> present) with a heartbeat file outside the hashed tree while the cross-session write is attempted. Reviewer bypasses (relative traversal and symlink hop) are also denied with alerts naming both session ids.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0227/probe2_concurrent_active.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe2_concurrent_active.py",
+          "raw_output": "{\"bypass_relative_traversal\": {\"alert_names_both\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"oob_leaked\": false, \"refused\": true}, \"bypass_symlink\": {\"alert_names_both\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"oob_leaked\": false, \"refused\": true}, \"concurrency\": {\"alert\": {\"actor_session_id\": \"sess-A\", \"code\": \"SESS_CROSS_SESSION_WRITE\", \"message\": \"cross-session write denied: actor_session_id=sess-A attempted to write '/tmp/tst0227-p2-9mjevjn8/B/worktree/cross-session-write.txt' into victim_session_id=sess-B (SESS_CROSS_SESSION_WRITE)\", \"names_both\": true, \"path\": \"/tmp/tst0227-p2-9mjevjn8/B/worktree/cross-session-write.txt\", \"ts\": \"2026-08-25T01:10:24+00:00\", \"victim_session_id\": \"sess-B\"}, \"alive_after\": true, \"alive_before\": true, \"alive_during_attempt\": true, \"code\": \"SESS_CROSS_SESSION_WRITE\", \"dead_after_stop\": true, \"denied\": true, \"heartbeat_path_outside_hashed_tree\": true, \"oob_file_exists\": false, \"post_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"pre_worktree_sha256\": \"d755ccc618734c5fcfe0f00ac0d79e45cf1beb3f820619b6175bb25d3708bd9b\", \"victim_pid\": 93136, \"worktree_unchanged\": true}, \"pass\": true, \"probe\": \"probe2-concurrent-active\", \"reviewer_id\": \"TST-0227-probe2-concurrent-review\", \"unit_id\": \"TST-0227\"}\nvictim_pid=93136 alive_during=True deny=True traversal=True symlink=True hash_unchanged=True\nSUCCESS:TST-0227-probe2 concurrent live victim plus reviewer bypasses",
+          "fingerprint": "771347a2c7c6090ffe0f83764716db8b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "independent_tree_hash(victim) pre/post + oob_path_exists(cross-session-write.txt)",
+          "raw_output": "worktree_unchanged=true artifact_unchanged=true oob_file_exists=false unmediated_mutates=true",
+          "fingerprint": "fd219834e80f3e30a8eb7f721fc15adb",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "implementation": {
+    "catalog_js_input": "tools/lib/workspace.mjs",
+    "catalog_js_role": "workspace-root-detector-not-session-broker",
+    "enforcer": "tools/lib/workspace.py",
+    "fail_closed": true,
+    "live_gate": "tools/lib/workspace.py",
+    "not_an_os_sandbox": true,
+    "permission_widened_to_pass_tests": false,
+    "tests": "tools/lib/tests/test_workspace_containment.py"
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0227/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "entry_id": "TST-0227"
+  },
+  "min_bytes_threshold": 2048,
+  "named_probe_embedded": true,
+  "negative_controls": [
+    {
+      "id": "TST0227-C1-own-session-succeeds",
+      "kind": "absent-input",
+      "description": "A write into another session's worktree is denied AND a write inside the actor's own session root succeeds in the same run. A blanket deny would fail the own-write half; a missing gate would fail the cross-session half.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "TST0227-C2-unmediated-write-control",
+      "kind": "known-broken-fixture",
+      "description": "A write performed without the broker does create the file and changes the victim tree hash, proving the denied-write test is not vacuously passing because the write was never attempted.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "opus",
+    "role": "security-tester",
+    "vendor": "anthropic"
+  },
+  "profile": "security-report-cross-session-write-containment",
+  "question_or_target": "Is cross-session write containment enforced, given multiple concurrent agent sessions on this box? PASS requires a denied write plus an alert naming both session ids.",
+  "report_kind": "security_report",
+  "residual_unknowns": [
+    {
+      "claim": "This unit enforces the in-process session workspace broker. Cursor/IDE Write tool calls that never enter tools/lib/workspace.py, and OS-level sandboxing (Landlock/seccomp), are residual. tools/lib/workspace.mjs is present as a workspace-root detector, not this broker.",
+      "settling_experiment": "Hook the broker at the agent Write tool boundary, or an ADV escape probe that writes via a path that never calls SessionBroker.write_file.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry: a failure here is a finding, not a transient"
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0227-probe2-concurrent-review",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 is the named independent reviewer pass required by the catalog: it keeps a second session genuinely alive and attempts fresh bypass paths. It does not reuse probe 1's TemporaryDirectory. ; bypasses_attempted=[\"relative-path traversal from actor worktree into victim worktree\", \"symlink hop from actor worktree into victim worktree\"]; scope_not_agreement=true"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0227",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0227",
+  "state": "SUCCESS",
+  "success_hand_flipped": false,
+  "target_contract_pass": true,
+  "tests": [
+    {
+      "id": "test_workspace_containment.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools python3 -B tools/lib/tests/test_workspace_containment.py",
+      "result": "PASS"
+    },
+    {
+      "id": "TST0227-T1-BOTH-STATES",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe1_both_states.py",
+      "result": "PASS"
+    },
+    {
+      "id": "TST0227-T2-CONCURRENT-ACTIVE",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0227/probe2_concurrent_active.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:10:24+00:00",
+    "started_at": "2026-08-25T01:10:24+00:00"
+  },
+  "unit_id": "TST-0227",
+  "id": "TST-0227",
+  "completion_sentinel": "SUCCESS:TST-0227"
+}

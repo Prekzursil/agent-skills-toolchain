@@ -1,0 +1,1 @@
+Measure the budget per unit. Start the timer before the build, stop it after the probes, then write both timestamps into the receipt. Verify the duration is under the declared ceiling and record the number.

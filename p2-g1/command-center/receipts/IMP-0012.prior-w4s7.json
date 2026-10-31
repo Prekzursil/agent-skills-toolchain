@@ -1,0 +1,372 @@
+{
+  "unit_id": "IMP-0012",
+  "schema_version": 1,
+  "report_kind": "implementation-receipt",
+  "title": "Explicit interpreter declaration for every script entrypoint",
+  "question": "Require each shipped executable entrypoint to declare its interpreter and minimum version in the manifest (python3.11+, node20+, pwsh7, bash5) and make the launcher invoke <interpreter> <script> explicitly, never relying on a shebang, file association, or a bare .sh invocation on Windows.",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0012",
+  "completion_sentinel": "SUCCESS:IMP-0012",
+  "min_bytes_threshold": 2048,
+  "spec_anchor": "_USER-PROMPTS.md:10830 explicit interpreters; :11304 bare .sh on Windows",
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:30+00:00",
+    "ended_at": "2026-08-25T00:57:30+00:00"
+  },
+  "implementation": {
+    "manifest": ".claude-plugin/plugin.json",
+    "launcher": "tools/plugin/launcher.py",
+    "linter": "tools/plugin/interpreters.py",
+    "tests": "tools/plugin/tests/test_interpreters.py",
+    "rule": "argv is always [resolved_interpreter, script, *args]; shebang, file association, and bare .sh are refused",
+    "allowed_interpreters": {
+      "python3": {
+        "floor": [
+          3,
+          11
+        ],
+        "names": [
+          "python3"
+        ],
+        "remediation": "INSTALL_PYTHON3_AT_OR_ABOVE_3.11.0"
+      },
+      "node": {
+        "floor": [
+          20
+        ],
+        "names": [
+          "node"
+        ],
+        "remediation": "INSTALL_NODE_AT_OR_ABOVE_20.0.0"
+      },
+      "pwsh": {
+        "floor": [
+          7
+        ],
+        "names": [
+          "pwsh"
+        ],
+        "remediation": "INSTALL_PWSH_AT_OR_ABOVE_7.0.0"
+      },
+      "bash": {
+        "floor": [
+          5
+        ],
+        "names": [
+          "bash"
+        ],
+        "remediation": "INSTALL_BASH_AT_OR_ABOVE_5.0.0"
+      }
+    },
+    "live_entrypoints": [
+      {
+        "id": "longrun-sh",
+        "kind": "script",
+        "path": "scripts/longrun.sh",
+        "interpreter": "bash",
+        "min_version": "5"
+      },
+      {
+        "id": "longrun-py",
+        "kind": "script",
+        "path": "scripts/longrun.py",
+        "interpreter": "python3",
+        "min_version": "3.11"
+      }
+    ]
+  },
+  "host": {
+    "platform": "linux",
+    "python": "3.12.3",
+    "python_executable": "/usr/bin/python3",
+    "pwsh_present": false,
+    "git_bash_present": false,
+    "parent_shells_used": [
+      "/usr/bin/bash",
+      "/usr/bin/dash"
+    ],
+    "parent_shells_catalog_named": [
+      "pwsh7",
+      "Git Bash"
+    ],
+    "interpreters": {
+      "python3": {
+        "present": true,
+        "path": "/usr/bin/python3.12",
+        "version_raw": "Python 3.12.3",
+        "version": [
+          3,
+          12,
+          3
+        ]
+      },
+      "node": {
+        "present": true,
+        "path": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854/node",
+        "version_raw": "v24.5.0",
+        "version": [
+          24,
+          5,
+          0
+        ]
+      },
+      "pwsh": {
+        "present": false
+      },
+      "bash": {
+        "present": true,
+        "path": "/usr/bin/bash",
+        "version_raw": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "version": [
+          5,
+          2,
+          21
+        ]
+      }
+    }
+  },
+  "launches": [
+    {
+      "id": "longrun-sh",
+      "family": "bash",
+      "argv": [
+        "/usr/bin/bash",
+        "/opt/p2/ast-integrate/scripts/longrun.sh"
+      ],
+      "resolved_interpreter": "/usr/bin/bash",
+      "resolved_version_raw": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+      "child_exe": "/usr/bin/bash",
+      "exe_agrees": true,
+      "exit_code": 0
+    },
+    {
+      "id": "longrun-py",
+      "family": "python3",
+      "argv": [
+        "/usr/bin/python3.12",
+        "/opt/p2/ast-integrate/scripts/longrun.py"
+      ],
+      "resolved_interpreter": "/usr/bin/python3.12",
+      "resolved_version_raw": "Python 3.12.3",
+      "child_exe": "/usr/bin/python3.12",
+      "exe_agrees": true,
+      "exit_code": 0
+    }
+  ],
+  "cross_shell": [
+    {
+      "id": "longrun-sh",
+      "bash_parent": "/usr/bin/bash",
+      "other_parent": "/usr/bin/dash",
+      "resolved_from_bash": "/usr/bin/bash",
+      "resolved_from_other": "/usr/bin/bash",
+      "child_from_bash": "/usr/bin/bash",
+      "child_from_other": "/usr/bin/bash",
+      "agree": true
+    },
+    {
+      "id": "longrun-py",
+      "bash_parent": "/usr/bin/bash",
+      "other_parent": "/usr/bin/dash",
+      "resolved_from_bash": "/usr/bin/python3.12",
+      "resolved_from_other": "/usr/bin/python3.12",
+      "child_from_bash": "/usr/bin/python3.12",
+      "child_from_other": "/usr/bin/python3.12",
+      "agree": true
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_every_entrypoint_declares_an_interpreter",
+      "command": "PYTHONPATH=tools python3 -B tools/plugin/tests/test_interpreters.py",
+      "result": "PASS",
+      "raw_output": "SUCCESS:test_interpreters\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "undeclared-entrypoint",
+      "kind": "known-broken-fixture",
+      "description": "an entrypoint with no interpreter declaration must fail the linter",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "no-interpreter: missing interpreter declaration (required one of ['python3', 'node', 'pwsh', 'bash']; bare shebang/file-association/bare-.sh is forbidden)",
+      "good_state_output": "live plugin.json linted 2 declared entrypoints"
+    },
+    {
+      "id": "bare-sh-invocation",
+      "kind": "known-broken-fixture",
+      "description": "launcher --bare scripts/longrun.sh must refuse; OS shebang exec may still succeed on Linux (the wrong reason)",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "REFUSED:bare-invocation scripts/longrun.sh \u2014 invoke via declared interpreter argv (never shebang, file association, or a bare .sh/.ps1/.py path)",
+      "good_state_output": "explicit argv launch child exe agrees with resolved interpreter"
+    },
+    {
+      "id": "pwsh-missing-no-fallback",
+      "kind": "missing-interpreter",
+      "description": "a pwsh-declared entrypoint with pwsh absent must be MISSING, not a silent bash fallback",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "MISSING: MISSING: interpreter 'pwsh' is not on PATH (looked for ['pwsh']; no silent fallback). remediation=INSTALL_PWSH_AT_OR_ABOVE_7.0.0",
+      "good_state_output": "bash and python3 families launch without substituting another family"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": ".claude-plugin/plugin.json entrypoints[].interpreter",
+      "claim": "Every live shipped entrypoint (2) declares an interpreter and min_version from the catalog vocabulary python3.11+/node20+/pwsh7/bash5, and the linter rejects a fixture with no declaration.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "lint",
+          "command": "lint_entrypoints(.claude-plugin/plugin.json)",
+          "raw_output": "[{\"id\": \"longrun-sh\", \"interpreter\": \"bash\", \"kind\": \"script\", \"min_version\": \"5\", \"path\": \"scripts/longrun.sh\"}, {\"id\": \"longrun-py\", \"interpreter\": \"python3\", \"kind\": \"script\", \"min_version\": \"3.11\", \"path\": \"scripts/longrun.py\"}]",
+          "fingerprint": "381c0e8630a0485bf83d68bf98cc5a6f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "negative-control",
+          "command": "lint_entrypoints(tools/plugin/tests/fixtures/undeclared.json)",
+          "raw_output": "no-interpreter: missing interpreter declaration (required one of ['python3', 'node', 'pwsh', 'bash']; bare shebang/file-association/bare-.sh is forbidden)",
+          "fingerprint": "a028ef4e611126c24c6f3f3393f3bc83",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "anchor": "tools/plugin/launcher.py argv spawn",
+      "claim": "Each declared entrypoint launched as [resolved_interpreter, script]; the child process reported its own executable path and it matched the resolver. The same launches from GNU bash and from dash agreed on that path. Bare invocation was refused. OS shebang-exec of longrun.sh still succeeds on Linux, proving the refuse is what changed the outcome.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "launch_entrypoint(id) for each live entrypoint",
+          "raw_output": "[{\"argv\": [\"/usr/bin/bash\", \"/opt/p2/ast-integrate/scripts/longrun.sh\"], \"child_exe\": \"/usr/bin/bash\", \"exe_agrees\": true, \"exit_code\": 0, \"family\": \"bash\", \"id\": \"longrun-sh\", \"resolved_interpreter\": \"/usr/bin/bash\", \"resolved_version_raw\": \"GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)\"}, {\"argv\": [\"/usr/bin/python3.12\", \"/opt/p2/ast-integrate/scripts/longrun.py\"], \"child_exe\": \"/usr/bin/python3.12\", \"exe_agrees\": true, \"exit_code\": 0, \"family\": \"python3\", \"id\": \"longrun-py\", \"resolved_interpreter\": \"/usr/bin/python3.12\", \"resolved_version_raw\": \"Python 3.12.3\"}]",
+          "fingerprint": "5904f4acf6b9c4a329f0f59c6287d02a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "/usr/bin/bash -c launcher and /usr/bin/dash -c launcher",
+          "raw_output": "[{\"agree\": true, \"bash_parent\": \"/usr/bin/bash\", \"child_from_bash\": \"/usr/bin/bash\", \"child_from_other\": \"/usr/bin/bash\", \"id\": \"longrun-sh\", \"other_parent\": \"/usr/bin/dash\", \"resolved_from_bash\": \"/usr/bin/bash\", \"resolved_from_other\": \"/usr/bin/bash\"}, {\"agree\": true, \"bash_parent\": \"/usr/bin/bash\", \"child_from_bash\": \"/usr/bin/python3.12\", \"child_from_other\": \"/usr/bin/python3.12\", \"id\": \"longrun-py\", \"other_parent\": \"/usr/bin/dash\", \"resolved_from_bash\": \"/usr/bin/python3.12\", \"resolved_from_other\": \"/usr/bin/python3.12\"}]",
+          "fingerprint": "5ba954ceebd33cd4f9b02c2629f7c692",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Catalog evidence names parent shells pwsh7 and Git Bash. This Linux worktree has neither (pwsh not on PATH; Git Bash is a Windows MSYS distribution). Two-shell agreement was measured with GNU bash and dash, the two parent shells that exist here. A Windows re-run is the settling experiment, not a silent skip of the two-shell control.",
+      "settling_experiment": "On a Windows host with pwsh7 and Git Bash both installed, re-run probe2_cross_shell.py using those two parents and require the child's reported executable path to agree after realpath/Windows path normalisation.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0012-probe2-cross-shell",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Named probe1 re-lints the live manifest and the undeclared fixture. Named probe2 re-launches from a second parent shell the implementer's interactive shell did not have to be. Catalog scoring by a human reviewer from a shell this agent did not use remains independent of G-1 probe-green."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "declaration-linter-and-negative-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0012/probe1_declarations.py"
+    },
+    {
+      "id": "probe2",
+      "role": "cross-shell-child-exe-agreement",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0012/probe2_cross_shell.py"
+    }
+  ],
+  "scope": {
+    "proof_surface": "Live argv launcher + linter on this Linux worktree; child-reported executable path; two parent shells (bash, dash); both-states bare vs explicit.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "pwsh7 or Git Bash executed as parent shells on this host",
+      "Windows file-association behaviour was observed on this host"
+    ]
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0012.json",
+      "exists": true,
+      "role": "primary",
+      "note": "sha256 is recorded in probes/IMP-0012/UNIT-ARTIFACT-MANIFEST.json after this file is written; a self-hash inside the receipt cannot be stable"
+    },
+    {
+      "path": ".claude-plugin/plugin.json",
+      "bytes": 1460,
+      "sha256": "22fde3dd6aa9628ca5e4d9dc1877772fd74a1792cda83dc4a5dfb5876283a745",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/plugin/launcher.py",
+      "bytes": 6212,
+      "sha256": "43fd0e2d841b9731dbcbac6f6938558967c4662f778464594f08b798df766df5",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/plugin/interpreters.py",
+      "bytes": 7479,
+      "sha256": "5c9b92ef375f39d01299da8580289e568556ecd2366a954509695e0fc2a9a6bb",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/plugin/tests/test_interpreters.py",
+      "bytes": 3437,
+      "sha256": "9f5aebc858116b5083efd674e83fae84114ccdc36bfb9700e1a20cbac923dff6",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "scripts/longrun.sh",
+      "bytes": 9357,
+      "sha256": "67da6d5525212e18db319161a81215e4fa089960247fc31a6d58310ba1d80428",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "scripts/longrun.py",
+      "bytes": 363,
+      "sha256": "505547774004a5678e5bd7eab20bee730e9e78871dba54d12dbac3fba4503713",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "scripts/longrun.ps1",
+      "bytes": 10737,
+      "sha256": "b37acaf4277a1f8bba85d32dd2096dadead9083f155ea55549c1067316d02b5d",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    }
+  ]
+}

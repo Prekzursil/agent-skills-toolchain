@@ -1,0 +1,314 @@
+total units: 2007
+missing from catalog: []
+==================== ADV-0037 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "security-threat-modeler", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0037 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0037 <reason>."
+[dependencies] ["B07"]
+[evidence_requirement] "Probe 1: run every credential path with the planted synthetic value present and grep all outputs - stdout, stderr, log files, event ledger, cache, crash dump - for the distinctive body. Probe 2 (mechanically different): force each path's ERROR branch (unset, malformed, expired-shaped) and repeat the sweep, because the leak usually lives in the exception formatter rather than the happy path."
+[execution_substrate] "local-serialized"
+[failure_classification] ["secret-exposure", "detector-failure", "privacy-leak"]
+[id] "ADV-0037"
+[inputs] ["every code path that reads an environment variable, credential file or keychain entry", "a planted synthetic credential with a distinctive non-authenticating body", "AGENTS.md 9 (read-only diagnosis; never print the value; never modify any credential)"]
+[mechanism] "planted-synthetic-value tracing through happy and error branches, with a deliberate-leak calibration run"
+[not_a_duplicate_because] "ADV-0023 sweeps the corpus for secrets at rest; this traces the code paths that could put one there, especially the exception formatter."
+[output_path] "command-center/adversarial/ADV-0037-credential-diagnosis-path-leak.json"
+[output_schema] "command-center/schema/exploit-proof.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Does every credential-touching code path (presence checks, auth probes, error messages, logs, ledger entries, crash dumps) emit at most a zero-entropy prefix - and does any path print, persist or transmit the value?"
+[retry_policy] "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded"
+[reviewer_requirement] "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11345, 11049"
+[tests_required] ["detector control: deliberately print the planted value once in a scratch run and confirm the sweep finds it, proving the sweep can detect a leak before its silence is trusted", "HARD CONSTRAINT: no real credential is read, printed, rotated, revoked, unset or modified; the planted value is synthetic and is removed afterwards"]
+[timeout_seconds] 3600
+[title] "Adversarial review of the credential-diagnosis code path with a planted secret"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "mcp__cloud-hub__modal_sandbox_create", "mcp__cloud-hub__modal_sandbox_exec", "mcp__cloud-hub__modal_sandbox_terminate"]
+==================== ADV-0038 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "gpt-5-codex", "role": "supply-chain-auditor", "vendor": "openai"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0038 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0038 <reason>."
+[dependencies] ["B07", "B13"]
+[evidence_requirement] "Probe 1: revoke the fixture and immediately attempt install from each source, recording success and the warning emitted. Probe 2 (mechanically different): inspect each source's metadata for a revocation field at all - a source with no field for it cannot ever honour a revocation, which a timing test alone might miss if the cache happens to be cold."
+[execution_substrate] "worktree-isolated"
+[failure_classification] ["supply-chain", "stale-premise"]
+[id] "ADV-0038"
+[inputs] ["the revocation/deprecation mechanism and every install source (cache, lockfile, offline bundle, mirror)", "a fixture package published then revoked", "_USER-PROMPTS.md:10864-10866"]
+[mechanism] "per-source revocation honouring test plus a metadata-capability audit of each source"
+[not_a_duplicate_because] "ADV-0066 attacks DOWNGRADE to an older vulnerable version; this attacks continued availability of a version explicitly withdrawn."
+[output_path] "command-center/adversarial/ADV-0038-revocation-propagation-to-caches.json"
+[output_schema] "command-center/schema/supply-chain-attestation.schema.json"
+[owner_approval_required] false
+[phase] "15"
+[question_or_target] "After a package version is revoked or deprecated in the registry, can it still be installed from a local cache, a lockfile pin, an offline export or a mirror - and how long is the propagation delay?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:10864, 11346"
+[tests_required] ["control: a non-revoked package must install from every source, so a broken source cannot be mistaken for working revocation", "silent success from ANY source is a P1 finding; a loud refusal with a documented override is acceptable"]
+[timeout_seconds] 3600
+[title] "Revocation and deprecation propagation to already-cached packages"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "mcp__cloud-hub__modal_sandbox_create", "mcp__cloud-hub__modal_sandbox_exec", "mcp__cloud-hub__modal_sandbox_terminate"]
+==================== ADV-0040 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "privacy-analyst", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0040 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0040 <reason>."
+[dependencies] ["B01"]
+[evidence_requirement] "Probe 1: pattern plus entropy sweep over text artifacts, reporting (path, line, category) with values redacted. Probe 2 (mechanically different): non-text coverage - OCR or metadata extraction over images/PDFs, because a text sweep is structurally blind to a screenshot and would report clean."
+[execution_substrate] "local-serialized"
+[failure_classification] ["privacy-leak", "detector-failure"]
+[id] "ADV-0040"
+[inputs] ["every artifact that could be published or shared, including screenshots and transcripts", "a planted PII set of each type placed at known locations before the sweep", "the estate's own corpus history (transcripts and message archives) as the high-risk area"]
+[mechanism] "recall-calibrated multi-modal PII detection including a non-text channel"
+[not_a_duplicate_because] "ADV-0023 hunts SECRETS (credentials); this hunts PERSONAL DATA, which has different patterns, different obligations, and a screenshot channel that secret scanners ignore."
+[output_path] "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json"
+[output_schema] "command-center/schema/privacy-dataflow.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Does the corpus contain personal data - names, email addresses, phone numbers, home paths, private URLs, faces in screenshots - and what is the sweep's measured recall against planted PII?"
+[retry_policy] "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded"
+[reviewer_requirement] "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11050, 10480"
+[tests_required] ["planted-PII recall must be reported as a number; a zero-findings result without a recall figure is NOT-CHECKED, not clean", "all planted PII is synthetic and is removed and verified removed before reporting"]
+[timeout_seconds] 5400
+[title] "Recall-calibrated PII sweep of the program corpus before any artifact is published"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash"]
+==================== ADV-0090 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "gpt-5-codex", "role": "benchmark-integrity-auditor", "vendor": "openai"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0090 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0090 <reason>."
+[dependencies] ["B08"]
+[evidence_requirement] "Probe 1: join each cited green to its full run history by commit SHA and count attempts, reporting the attempt distribution rather than a pass rate. Probe 2 (mechanically different): re-run a stratified sample N times at the same SHA and measure the empirical pass rate directly - a test that passes 6 of 10 is flaky regardless of how its history was recorded."
+[execution_substrate] "local-parallel"
+[failure_classification] ["benchmark-gaming", "green-not-live", "overclaim"]
+[id] "ADV-0090"
+[inputs] ["CI run history and local run logs for every cited green", "the retry configuration of each gate and harness", "the evidence records that cite those greens"]
+[mechanism] "attempt-count join over run history plus direct repeated re-execution at a fixed SHA"
+[not_a_duplicate_because] "ADV-0011 measures greens decaying over TIME; this measures greens that were never stable at their own commit."
+[output_path] "command-center/adversarial/ADV-0090-rerun-until-green-laundering.json"
+[output_schema] "command-center/schema/benchmark-integrity.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "How many cited green results required more than one attempt, and does any recorded evidence show only the final successful run while earlier failures were discarded?"
+[retry_policy] "up to 3 attempts with staggered arrival (60s / 300s / 900s) because this unit depends on external endpoints; a 429/529 is provider-side and is NOT a unit failure and must NOT reduce concurrency"
+[reviewer_requirement] "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11380, 11059"
+[tests_required] ["control: a test known to be deterministic must pass 10 of 10; if it does not, the environment is unstable and no flakiness attribution to the test is valid"]
+[timeout_seconds] 3600
+[title] "Flaky-result laundering: detect rerun-until-green in the recorded evidence"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash"]
+==================== ADV-0091 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "groupthink-red-teamer", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0091 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0091 <reason>."
+[dependencies] ["B05", "B07"]
+[evidence_requirement] "Probe 1: run the primed council and record whether a trigger fired, which one, and what it changed in the transcript. Probe 2 (mechanically different): compare the FINAL decision of the triggered run against a control run with the trigger disabled - a trigger that fires but never changes an outcome is ceremonial, which the transcript alone does not reveal."
+[execution_substrate] "local-parallel"
+[failure_classification] ["groupthink", "detector-failure"]
+[id] "ADV-0091"
+[inputs] ["the council runtime's anti-failure controls", "a scripted council whose participants are primed to agree immediately", "_USER-PROMPTS.md:10944, 11229, 11336"]
+[mechanism] "primed instant-agreement council with an outcome-change comparison against a trigger-disabled control"
+[not_a_duplicate_because] "ADV-0101 attacks the STOPPING RULE (when deliberation ends); this attacks the specific fast-unanimity trigger, which is a distinct control with its own on/off state."
+[output_path] "command-center/adversarial/ADV-0091-instant-unanimity-trigger.json"
+[output_schema] "command-center/schema/council-pathology-sim.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "When a council reaches unanimity in the first round with no independent briefs, does the runtime actually trigger blind re-evaluation, forced dissent, counterexample generation, role rotation or critic recruitment?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:10944, 11229"
+[tests_required] ["control: a council that reaches unanimity after genuine independent briefs and disagreement rounds must NOT trigger, otherwise the control fires on every unanimous outcome and is useless"]
+[timeout_seconds] 3600
+[title] "Instant-unanimity trigger: does suspiciously fast agreement force re-evaluation?"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
+==================== ADV-0096 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "groupthink-red-teamer", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0096 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0096 <reason>."
+[dependencies] ["B05", "B07"]
+[evidence_requirement] "Probe 1: run the planted mutant set through the gate and record accept/reject per mutant class. Probe 2 (mechanically different): a second similarity space - if the gate uses lexical similarity, evaluate with embeddings, and vice versa; a mutant class that survives BOTH is a real gap, and a class caught by only one identifies which space the gate is blind in."
+[execution_substrate] "local-parallel"
+[failure_classification] ["groupthink", "benchmark-gaming", "detector-failure"]
+[id] "ADV-0096"
+[inputs] ["the brainstorm uniqueness/dedup gate", "a planted mutant set: exact rename, synonym swap, one-parameter fork, reordered composition, and a genuinely distinct idea", "_USER-PROMPTS.md:11236-11237, 10937"]
+[mechanism] "planted mutant-class matrix evaluated in two different similarity spaces to localise the gate's blind space"
+[not_a_duplicate_because] "the same anti-padding problem this catalog itself is subject to; ADV-0114 applies the collapse check to SYNTHESIS output, where the population and the consequences differ."
+[output_path] "command-center/adversarial/ADV-0096-idea-count-gaming-uniqueness-gate.json"
+[output_schema] "command-center/schema/council-pathology-sim.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "When a brainstorm is told to reach 100 unique ideas, does the uniqueness gate reject trivial rewordings, one-parameter forks and renamed duplicates - and what is its measured discrimination?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11236-11237, 10937"
+[tests_required] ["the genuinely distinct idea must be ACCEPTED; a gate that rejects everything satisfies the anti-gaming requirement while destroying the brainstorm and must be reported as a failure, not a pass"]
+[timeout_seconds] 3600
+[title] "Idea-count gaming: 100 'unique' ideas that are wording variants"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
+==================== ADV-0100 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "groupthink-red-teamer", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0100 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0100 <reason>."
+[dependencies] ["B05", "B01"]
+[evidence_requirement] "Probe 1: construct a case where the same identity authored the artifact and is eligible as a reviewer, then check whether the conflict check excludes it. Probe 2 (mechanically different): transitive check - the author's output was incorporated into the artifact by a third party, so direct authorship metadata does not match; measure whether the conflict is detected through lineage rather than through the immediate author field."
+[execution_substrate] "local-parallel"
+[failure_classification] ["groupthink", "single-signal"]
+[id] "ADV-0100"
+[inputs] ["the participant selection and conflict-detection logic", "authorship metadata on every artifact a council may evaluate", "_USER-PROMPTS.md:10924, 11242"]
+[mechanism] "direct and transitive (lineage-based) conflict construction against the selection filter"
+[not_a_duplicate_because] "the transitive case is the mechanism: an author-field check passes while the reviewer is effectively grading its own work through an intermediary."
+[output_path] "command-center/adversarial/ADV-0100-conflict-of-interest-self-review.json"
+[output_schema] "command-center/schema/council-pathology-sim.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Can a participant end up reviewing, judging or voting on its own prior output - directly, or through a chain where it authored the artifact under review?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:10924, 11242"
+[tests_required] ["control: a genuinely independent reviewer must NOT be excluded, so an over-broad conflict rule that empties the panel is also caught"]
+[timeout_seconds] 3600
+[title] "Hidden conflicts of interest and self-review in council composition"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
+==================== ADV-0109 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "synthesis-distortion-auditor", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0109 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0109 <reason>."
+[dependencies] ["B12"]
+[evidence_requirement] "Probe 1: enumerate contradiction pairs in the inputs and check each for presence in the synthesis, classifying as represented / resolved-with-reason / silently dropped. Probe 2 (mechanically different): reverse direction - check the synthesis for claims of agreement or convergence that the raw inputs do not support, which is manufactured consensus rather than omitted dissent."
+[execution_substrate] "local-parallel"
+[failure_classification] ["synthesis-distortion", "groupthink"]
+[id] "ADV-0109"
+[inputs] ["the raw inputs to each synthesis and the synthesis output", "the contradiction edges recorded in the claim graph", "_USER-PROMPTS.md:11091 (omitted dissent)"]
+[mechanism] "bidirectional contradiction accounting - omitted dissent and manufactured agreement measured against the same input set"
+[not_a_duplicate_because] "ADV-0097 traces ONE tagged council dissent through stages; this audits ALL contradiction pairs across every synthesis, including agreement that was invented."
+[output_path] "command-center/adversarial/ADV-0109-dissent-omission-differential.json"
+[output_schema] "command-center/schema/refutation-record.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Which disagreements present in the raw inputs are absent from the synthesis, and is the omission a deliberate resolution with a stated reason or a silent drop?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11091, 11086"
+[tests_required] ["control: a contradiction that IS represented must be classified correctly, and a planted silent drop must be caught; report both counts, since only the ratio is interpretable"]
+[timeout_seconds] 3600
+[title] "Dissent-omission differential between raw inputs and synthesis"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash"]
+==================== ADV-0110 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "opus", "role": "synthesis-distortion-auditor", "vendor": "anthropic"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0110 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0110 <reason>."
+[dependencies] ["B12"]
+[evidence_requirement] "Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause. Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence."
+[execution_substrate] "local-parallel"
+[failure_classification] ["synthesis-distortion", "overclaim"]
+[id] "ADV-0110"
+[inputs] ["the root-cause hierarchy and its supporting evidence per link", "the underlying findings", "_USER-PROMPTS.md:11086 (root-cause hierarchy and decision trace, not a flat list)"]
+[mechanism] "per-link refutability statement plus a counterfactual prevention test"
+[not_a_duplicate_because] "ADV-0114 collapses duplicate MECHANISMS in the finding set; this evaluates the CAUSAL structure imposed on top of them, which can be wrong even with a perfectly deduplicated list."
+[output_path] "command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json"
+[output_schema] "command-center/schema/refutation-record.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Is the synthesis's root-cause hierarchy a causal structure whose links are individually falsifiable, or a flat finding list relabelled with parent nodes?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11086"
+[tests_required] ["control: include one link known to be genuinely causal (a fix that demonstrably eliminated a class of findings) and require it to pass both probes"]
+[timeout_seconds] 3600
+[title] "Falsifiability audit of the root-cause hierarchy"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash"]
+==================== ADV-0117 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "gpt-5-codex", "role": "platform-fault-injector", "vendor": "openai"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0117 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0117 <reason>."
+[dependencies] ["B07"]
+[evidence_requirement] "Probe 1: run each component over the fixture tree and record per-class outcome: correct, crash, silent skip, or wrong result. Probe 2 (mechanically different): count-based cross-check - compare each component's reported item count against an independent enumeration, because a SILENT SKIP produces a plausible result and only a count comparison exposes it."
+[execution_substrate] "local-serialized"
+[failure_classification] ["platform-portability", "detector-failure", "uncontrolled-silence"]
+[id] "ADV-0117"
+[inputs] ["every path-handling component (enumerators, packagers, installers, artifact writers, manifest hashers)", "a fixture tree with one directory per hostile class", "the measured precedent that os.path.relpath raised ValueError on a file literally named NUL and would have zeroed every count if the crash had been swallowed"]
+[mechanism] "hostile-path fixture matrix with an independent count oracle that exposes silent skips"
+[not_a_duplicate_because] "ADV-0027 covers ATTACKER-CHOSEN archive member paths; this covers legitimate-but-hostile filesystem paths that arise from ordinary use on Windows."
+[output_path] "command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json"
+[output_schema] "command-center/schema/fault-injection-run.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "Which program components fail, corrupt data, or silently skip when a path contains a reserved device name, exceeds MAX_PATH, differs only by case, or contains spaces, non-ASCII characters or a trailing dot?"
+[retry_policy] "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger"
+[reviewer_requirement] "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11016-11017, 11310, 11053"
+[tests_required] ["control: an ordinary-path fixture must produce identical counts from both enumerations", "a swallowed exception must be classified as a defect distinct from a correct refusal; the NUL precedent shows a crash is safer than a silent zero"]
+[timeout_seconds] 5400
+[title] "Windows-hostile path matrix: reserved names, long paths, case collisions and Unicode"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
+==================== ADV-0119 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "gpt-5-codex", "role": "platform-fault-injector", "vendor": "openai"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0119 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0119 <reason>."
+[dependencies] ["B07", "B13"]
+[evidence_requirement] "Probe 1: three-point inventory (pre-upgrade, post-upgrade, post-rollback) of user data, configuration and available commands, reporting anything present pre-upgrade and absent post-rollback. Probe 2 (mechanically different): functional - execute the golden journeys after rollback and require them to pass, since an inventory can match while behaviour is broken by a leftover N-format state file."
+[execution_substrate] "worktree-isolated"
+[failure_classification] ["irreversible-action", "platform-portability"]
+[id] "ADV-0119"
+[inputs] ["the rollback implementation and the ROLLBACK-MANIFEST", "a populated environment: user config, user-authored workflows, cached artifacts, and a command introduced in N-1", "_USER-PROMPTS.md:11347, 11391"]
+[mechanism] "three-point inventory plus post-rollback golden-journey execution against a disposable profile"
+[not_a_duplicate_because] "ADV-0121 tests the FORWARD migration from a hand-edited config; this tests the reverse direction, whose failure destroys data rather than merely failing to start."
+[output_path] "command-center/adversarial/ADV-0119-rollback-user-data-preservation.json"
+[output_schema] "command-center/schema/fault-injection-run.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "After a rollback from version N to N-1, is any user-created data, configuration or previously working command missing - and is anything from N left behind that N-1 cannot understand?"
+[retry_policy] "NO automatic retry: this unit performs a destructive, state-changing or owner-gated drill. On failure STOP, preserve the partial artifact and the restore point, and report BLOCKED with the exact missing prerequisite"
+[reviewer_requirement] "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:11347, 11391"
+[tests_required] ["control: a clean install of N-1 must pass the same golden journeys, so a pre-existing failure is not attributed to rollback", "all rollback drills run against a disposable profile; no live installation is rolled back"]
+[timeout_seconds] 5400
+[title] "Rollback must not remove user data or previously installed commands"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
+==================== ADV-0123 ====================
+[_source_slice_file] "ADV-1.json"
+[assigned_model_vendor_role] {"model": "gpt-5-codex", "role": "platform-fault-injector", "vendor": "openai"}
+[bucket] "B10"
+[completion_sentinel] "SUCCESS:ADV-0123 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0123 <reason>."
+[dependencies] ["B07"]
+[evidence_requirement] "Probe 1: run two agents against one scratch tree with overlapping file sets and inspect what each staging operation captured, using git diff --cached as the oracle. Probe 2 (mechanically different): lease-level test - acquire a lease from one identity and attempt the conflicting write from another, recording whether the write is blocked, warned, or silently allowed; an advisory lease that nothing consults is documentation, not a control."
+[execution_substrate] "worktree-isolated"
+[failure_classification] ["irreversible-action", "uncontrolled-silence"]
+[id] "ADV-0123"
+[inputs] ["every code path that stages, commits or writes into a shared working tree", "the file-lease mechanism and whether it is advisory or enforced", "the estate precedent that parallel agents share ONE git index and a broad add sweeps siblings' work"]
+[mechanism] "two-agent overlap experiment with git diff --cached as the staging oracle plus a lease-enforcement probe"
+[not_a_duplicate_because] "ADV-0116 measures event-log concurrency THROUGHPUT; this measures cross-agent data LOSS in the shared git index, a different resource with a different failure."
+[output_path] "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json"
+[output_schema] "command-center/schema/fault-injection-run.schema.json"
+[owner_approval_required] false
+[phase] "12"
+[question_or_target] "When two sessions or agents operate on the same working tree, does a broad staging operation sweep another agent's files, and do the advisory file leases actually prevent the overlap?"
+[retry_policy] "NO automatic retry: this unit performs a destructive, state-changing or owner-gated drill. On failure STOP, preserve the partial artifact and the restore point, and report BLOCKED with the exact missing prerequisite"
+[reviewer_requirement] "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count"
+[slice] "ADV-1of2"
+[spec_anchor] "_USER-PROMPTS.md:10973-10975, 11321"
+[tests_required] ["control: two agents with disjoint file sets must not interfere, establishing that the harness itself is not the source of contamination", "all writes target a scratch clone; the real working tree is never used for this drill"]
+[timeout_seconds] 5400
+[title] "Concurrent-session races on the shared git index and file leases"
+[tool_permissions] ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]

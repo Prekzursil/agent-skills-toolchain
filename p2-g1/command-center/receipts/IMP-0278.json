@@ -1,0 +1,160 @@
+{
+  "answer": "On the lattice fixture (alpha/beta/gamma + shared + alpha-beta joint), delivered prompts differ, the withheld-token scan of those prompt strings reports zero hits, the same scanner finds a token that WAS delivered (detector control), and disabling redaction makes the scan FIRE. Kernel IMP-0264 is not on disk; this module is the delivery seam a kernel would call.",
+  "artifact_paths": [
+    "command-center/receipts/IMP-0278.json",
+    "tools/council/integrity/partition.py"
+  ],
+  "artifacts": [
+    {
+      "exists": true,
+      "note": "self; sha256 filled in UNIT-ARTIFACT-MANIFEST after write",
+      "path": "command-center/receipts/IMP-0278.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 2941,
+      "exists": true,
+      "path": "tools/council/integrity/partition.py",
+      "role": "implementation",
+      "sha256": "99112f76c412331ca959dd73737b4c118bb44ac10373f20765b31cf7b4f0228e"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0278",
+  "dependencies": [
+    "IMP-0264"
+  ],
+  "dependency_note": "IMP-0264 kernel is not present. This unit still delivers the partition engine and proves delivery-vs-leak on rendered prompts. Not parked: the catalog target is partition.py, not the kernel.",
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0278/probe1_delivered_mapping.py",
+      "claim": "Scanning each seat's delivered prompt text for tokens withheld from that seat yields zero hits.",
+      "id": "E1-delivered-prompt-scan-zero-hits",
+      "measurement": {
+        "leak_hit_count": 0,
+        "mapping_ok": true,
+        "not_a_config_read": true,
+        "partitions_differ": true,
+        "scan_target": "delivered_prompt_text"
+      },
+      "probe_exit": 0,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0278/probe1_delivered_mapping.py",
+      "claim": "The scanner finds PTOK-ALPHA-imp0278-7f3a in alice's delivered prompt before leak-scan silence is trusted.",
+      "id": "E2-detector-control-finds-delivered-token",
+      "measurement": {
+        "detector_control_found": true,
+        "detector_control_scan": [
+          "PTOK-ALPHA-imp0278-7f3a"
+        ],
+        "shared_token_in_all_prompts": true
+      },
+      "probe_exit": 0,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0278/probe2_negative_control.py",
+      "claim": "Disabling redaction and scanning the open prompts with the redacting withheld set makes the scan FIRE; the redacting path stays silent (both-states).",
+      "id": "E3-negative-control-redaction-off-fires",
+      "measurement": {
+        "alice_open_scan_hits": [
+          "PTOK-BETA-imp0278-4d81",
+          "PTOK-GAMMA-imp0278-91bc"
+        ],
+        "fired_on_bad": true,
+        "observer_closed_has_joint": false,
+        "observer_open_has_joint": true,
+        "silent_on_good": true,
+        "vacuous_scan_delivered_on_open_spec_hits": 0
+      },
+      "probe_exit": 0,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0278",
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0278/probe1_delivered_mapping.py",
+      "exit_code": 0,
+      "id": "probe1"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0278/probe2_negative_control.py",
+      "exit_code": 0,
+      "id": "probe2"
+    }
+  ],
+  "negative_control_ids": [
+    "NC-DISABLE-REDACTION"
+  ],
+  "negative_controls": [
+    {
+      "description": "Turn redact=False, deliver prompts, scan with the redacting withheld-token set; must FIRE. Redacting path must stay silent.",
+      "fired_on_bad_state": true,
+      "id": "NC-DISABLE-REDACTION",
+      "kind": "disable-redaction",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for IMP-0278: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-integrity-module",
+  "question_or_target": "Implement tools/council/integrity/partition.py delivering per-participant redacted context so configured partitions genuinely differ. Falsifiable question: does any participant receive a token it was partitioned away from, measured by scanning delivered prompts rather than by reading the config?",
+  "residual_unknowns": [
+    {
+      "claim": "No live council round through tools/council/kernel.py (IMP-0264). That kernel is absent on this worktree; partition.py is the delivery seam a kernel would call.",
+      "settling_experiment": "Re-run the leak scan on prompts minted by kernel.py once IMP-0264 exists.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Paraphrase / laundered leaks (CNF-0093) are outside this unit's token-scan contract.",
+      "settling_experiment": "CNF-0093 paraphrase search over participant output.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "note": "G-1 named probe 2 is the adversarial check: it disables redaction and requires the scan to FIRE, and requires the redacting path to stay silent.",
+    "reviewer_id": "IMP-0278-probe2-negative-control",
+    "starts_from": "tests (probe2), not the author's summary",
+    "verdict": "PASS"
+  },
+  "reviewer_verdict": "PASS",
+  "sentinel": "SUCCESS:IMP-0278",
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0278; _USER-PROMPTS.md:10746-10767 information partition; same lattice type as blind first-pass / staged evidence / fishbowl observer (CNL-0006 question)",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "test_ids": [
+    "unit-partition-definition-to-delivered-context-mapping",
+    "detector-control-scanner-finds-known-present-token",
+    "negative-control-disable-redaction-scan-fires"
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0278/probe1_delivered_mapping.py",
+      "exit_code": 0,
+      "id": "unit-partition-definition-to-delivered-context-mapping",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0278/probe1_delivered_mapping.py",
+      "exit_code": 0,
+      "id": "detector-control-scanner-finds-known-present-token",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0278/probe2_negative_control.py",
+      "exit_code": 0,
+      "id": "negative-control-disable-redaction-scan-fires",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-09-02T00:32:30Z",
+    "started_at": "2026-09-02T00:32:30Z"
+  },
+  "title": "Information-partition engine",
+  "unit_id": "IMP-0278"
+}

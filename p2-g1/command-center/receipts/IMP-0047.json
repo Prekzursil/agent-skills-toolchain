@@ -1,0 +1,286 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0047.json",
+   "role": "primary"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0047.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0047",
+    "method": "command",
+    "raw_output": "run after this emitter",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "dry_run": {
+  "caller_journal_unchanged": true,
+  "dry_run_flag": true,
+  "live_tree_unchanged": true,
+  "mutation_ops": [
+   {
+    "byte_delta": 0,
+    "op": "rename-key",
+    "path": "config.json"
+   },
+   {
+    "byte_delta": 17,
+    "op": "move",
+    "path": "keys/root.json"
+   },
+   {
+    "byte_delta": 2,
+    "op": "version",
+    "path": "layout-version"
+   },
+   {
+    "byte_delta": 13,
+    "op": "move",
+    "path": "skills/core/SKILL.md"
+   },
+   {
+    "byte_delta": 2,
+    "op": "version",
+    "path": "layout-version"
+   },
+   {
+    "byte_delta": -1,
+    "op": "delete",
+    "path": "hooks/old.json"
+   },
+   {
+    "byte_delta": 20,
+    "op": "write",
+    "path": "hooks/dispatch.json"
+   },
+   {
+    "byte_delta": 2,
+    "op": "version",
+    "path": "layout-version"
+   }
+  ],
+  "rendering": "shadow-copy apply; live tree and caller journal untouched"
+ },
+ "engine": {
+  "dependencies_note": "IMP-0028 journal and IMP-0032 lifecycle dry-run are catalog dependencies and are not on disk; this unit ships its own step journal and dry-run inside the migration engine rather than pretending those units delivered.",
+  "dry_run": "same migrate() path on a shadow copy; live tree and caller journal untouched",
+  "journal_schema": "imp-0047-migration-journal/v1",
+  "module": "tools/plugin/migration.py",
+  "resume": "journal status=in_progress skips applied_step_ids",
+  "version_file": "layout-version"
+ },
+ "evidence": [
+  {
+   "anchor": "tools/plugin/migration.py:sha256_file_census",
+   "claim": "apply-then-inverse returns the fixture tree to a byte-identical state by per-file sha256 census",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "sha256_file_census before vs after invert",
+     "method": "in-process",
+     "raw_output": "{\"restored\": true, \"file_count\": 5}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0047/probe1_roundtrip.py",
+     "method": "named-probe",
+     "raw_output": "probe1 re-runs the census on a fresh tree",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/migration.py:blake2_tree_digest",
+   "claim": "apply-twice produces the same result as apply-once by a separate blake2b tree digest",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "blake2_tree_digest(apply-once) vs blake2_tree_digest(apply-twice)",
+     "method": "in-process",
+     "raw_output": "{\"equal\": true, \"once\": \"d0636fbbab587584c11c5ff19b99e9148845029bf95d36623c5a2c067b2a955fd97c7e215172fc7ec3604fd9db20461fe340acd4371085f912c11cdd47062c30\", \"twice\": \"d0636fbbab587584c11c5ff19b99e9148845029bf95d36623c5a2c067b2a955fd97c7e215172fc7ec3604fd9db20461fe340acd4371085f912c11cdd47062c30\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0047/probe2_idempotent_resume.py",
+     "method": "named-probe",
+     "raw_output": "probe2 rebuilds once/twice trees independently",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "idempotency": {
+  "apply_once_equals_apply_twice": true,
+  "census_algorithm": "blake2b-path-size-bytes plus independent sha256 file map",
+  "once_blake2": "d0636fbbab587584c11c5ff19b99e9148845029bf95d36623c5a2c067b2a955fd97c7e215172fc7ec3604fd9db20461fe340acd4371085f912c11cdd47062c30",
+  "once_file_count": 5,
+  "twice_blake2": "d0636fbbab587584c11c5ff19b99e9148845029bf95d36623c5a2c067b2a955fd97c7e215172fc7ec3604fd9db20461fe340acd4371085f912c11cdd47062c30",
+  "twice_file_count": 5
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0047/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_wrong_inverse": {
+  "after_blake2": "1cb0176cffffabeeed0ec14ab94d726f12c680384c4097486fa2f3ac452f3183d8a9aa0a881a9a49c9be8c434ab6c3bb604c32b32d34c0f953f8b105d9e2e1f5",
+  "before_blake2": "dfb02f050cd175c56e56f040c98cad2ef3f8608b812e7b7253120dc85c6610a712250da3a0816b3fa2fb9ff8ca539043f31bc6c691323faffd3422744cb1e16f",
+  "detected": true,
+  "round_trip_equal": false
+ },
+ "negative_controls": [
+  {
+   "bad_state_output": "1cb0176cffffabeeed0ec14ab94d726f12c680384c4097486fa2f3ac452f3183d8a9aa0a881a9a49c9be8c434ab6c3bb604c32b32d34c0f953f8b105d9e2e1f5",
+   "description": "A step whose inverse renames key_location to not_the_original_key must fail the round-trip census.",
+   "fired_on_bad_state": true,
+   "good_state_output": "dfb02f050cd175c56e56f040c98cad2ef3f8608b812e7b7253120dc85c6610a712250da3a0816b3fa2fb9ff8ca539043f31bc6c691323faffd3422744cb1e16f",
+   "id": "wrong-inverse",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0047: live named probes, SUCCESS artifact, per-unit manifest. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "output_path": "command-center/receipts/IMP-0047.json",
+ "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/migration-step.schema.json",
+ "question_or_target": "Implement the migration engine: an ordered list of versioned steps, each with an apply, an inverse, an idempotency guarantee, and a dry-run rendering, executed only up to the target version.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0048 layout fingerprints are not implemented here; demo steps exercise the engine only.",
+   "settling_experiment": "IMP-0048 fixture trees per historical layout",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "resume": {
+  "journal_applied_after_kill": [
+   "s1-relocate-key"
+  ],
+  "newly_applied_on_resume": [
+   "s2-move-skill",
+   "s3-dispatch-hooks"
+  ],
+  "partial_status": "in_progress",
+  "resumed_status": "complete",
+  "resumed_version": "3",
+  "s1_apply_calls": 1,
+  "s1_not_rerun": true
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot; a failed migration must be inverted before any retry"
+ },
+ "retry_policy_measured": {
+  "complete_after_invert": true,
+  "refuse_message": "failed journal must be inverted before retry",
+  "refused_until_invert": true
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Partial apply is journalled (status=in_progress, applied_step_ids) and resume skips already-applied steps (s1 apply_calls stays 1).",
+  "reviewer_id": "IMP-0047-probe2-resume",
+  "verdict": "PASS"
+ },
+ "round_trip": {
+  "after_blake2": "dfb02f050cd175c56e56f040c98cad2ef3f8608b812e7b7253120dc85c6610a712250da3a0816b3fa2fb9ff8ca539043f31bc6c691323faffd3422744cb1e16f",
+  "after_file_census": {
+   "config.json": "ccc90255dc40debd19caa5e3736f524e3d492d13812fe4ceb35bab3f1a169527",
+   "hooks/old.json": "5418451a0fedbc721044a7a1fcbc0d617da96981252caf1faaeeaec7413c7523",
+   "layout-version": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "root.json": "c5776f7a568426f2f5b10a17d371ee20d412475231baa1e083b68e44f1447eb3",
+   "skills/legacy/SKILL.md": "dc2b1a1d69df77809de02a749609775bf16200c06ac6ef147e10e968c36418ba"
+  },
+  "applied_step_ids": [
+   "s1-relocate-key",
+   "s2-move-skill",
+   "s3-dispatch-hooks"
+  ],
+  "apply_changed_tree": true,
+  "apply_rendering": "live apply",
+  "before_blake2": "dfb02f050cd175c56e56f040c98cad2ef3f8608b812e7b7253120dc85c6610a712250da3a0816b3fa2fb9ff8ca539043f31bc6c691323faffd3422744cb1e16f",
+  "before_file_census": {
+   "config.json": "ccc90255dc40debd19caa5e3736f524e3d492d13812fe4ceb35bab3f1a169527",
+   "hooks/old.json": "5418451a0fedbc721044a7a1fcbc0d617da96981252caf1faaeeaec7413c7523",
+   "layout-version": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "root.json": "c5776f7a568426f2f5b10a17d371ee20d412475231baa1e083b68e44f1447eb3",
+   "skills/legacy/SKILL.md": "dc2b1a1d69df77809de02a749609775bf16200c06ac6ef147e10e968c36418ba"
+  },
+  "blake2_restored": true,
+  "file_census_restored": true,
+  "file_count": 5,
+  "inverted_step_ids": [
+   "s3-dispatch-hooks",
+   "s2-move-skill",
+   "s1-relocate-key"
+  ]
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0047",
+ "spec_anchor": "catalog IMP-0047; layout fingerprint detectors deferred to IMP-0048",
+ "state": "SUCCESS",
+ "step_specs": [
+  {
+   "description": "Relocate token_file to key_location and bump layout-version to 1.",
+   "from_version": "0",
+   "id": "s1-relocate-key",
+   "inverse": "restore-token-file-from-key-location",
+   "to_version": "1"
+  },
+  {
+   "description": "Move skills/legacy/SKILL.md to skills/core/SKILL.md.",
+   "from_version": "1",
+   "id": "s2-move-skill",
+   "inverse": "restore-legacy-skill-path",
+   "to_version": "2"
+  },
+  {
+   "description": "Replace hooks/old.json with hooks/dispatch.json.",
+   "from_version": "2",
+   "id": "s3-dispatch-hooks",
+   "inverse": "restore-hooks-old",
+   "to_version": "3"
+  }
+ ],
+ "target_cap": {
+  "applied_step_ids": [
+   "s1-relocate-key",
+   "s2-move-skill"
+  ],
+  "current_version": "2",
+  "hooks_old_preserved": true,
+  "requested": "2",
+  "s3_apply_calls": 0
+ },
+ "tests": [
+  {
+   "command": "PYTHONPATH=tools python3 -B tools/plugin/tests/test_migration_framework.py",
+   "id": "test_apply_inverse_round_trip",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools python3 -B tools/plugin/tests/test_migration_framework.py",
+   "id": "test_apply_is_idempotent",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools python3 -B tools/plugin/tests/test_migration_framework.py",
+   "id": "test_wrong_inverse_fails_round_trip",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-09-02T00:29:05Z",
+  "started_at": "2026-09-02T00:29:05Z"
+ },
+ "title": "Versioned migration step framework (dry-run, idempotent, invertible)",
+ "unit_id": "IMP-0047"
+}

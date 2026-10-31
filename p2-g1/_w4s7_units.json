@@ -1,0 +1,375 @@
+{
+ "IMP-0010": {
+  "id": "IMP-0010",
+  "title": "Manifest-to-live-config projection map",
+  "question_or_target": "Implement the typed projection that states, for each manifest entry, exactly which live file it produces (settings.json key, hooks/_dispatch/manifest.json row, ~/.claude/skills path) so that 'what will this manifest do to my machine' is answerable before install rather than discovered after.",
+  "output_path": "command-center/receipts/IMP-0010.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/projection-map.schema.json",
+  "dependencies": [
+   "IMP-0006"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the projection map's predicted live-path set for the current manifest; (2) an actual dry-run deploy into a throwaway HOME whose resulting file listing is diffed against the prediction. Any predicted-but-absent or present-but-unpredicted path fails the unit.",
+  "tests_required": [
+   "tools/plugin/tests/test_projection_map.py::test_prediction_matches_dry_run",
+   "NEGATIVE CONTROL: remove one manifest entry and assert exactly one predicted path disappears (not zero, not many)"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 5400,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0010",
+  "failure_classification": [
+   "duplicate-control-plane",
+   "green-not-live",
+   "overclaim"
+  ],
+  "reviewer_requirement": "Reviewer must verify the projection does not duplicate ci/emit_hook_manifest.py or ci/gen_skills_manifest.py logic but consumes them.",
+  "inputs": [
+   ".claude-plugin/plugin.json",
+   "hooks/_dispatch/manifest.json",
+   "skills/DEPLOYED-MANIFEST.json",
+   "ci/emit_hook_manifest.py",
+   "ci/gen_skills_manifest.py"
+  ]
+ },
+ "IMP-0011": {
+  "id": "IMP-0011",
+  "title": "Build reproducibility check wired as a release gate",
+  "question_or_target": "Make double-build byte-equality a required gate in the release path rather than a developer habit: run the packer twice in one CI job on a Linux runner and once locally on Windows, and require all three digests to match after the documented normalisation.",
+  "output_path": "command-center/receipts/IMP-0011.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0002"
+  ],
+  "evidence_requirement": "TWO mechanically independent signals from DIFFERENT OSes: the Linux CI digest and the Windows local digest, computed by the same script but on different filesystems and line-ending regimes. Equality across the OS boundary is the claim; a Linux-only double build is one signal.",
+  "tests_required": [
+   "ci job 'plugin-repro' asserting digest equality",
+   "NEGATIVE CONTROL: inject a timestamp into one build and assert the job goes red"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0011",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure",
+   "overclaim"
+  ],
+  "reviewer_requirement": "Reviewer must confirm the CI job actually ran both builds (two log sections) rather than caching the first.",
+  "inputs": [
+   "IMP-0002",
+   "_USER-PROMPTS.md:11108 (signed artifacts / provenance attestation)",
+   "ci/ workflows at HEAD"
+  ]
+ },
+ "IMP-0012": {
+  "id": "IMP-0012",
+  "title": "Explicit interpreter declaration for every script entrypoint",
+  "question_or_target": "Require each shipped executable entrypoint to declare its interpreter and minimum version in the manifest (python3.11+, node20+, pwsh7, bash5) and make the launcher invoke `<interpreter> <script>` explicitly, never relying on a shebang, file association, or a bare `.sh` invocation on Windows.",
+  "output_path": "command-center/receipts/IMP-0012.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0006"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) every declared entrypoint launches successfully from pwsh7 with the declared interpreter, verified by the child process's own reported executable path; (2) the same set launched from Git Bash, where a bare `.sh` invocation is known to succeed for the wrong reason \u2014 the two shells must agree on the resolved interpreter.",
+  "tests_required": [
+   "tools/plugin/tests/test_interpreters.py::test_every_entrypoint_declares_an_interpreter",
+   "NEGATIVE CONTROL: an entrypoint with no declaration must fail the linter",
+   "cross-shell case: same script launched from pwsh7 and Git Bash reports the same interpreter path"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0012",
+  "failure_classification": [
+   "green-not-live",
+   "shell-quoting-corruption",
+   "detector-failure"
+  ],
+  "reviewer_requirement": "Reviewer must run the entrypoint set from a shell the implementer did not use.",
+  "inputs": [
+   "_USER-PROMPTS.md:10830 (explicit interpreters for scripts)",
+   "_USER-PROMPTS.md:11304 (bare .sh invocation on Windows)",
+   "scripts/longrun.ps1",
+   "scripts/longrun.sh"
+  ]
+ },
+ "IMP-0025": {
+  "id": "IMP-0025",
+  "title": "`repair` command restoring only files with no live-unique content",
+  "question_or_target": "Implement `repair` to re-deploy exactly the drifted files that the two-directional classifier (IMP-0034) marks repo-ahead or identical-modulo-EOL, and to refuse to touch anything marked DIVERGED. A one-directional repair on this estate would destroy live content: the rules tree alone was measured with 3 live-larger files against 25 repo-larger ones.",
+  "output_path": "command-center/receipts/IMP-0025.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0034",
+   "IMP-0036"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a dry-run repair plan over the real live tree listing every file it would touch and its classification; (2) an independent recomputation of that classification by the deterministic differ, requiring an exact set match. Any file appearing in the repair plan but classified DIVERGED by the differ fails the unit outright.",
+  "tests_required": [
+   "tools/plugin/tests/test_repair_respects_divergence.py::test_diverged_files_never_touched",
+   "NEGATIVE CONTROL: a synthetic DIVERGED fixture (both sides holding unique lines) must be refused, and a repo-ahead fixture must be repaired, in the same run",
+   "MUTATION: make the classifier one-directional and assert the diverged test goes red"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 5400,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0025",
+  "failure_classification": [
+   "data-loss",
+   "detector-failure",
+   "overclaim"
+  ],
+  "reviewer_requirement": "Reviewer must independently classify a 10-file sample by reading both sides and compare against the tool's verdicts; LLM classification of this comparison measured 86% accurate with 100% of errors toward data loss, so the DIFFER is authoritative and the reviewer audits the differ, not the other way round.",
+  "inputs": [
+   "ground/baseline finding F6: two-directional divergence, 5/88 identical, 28 content-differing",
+   "scripts/sync-rules.ps1:67 (plain Copy-Item -Force, no transform)",
+   "_USER-PROMPTS.md:10832"
+  ]
+ },
+ "IMP-0039": {
+  "id": "IMP-0039",
+  "title": "Hook-fire verification probe (installed is not the same as loaded)",
+  "question_or_target": "Implement a probe that proves a registered hook ACTUALLY FIRED \u2014 by triggering it and observing its own side effect \u2014 rather than asserting the hook file exists. The seeded failure class is 'plugin appears installed but hooks are unloaded', and on this estate a malformed hooks config once caused a client to load zero hooks while every file was present.",
+  "output_path": "command-center/receipts/IMP-0039.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0033",
+   "IMP-0044"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the hook's own emitted sentinel observed after a real trigger; (2) the client's hook-inventory surface reporting the hook as loaded. Both must agree; file existence is explicitly not one of the two signals. BOTH-STATES: the probe must also be run against a deliberately broken hooks config and must report NOT-FIRED there.",
+  "tests_required": [
+   "tools/plugin/tests/test_hook_fire_probe.py::test_probe_reports_fired_on_healthy_config",
+   "BOTH-STATES CONTROL: same probe against a config with an unknown top-level key must report NOT-FIRED",
+   "assert the probe cannot pass using only filesystem evidence"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0039",
+  "failure_classification": [
+   "hook-unloaded",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "reviewer_requirement": "Reviewer must run the probe in the known-broken state first and confirm it fires there; a probe silent in both states measures nothing.",
+  "inputs": [
+   "_USER-PROMPTS.md:11303 (plugin appears installed but hooks are unloaded)",
+   "MEMORY: hooks.json $schema key made Codex load ZERO hooks",
+   "hooks/_dispatch/manifest.json"
+  ]
+ },
+ "IMP-0055": {
+  "id": "IMP-0055",
+  "title": "CLI exit-code contract with one code per failure class",
+  "question_or_target": "Define and enforce distinct process exit codes for the major failure classes (usage error, precondition failed, validation failed, permission denied, blocked-needs-owner, internal error), documented and stable, so a calling script can branch on the reason without parsing prose. Exit zero must be reserved for a verified success, never for 'finished'.",
+  "output_path": "command-center/receipts/IMP-0055.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0051"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) observed process exit codes captured from a POSIX shell; (2) the same commands run from PowerShell where `$LASTEXITCODE` semantics differ, confirming the codes survive the shell boundary intact.",
+  "tests_required": [
+   "tools/plugin/tests/test_exit_codes.py (one case per class, asserting the exact integer)",
+   "CROSS-SHELL CONTROL: identical codes observed from bash and pwsh7",
+   "NEGATIVE CONTROL: a command that fails must never exit 0 even when it printed a report"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 1800,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0055",
+  "failure_classification": [
+   "overclaim",
+   "green-not-live"
+  ],
+  "reviewer_requirement": "Reviewer confirms no code collides with a shell-reserved value (126, 127, 128+n).",
+  "inputs": [
+   "_USER-PROMPTS.md:10646 (exit code zero alone is never success)",
+   "IMP-0051 taxonomy",
+   "AGENTS.md#4"
+  ]
+ },
+ "IMP-0056": {
+  "id": "IMP-0056",
+  "title": "Structured logging with mandatory redaction and bounded rotation",
+  "question_or_target": "Implement JSON-lines logging where every record carries the error code, unit id and timestamp, where a redaction filter runs on the value side of every field before write, and where files rotate by size and count so logs cannot consume the disk.",
+  "output_path": "command-center/receipts/IMP-0056.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/log-record.schema.json",
+  "dependencies": [
+   "IMP-0051",
+   "IMP-0004"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a run that logs a planted synthetic credential produces zero matches when the log is grepped for the secret body; (2) the same log still contains the record that referenced it (proving the record was written, not dropped) \u2014 redaction that deletes the whole event is not redaction.",
+  "tests_required": [
+   "tools/plugin/tests/test_log_redaction.py::test_secret_body_never_written",
+   "tools/plugin/tests/test_log_rotation.py::test_size_and_count_bounds_hold",
+   "NEGATIVE CONTROL: disable the filter and assert the secret DOES appear, proving the grep detector works"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0056",
+  "failure_classification": [
+   "secret-in-artifact",
+   "detector-failure",
+   "uncontrolled-silence"
+  ],
+  "reviewer_requirement": "Security reviewer must attempt a control-character injection into a log field and confirm it cannot forge a record boundary.",
+  "inputs": [
+   "AGENTS.md#9 (never persist raw secrets)",
+   "_USER-PROMPTS.md:11018 (secret-leak tests)",
+   "rules/common/bash-hud-and-terminal-emit.md#2 (sanitize inside the parse, before the split)"
+  ]
+ },
+ "IMP-0062": {
+  "id": "IMP-0062",
+  "title": "SBOM generation for the plugin's own dependency closure",
+  "question_or_target": "Emit a CycloneDX SBOM describing the plugin's transitive Python and Node dependencies plus any vendored trees, produced from the lockfiles at build time and attached to the release artifact. This PRODUCES the SBOM; registry-side ingestion and querying is a separate marketplace unit.",
+  "output_path": "command-center/receipts/IMP-0062.json",
+  "output_schema": "command-center/schema/receipt.schema.json + CycloneDX 1.5 JSON schema",
+  "dependencies": [
+   "IMP-0002"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the SBOM validates against the CycloneDX schema; (2) its component count and names are cross-checked against an independent lockfile parse, requiring set equality. A schema-valid SBOM listing the wrong components would pass (1) alone.",
+  "tests_required": [
+   "tools/plugin/tests/test_sbom.py::test_sbom_matches_lockfile_closure",
+   "NEGATIVE CONTROL: add a dependency and assert it appears in the regenerated SBOM (and that the test fails if it does not)",
+   "vendored trees present in the payload must appear as components"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0062",
+  "failure_classification": [
+   "provenance-loss",
+   "overclaim",
+   "detector-failure"
+  ],
+  "reviewer_requirement": "Reviewer confirms vendored/unpinned content is represented, not silently omitted because it has no lockfile entry.",
+  "inputs": [
+   "_USER-PROMPTS.md:11110 (SBOM)",
+   "package.json",
+   "package-lock.json",
+   "osv-scanner.toml"
+  ]
+ },
+ "IMP-0072": {
+  "id": "IMP-0072",
+  "title": "Append-only hash-chained registry event log",
+  "question_or_target": "Record every publish, yank, deprecate, revoke and moderation action as an append-only event whose hash chains to its predecessor, so a silent retroactive edit of registry history is detectable by recomputing the chain.",
+  "output_path": "command-center/receipts/IMP-0072.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/registry-event.schema.json",
+  "dependencies": [
+   "IMP-0068"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) chain verification passes over a genuine log; (2) verification FAILS after a single-field edit to a middle record, and names that record. Detecting tampering at the right position is the claim, not merely detecting that something changed.",
+  "tests_required": [
+   "tools/marketplace/tests/test_event_chain.py::test_tamper_is_detected_and_localised",
+   "NEGATIVE CONTROL: an untampered log verifies clean in the same run",
+   "append-only: a rewrite attempt is rejected by the writer"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0072",
+  "failure_classification": [
+   "provenance-loss",
+   "index-corruption",
+   "overclaim"
+  ],
+  "reviewer_requirement": "Reviewer must attempt a re-chained forgery (edit plus recompute all downstream hashes) and record whether anything detects it, stating honestly what an unanchored chain cannot prove.",
+  "inputs": [
+   "_USER-PROMPTS.md:10603 (append-only event logs)",
+   "command-center/events/EVENTS.jsonl",
+   "IMP-0067 index schema"
+  ]
+ },
+ "IMP-0114": {
+  "id": "IMP-0114",
+  "title": "Registry index linter (dangling references, digest mismatch, orphans, duplicates)",
+  "question_or_target": "Implement the index-level consistency linter: every index entry points at a stored blob, every stored blob is referenced, no duplicate ids, every declared digest matches the stored bytes, and every dependency reference resolves within the index. This is whole-index consistency, distinct from the per-package linter.",
+  "output_path": "command-center/receipts/IMP-0114.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0068"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the linter's findings over an index with one planted defect of each class; (2) an independent recomputation of the reference graph confirming the same dangling and orphan sets. Both are needed because a linter can walk the index without ever walking the blob store.",
+  "tests_required": [
+   "tools/marketplace/tests/test_index_linter.py (dangling ref, orphan blob, duplicate id, digest mismatch, unresolvable dependency)",
+   "NEGATIVE CONTROL: a clean index yields zero findings in the same run",
+   "assert scripts/plugin_registry_doctor.py is extended or superseded explicitly, not silently duplicated"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0114",
+  "failure_classification": [
+   "index-corruption",
+   "duplicate-control-plane",
+   "detector-failure"
+  ],
+  "reviewer_requirement": "Reviewer must confirm the linter reads the blob store, not only the index.",
+  "inputs": [
+   "IMP-0067 index schema",
+   "IMP-0068 storage layer",
+   "scripts/plugin_registry_doctor.py (existing precedent)"
+  ]
+ },
+ "IMP-0116": {
+  "id": "IMP-0116",
+  "title": "Package scaffolder producing lint-clean starting points",
+  "question_or_target": "Implement `new <skill|hook|workflow|council-preset>` scaffolding whose output passes the package linter with zero findings on first generation, so the default path for a new contribution is already conformant rather than requiring remediation.",
+  "output_path": "command-center/receipts/IMP-0116.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0113"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) each scaffold type generates and lints with zero findings; (2) the generated artifact also passes the CONFORMANCE validator (a different tool with different rules), proving the scaffold satisfies both surfaces rather than being tuned to the linter alone.",
+  "tests_required": [
+   "tools/marketplace/tests/test_scaffolder.py (one case per scaffold type, asserting zero lint findings)",
+   "tools/marketplace/tests/test_scaffolder.py::test_generated_artifact_passes_conformance",
+   "NEGATIVE CONTROL: deliberately break one template and assert the test goes red"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 3600,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0116",
+  "failure_classification": [
+   "overclaim",
+   "green-not-live"
+  ],
+  "reviewer_requirement": "Reviewer must scaffold one package and complete it as a naive contributor, reporting every step the scaffold failed to anticipate.",
+  "inputs": [
+   "_USER-PROMPTS.md:10871 (package scaffolder)",
+   "IMP-0113 linter",
+   "skills/ tree structure at HEAD"
+  ]
+ },
+ "IMP-0158": {
+  "id": "IMP-0158",
+  "title": "Implement trust-tier assignment for candidate sources",
+  "question_or_target": "Target: assign each candidate a trust tier (first-party | vendor | community | unknown) from evidence (publisher identity, signature, repo ownership), and make the tier an INPUT to admission, not a label. Acceptance: an unknown-tier candidate cannot be auto-adopted; it can only be adopted after clean-room reimplementation or explicit owner approval.",
+  "output_path": "command-center/receipts/IMP-0158.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "dependencies": [
+   "IMP-0155",
+   "B07"
+  ],
+  "evidence_requirement": "Two signals: (1) an unknown-tier fixture is refused by the admission path; (2) tier assignment is reproducible - the same inputs yield the same tier across two runs with no clock dependency.",
+  "tests_required": [
+   "unknown-tier candidate cannot be auto-adopted (both-states: first-party twin can)",
+   "tier assignment is deterministic across runs"
+  ],
+  "owner_approval_required": false,
+  "timeout_seconds": 1800,
+  "spec_anchor": null,
+  "completion_sentinel": "SUCCESS:IMP-0158",
+  "failure_classification": [
+   "owner-blocked",
+   "detector-failure"
+  ],
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "inputs": [
+   "IMP-0155 output",
+   "B07 phase-6 publisher identity"
+  ]
+ }
+}

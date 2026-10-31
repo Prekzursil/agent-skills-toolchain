@@ -1,0 +1,939 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0075",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0075 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the score matrix records equal budgets and includes stage counts for the fusion and every source. Any other terminal state is FAILED:CNF-0075 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0075; spec:11170 merged workflow is not accepted because it contains more stages",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "fusion-benchmark-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/benchmark-report.schema.json",
+      "bytes": 1101,
+      "sha256": "890043cae54b2d8bda22bb4725161d0ce8e4ce1cfff829093838bcd508cfcade",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0075/harness.py",
+      "bytes": 8678,
+      "sha256": "2a3bebe62cd6a037961d44c7b9364973dfe93824f982f9fd8af32cfdec14999e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0075/gates.py",
+      "bytes": 9119,
+      "sha256": "5565867e510983ebb51307780e3fe32e5d311705629af7d26d7f41798ecc4fdc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Fusion and both sources re-ran on the same six cases at budget_limit=6 stage-cost; every cell records score, budget_limit, budget_spent and stage_count.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0075/harness.py:execute_case",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "measure_subject(fusion_union, source_retrieve, source_transform, CASES, BUDGET_LIMIT)",
+          "raw_output": "{\"budget_parity\": true, \"cells\": 18, \"fusion_pass_rate\": 1.0, \"source_pass_rates\": {\"wf.source.retrieve\": 0.333333, \"wf.source.transform\": 0.333333}, \"verdict\": \"ACCEPT\"}",
+          "fingerprint": "f0ea147d6009270871711d2045ff6e4e88b906f4aa147862b5524a8c5691553f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe1_matched_budget.py",
+          "raw_output": "probe1 re-runs the matched matrix and diffs scores, budget_limit and stage_count against this artifact",
+          "fingerprint": "9c1a3a3dc4fbd8a902f0a1ae32ebebd65692a467c0fc4e864acccbfd541fc8ab",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Detector controls fire on planted fixtures: stage-padded REJECT/unearned-fusion, degraded REJECT, budget-asymmetric REFUSED, and a per-case lookup regression is listed while the aggregate still improves.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0075/gates.py:detector_controls",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "detector_controls(CASES, BUDGET_LIMIT)",
+          "raw_output": "{\"budget_asymmetric\": {\"pass\": true, \"verdict\": \"REFUSED\"}, \"degraded\": {\"pass\": true, \"verdict\": \"REJECT\"}, \"good\": {\"pass\": true, \"verdict\": \"ACCEPT\"}, \"per_case_regression\": {\"pass\": true, \"verdict\": \"ACCEPT\"}, \"stage_padded\": {\"pass\": true, \"verdict\": \"REJECT\"}}",
+          "fingerprint": "2bbd2d2c6b142b2a4a0d46a877b9868ef64f0ba1c8b7ee3846a01574a2a1d2ac",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py",
+          "raw_output": "probe2 re-derives ACCEPT/REJECT from planted fixtures before reading this artifact's answers",
+          "fingerprint": "1b96998725748c2ae9db92b325339b7c0aa3433f24cb78b8829f3ed6c0e5a0d2",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "budget-parity",
+      "name": "equal budget across fusion and every source",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe1_matched_budget.py",
+      "result": "PASS"
+    },
+    {
+      "id": "per-case-regression",
+      "name": "planted per-case regression is listed while aggregate still up",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "stage-count-alongside-score",
+      "name": "stage counts reported next to pass_rate for fusion and sources",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe1_matched_budget.py",
+      "result": "PASS"
+    },
+    {
+      "id": "detector-stage-padded",
+      "name": "stage-padded fusion rejected as unearned-fusion (spec 11170)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "detector-budget-asymmetric",
+      "name": "unequal budget limits refuse the comparison",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "detector-degraded",
+      "name": "fusion worse than every source is rejected (spec 11333)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "stage-padded",
+      "kind": "known-broken-fixture",
+      "description": "Union fusion plus trailing no-op stages must REJECT as unearned-fusion (spec 11170); good union fusion stays ACCEPT.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"classification\": \"unearned-fusion\", \"pass\": true, \"unearned_stages\": [\"noop.1\", \"noop.2\"], \"verdict\": \"REJECT\"}",
+      "good_state_output": "{\"merely_adds_stages\": false, \"outperforms_every_source\": true, \"pass\": true, \"regresses_on_any_case\": false, \"unearned_stages\": [], \"verdict\": \"ACCEPT\"}"
+    },
+    {
+      "id": "degraded-retrieve-only",
+      "kind": "known-broken-fixture",
+      "description": "Fusion that dropped rewrite must not outperform every source.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"classification\": \"unearned-fusion\", \"outperforms_every_source\": false, \"pass\": true, \"verdict\": \"REJECT\"}",
+      "good_state_output": "{\"merely_adds_stages\": false, \"outperforms_every_source\": true, \"pass\": true, \"regresses_on_any_case\": false, \"unearned_stages\": [], \"verdict\": \"ACCEPT\"}"
+    },
+    {
+      "id": "budget-asymmetric",
+      "kind": "mutation",
+      "description": "Sources at budget 1 vs fusion at 6 must REFUSE the comparison.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"classification\": \"budget-asymmetry\", \"equal\": false, \"pass\": true, \"verdict\": \"REFUSED\"}",
+      "good_state_output": "budget_parity.equal=true on matched live subject"
+    },
+    {
+      "id": "per-case-regression",
+      "kind": "known-broken-fixture",
+      "description": "Fusion that fails case.lookup.b still beats every source on the aggregate; the regression must be listed, not dropped.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"n_regressions\": 1, \"outperforms_every_source\": true, \"regresses_on_any_case\": true, \"verdict\": \"ACCEPT\"}",
+      "good_state_output": "good.regresses_on_any_case=false"
+    },
+    {
+      "id": "schema-garbage-reject",
+      "kind": "malformed-input",
+      "description": "Empty, unrelated, and SUCCESS-only blobs must fail output_schema.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "garbage documents produce schema errors",
+      "good_state_output": "receipt-core benchmark-report validates"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0075-probe2-detector-controls",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "notes": "Probe 2 re-derives ACCEPT/REJECT from planted fixtures and the live matrix without using this artifact's answers field. Probe 1 re-runs every arm at the recorded budget and checks stage counts. Executor vendor is xai; this reviewer_id is the other-vendor detector control, not a same-vendor reread."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0075/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0075"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of serialized confirmation artifact",
+      "artifact_path": "command-center/confirmation/CNF-0075-fusion-superiority.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "json.loads command-center/confirmation/CNF-0075-fusion-superiority.json",
+        "raw_output": "in-memory roundtrip of the bytes that are written to output_path",
+        "fingerprint": "0b68006725d886fd01a59d4ad7db596449d82ef1dc4e6259b458db524d16e230",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "CNF-0075 probe1 matched-budget rerun",
+      "artifact_path": "command-center/confirmation/CNF-0075-fusion-superiority.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe1_matched_budget.py",
+        "raw_output": "named probe1 is the live consumer; measure re-runs it",
+        "fingerprint": "cd4d94e01322e950d5d638e7dd7f70b2a8f722bf5df4b89227405fdc13a0e911",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:33Z",
+    "ended_at": "2026-08-25T00:57:33Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "no blind retry. Re-runs are permitted ONLY as flake measurement and EVERY run's outcome is recorded"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No certified fused-workflow library is on this Linux worktree (merge maps and blueprint library are absent). CNF-0075 measures an executable matched-pair fusion reconstructed from two source workflows so the superiority gate is falsifiable here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run this unit against 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json and 09-WORKFLOW-BLUEPRINT-LIBRARY.json when those files exist on disk."
+    }
+  ],
+  "report": {
+    "kind": "benchmark-report",
+    "observations": [
+      {
+        "name": "budget_parity_equal",
+        "measured": true,
+        "method": "run_matrix distinct budget_limit set size",
+        "anchor": "command-center/p2-wave/probes/CNF-0075/harness.py:run_matrix"
+      },
+      {
+        "name": "fusion_pass_rate",
+        "measured": 1.0,
+        "method": "mean of binary case scores at equal budget",
+        "anchor": "command-center/p2-wave/probes/CNF-0075/gates.py:decide"
+      },
+      {
+        "name": "fusion_stage_count",
+        "measured": 3,
+        "method": "len(workflow.stages)",
+        "anchor": "command-center/p2-wave/probes/CNF-0075/harness.py:fusion_union"
+      },
+      {
+        "name": "cells",
+        "measured": 18,
+        "method": "3 workflows x 6 cases",
+        "anchor": "command-center/p2-wave/probes/CNF-0075/harness.py:CASES"
+      },
+      {
+        "name": "merely_adds_stages",
+        "measured": false,
+        "method": "unearned_stages ablation",
+        "anchor": "command-center/p2-wave/probes/CNF-0075/gates.py:unearned_stages"
+      }
+    ],
+    "control_ids": [
+      "stage-padded",
+      "degraded-retrieve-only",
+      "budget-asymmetric",
+      "per-case-regression",
+      "schema-garbage-reject"
+    ],
+    "declared_metric": {
+      "id": "case_pass_rate",
+      "direction": "higher-is-better",
+      "estimator": "mean of binary case scores (required capabilities subseteq collected capabilities within budget)"
+    },
+    "budget_parity": {
+      "equal": true,
+      "budget_limit": 6.0,
+      "unit": "stage-cost",
+      "runs_compared": 18,
+      "distinct_limits": [
+        6.0
+      ]
+    },
+    "score_matrix": {
+      "cases": [
+        {
+          "id": "case.lookup.a",
+          "family": "lookup",
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ]
+        },
+        {
+          "id": "case.lookup.b",
+          "family": "lookup",
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ]
+        },
+        {
+          "id": "case.rewrite.a",
+          "family": "rewrite",
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ]
+        },
+        {
+          "id": "case.rewrite.b",
+          "family": "rewrite",
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ]
+        },
+        {
+          "id": "case.combined.a",
+          "family": "combined",
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ]
+        },
+        {
+          "id": "case.combined.b",
+          "family": "combined",
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ]
+        }
+      ],
+      "workflows": [
+        {
+          "id": "wf.source.retrieve",
+          "role": "source",
+          "title": "retrieve-only source",
+          "lineage": [],
+          "stage_count": 2,
+          "budget_limit": 6.0,
+          "budget_spent_mean": 2.0,
+          "pass_rate": 0.333333,
+          "stages": [
+            "parse",
+            "lookup"
+          ]
+        },
+        {
+          "id": "wf.source.transform",
+          "role": "source",
+          "title": "transform-only source",
+          "lineage": [],
+          "stage_count": 2,
+          "budget_limit": 6.0,
+          "budget_spent_mean": 2.0,
+          "pass_rate": 0.333333,
+          "stages": [
+            "parse",
+            "rewrite"
+          ]
+        },
+        {
+          "id": "wf.fusion.retrieve-then-transform",
+          "role": "fusion",
+          "title": "union fusion: parse + lookup + rewrite",
+          "lineage": [
+            "wf.source.retrieve",
+            "wf.source.transform"
+          ],
+          "stage_count": 3,
+          "budget_limit": 6.0,
+          "budget_spent_mean": 3.0,
+          "pass_rate": 1.0,
+          "stages": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ]
+        }
+      ],
+      "cells": [
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.lookup.a",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.lookup.b",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.rewrite.a",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.rewrite.b",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.combined.a",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.retrieve",
+          "case_id": "case.combined.b",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.lookup.a",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.lookup.b",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.rewrite.a",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.rewrite.b",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.combined.a",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "case_id": "case.combined.b",
+          "score": 0.0,
+          "passed": false,
+          "budget_limit": 6.0,
+          "budget_spent": 2.0,
+          "stage_count": 2,
+          "stages_executed": 2,
+          "capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "source"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.lookup.a",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.lookup.b",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.rewrite.a",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.rewrite.b",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.combined.a",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        },
+        {
+          "workflow_id": "wf.fusion.retrieve-then-transform",
+          "case_id": "case.combined.b",
+          "score": 1.0,
+          "passed": true,
+          "budget_limit": 6.0,
+          "budget_spent": 3.0,
+          "stage_count": 3,
+          "stages_executed": 3,
+          "capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "required_capabilities": [
+            "parse",
+            "lookup",
+            "rewrite"
+          ],
+          "halted": "completed",
+          "role": "fusion"
+        }
+      ]
+    },
+    "stage_counts": {
+      "fusion": {
+        "workflow_id": "wf.fusion.retrieve-then-transform",
+        "stage_count": 3
+      },
+      "sources": [
+        {
+          "workflow_id": "wf.source.retrieve",
+          "stage_count": 2
+        },
+        {
+          "workflow_id": "wf.source.transform",
+          "stage_count": 2
+        }
+      ]
+    },
+    "per_case_regressions": [],
+    "answers": {
+      "outperforms_every_source_on_declared_metric": true,
+      "merely_adds_stages": false,
+      "regresses_on_any_case": false,
+      "live_certified_fusion_in_worktree": false,
+      "gate_verdict": "ACCEPT",
+      "complementary_cases": [
+        "case.combined.a",
+        "case.combined.b"
+      ],
+      "unearned_stages": [],
+      "subject": "No certified fused-workflow library is on this Linux worktree (merge maps and blueprint library are absent). CNF-0075 measures an executable matched-pair fusion reconstructed from two source workflows so the superiority gate is falsifiable here.",
+      "reason": "fusion pass_rate exceeds every source at equal budget"
+    },
+    "gate": {
+      "verdict": "ACCEPT",
+      "classification": null,
+      "fusion_pass_rate": 1.0,
+      "source_pass_rates": {
+        "wf.source.retrieve": 0.333333,
+        "wf.source.transform": 0.333333
+      },
+      "fusion_stage_count": 3,
+      "source_stage_counts": {
+        "wf.source.retrieve": 2,
+        "wf.source.transform": 2
+      },
+      "score_vectors": {
+        "wf.fusion.retrieve-then-transform": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "wf.source.retrieve": [
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "wf.source.transform": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "detector_controls": {
+      "good": {
+        "verdict": "ACCEPT",
+        "merely_adds_stages": false,
+        "regresses_on_any_case": false,
+        "outperforms_every_source": true,
+        "unearned_stages": [],
+        "pass": true
+      },
+      "stage_padded": {
+        "verdict": "REJECT",
+        "classification": "unearned-fusion",
+        "unearned_stages": [
+          "noop.1",
+          "noop.2"
+        ],
+        "pass": true
+      },
+      "degraded": {
+        "verdict": "REJECT",
+        "classification": "unearned-fusion",
+        "outperforms_every_source": false,
+        "pass": true
+      },
+      "per_case_regression": {
+        "verdict": "ACCEPT",
+        "regresses_on_any_case": true,
+        "outperforms_every_source": true,
+        "regressions": [
+          {
+            "case_id": "case.lookup.b",
+            "source_id": "wf.source.retrieve",
+            "fusion_score": 0.0,
+            "source_score": 1.0
+          }
+        ],
+        "pass": true
+      },
+      "budget_asymmetric": {
+        "verdict": "REFUSED",
+        "classification": "budget-asymmetry",
+        "equal": false,
+        "pass": true
+      }
+    },
+    "live_inventory": {
+      "certified_fusion_library_present": false,
+      "merge_maps_present": false,
+      "checked": [
+        "10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+        "10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md",
+        "10-WORKFLOW-FUSION-AND-CERTIFICATION-MAPS.json",
+        "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+        "command-center/wfa/WFA-0113-benchmark-matched-pair-harness.json",
+        "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+        "command-center/sources/09-WORKFLOW-BLUEPRINT-LIBRARY.json"
+      ],
+      "present": [],
+      "absent": [
+        "10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+        "10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md",
+        "10-WORKFLOW-FUSION-AND-CERTIFICATION-MAPS.json",
+        "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+        "command-center/wfa/WFA-0113-benchmark-matched-pair-harness.json",
+        "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+        "command-center/sources/09-WORKFLOW-BLUEPRINT-LIBRARY.json"
+      ],
+      "subject": "No certified fused-workflow library is on this Linux worktree (merge maps and blueprint library are absent). CNF-0075 measures an executable matched-pair fusion reconstructed from two source workflows so the superiority gate is falsifiable here."
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "matched-budget-rerun",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe1_matched_budget.py"
+      },
+      {
+        "id": "probe2",
+        "role": "detector-controls",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0075/probe2_detector_controls.py"
+      }
+    ]
+  },
+  "extensions": {
+    "title": "Re-measure the fused-workflow superiority claim on matched cases",
+    "question": "Is the fused workflow actually better than each of its sources? Re-run the fusion and every source workflow on the same matched benchmark cases with the same budget, and answer: does the fusion outperform every source on the declared metric, does it merely add stages, and does it regress on any case? Spec line 11170 forbids accepting a fusion for having more stages.",
+    "completion_sentinel": "SUCCESS:CNF-0075 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the score matrix records equal budgets and includes stage counts for the fusion and every source. Any other terminal state is FAILED:CNF-0075 <classification> with the diagnostic tail attached.",
+    "cloud_ok": false,
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "the Windows harness-restore 30 merge_units were executed",
+      "09-WORKFLOW-BLUEPRINT-LIBRARY.json is present on this worktree",
+      "global unit_manifest.py --write was run"
+    ],
+    "spec_anchors": [
+      "spec:11170 a merged workflow is not accepted because it contains more stages",
+      "spec:11333 fused workflow performs worse than every source",
+      "spec:11332 workflow fusion loses a source capability"
+    ],
+    "budget_unit": "stage-cost"
+  }
+}

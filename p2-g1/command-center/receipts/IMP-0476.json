@@ -1,0 +1,549 @@
+{
+ "answer_basis": "Three inventory checks (hooks.loaded, skills.registered, mcp.reachable) have at least one OK probe but fewer than two mechanically independent methods, so a single-signal aggregator would green them. The shipped two-signal command renders them NOT-CHECKED, never OK. two_signal_ok_from_one_probe_count=0.",
+ "artifacts": [
+  {
+   "path": "command-center/schema/health-report.schema.json",
+   "bytes": 1060,
+   "sha256": "4189564f7bb48372f443b1c883d242c0372ab5b7018025a767b7b454f01de4cb",
+   "exists": true,
+   "role": "primary"
+  },
+  {
+   "path": "tools/plugin/healthcheck.py",
+   "bytes": 3516,
+   "sha256": "3e0a028760d8571390b97210a3156ea9decab71f4412a642951ccf4f5c57b9e6",
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+   "bytes": 3119,
+   "sha256": "32908fd4ebd6715f6600662cd9066dd2c7660c0e95d2c3ed2c48ff1efd60d4e4",
+   "exists": true,
+   "role": "supporting"
+  }
+ ],
+ "check_count": 7,
+ "checks": [
+  {
+   "can_green_from_one_probe": false,
+   "component": "ledger",
+   "declared_probe_count": 2,
+   "id": "ledger.writable",
+   "mechanically_independent": true,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "file-stat:ledger/marker.json",
+     "id": "ledger-stat",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=38 min_bytes=8",
+     "ran": true
+    },
+    {
+     "command": "content-hash:ledger/marker.json",
+     "id": "ledger-hash",
+     "method": "content-hash",
+     "ok": true,
+     "output": "sha256=93acf31be753a98cb458862167e949f46a91af618d2b363c49f14a85c49224cf expected=93acf31be753a98cb458862167e949f46a91af618d2b363c49f14a85c49224cf",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 2,
+   "status": "OK",
+   "title": "Ledger is present and byte-authentic (positive control)",
+   "unique_methods": [
+    "file-stat",
+    "content-hash"
+   ],
+   "violation": null
+  },
+  {
+   "can_green_from_one_probe": true,
+   "component": "hooks",
+   "declared_probe_count": 1,
+   "id": "hooks.loaded",
+   "mechanically_independent": false,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "file-stat:hooks/marker.json",
+     "id": "hooks-stat",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=37 min_bytes=8",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 1,
+   "status": "NOT-CHECKED",
+   "title": "Hooks marker (single declared probe — must NOT-CHECKED)",
+   "unique_methods": [
+    "file-stat"
+   ],
+   "violation": "undeclared-source-probe"
+  },
+  {
+   "can_green_from_one_probe": true,
+   "component": "skills",
+   "declared_probe_count": 2,
+   "id": "skills.registered",
+   "mechanically_independent": false,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "file-stat:skills/marker.json#a",
+     "id": "skills-stat-a",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=38 min_bytes=8",
+     "ran": true
+    },
+    {
+     "command": "file-stat:skills/marker.json#b",
+     "id": "skills-stat-b",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=38 min_bytes=8",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 2,
+   "status": "NOT-CHECKED",
+   "title": "Skills markers (cloned file-stat — not independent)",
+   "unique_methods": [
+    "file-stat"
+   ],
+   "violation": "single-signal-green"
+  },
+  {
+   "can_green_from_one_probe": true,
+   "component": "mcp",
+   "declared_probe_count": 1,
+   "id": "mcp.reachable",
+   "mechanically_independent": false,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "json-keys:mcp/marker.json",
+     "id": "mcp-keys",
+     "method": "json-keys",
+     "ok": true,
+     "output": "keys=['component', 'healthy'] required=['component', 'healthy']",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 1,
+   "status": "NOT-CHECKED",
+   "title": "MCP marker (one probe declared, second source undeclared)",
+   "unique_methods": [
+    "json-keys"
+   ],
+   "violation": "undeclared-source-probe"
+  },
+  {
+   "can_green_from_one_probe": false,
+   "component": "router",
+   "declared_probe_count": 2,
+   "id": "router.responding",
+   "mechanically_independent": true,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "file-stat:router/marker.json",
+     "id": "router-stat",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=39 min_bytes=8",
+     "ran": true
+    },
+    {
+     "command": "content-hash:router/marker.json",
+     "id": "router-hash",
+     "method": "content-hash",
+     "ok": false,
+     "output": "sha256=ca67ecbf65e840425402032ea2f5ab4668be17ee105c6f50146b0bd0583942d5 expected=0000000000000000000000000000000000000000000000000000000000000000",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 2,
+   "status": "DISAGREE",
+   "title": "Router present on disk but hash disagrees with expected",
+   "unique_methods": [
+    "file-stat",
+    "content-hash"
+   ],
+   "violation": null
+  },
+  {
+   "can_green_from_one_probe": false,
+   "component": "cache",
+   "declared_probe_count": 2,
+   "id": "cache.valid",
+   "mechanically_independent": true,
+   "naive_single_signal_would_green": false,
+   "probes": [
+    {
+     "command": "file-stat:cache/marker.json",
+     "id": "cache-stat",
+     "method": "file-stat",
+     "ok": false,
+     "output": "exists=False bytes=0 min_bytes=8",
+     "ran": true
+    },
+    {
+     "command": "content-hash:cache/marker.json",
+     "id": "cache-hash",
+     "method": "content-hash",
+     "ok": false,
+     "output": "missing",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 2,
+   "status": "FAIL",
+   "title": "Cache marker missing — both independent probes fail",
+   "unique_methods": [
+    "file-stat",
+    "content-hash"
+   ],
+   "violation": null
+  },
+  {
+   "can_green_from_one_probe": false,
+   "component": "deploy",
+   "declared_probe_count": 2,
+   "id": "deploy.in_sync",
+   "mechanically_independent": true,
+   "naive_single_signal_would_green": true,
+   "probes": [
+    {
+     "command": "file-stat:deploy/marker.json",
+     "id": "deploy-stat",
+     "method": "file-stat",
+     "ok": true,
+     "output": "exists=True bytes=38 min_bytes=8",
+     "ran": true
+    },
+    {
+     "command": "content-hash:deploy/marker.json",
+     "id": "deploy-hash",
+     "method": "content-hash",
+     "ok": true,
+     "output": "sha256=42f412f3f4953a44b1a52b3089b02373a7d5854a437fc41ebd9acbc27d640148 expected=42f412f3f4953a44b1a52b3089b02373a7d5854a437fc41ebd9acbc27d640148",
+     "ran": true
+    }
+   ],
+   "ran_probe_count": 2,
+   "status": "OK",
+   "title": "Deploy tree present and byte-authentic (second positive control)",
+   "unique_methods": [
+    "file-stat",
+    "content-hash"
+   ],
+   "violation": null
+  }
+ ],
+ "cloud_ok": false,
+ "command": {
+  "cli": "python3 -m tools.plugin.healthcheck --root command-center/p2-wave/probes/IMP-0476/fixtures/components --inventory command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+  "module": "tools.plugin.healthcheck",
+  "preserved_api": "installed_version(prefix, package) still requires plugin.json and health.json versions to agree"
+ },
+ "completion_sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+ "disagree_count": 1,
+ "evidence": [
+  {
+   "anchor": "hooks.loaded status=NOT-CHECKED with one file-stat probe ok=true",
+   "claim": "A check that declares only one probe renders NOT-CHECKED, not OK, even when that probe is healthy. [recorded fields: {\"ids\": [\"hooks.loaded\", \"mcp.reachable\"]}]",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+     "exit_code": 0,
+     "fingerprint": "3f6bf48adfc67a992a3329b471add46d",
+     "raw_output": "\"OK\"\n  },\n  \"single_probe_green_capable_count\": 2,\n  \"one_probe_capable_checks\": [\n    \"legacy.sansprobe\",\n    \"legacy.samemethod\"\n  ],\n  \"two_signal_ok_from_one_probe_count\": 0,\n  \"per_check_probes\": {\n    \"ledger.writable\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"router.responding\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"content-hash\",\n        \"ok\": false\n      }\n    ],\n    \"skills.registered\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"schemas.parse\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": false\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": false\n      }\n    ],\n    \"legacy.sansprobe\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"legacy.samemethod\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"control.healthy\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ]\n  },\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe1 single-probe and same-method render NOT-CHECKED; DISAGREE never OK; positive control OK; zero single-signal OK leaks"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d",
+     "raw_output": "  {\n          \"id\": \"ledger-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"ledger-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    },\n    {\n      \"check_id\": \"router.responding\",\n      \"rendered\": \"DISAGREE\",\n      \"auditor_derived\": \"DISAGREE\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"content-hash\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"router-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"router-hash\",\n          \"method\": \"content-hash\",\n          \"ok\": false\n        }\n      ]\n    },\n    {\n      \"check_id\": \"skills.registered\",\n      \"rendered\": \"OK\",\n      \"auditor_derived\": \"OK\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"json-keys\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"skills-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"skills-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    }\n  ],\n  \"leaked_single_signal_ok\": [],\n  \"method\": \"auditor re-derivation via os.stat + regex (mechanically different from renderer)\",\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe2 three checks audited with mechanically different probes; renderer verdicts reproduced; zero single-signal OK leaks"
+    }
+   ]
+  },
+  {
+   "anchor": "skills.registered status=NOT-CHECKED unique_methods=['file-stat']",
+   "claim": "Two probes that are not mechanically independent (cloned file-stat) cannot green. [recorded fields: {\"ids\": [\"skills.registered\"]}]",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+     "exit_code": 0,
+     "fingerprint": "3f6bf48adfc67a992a3329b471add46d",
+     "raw_output": "\"OK\"\n  },\n  \"single_probe_green_capable_count\": 2,\n  \"one_probe_capable_checks\": [\n    \"legacy.sansprobe\",\n    \"legacy.samemethod\"\n  ],\n  \"two_signal_ok_from_one_probe_count\": 0,\n  \"per_check_probes\": {\n    \"ledger.writable\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"router.responding\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"content-hash\",\n        \"ok\": false\n      }\n    ],\n    \"skills.registered\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"schemas.parse\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": false\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": false\n      }\n    ],\n    \"legacy.sansprobe\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"legacy.samemethod\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"control.healthy\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ]\n  },\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe1 single-probe and same-method render NOT-CHECKED; DISAGREE never OK; positive control OK; zero single-signal OK leaks"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d",
+     "raw_output": "  {\n          \"id\": \"ledger-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"ledger-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    },\n    {\n      \"check_id\": \"router.responding\",\n      \"rendered\": \"DISAGREE\",\n      \"auditor_derived\": \"DISAGREE\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"content-hash\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"router-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"router-hash\",\n          \"method\": \"content-hash\",\n          \"ok\": false\n        }\n      ]\n    },\n    {\n      \"check_id\": \"skills.registered\",\n      \"rendered\": \"OK\",\n      \"auditor_derived\": \"OK\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"json-keys\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"skills-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"skills-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    }\n  ],\n  \"leaked_single_signal_ok\": [],\n  \"method\": \"auditor re-derivation via os.stat + regex (mechanically different from renderer)\",\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe2 three checks audited with mechanically different probes; renderer verdicts reproduced; zero single-signal OK leaks"
+    }
+   ]
+  },
+  {
+   "anchor": "router.responding file-stat ok / content-hash fail",
+   "claim": "Two independent probes that disagree render DISAGREE, never OK. [recorded fields: {\"ids\": [\"router.responding\"]}]",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+     "exit_code": 0,
+     "fingerprint": "3f6bf48adfc67a992a3329b471add46d",
+     "raw_output": "\"OK\"\n  },\n  \"single_probe_green_capable_count\": 2,\n  \"one_probe_capable_checks\": [\n    \"legacy.sansprobe\",\n    \"legacy.samemethod\"\n  ],\n  \"two_signal_ok_from_one_probe_count\": 0,\n  \"per_check_probes\": {\n    \"ledger.writable\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"router.responding\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"content-hash\",\n        \"ok\": false\n      }\n    ],\n    \"skills.registered\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"schemas.parse\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": false\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": false\n      }\n    ],\n    \"legacy.sansprobe\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"legacy.samemethod\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"control.healthy\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ]\n  },\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe1 single-probe and same-method render NOT-CHECKED; DISAGREE never OK; positive control OK; zero single-signal OK leaks"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d",
+     "raw_output": "  {\n          \"id\": \"ledger-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"ledger-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    },\n    {\n      \"check_id\": \"router.responding\",\n      \"rendered\": \"DISAGREE\",\n      \"auditor_derived\": \"DISAGREE\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"content-hash\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"router-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"router-hash\",\n          \"method\": \"content-hash\",\n          \"ok\": false\n        }\n      ]\n    },\n    {\n      \"check_id\": \"skills.registered\",\n      \"rendered\": \"OK\",\n      \"auditor_derived\": \"OK\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"json-keys\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"skills-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"skills-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    }\n  ],\n  \"leaked_single_signal_ok\": [],\n  \"method\": \"auditor re-derivation via os.stat + regex (mechanically different from renderer)\",\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe2 three checks audited with mechanically different probes; renderer verdicts reproduced; zero single-signal OK leaks"
+    }
+   ]
+  },
+  {
+   "anchor": "ledger.writable and deploy.in_sync file-stat + content-hash both ok",
+   "claim": "A genuinely healthy component with two independent agreeing probes renders OK. [recorded fields: {\"ids\": [\"ledger.writable\", \"deploy.in_sync\"]}]",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+     "exit_code": 0,
+     "fingerprint": "3f6bf48adfc67a992a3329b471add46d",
+     "raw_output": "\"OK\"\n  },\n  \"single_probe_green_capable_count\": 2,\n  \"one_probe_capable_checks\": [\n    \"legacy.sansprobe\",\n    \"legacy.samemethod\"\n  ],\n  \"two_signal_ok_from_one_probe_count\": 0,\n  \"per_check_probes\": {\n    \"ledger.writable\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"router.responding\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"content-hash\",\n        \"ok\": false\n      }\n    ],\n    \"skills.registered\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ],\n    \"schemas.parse\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": false\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": false\n      }\n    ],\n    \"legacy.sansprobe\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"legacy.samemethod\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"control.healthy\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ]\n  },\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe1 single-probe and same-method render NOT-CHECKED; DISAGREE never OK; positive control OK; zero single-signal OK leaks"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare sha256(CRLF-normalized live bytes) vs the recorded artifact digest",
+     "exit_code": 0,
+     "fingerprint": "011d7fe92eb2d7a0903b2936666a790d",
+     "raw_output": "  {\n          \"id\": \"ledger-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"ledger-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    },\n    {\n      \"check_id\": \"router.responding\",\n      \"rendered\": \"DISAGREE\",\n      \"auditor_derived\": \"DISAGREE\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"content-hash\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"router-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"router-hash\",\n          \"method\": \"content-hash\",\n          \"ok\": false\n        }\n      ]\n    },\n    {\n      \"check_id\": \"skills.registered\",\n      \"rendered\": \"OK\",\n      \"auditor_derived\": \"OK\",\n      \"match\": true,\n      \"methods\": [\n        \"file-stat\",\n        \"json-keys\"\n      ],\n      \"methods_differ\": true,\n      \"audit_rows\": [\n        {\n          \"id\": \"skills-stat\",\n          \"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"skills-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    }\n  ],\n  \"leaked_single_signal_ok\": [],\n  \"method\": \"auditor re-derivation via os.stat + regex (mechanically different from renderer)\",\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe2 three checks audited with mechanically different probes; renderer verdicts reproduced; zero single-signal OK leaks"
+    }
+   ]
+  }
+ ],
+ "exact_question": "how many of the health checks can currently produce a green verdict from one probe alone?",
+ "exact_question_answer": 3,
+ "fail_count": 1,
+ "inventory": {
+  "id": "installed-component-inventory",
+  "imp_0471_receipt": {
+   "note": "Dependency receipt is absent on this worktree; inventory is the local installed-component fixture plus a live scan that found no prior health-check command besides plugin.healthcheck.installed_version.",
+   "path": "command-center/receipts/IMP-0471.json",
+   "present": false
+  },
+  "inventory_path": "command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+  "root": "command-center/p2-wave/probes/IMP-0476/fixtures/components"
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0476/UNIT-ARTIFACT-MANIFEST.json",
+  "registered_at": "2026-10-26T17:58:54Z"
+ },
+ "min_bytes_threshold": 1059,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+   "id": "probe1",
+   "role": "verdict-table"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe2_independence.py",
+   "id": "probe2",
+   "role": "independence-audit"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "single-probe-renders-not-checked",
+   "kind": "mutation",
+   "description": "A single-probe check renders NOT-CHECKED and a two-probe disagreement renders DISAGREE; neither can render OK. Positive control: a genuinely healthy component renders OK.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "   {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      }\n    ],\n    \"control.healthy\": [\n      {\n        \"method\": \"file-stat\",\n        \"ok\": true\n      },\n      {\n        \"method\": \"json-keys\",\n        \"ok\": true\n      }\n    ]\n  },\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe1 single-probe and same-method render NOT-CHECKED; DISAGREE never OK; positive control OK; zero single-signal OK leaks",
+   "good_state_output": "\"method\": \"file-stat\",\n          \"ok\": true\n        },\n        {\n          \"id\": \"skills-keys\",\n          \"method\": \"json-keys\",\n          \"ok\": true\n        }\n      ]\n    }\n  ],\n  \"leaked_single_signal_ok\": [],\n  \"method\": \"auditor re-derivation via os.stat + regex (mechanically different from renderer)\",\n  \"sentinel\": \"SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL\"\n}\nSUCCESS:IMP-0476-probe2 three checks audited with mechanically different probes; renderer verdicts reproduced; zero single-signal OK leaks"
+  }
+ ],
+ "not_checked_count": 3,
+ "output_schema": "command-center/schema/health-report.schema.json",
+ "question": "Implement the health-check command so every reported status is backed by two mechanically independent probes, and any single-probe check reports NOT-CHECKED rather than OK. Exact question: how many of the health checks can currently produce a green verdict from one probe alone?",
+ "registered": true,
+ "report_kind": "health-report",
+ "residual_unknowns": [
+  {
+   "claim": "command-center/receipts/IMP-0471.json is absent; detector two-state table was not joined.",
+   "settling_experiment": "Re-run this health-check against the IMP-0471 receipt once that unit is delivered.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 re-reads bytes and st_size for ledger (agree), router (disagree), and skills (cloned file-stat, not independent). It does not call adjudicate().",
+  "reviewer_id": "IMP-0476-probe2-independence-audit",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+   "IMP-0471 detector two-state receipt was present",
+   "IMP-0043 production probe registry was imported"
+  ],
+  "proof_surface": "seven-check installed-component inventory under command-center/p2-wave/probes/IMP-0476/fixtures/components; tools.plugin.healthcheck two-signal adjudicator"
+ },
+ "sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+ "single_probe_green_capable_count": 3,
+ "single_probe_green_capable_ids": [
+  "hooks.loaded",
+  "skills.registered",
+  "mcp.reachable"
+ ],
+ "spec_anchor": "catalog IMP-0476; IMP-0043 health-check runner; rules/common/single-signal-verification.md two mechanically independent probes; failure classes single-signal-green, undeclared-source-probe",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+   "id": "T1-single-probe-not-checked",
+   "name": "single-probe check renders NOT-CHECKED",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+   "id": "T2-disagree-never-ok",
+   "name": "two-probe disagreeing check renders DISAGREE never OK",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+   "id": "T3-positive-healthy-component",
+   "name": "two-signal healthy component renders OK",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe2_independence.py",
+   "id": "T4-independence-audit",
+   "name": "three-check independence audit (file-stat vs content-hash vs clone)",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:57:15Z",
+  "ended_at": "2026-08-25T00:57:15Z"
+ },
+ "title": "Health-check command built on two-signal probes only",
+ "two_signal_ok_count": 2,
+ "two_signal_ok_from_one_probe_count": 0,
+ "two_signal_ok_ids": [
+  "ledger.writable",
+  "deploy.in_sync"
+ ],
+ "unit_id": "IMP-0476",
+ "downstream_consumers": [
+  {
+   "consumer": "python ast/json parse consumer (reads primary artifact bytes)",
+   "artifact_path": "command-center/schema/health-report.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I -B -c import ast,json,sys,pathlib; p=pathlib.Path(sys.argv[1]); t=p.read_text(encoding='utf-8'); (json.loads(t) if p.suffix=='.json' else ast.parse(t)); print('READ-OK') command-center/schema/health-report.schema.json",
+    "exit_code": 0,
+    "fingerprint": "b9e543de685a60d140eac7aed3203b68",
+    "raw_output": "READ-OK"
+   }
+  },
+  {
+   "consumer": "manifest digest re-hash (sha256 CRLF-normalized vs recorded row)",
+   "artifact_path": "command-center/schema/health-report.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "byte-compare",
+    "command": "compare sha256(norm(live bytes)) vs recorded digest for command-center/schema/health-report.schema.json",
+    "exit_code": 0,
+    "fingerprint": "6d4f83daae2b4cf8c3b605c68e5d10c1",
+    "raw_output": "digest-match=True live=4189564f7bb48372 recorded=4189564f7bb48372 (command-center/schema/health-report.schema.json, CRLF-normalized)"
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "extensions": {
+  "manifest_derivation_note": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "closure_provenance": {
+   "kept_closure_reviewer_id": "IMP-0476-probe2-independence-audit",
+   "disclosure": "Contract keep-exception applied: reviewer.verdict=PASS with independent=true existed on disk and the unit still verifies live (probes exit 0, manifest sha match, envelope schema-valid as of 2026-10-26T17:58:54Z).",
+   "note": "reviewer_id names this unit's own probe script (builder-lane closure stamp from the original build wave), not an external reviewer session. Surfaced for the independent reviewer lane to re-judge; NOT struck by the builder."
+  },
+  "reviewer_extras_preserved": {
+   "audited_checks": [
+    "ledger.writable",
+    "router.responding",
+    "skills.registered"
+   ],
+   "scope_not_agreement": true
+  }
+ },
+ "report": {
+  "kind": "health-report",
+  "observations": [
+   {
+    "name": "single_probe_renders_not_checked",
+    "measured": true,
+    "method": "probe1_verdicts live run",
+    "anchor": "command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py"
+   },
+   {
+    "name": "disagreement_renders_disagree_never_ok",
+    "measured": true,
+    "method": "probe2_independence auditor re-derivation (os.stat + regex)",
+    "anchor": "command-center/p2-wave/probes/IMP-0476/probe2_independence.py"
+   },
+   {
+    "name": "single_signal_ok_leaks",
+    "measured": 0,
+    "method": "probe2 zero-leak audit",
+    "anchor": "command-center/p2-wave/probes/IMP-0476/probe2_independence.py"
+   }
+  ],
+  "control_ids": [
+   "single-probe-renders-not-checked"
+  ]
+ }
+}

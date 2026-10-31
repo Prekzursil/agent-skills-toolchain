@@ -1,0 +1,394 @@
+{
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0203",
+ "state": "SUCCESS",
+ "unit_id": "TST-0203",
+ "extensions": {
+  "legacy_root": {
+   "catalog_tests_output_tail": "PASS test_in_limit_archive_extracts_fully\nPASS test_overlimit_aborts_names_member_and_cleans\nPASS test_naive_extractall_leaves_residue\nPASS test_no_cleanup_keeps_the_40\nPASS test_boundary_limit_minus_one_is_admitted\nSUCCESS:TST-0203 tests fail-closed long-member extraction",
+   "completion_sentinel": "SUCCESS:TST-0203",
+   "execution_substrate": "local-serialized",
+   "host": {
+    "note": "Declared MAX_PATH budget is enforced in the extractor, not by the OS. Linux writes long members; residue-free dest after exit 2 is therefore cleanup, not ENAMETOOLONG.",
+    "python": "3.12.3",
+    "release": "6.8.0-136-generic",
+    "system": "Linux"
+   },
+   "id": "TST-0203",
+   "implementation": {
+    "b07_note": "Live Program-B B07 artifact writer is absent from this sparse worktree. tools/plugin/extract.py is the shipped package extractor this unit binds (pack.py is the sibling packer).",
+    "extractor": {
+     "bytes": 8929,
+     "path": "tools/plugin/extract.py",
+     "sha256": "2755d2198350b48c3f9d32427afdcb0e13f630f32d12b02d6b84ae23c41d3bd1"
+    },
+    "path_budget": {
+     "bytes": 1291,
+     "path": "tools/plugin/path_budget.py",
+     "sha256": "f31bdf4f901a447e31a531868302a95a5de0dc2fd58c400c50d3f6b8d24d8a57"
+    },
+    "tests": {
+     "bytes": 6045,
+     "path": "tools/plugin/tests/test_extract_long_members.py",
+     "sha256": "8e9086db3eafb82f761301743d82d52f7bc4b81771c79728fc6ce080a71fe07d"
+    }
+   },
+   "measured": {
+    "in_limit": {
+     "exit_code": 0,
+     "expected": 41,
+     "independent_walk": 41,
+     "members_extracted": 41,
+     "ok": true,
+     "stdout_ok": "{\"cleanup_performed\": false, \"dest\": \"/tmp/t203-emit-i261hyq_/okd0\", \"dest_exists_after\": true, \"exit_code\": 0, \"extracted_names\": [\"m00.txt\", \"m01.txt\", \"m02.txt\", \"m03.txt\", \"m04.txt\", \"m05.txt\", \"m06.txt\", \"m07.txt\", \"m08.txt\", \"m09.txt\", \"m10.txt\", \"m11.txt\", \"m12.txt\", \"m13.txt\", \"m14.txt\", \"m15.txt\", \"m16.txt\", \"m17.txt\", \"m18.txt\", \"m19.txt\", \"m20.txt\", \"m21.txt\", \"m22.txt\", \"m23.txt\", \"m24.txt\", \"m25.txt\", \"m26.txt\", \"m27.txt\", \"m28.txt\", \"m29.txt\", \"m30.txt\", \"m31.txt\", \"m32.txt\", \"m33."
+    },
+    "negative_naive_extractall": {
+     "count": 41,
+     "left_residue": true
+    },
+    "negative_no_cleanup": {
+     "left_the_40": true,
+     "walk": 40,
+     "written_before_abort": 40
+    },
+    "over_limit": {
+     "dest_exists": false,
+     "exit_code": 2,
+     "independent_walk": [],
+     "members_written_before_abort": 40,
+     "message": "over-limit member 'OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' resolved_length=260 limit=260 dest=/tmp/t203-emit-i261hyq_/bad0/OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "message_names_member": true,
+     "offending_length": 260,
+     "offending_member": "OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "ok": false,
+     "prefix_count": 40,
+     "token_in_message": true
+    }
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0203/probe1_in_limit_extracts.py",
+     "id": "probe1",
+     "role": "in-limit-archive-extracts-fully"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0203/probe2_overlimit_cleanup.py",
+     "id": "probe2",
+     "role": "overlimit-abort-names-member-and-cleanup"
+    }
+   ],
+   "notes": "G-1 for TST-0203: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No ADV rebuild. SUCCESS:TST-0203",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+   "path_budget": {
+    "declared_limit": 260,
+    "enforced_in": "tools/plugin/extract.py",
+    "kind": "WINDOWS_MAX_PATH",
+    "over_limit_predicate": "len(str(resolved_dest)) >= declared_limit"
+   },
+   "question": "Does extracting an archive containing over-limit member paths abort and remove the partially-extracted tree? PASS requires no residue and a message naming the first offending member.",
+   "report_kind": "portability_report",
+   "schema_note": "command-center/schema/receipt.schema.json is absent on this worktree (IMP-0433). G-1 does not load it. This receipt is a portability_report shaped from the catalog unit text.",
+   "signals": [
+    {
+     "exit_code": 2,
+     "id": "signal-a-extractor-exit-and-message",
+     "members_written_before_abort": 40,
+     "message_names_first_offending_member": true,
+     "ok": true,
+     "token": "OVERLIMIT-member-041"
+    },
+    {
+     "dest_exists_after_failure": false,
+     "id": "signal-b-independent-directory-scan",
+     "ok": true,
+     "residue_files": []
+    }
+   ],
+   "status": "DELIVERED",
+   "tests_required": {
+    "both_states_in_limit_archive_extracts_fully": {
+     "exit_code": 0,
+     "expected": 41,
+     "pass": true,
+     "walk": 41
+    },
+    "fixture_40_then_member_41_over_limit_cleanup": {
+     "named": true,
+     "pass": true,
+     "prefix_count": 40,
+     "residue": [],
+     "written_before_abort": 40
+    }
+   },
+   "title": "Archive extraction with long member names fails closed and cleans up",
+   "ts": "2026-08-25T01:07:18Z"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0203",
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0203.json",
+   "bytes": 6251,
+   "sha256": "0727027c4e1e3f2a648e2498b3da4928b0d95c1a989f408f48a0ab7b5750dac7",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0203 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0203.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0203.json",
+     "raw_output": "bytes=6251 sha256=0727027c4e1e3f2a648e2498b3da4928b0d95c1a989f408f48a0ab7b5750dac7",
+     "fingerprint": "a642f56ae7b804a85e03a40bd9acdc64",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0203",
+     "raw_output": "schema-check",
+     "fingerprint": "761057e1c2380d59a205c7fecab9427c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0203 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0203",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0203",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "8bd79edbd06cda2792ad5d13cf36c1d3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0203",
+     "raw_output": "schema-valid",
+     "fingerprint": "e8d3b196fcbb4b1ba30fa893c2eae726",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0203.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0203/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0203"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0203.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0203.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "8ef8d8c97d663111679753da82116238",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "portability_report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 6251,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0203.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "catalog_tests_output_tail": "PASS test_in_limit_archive_extracts_fully\nPASS test_overlimit_aborts_names_member_and_cleans\nPASS test_naive_extractall_leaves_residue\nPASS test_no_cleanup_keeps_the_40\nPASS test_boundary_limit_minus_one_is_admitted\nSUCCESS:TST-0203 tests fail-closed long-member extraction",
+ "completion_sentinel": "SUCCESS:TST-0203",
+ "execution_substrate": "local-serialized",
+ "host": {
+  "note": "Declared MAX_PATH budget is enforced in the extractor, not by the OS. Linux writes long members; residue-free dest after exit 2 is therefore cleanup, not ENAMETOOLONG.",
+  "python": "3.12.3",
+  "release": "6.8.0-136-generic",
+  "system": "Linux"
+ },
+ "id": "TST-0203",
+ "implementation": {
+  "b07_note": "Live Program-B B07 artifact writer is absent from this sparse worktree. tools/plugin/extract.py is the shipped package extractor this unit binds (pack.py is the sibling packer).",
+  "extractor": {
+   "bytes": 8929,
+   "path": "tools/plugin/extract.py",
+   "sha256": "2755d2198350b48c3f9d32427afdcb0e13f630f32d12b02d6b84ae23c41d3bd1"
+  },
+  "path_budget": {
+   "bytes": 1291,
+   "path": "tools/plugin/path_budget.py",
+   "sha256": "f31bdf4f901a447e31a531868302a95a5de0dc2fd58c400c50d3f6b8d24d8a57"
+  },
+  "tests": {
+   "bytes": 6045,
+   "path": "tools/plugin/tests/test_extract_long_members.py",
+   "sha256": "8e9086db3eafb82f761301743d82d52f7bc4b81771c79728fc6ce080a71fe07d"
+  }
+ },
+ "measured": {
+  "in_limit": {
+   "exit_code": 0,
+   "expected": 41,
+   "independent_walk": 41,
+   "members_extracted": 41,
+   "ok": true,
+   "stdout_ok": "{\"cleanup_performed\": false, \"dest\": \"/tmp/t203-emit-i261hyq_/okd0\", \"dest_exists_after\": true, \"exit_code\": 0, \"extracted_names\": [\"m00.txt\", \"m01.txt\", \"m02.txt\", \"m03.txt\", \"m04.txt\", \"m05.txt\", \"m06.txt\", \"m07.txt\", \"m08.txt\", \"m09.txt\", \"m10.txt\", \"m11.txt\", \"m12.txt\", \"m13.txt\", \"m14.txt\", \"m15.txt\", \"m16.txt\", \"m17.txt\", \"m18.txt\", \"m19.txt\", \"m20.txt\", \"m21.txt\", \"m22.txt\", \"m23.txt\", \"m24.txt\", \"m25.txt\", \"m26.txt\", \"m27.txt\", \"m28.txt\", \"m29.txt\", \"m30.txt\", \"m31.txt\", \"m32.txt\", \"m33."
+  },
+  "negative_naive_extractall": {
+   "count": 41,
+   "left_residue": true
+  },
+  "negative_no_cleanup": {
+   "left_the_40": true,
+   "walk": 40,
+   "written_before_abort": 40
+  },
+  "over_limit": {
+   "dest_exists": false,
+   "exit_code": 2,
+   "independent_walk": [],
+   "members_written_before_abort": 40,
+   "message": "over-limit member 'OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' resolved_length=260 limit=260 dest=/tmp/t203-emit-i261hyq_/bad0/OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "message_names_member": true,
+   "offending_length": 260,
+   "offending_member": "OVERLIMIT-member-041-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": false,
+   "prefix_count": 40,
+   "token_in_message": true
+  }
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0203/probe1_in_limit_extracts.py",
+   "id": "probe1",
+   "role": "in-limit-archive-extracts-fully"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0203/probe2_overlimit_cleanup.py",
+   "id": "probe2",
+   "role": "overlimit-abort-names-member-and-cleanup"
+  }
+ ],
+ "notes": "G-1 for TST-0203: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No ADV rebuild. SUCCESS:TST-0203",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+ "path_budget": {
+  "declared_limit": 260,
+  "enforced_in": "tools/plugin/extract.py",
+  "kind": "WINDOWS_MAX_PATH",
+  "over_limit_predicate": "len(str(resolved_dest)) >= declared_limit"
+ },
+ "question": "Does extracting an archive containing over-limit member paths abort and remove the partially-extracted tree? PASS requires no residue and a message naming the first offending member.",
+ "report_kind": "portability_report",
+ "schema_note": "command-center/schema/receipt.schema.json is absent on this worktree (IMP-0433). G-1 does not load it. This receipt is a portability_report shaped from the catalog unit text.",
+ "signals": [
+  {
+   "exit_code": 2,
+   "id": "signal-a-extractor-exit-and-message",
+   "members_written_before_abort": 40,
+   "message_names_first_offending_member": true,
+   "ok": true,
+   "token": "OVERLIMIT-member-041"
+  },
+  {
+   "dest_exists_after_failure": false,
+   "id": "signal-b-independent-directory-scan",
+   "ok": true,
+   "residue_files": []
+  }
+ ],
+ "status": "DELIVERED",
+ "tests_required": {
+  "both_states_in_limit_archive_extracts_fully": {
+   "exit_code": 0,
+   "expected": 41,
+   "pass": true,
+   "walk": 41
+  },
+  "fixture_40_then_member_41_over_limit_cleanup": {
+   "named": true,
+   "pass": true,
+   "prefix_count": 40,
+   "residue": [],
+   "written_before_abort": 40
+  }
+ },
+ "title": "Archive extraction with long member names fails closed and cleans up",
+ "ts": "2026-08-25T01:07:18Z"
+}

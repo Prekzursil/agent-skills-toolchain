@@ -1,0 +1,1227 @@
+{
+  "unit_id": "RES-0069",
+  "id": "RES-0069",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:RES-0069 in the receipt AND a per-engine loop-guard table distinguishing mandatory from optional guards",
+  "report_kind": "research-claim-record",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "schema_note": "command-center/schema/research-claim-record.schema.json is absent on this worktree (RES-0001 not delivered). This record uses the named RES-0001 fields: claim id, canonical mechanism, source lineage (two rails), evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256.",
+  "title": "Extract loop-convergence and stopping-rule constructs from existing workflow engines",
+  "question": "Which engines express a loop that terminates on a CONDITION rather than a fixed count, how is the condition evaluated, and how does each prevent an infinite loop when the condition never becomes true?",
+  "answer": "Seven engines were captured with two rails each. Azure Logic Apps Until, LangGraph recursion_limit, Airflow sensors, and AWS Step Functions Choice loops have mandatory finite backstops (iteration/timeout/history quotas). n8n Reset+If, Temporal Continue-As-New, and Durable Functions eternal orchestrations make an infinite loop expressible: their documented guards are optional or are history-reset patterns rather than stop rules. Condition evaluation is engine-specific (Until expression, If node, graph edges, sensor poke, Choice rules, SDK code).",
+  "loop_guard_table": [
+    {
+      "engine": "Azure Logic Apps",
+      "loop_construct": "Until",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "Post-iteration: the Until expression is evaluated after inner actions run; true stops the loop.",
+      "infinite_loop_guard": "limit.count default 60 (max 5,000) AND limit.timeout default PT1H (PT5M stateless single-tenant)",
+      "guard_class": "MANDATORY",
+      "infinite_loop_expressible": false,
+      "claim_ids": [
+        "C-AZURE-UNTIL",
+        "C-AZURE-UNTIL-LIMITS"
+      ]
+    },
+    {
+      "engine": "n8n Loop Over Items",
+      "loop_construct": "Loop Over Items (Reset) + If",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "If node evaluates an exit condition each iteration while Reset treats incoming data as a new set (pagination).",
+      "infinite_loop_guard": "Author-supplied termination condition only; docs warn an unmatched condition yields an infinite loop",
+      "guard_class": "OPTIONAL",
+      "infinite_loop_expressible": true,
+      "claim_ids": [
+        "C-N8N-OPTIONAL"
+      ]
+    },
+    {
+      "engine": "LangGraph",
+      "loop_construct": "cyclic graph / conditional edges",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "Routing edges / stop condition; superstep count compared to config.recursion_limit.",
+      "infinite_loop_guard": "recursion_limit (always >= 1; GraphRecursionError on exhaustion; value is raisable)",
+      "guard_class": "MANDATORY",
+      "infinite_loop_expressible": false,
+      "claim_ids": [
+        "C-LANGGRAPH-RECURSION"
+      ]
+    },
+    {
+      "engine": "Apache Airflow",
+      "loop_construct": "BaseSensorOperator poke loop",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "poke() until criteria is met; timeout measured from first attempt.",
+      "infinite_loop_guard": "timeout always assigned; None becomes sensors.default_timeout (config default 604800s / 7 days)",
+      "guard_class": "MANDATORY",
+      "infinite_loop_expressible": false,
+      "claim_ids": [
+        "C-AIRFLOW-SENSOR",
+        "C-AIRFLOW-DEFAULT-TIMEOUT"
+      ]
+    },
+    {
+      "engine": "AWS Step Functions",
+      "loop_construct": "Choice + Next (no native While)",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "Choice rules (JSONPath or JSONata) evaluated against execution state; first true rule transitions via Next.",
+      "infinite_loop_guard": "Hard quota 25,000 execution-history events (fails the execution) and max execution time 1 year Standard / 5 minutes Express",
+      "guard_class": "MANDATORY",
+      "infinite_loop_expressible": false,
+      "claim_ids": [
+        "C-SFN-CHOICE-QUOTA"
+      ]
+    },
+    {
+      "engine": "Temporal Workflow",
+      "loop_construct": "Workflow code loop + Continue-As-New",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "Ordinary SDK code evaluates any condition; Continue-As-New starts a fresh Event History in the same Workflow Id chain.",
+      "infinite_loop_guard": "Workflow Execution/Run Timeout exists but is not recommended; Continue-As-New is a history reset, not a stop rule",
+      "guard_class": "OPTIONAL",
+      "infinite_loop_expressible": true,
+      "claim_ids": [
+        "C-TEMPORAL-FOREVER"
+      ]
+    },
+    {
+      "engine": "Azure Durable Functions",
+      "loop_construct": "eternal orchestration",
+      "terminates_on": "CONDITION",
+      "condition_evaluation": "Orchestrator code decides when to continue; continue-as-new replays with new input and empty history.",
+      "infinite_loop_guard": "continue-as-new prevents unbounded history; it does not terminate the loop. Eternal orchestrations are designed to run indefinitely.",
+      "guard_class": "OPTIONAL",
+      "infinite_loop_expressible": true,
+      "claim_ids": [
+        "C-DURABLE-ETERNAL"
+      ]
+    }
+  ],
+  "control": {
+    "requirement": "identify one engine whose guard is optional, i.e. an infinite loop is expressible",
+    "engines": [
+      "Azure Durable Functions",
+      "Temporal Workflow",
+      "n8n Loop Over Items"
+    ],
+    "primary": "n8n Loop Over Items",
+    "finding": "n8n documents that a Reset+If loop whose termination condition never matches gets stuck in an infinite loop. Temporal and Durable Functions independently document run-forever / eternal loops."
+  },
+  "claims": [
+    {
+      "id": "C-AZURE-UNTIL",
+      "engine": "Azure Logic Apps",
+      "canonical_mechanism": "Until-loop-with-expression-and-default-limits",
+      "claim": "Azure Logic Apps Until is a condition-terminated loop: the workflow runs inner actions, then evaluates an expression; the loop stops when the expression is true. The engine documents default limits that stop the loop to prevent endless loops.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C2-probable",
+      "strongest_caveat": "Count and Timeout are described as optional parameters in one table, but the JSON definition ships default count=60 and timeout=PT1H and the limits page records those as engine defaults with a hard max of 5,000 iterations. This unit treats the defaults as a mandatory finite bound, not as a bound the author can omit.",
+      "source_lineage": [
+        {
+          "id": "gh_azure_docs_until",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-control-flow-loops.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-control-flow-loops.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/d3849e6f8029ad588703c57e1290e1f40e508787",
+          "fetched_at": "2026-08-24T18:37:56Z",
+          "http_status": 200,
+          "sha256": "60a801e9f1825df7f7ed9d110d8639ef5418a16c651871697d2e123179eafd57",
+          "bytes": 33122,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_azure_docs_until.bin",
+          "snippet": "To prevent endless loops, an \"Until\" loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "d3849e6f8029ad588703c57e1290e1f40e508787",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/logic-apps/logic-apps-control-flow-loops.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/d3849e6f8029ad588703c57e1290e1f40e508787",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/logic-apps/logic-apps-control-flow-loops.md",
+            "size": 23246,
+            "path": "articles/logic-apps/logic-apps-control-flow-loops.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_azure_until",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "final_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "permalink": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "fetched_at": "2026-08-24T18:37:57Z",
+          "http_status": 200,
+          "sha256": "7576236a01e70666ec2a0057678bd14719365311cb2c4bf231624363a7e59f74",
+          "bytes": 75897,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_azure_until.bin",
+          "snippet": "To prevent endless loops",
+          "content_type": "text/html"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_azure_docs_until",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-control-flow-loops.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-control-flow-loops.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/d3849e6f8029ad588703c57e1290e1f40e508787",
+          "fetched_at": "2026-08-24T18:37:56Z",
+          "http_status": 200,
+          "sha256": "60a801e9f1825df7f7ed9d110d8639ef5418a16c651871697d2e123179eafd57",
+          "bytes": 33122,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_azure_docs_until.bin",
+          "snippet": "To prevent endless loops, an \"Until\" loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "d3849e6f8029ad588703c57e1290e1f40e508787",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/logic-apps/logic-apps-control-flow-loops.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/d3849e6f8029ad588703c57e1290e1f40e508787",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/logic-apps/logic-apps-control-flow-loops.md",
+            "size": 23246,
+            "path": "articles/logic-apps/logic-apps-control-flow-loops.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_azure_until",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "final_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "permalink": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-control-flow-loops",
+          "fetched_at": "2026-08-24T18:37:57Z",
+          "http_status": 200,
+          "sha256": "7576236a01e70666ec2a0057678bd14719365311cb2c4bf231624363a7e59f74",
+          "bytes": 75897,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_azure_until.bin",
+          "snippet": "To prevent endless loops",
+          "content_type": "text/html"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-AZURE-UNTIL-LIMITS",
+      "engine": "Azure Logic Apps",
+      "canonical_mechanism": "Until-iteration-and-timeout-ceilings",
+      "claim": "Until-loop iteration default is 60 (min 1, max 5,000) and timeout default is PT1H on multitenant / stateful single-tenant; stateless single-tenant timeout default is PT5M.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "Limits are versioned product quotas; a later Azure revision can change the numbers. The captured Learn page and GitHub markdown agreed on this fetch.",
+      "source_lineage": [
+        {
+          "id": "gh_azure_limits",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-limits-and-config.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-limits-and-config.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/812cd8c147de182ba2bbdd5229275c4406312258",
+          "fetched_at": "2026-08-24T18:39:44Z",
+          "http_status": 200,
+          "sha256": "59f2b9c9666c1ceca0a53a8f3b286be3b937c93eefc262fd7046be41c71ea4c0",
+          "bytes": 117637,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_azure_limits.bin",
+          "snippet": "Default: 60",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "812cd8c147de182ba2bbdd5229275c4406312258",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/logic-apps/logic-apps-limits-and-config.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/812cd8c147de182ba2bbdd5229275c4406312258",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/logic-apps/logic-apps-limits-and-config.md",
+            "size": 84593,
+            "path": "articles/logic-apps/logic-apps-limits-and-config.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_azure_limits",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "final_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "permalink": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "fetched_at": "2026-08-24T18:42:19Z",
+          "http_status": 200,
+          "sha256": "84072c48c988d0a7d10ab0f52bd9f5748784e02f83fd5f4bd2c3b2479012cabc",
+          "bytes": 157281,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_azure_limits.bin",
+          "snippet": "Default: 60",
+          "content_type": "text/html"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_azure_limits",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-limits-and-config.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/logic-apps/logic-apps-limits-and-config.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/812cd8c147de182ba2bbdd5229275c4406312258",
+          "fetched_at": "2026-08-24T18:39:44Z",
+          "http_status": 200,
+          "sha256": "59f2b9c9666c1ceca0a53a8f3b286be3b937c93eefc262fd7046be41c71ea4c0",
+          "bytes": 117637,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_azure_limits.bin",
+          "snippet": "Default: 60",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "812cd8c147de182ba2bbdd5229275c4406312258",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/logic-apps/logic-apps-limits-and-config.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/812cd8c147de182ba2bbdd5229275c4406312258",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/logic-apps/logic-apps-limits-and-config.md",
+            "size": 84593,
+            "path": "articles/logic-apps/logic-apps-limits-and-config.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_azure_limits",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "final_url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "permalink": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-limits-and-config?tabs=consumption",
+          "fetched_at": "2026-08-24T18:42:19Z",
+          "http_status": 200,
+          "sha256": "84072c48c988d0a7d10ab0f52bd9f5748784e02f83fd5f4bd2c3b2479012cabc",
+          "bytes": 157281,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_azure_limits.bin",
+          "snippet": "Default: 60",
+          "content_type": "text/html"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-N8N-OPTIONAL",
+      "engine": "n8n Loop Over Items",
+      "canonical_mechanism": "reset-loop-plus-If-exit-condition",
+      "claim": "n8n Loop Over Items with Reset plus an If node evaluates an exit condition per iteration. The docs warn that if the termination condition never matches, the workflow execution gets stuck in an infinite loop. The infinite-loop guard is optional: an infinite loop is expressible.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "This is the Reset+If pagination pattern, not the default item-count batch loop. A host-level execution timeout may still kill the process; n8n's own node docs do not install a mandatory iteration cap on that pattern.",
+      "source_lineage": [
+        {
+          "id": "gh_n8n_split",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+          "fetched_at": "2026-08-24T18:39:48Z",
+          "http_status": 200,
+          "sha256": "5ea005b92d2f0a038a2b5d1bcbc3db560b1361ac1995793aa36f3efff24c8fd1",
+          "bytes": 16781,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_n8n_split.bin",
+          "snippet": "stuck in an infinite loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "html_url": "https://github.com/n8n-io/n8n-docs/blob/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "git_url": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "download_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "size": 11357,
+            "path": "docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_n8n_split",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "fetched_at": "2026-08-24T18:38:01Z",
+          "http_status": 200,
+          "sha256": "990bfae4f7c992a7a86e9c3a1db824749aab6e7c0cb6bafd44570fe2dd772fa8",
+          "bytes": 11357,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_n8n_split.bin",
+          "snippet": "If your termination condition never matches, your workflow execution will get stuck in an infinite loop.",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_n8n_split",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+          "fetched_at": "2026-08-24T18:39:48Z",
+          "http_status": 200,
+          "sha256": "5ea005b92d2f0a038a2b5d1bcbc3db560b1361ac1995793aa36f3efff24c8fd1",
+          "bytes": 16781,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_n8n_split.bin",
+          "snippet": "stuck in an infinite loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "html_url": "https://github.com/n8n-io/n8n-docs/blob/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "git_url": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "download_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "size": 11357,
+            "path": "docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_n8n_split",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "fetched_at": "2026-08-24T18:38:01Z",
+          "http_status": 200,
+          "sha256": "990bfae4f7c992a7a86e9c3a1db824749aab6e7c0cb6bafd44570fe2dd772fa8",
+          "bytes": 11357,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_n8n_split.bin",
+          "snippet": "If your termination condition never matches, your workflow execution will get stuck in an infinite loop.",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-LANGGRAPH-RECURSION",
+      "engine": "LangGraph",
+      "canonical_mechanism": "recursion_limit-GraphRecursionError",
+      "claim": "LangGraph cyclic graphs stop on a stop-condition edge or when recursion_limit is exhausted. Exhaustion raises GraphRecursionError, documented as preventing infinite loops. The limit is always present (must be >= 1) and is raisable via config.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "The numeric default 25 lives in langchain_core RunnableConfig (DEFAULT_RECURSION_LIMIT), a different repository than langgraph. A caller can set recursion_limit to a very large integer, which makes the guard ineffective in practice while remaining present.",
+      "source_lineage": [
+        {
+          "id": "gh_langgraph_errors",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/langchain-ai/langgraph/contents/libs/langgraph/langgraph/errors.py",
+          "final_url": "https://api.github.com/repos/langchain-ai/langgraph/contents/libs/langgraph/langgraph/errors.py",
+          "permalink": "https://api.github.com/repos/langchain-ai/langgraph/git/blobs/65b57d61e44ce4faed08d9ac244bd8a128239bad",
+          "fetched_at": "2026-08-24T18:39:42Z",
+          "http_status": 200,
+          "sha256": "f7f0b81f200037e87e4fefc997a00eb60b323e6345f13b0120f92307b1e53a88",
+          "bytes": 11338,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_langgraph_errors.bin",
+          "snippet": "This prevents infinite loops.",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "65b57d61e44ce4faed08d9ac244bd8a128239bad",
+            "html_url": "https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/errors.py",
+            "git_url": "https://api.github.com/repos/langchain-ai/langgraph/git/blobs/65b57d61e44ce4faed08d9ac244bd8a128239bad",
+            "download_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/errors.py",
+            "size": 7540,
+            "path": "libs/langgraph/langgraph/errors.py",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "docs_langgraph_errors",
+          "kind": "prose",
+          "request_url": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "final_url": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "permalink": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "fetched_at": "2026-08-24T18:39:41Z",
+          "http_status": 200,
+          "sha256": "75295513709548941b2b4c8ea89d77a526d52ad582976309b2bb2986972e1704",
+          "bytes": 811169,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/docs_langgraph_errors.bin",
+          "snippet": "This is often due to an infinite loop caused by code",
+          "content_type": "text/html; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_langgraph_errors",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/langchain-ai/langgraph/contents/libs/langgraph/langgraph/errors.py",
+          "final_url": "https://api.github.com/repos/langchain-ai/langgraph/contents/libs/langgraph/langgraph/errors.py",
+          "permalink": "https://api.github.com/repos/langchain-ai/langgraph/git/blobs/65b57d61e44ce4faed08d9ac244bd8a128239bad",
+          "fetched_at": "2026-08-24T18:39:42Z",
+          "http_status": 200,
+          "sha256": "f7f0b81f200037e87e4fefc997a00eb60b323e6345f13b0120f92307b1e53a88",
+          "bytes": 11338,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_langgraph_errors.bin",
+          "snippet": "This prevents infinite loops.",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "65b57d61e44ce4faed08d9ac244bd8a128239bad",
+            "html_url": "https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/errors.py",
+            "git_url": "https://api.github.com/repos/langchain-ai/langgraph/git/blobs/65b57d61e44ce4faed08d9ac244bd8a128239bad",
+            "download_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/libs/langgraph/langgraph/errors.py",
+            "size": 7540,
+            "path": "libs/langgraph/langgraph/errors.py",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "docs_langgraph_errors",
+          "kind": "prose",
+          "request_url": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "final_url": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "permalink": "https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "fetched_at": "2026-08-24T18:39:41Z",
+          "http_status": 200,
+          "sha256": "75295513709548941b2b4c8ea89d77a526d52ad582976309b2bb2986972e1704",
+          "bytes": 811169,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/docs_langgraph_errors.bin",
+          "snippet": "This is often due to an infinite loop caused by code",
+          "content_type": "text/html; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-AIRFLOW-SENSOR",
+      "engine": "Apache Airflow",
+      "canonical_mechanism": "BaseSensorOperator-poke-until-criteria",
+      "claim": "Airflow sensors are a condition-terminated wait: they poke until a criteria is met and fail when they time out. timeout is a BaseSensorOperator parameter documented on all sensors.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "A DAG-level while-loop in a PythonOperator is ordinary Python and is not this sensor construct. This claim is about sensors only.",
+      "source_lineage": [
+        {
+          "id": "gh_airflow_sensor_tasksdk",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/apache/airflow/contents/task-sdk/src/airflow/sdk/bases/sensor.py",
+          "final_url": "https://api.github.com/repos/apache/airflow/contents/task-sdk/src/airflow/sdk/bases/sensor.py",
+          "permalink": "https://api.github.com/repos/apache/airflow/git/blobs/3f1f0842e8982e40e960dfc6fad92146046d22f0",
+          "fetched_at": "2026-08-24T18:39:42Z",
+          "http_status": 200,
+          "sha256": "5851c8ce17da6b3fc484cce40754f0aba416f7c2c10ae8066be78d0a75e326ae",
+          "bytes": 22483,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_airflow_sensor_tasksdk.bin",
+          "snippet": "timeout: timedelta | float | None = None",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "3f1f0842e8982e40e960dfc6fad92146046d22f0",
+            "html_url": "https://github.com/apache/airflow/blob/main/task-sdk/src/airflow/sdk/bases/sensor.py",
+            "git_url": "https://api.github.com/repos/apache/airflow/git/blobs/3f1f0842e8982e40e960dfc6fad92146046d22f0",
+            "download_url": "https://raw.githubusercontent.com/apache/airflow/main/task-sdk/src/airflow/sdk/bases/sensor.py",
+            "size": 15643,
+            "path": "task-sdk/src/airflow/sdk/bases/sensor.py",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_airflow_docs_sensors",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "final_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "fetched_at": "2026-08-24T18:39:43Z",
+          "http_status": 200,
+          "sha256": "5c83c62d41b2d7371ea5f490f95238eda43f1da168b87fb0c220693e58f2dc97",
+          "bytes": 5542,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_airflow_docs_sensors.bin",
+          "snippet": "Maximum time in seconds the sensor is allowed to run before failing.",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_airflow_sensor_tasksdk",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/apache/airflow/contents/task-sdk/src/airflow/sdk/bases/sensor.py",
+          "final_url": "https://api.github.com/repos/apache/airflow/contents/task-sdk/src/airflow/sdk/bases/sensor.py",
+          "permalink": "https://api.github.com/repos/apache/airflow/git/blobs/3f1f0842e8982e40e960dfc6fad92146046d22f0",
+          "fetched_at": "2026-08-24T18:39:42Z",
+          "http_status": 200,
+          "sha256": "5851c8ce17da6b3fc484cce40754f0aba416f7c2c10ae8066be78d0a75e326ae",
+          "bytes": 22483,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_airflow_sensor_tasksdk.bin",
+          "snippet": "timeout: timedelta | float | None = None",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "3f1f0842e8982e40e960dfc6fad92146046d22f0",
+            "html_url": "https://github.com/apache/airflow/blob/main/task-sdk/src/airflow/sdk/bases/sensor.py",
+            "git_url": "https://api.github.com/repos/apache/airflow/git/blobs/3f1f0842e8982e40e960dfc6fad92146046d22f0",
+            "download_url": "https://raw.githubusercontent.com/apache/airflow/main/task-sdk/src/airflow/sdk/bases/sensor.py",
+            "size": 15643,
+            "path": "task-sdk/src/airflow/sdk/bases/sensor.py",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_airflow_docs_sensors",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "final_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/sensors.rst",
+          "fetched_at": "2026-08-24T18:39:43Z",
+          "http_status": 200,
+          "sha256": "5c83c62d41b2d7371ea5f490f95238eda43f1da168b87fb0c220693e58f2dc97",
+          "bytes": 5542,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_airflow_docs_sensors.bin",
+          "snippet": "Maximum time in seconds the sensor is allowed to run before failing.",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-AIRFLOW-DEFAULT-TIMEOUT",
+      "engine": "Apache Airflow",
+      "canonical_mechanism": "sensors.default_timeout-604800",
+      "claim": "When BaseSensorOperator.timeout is None, Airflow reads sensors.default_timeout from config. The config template default is 604800 seconds (7 days).",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "Operators may pass an explicit timeout that overrides the default. A deployment can change sensors.default_timeout. The bound is mandatory in the sense the constructor always assigns self.timeout, not in the sense the number 7 days is unchangeable.",
+      "source_lineage": [
+        {
+          "id": "gh_airflow_config_yml",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+          "final_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+          "permalink": "https://api.github.com/repos/apache/airflow/git/blobs/76171023dc50ecb2750771e6482d66e2d80542a2",
+          "fetched_at": "2026-08-24T18:40:58Z",
+          "http_status": 200,
+          "sha256": "4f0ac00310e7c97261606adca105a4a4e8edccbc705b504be3801750719e1e4f",
+          "bytes": 199513,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_airflow_config_yml.bin",
+          "snippet": "Sensor default timeout, 7 days by default",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "76171023dc50ecb2750771e6482d66e2d80542a2",
+            "html_url": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/config_templates/config.yml",
+            "git_url": "https://api.github.com/repos/apache/airflow/git/blobs/76171023dc50ecb2750771e6482d66e2d80542a2",
+            "download_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+            "size": 144081,
+            "path": "airflow-core/src/airflow/config_templates/config.yml",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_airflow_config_yml",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "final_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "fetched_at": "2026-08-24T18:40:57Z",
+          "http_status": 200,
+          "sha256": "78e8dd041920b53ac6bd2d1bc76c0d0600a2215706af25b5f265d58f8699a4df",
+          "bytes": 144081,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_airflow_config_yml.bin",
+          "snippet": "default: \"604800\"",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_airflow_config_yml",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+          "final_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+          "permalink": "https://api.github.com/repos/apache/airflow/git/blobs/76171023dc50ecb2750771e6482d66e2d80542a2",
+          "fetched_at": "2026-08-24T18:40:58Z",
+          "http_status": 200,
+          "sha256": "4f0ac00310e7c97261606adca105a4a4e8edccbc705b504be3801750719e1e4f",
+          "bytes": 199513,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_airflow_config_yml.bin",
+          "snippet": "Sensor default timeout, 7 days by default",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "76171023dc50ecb2750771e6482d66e2d80542a2",
+            "html_url": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/config_templates/config.yml",
+            "git_url": "https://api.github.com/repos/apache/airflow/git/blobs/76171023dc50ecb2750771e6482d66e2d80542a2",
+            "download_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+            "size": 144081,
+            "path": "airflow-core/src/airflow/config_templates/config.yml",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_airflow_config_yml",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "final_url": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+          "fetched_at": "2026-08-24T18:40:57Z",
+          "http_status": 200,
+          "sha256": "78e8dd041920b53ac6bd2d1bc76c0d0600a2215706af25b5f265d58f8699a4df",
+          "bytes": 144081,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_airflow_config_yml.bin",
+          "snippet": "default: \"604800\"",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-SFN-CHOICE-QUOTA",
+      "engine": "AWS Step Functions",
+      "canonical_mechanism": "Choice-state-plus-25000-history-quota",
+      "claim": "Step Functions has no native Until/While. Condition-terminated iteration is expressed by a Choice state (JSONPath/JSONata rules) looping via Next. Standard executions have a hard quota of 25,000 events in a single execution history; reaching it fails the execution. Maximum execution time is 1 year (Standard) or 5 minutes (Express).",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "The 25,000-event quota is a history-size backstop, not a loop iteration counter. A sparse loop might run a long time before hitting 25,000 events; the 1-year Standard ceiling is the other hard bound. Continue-via-StartExecution is a recommended escape, not an iteration cap.",
+      "source_lineage": [
+        {
+          "id": "gh_cdk_choice",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/aws/aws-cdk/contents/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+          "final_url": "https://api.github.com/repos/aws/aws-cdk/contents/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+          "permalink": "https://api.github.com/repos/aws/aws-cdk/git/blobs/b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+          "fetched_at": "2026-08-24T18:42:20Z",
+          "http_status": 200,
+          "sha256": "8e9cc19d7d1e27c37e8dd0b52ad80509f303d07b392e7b428af2ed115e801e9e",
+          "bytes": 7625,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_cdk_choice.bin",
+          "snippet": "A choice state can be used to make decisions based on the execution",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+            "html_url": "https://github.com/aws/aws-cdk/blob/main/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "git_url": "https://api.github.com/repos/aws/aws-cdk/git/blobs/b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+            "download_url": "https://raw.githubusercontent.com/aws/aws-cdk/main/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "size": 4792,
+            "path": "packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_sfn_quotas_md",
+          "kind": "prose",
+          "request_url": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "final_url": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "permalink": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "d17924110d1ca42053bb3475512a60197c7195f90f06b99fe6cf7a8c597fc0a0",
+          "bytes": 14258,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_sfn_quotas_md.bin",
+          "snippet": "25,000 events in a single state machine execution history",
+          "content_type": "text/markdown; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_cdk_choice",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/aws/aws-cdk/contents/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+          "final_url": "https://api.github.com/repos/aws/aws-cdk/contents/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+          "permalink": "https://api.github.com/repos/aws/aws-cdk/git/blobs/b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+          "fetched_at": "2026-08-24T18:42:20Z",
+          "http_status": 200,
+          "sha256": "8e9cc19d7d1e27c37e8dd0b52ad80509f303d07b392e7b428af2ed115e801e9e",
+          "bytes": 7625,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_cdk_choice.bin",
+          "snippet": "A choice state can be used to make decisions based on the execution",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+            "html_url": "https://github.com/aws/aws-cdk/blob/main/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "git_url": "https://api.github.com/repos/aws/aws-cdk/git/blobs/b4858fbec984bec9a86468c5551bb55e54b1c3c8",
+            "download_url": "https://raw.githubusercontent.com/aws/aws-cdk/main/packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "size": 4792,
+            "path": "packages/aws-cdk-lib/aws-stepfunctions/lib/states/choice.ts",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_sfn_quotas_md",
+          "kind": "prose",
+          "request_url": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "final_url": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "permalink": "https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.md",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "d17924110d1ca42053bb3475512a60197c7195f90f06b99fe6cf7a8c597fc0a0",
+          "bytes": 14258,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_sfn_quotas_md.bin",
+          "snippet": "25,000 events in a single state machine execution history",
+          "content_type": "text/markdown; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-TEMPORAL-FOREVER",
+      "engine": "Temporal Workflow",
+      "canonical_mechanism": "continue-as-new-optional-execution-timeout",
+      "claim": "Temporal Workflows may loop on arbitrary conditions in code. Continue-As-New resets Event History so a Workflow can run forever. Workflow Execution Timeout exists but Temporal's Python SDK docs generally do not recommend setting Workflow Timeouts. The iteration/stop guard is optional: an infinite loop is expressible.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "Event History limits can still fail a single run if Continue-As-New is not used. That is a history-size failure, not a condition-loop iteration cap the author must set. Cluster-level retention is out of scope.",
+      "source_lineage": [
+        {
+          "id": "gh_temporal_continue_encyc",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "final_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "permalink": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "9291ab5412f8266f30b7697e0b295bc5eb213b5a58d2711bc59b85a258d7feff",
+          "bytes": 6658,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_temporal_continue_encyc.bin",
+          "snippet": "your Workflow can run forever",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "html_url": "https://github.com/temporalio/documentation/blob/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "git_url": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "download_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "size": 3991,
+            "path": "docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_temporal_timeouts",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "final_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "permalink": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "54ff8f1af2a7135c7aa2802ca4e5e7487d118d822ffc7a27defe1317644c41d4",
+          "bytes": 4448,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_temporal_timeouts.bin",
+          "snippet": "we generally do not recommend setting Workflow Timeouts",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_temporal_continue_encyc",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "final_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "permalink": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "9291ab5412f8266f30b7697e0b295bc5eb213b5a58d2711bc59b85a258d7feff",
+          "bytes": 6658,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_temporal_continue_encyc.bin",
+          "snippet": "your Workflow can run forever",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "html_url": "https://github.com/temporalio/documentation/blob/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "git_url": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "download_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "size": 3991,
+            "path": "docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_temporal_timeouts",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "final_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "permalink": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "54ff8f1af2a7135c7aa2802ca4e5e7487d118d822ffc7a27defe1317644c41d4",
+          "bytes": 4448,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_temporal_timeouts.bin",
+          "snippet": "we generally do not recommend setting Workflow Timeouts",
+          "content_type": "text/plain; charset=utf-8"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-DURABLE-ETERNAL",
+      "engine": "Azure Durable Functions",
+      "canonical_mechanism": "eternal-orchestration-continue-as-new",
+      "claim": "Durable Task eternal orchestrations are documented as running indefinitely. continue-as-new resets orchestration history so an infinite loop can run without unbounded history growth. That API is a history-management pattern, not a mandatory stop rule. An infinite loop is expressible and first-class.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "PowerShell is documented as not supporting continue-as-new. Host/platform idle timeouts may still exist outside this article.",
+      "source_lineage": [
+        {
+          "id": "gh_durable_md",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "a4954960b653fa383d7095fcc45f292a2598b584f9324bc5075944a8dc2454f3",
+          "bytes": 28734,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_durable_md.bin",
+          "snippet": "run indefinitely by periodically resetting their own history",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "f136661bb1a848dee16622fa05281a17a14a68f8",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "size": 19992,
+            "path": "articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_durable_eternal",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-eternal-orchestrations",
+          "final_url": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "permalink": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "fetched_at": "2026-08-24T18:38:00Z",
+          "http_status": 200,
+          "sha256": "47c796a89c4da416c713c0fc2f28e54bc276408362a8e64138718a5abb60e09d",
+          "bytes": 79718,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_durable_eternal.bin",
+          "snippet": "scenario that requires an infinite loop without unbounded history growth",
+          "content_type": "text/html"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_durable_md",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "a4954960b653fa383d7095fcc45f292a2598b584f9324bc5075944a8dc2454f3",
+          "bytes": 28734,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_durable_md.bin",
+          "snippet": "run indefinitely by periodically resetting their own history",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "f136661bb1a848dee16622fa05281a17a14a68f8",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "size": 19992,
+            "path": "articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_durable_eternal",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-eternal-orchestrations",
+          "final_url": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "permalink": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "fetched_at": "2026-08-24T18:38:00Z",
+          "http_status": 200,
+          "sha256": "47c796a89c4da416c713c0fc2f28e54bc276408362a8e64138718a5abb60e09d",
+          "bytes": 79718,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_durable_eternal.bin",
+          "snippet": "scenario that requires an infinite loop without unbounded history growth",
+          "content_type": "text/html"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    },
+    {
+      "id": "C-ALL-ENGINES-MANDATORY-GUARDS",
+      "engine": "cross-engine overclaim",
+      "canonical_mechanism": "none",
+      "claim": "Every surveyed engine that can express a condition-terminated loop also installs a mandatory finite iteration cap, so an infinite loop is never expressible.",
+      "verdict": "REFUTED",
+      "evidence_tier": "E2",
+      "confidence": "C1-high",
+      "strongest_caveat": "Refuted by n8n Reset+If, Temporal Continue-As-New, and Durable Functions eternal orchestrations, each on two rails.",
+      "source_lineage": [
+        {
+          "id": "gh_n8n_split",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+          "fetched_at": "2026-08-24T18:39:48Z",
+          "http_status": 200,
+          "sha256": "5ea005b92d2f0a038a2b5d1bcbc3db560b1361ac1995793aa36f3efff24c8fd1",
+          "bytes": 16781,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_n8n_split.bin",
+          "snippet": "stuck in an infinite loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "html_url": "https://github.com/n8n-io/n8n-docs/blob/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "git_url": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "download_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "size": 11357,
+            "path": "docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_n8n_split",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "fetched_at": "2026-08-24T18:38:01Z",
+          "http_status": 200,
+          "sha256": "990bfae4f7c992a7a86e9c3a1db824749aab6e7c0cb6bafd44570fe2dd772fa8",
+          "bytes": 11357,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_n8n_split.bin",
+          "snippet": "If your termination condition never matches, your workflow execution will get stuck in an infinite loop.",
+          "content_type": "text/plain; charset=utf-8"
+        },
+        {
+          "id": "gh_temporal_continue_encyc",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "final_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "permalink": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "9291ab5412f8266f30b7697e0b295bc5eb213b5a58d2711bc59b85a258d7feff",
+          "bytes": 6658,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_temporal_continue_encyc.bin",
+          "snippet": "your Workflow can run forever",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "html_url": "https://github.com/temporalio/documentation/blob/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "git_url": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "download_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "size": 3991,
+            "path": "docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_temporal_timeouts",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "final_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "permalink": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "54ff8f1af2a7135c7aa2802ca4e5e7487d118d822ffc7a27defe1317644c41d4",
+          "bytes": 4448,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_temporal_timeouts.bin",
+          "snippet": "we generally do not recommend setting Workflow Timeouts",
+          "content_type": "text/plain; charset=utf-8"
+        },
+        {
+          "id": "gh_durable_md",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "a4954960b653fa383d7095fcc45f292a2598b584f9324bc5075944a8dc2454f3",
+          "bytes": 28734,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_durable_md.bin",
+          "snippet": "run indefinitely by periodically resetting their own history",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "f136661bb1a848dee16622fa05281a17a14a68f8",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "size": 19992,
+            "path": "articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_durable_eternal",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-eternal-orchestrations",
+          "final_url": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "permalink": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "fetched_at": "2026-08-24T18:38:00Z",
+          "http_status": 200,
+          "sha256": "47c796a89c4da416c713c0fc2f28e54bc276408362a8e64138718a5abb60e09d",
+          "bytes": 79718,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_durable_eternal.bin",
+          "snippet": "scenario that requires an infinite loop without unbounded history growth",
+          "content_type": "text/html"
+        }
+      ],
+      "rails": [
+        {
+          "id": "gh_n8n_split",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://api.github.com/repos/n8n-io/n8n-docs/contents/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+          "fetched_at": "2026-08-24T18:39:48Z",
+          "http_status": 200,
+          "sha256": "5ea005b92d2f0a038a2b5d1bcbc3db560b1361ac1995793aa36f3efff24c8fd1",
+          "bytes": 16781,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_n8n_split.bin",
+          "snippet": "stuck in an infinite loop",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "html_url": "https://github.com/n8n-io/n8n-docs/blob/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "git_url": "https://api.github.com/repos/n8n-io/n8n-docs/git/blobs/6ec6ef842fee113e0aec947641769aa55724bc0b",
+            "download_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "size": 11357,
+            "path": "docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_n8n_split",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "final_url": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "permalink": "https://raw.githubusercontent.com/n8n-io/n8n-docs/main/docs/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches.md",
+          "fetched_at": "2026-08-24T18:38:01Z",
+          "http_status": 200,
+          "sha256": "990bfae4f7c992a7a86e9c3a1db824749aab6e7c0cb6bafd44570fe2dd772fa8",
+          "bytes": 11357,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_n8n_split.bin",
+          "snippet": "If your termination condition never matches, your workflow execution will get stuck in an infinite loop.",
+          "content_type": "text/plain; charset=utf-8"
+        },
+        {
+          "id": "gh_temporal_continue_encyc",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "final_url": "https://api.github.com/repos/temporalio/documentation/contents/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+          "permalink": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "9291ab5412f8266f30b7697e0b295bc5eb213b5a58d2711bc59b85a258d7feff",
+          "bytes": 6658,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_temporal_continue_encyc.bin",
+          "snippet": "your Workflow can run forever",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "html_url": "https://github.com/temporalio/documentation/blob/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "git_url": "https://api.github.com/repos/temporalio/documentation/git/blobs/bd777996dff7950f829ff8d04586d4dbf5dac0ce",
+            "download_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "size": 3991,
+            "path": "docs/encyclopedia/workflow/workflow-execution/continue-as-new.mdx",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "raw_temporal_timeouts",
+          "kind": "prose",
+          "request_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "final_url": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "permalink": "https://raw.githubusercontent.com/temporalio/documentation/main/docs/develop/python/workflows/timeouts.mdx",
+          "fetched_at": "2026-08-24T18:42:18Z",
+          "http_status": 200,
+          "sha256": "54ff8f1af2a7135c7aa2802ca4e5e7487d118d822ffc7a27defe1317644c41d4",
+          "bytes": 4448,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/raw_temporal_timeouts.bin",
+          "snippet": "we generally do not recommend setting Workflow Timeouts",
+          "content_type": "text/plain; charset=utf-8"
+        },
+        {
+          "id": "gh_durable_md",
+          "kind": "structured-api",
+          "request_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "final_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+          "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+          "fetched_at": "2026-08-24T18:39:45Z",
+          "http_status": 200,
+          "sha256": "a4954960b653fa383d7095fcc45f292a2598b584f9324bc5075944a8dc2454f3",
+          "bytes": 28734,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/gh_durable_md.bin",
+          "snippet": "run indefinitely by periodically resetting their own history",
+          "content_type": "application/json; charset=utf-8",
+          "github_contents": {
+            "blob_sha": "f136661bb1a848dee16622fa05281a17a14a68f8",
+            "html_url": "https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "git_url": "https://api.github.com/repos/MicrosoftDocs/azure-docs/git/blobs/f136661bb1a848dee16622fa05281a17a14a68f8",
+            "download_url": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "size": 19992,
+            "path": "articles/durable-task/common/durable-task-eternal-orchestrations.md",
+            "encoding": "base64"
+          }
+        },
+        {
+          "id": "learn_durable_eternal",
+          "kind": "prose",
+          "request_url": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-eternal-orchestrations",
+          "final_url": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "permalink": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-eternal-orchestrations",
+          "fetched_at": "2026-08-24T18:38:00Z",
+          "http_status": 200,
+          "sha256": "47c796a89c4da416c713c0fc2f28e54bc276408362a8e64138718a5abb60e09d",
+          "bytes": 79718,
+          "snapshot": "command-center/p2-wave/probes/RES-0069/snapshots/learn_durable_eternal.bin",
+          "snippet": "scenario that requires an infinite loop without unbounded history growth",
+          "content_type": "text/html"
+        }
+      ],
+      "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "freshness_stamp": "2026-08-25T00:53:16Z"
+    }
+  ],
+  "edges": [
+    {
+      "type": "direct-contradiction",
+      "from": "C-ALL-ENGINES-MANDATORY-GUARDS",
+      "to": "C-N8N-OPTIONAL",
+      "note": "optional-guard control"
+    },
+    {
+      "type": "direct-contradiction",
+      "from": "C-ALL-ENGINES-MANDATORY-GUARDS",
+      "to": "C-TEMPORAL-FOREVER",
+      "note": "run-forever via Continue-As-New"
+    },
+    {
+      "type": "support",
+      "from": "C-AZURE-UNTIL",
+      "to": "C-AZURE-UNTIL-LIMITS",
+      "note": "defaults vs numeric ceilings"
+    }
+  ],
+  "tests": [
+    {
+      "id": "per-engine-guard-class",
+      "name": "for each engine, record the infinite-loop guard and whether it is mandatory or optional",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe2_loop_guard_table.py",
+      "result": "PASS"
+    },
+    {
+      "id": "optional-guard-control",
+      "name": "control: identify one engine whose guard is optional, i.e. an infinite loop is expressible",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe2_loop_guard_table.py",
+      "result": "PASS"
+    },
+    {
+      "id": "two-rail-evidence",
+      "name": "every CONFIRMED claim carries structured-api and prose rails with permalink, timestamp, HTTP status, sha256",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0069/probe1_two_rails.py",
+      "result": "PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0069-fresh-context-adversarial-refuter",
+    "independent": true,
+    "fresh_context": true,
+    "verdict": "PASS",
+    "default_without_evidence": "REFUTED",
+    "scope_not_agreement": true,
+    "notes": "Overclaim 'every engine has a mandatory cap' is REFUTED. Google Cloud Workflows and Salesforce Flow captures were JS-rendered and did not yield a searchable while/iteration quote; they are omitted, not inferred. Camunda completionCondition is multi-instance early-exit, not a while, and is omitted. 05-ECO index and REGISTER.md are absent on this Linux worktree; sources pivoted to live public docs/code."
+  },
+  "strongest_surviving_counterargument": "A platform-level wall-clock timeout (worker kill, cloud idle policy, OS process limit) can still stop an 'infinite' n8n/Temporal/Durable loop. That does not convert those engines' loop constructs into mandatory iteration caps: the engine docs still allow expressing a loop with no author-supplied bound. Treating an undeclared host timeout as the engine's stopping rule would be an overclaim.",
+  "inputs_absent_on_this_worktree": [
+    "command-center/sources/REGISTER.md",
+    "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"
+  ],
+  "freshness": {
+    "oldest_fetch": "2026-08-24T18:37:56Z",
+    "newest_fetch": "2026-08-24T18:42:20Z",
+    "emitted_at": "2026-08-25T00:53:16Z"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0069.json",
+      "role": "primary",
+      "exists": true
+    }
+  ]
+}

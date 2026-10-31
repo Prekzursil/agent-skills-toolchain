@@ -1,0 +1,355 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/IMP-0151/adapter.py",
+   "bytes": 1943,
+   "sha256": "9d1eaeba71ac584b91b0ffb272024a212ee236b4698f1c74d89fdfd34fc1be8a",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0151/fixtures.py",
+   "bytes": 1335,
+   "sha256": "9edd38f7e3af1bedce2cecc6fe5b5ca7e7285d71340db551e5742d0229571c84",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+   "bytes": 2089,
+   "sha256": "57ab957c3def1b4365716bedf91b61677f1c6ce7867f1c52aa4968875a977e2f",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+   "bytes": 2709,
+   "sha256": "2f7108211b0fefea63b29d546426c15f768efc6429f127a4053a86bd7b060050",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "claim_under_test": "A read-only discovery adapter can classify repo-only and live-only controls in both directions and leave live trees byte-identical (mtime set equality) after a run.",
+ "completion_line": "SUCCESS:IMP-0151",
+ "evidence": [
+  {
+   "claim": "Filesystem audit: mtime/size/ino/sha256 snapshot of the live fixture tree (11 files) is equal before and after discover(); host trees created=[].",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe1-zero-writes\", \"files\": 4, \"live_equal\": true, \"host_created\": [], \"no_writes\": true, \"counts\": {\"repo\": 2, \"live\": 2, \"shared\": 1, \"repo_only\": 1, \"live_only\": 1}, \"pass\": true}\nSUCCESS:IMP-0151-probe1 discover() wrote nothing; tree snapshot equal before/after",
+     "fingerprint": "684c41cef439e23a31e1b38cf97ca603",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe2-both-directions\", \"repo_only\": true, \"live_only\": true, \"shared_classed\": true, \"no_false_divergence\": true, \"drift_fires\": true, \"shared_not_orphan\": true, \"pass\": true}\nSUCCESS:IMP-0151-probe2 both divergence directions detected; drift control fires; shared never orphaned",
+     "fingerprint": "218d3adf578664ca4cac541d8bc9d3a8",
+     "exit_code": 0
+    }
+   ],
+   "confidence": "almost-certain"
+  },
+  {
+   "claim": "Known repo-only skill and known live-only skill are both classified correctly (repo-only=['repo-only-skill'], live-only=['live-only-skill']); shared skill is identical and not filed as an orphan; divergent skill is divergent with authoritative_side=null. Both-states: silent without plants, fires with plants.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe1-zero-writes\", \"files\": 4, \"live_equal\": true, \"host_created\": [], \"no_writes\": true, \"counts\": {\"repo\": 2, \"live\": 2, \"shared\": 1, \"repo_only\": 1, \"live_only\": 1}, \"pass\": true}\nSUCCESS:IMP-0151-probe1 discover() wrote nothing; tree snapshot equal before/after",
+     "fingerprint": "684c41cef439e23a31e1b38cf97ca603",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe2-both-directions\", \"repo_only\": true, \"live_only\": true, \"shared_classed\": true, \"no_false_divergence\": true, \"drift_fires\": true, \"shared_not_orphan\": true, \"pass\": true}\nSUCCESS:IMP-0151-probe2 both divergence directions detected; drift control fires; shared never orphaned",
+     "fingerprint": "218d3adf578664ca4cac541d8bc9d3a8",
+     "exit_code": 0
+    }
+   ],
+   "confidence": "almost-certain"
+  },
+  {
+   "claim": "Host live trees ~/.claude and ~/.agents are ABSENT on this Linux worktree (any_host_live_present=False). The adapter does not create them. Catalog-pinned historical '5 of 88 rules files byte-identical' is NOT cited as a current measurement (cited_historical_5_of_88=False).",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/IMP-0151/adapter.py:host_live_roots",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe1-zero-writes\", \"files\": 4, \"live_equal\": true, \"host_created\": [], \"no_writes\": true, \"counts\": {\"repo\": 2, \"live\": 2, \"shared\": 1, \"repo_only\": 1, \"live_only\": 1}, \"pass\": true}\nSUCCESS:IMP-0151-probe1 discover() wrote nothing; tree snapshot equal before/after",
+     "fingerprint": "684c41cef439e23a31e1b38cf97ca603",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+     "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe2-both-directions\", \"repo_only\": true, \"live_only\": true, \"shared_classed\": true, \"no_false_divergence\": true, \"drift_fires\": true, \"shared_not_orphan\": true, \"pass\": true}\nSUCCESS:IMP-0151-probe2 both divergence directions detected; drift control fires; shared never orphaned",
+     "fingerprint": "218d3adf578664ca4cac541d8bc9d3a8",
+     "exit_code": 0
+    }
+   ],
+   "confidence": "almost-certain"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0151/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "id": "IMP0151-C1",
+   "kind": "other",
+   "description": "A discover() run that writes a cache file or touches mtimes would fail snapshot equality. Live fixture was chmod 0444/0555 during the run.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "chmod 0555 live tree; write would raise EACCES or fail snapshot",
+   "good_state_output": "live_mtime_set_equal=True"
+  },
+  {
+   "id": "IMP0151-C2",
+   "kind": "other",
+   "description": "Without planted orphans the detector must not report repo-only-skill or live-only-skill; with plants both directions must appear. A shared capability must not be classified as an orphan.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"repo_only_ids\": [\"repo-only-skill\"], \"live_only_ids\": [\"live-only-skill\"]}",
+   "good_state_output": "{\"divergent\": 1, \"identical\": 6, \"live-only\": 0, \"repo-only\": 0}"
+  }
+ ],
+ "profile": "discovery-adapter-live-harness",
+ "question": "Enumerate workflow-shaped capabilities in ~/.claude and ~/.agents (skills, commands, agents, hooks) READ-ONLY, recording repo-vs-live divergence per artifact without treating either side as authoritative.",
+ "report": {
+  "adapter": "command-center/p2-wave/probes/IMP-0151/adapter.py",
+  "authoritative_side": null,
+  "cited_historical_5_of_88": false,
+  "fixture_census": {
+   "counts": {
+    "divergent": 1,
+    "identical": 6,
+    "live-only": 2,
+    "repo-only": 2
+   },
+   "live_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0151/fixtures/readonly-estate/live",
+   "repo_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0151/fixtures/readonly-estate/repo",
+   "union": 11
+  },
+  "host": {
+   "any_present": false,
+   "roots": [
+    "/root/.claude",
+    "/root/.agents"
+   ]
+  },
+  "host_any_live_present": false,
+  "kind": "live-harness-discovery",
+  "read_only": true
+ },
+ "residual_unknowns": [
+  {
+   "claim": "On an estate where ~/.claude and ~/.agents are populated, the same adapter will enumerate those trees without writing. This worktree cannot demonstrate a non-empty host census.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Re-run adapter.discover_host() on a machine with populated live trees and repeat the mtime snapshot against those real roots."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "reviewer_id": "wf2-shard11-independent-closer-2026-10-25",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewed_at": "2026-10-25T17:33:50Z",
+  "notes": "Independent reviewer 2026-10-25: probe1 (discover() writes nothing: mtime/size/ino/sha256 snapshot of the fixture tree byte-equal before/after, host_created=[]) and probe2 (repo-only and live-only classified in both directions; drift control fires; shared capability never orphaned) re-run live exit 0. Receipt completed to receipt_core shape (downstream_consumers) and validated. Catalog reviewer requirement (verbatim): {\"catalog_reviewer_requirement\": \"one independent adversarial reviewer in a fresh context\"}"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0151",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0151",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T1-zero-live-tree-writes",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+   "result": "PASS"
+  },
+  {
+   "id": "T2-repo-only-and-live-only-both-directions",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:54:45+00:00",
+  "ended_at": "2026-08-25T00:54:45+00:00"
+ },
+ "unit_id": "IMP-0151",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe1-zero-writes\", \"files\": 4, \"live_equal\": true, \"host_created\": [], \"no_writes\": true, \"counts\": {\"repo\": 2, \"live\": 2, \"shared\": 1, \"repo_only\": 1, \"live_only\": 1}, \"pass\": true}\nSUCCESS:IMP-0151-probe1 discover() wrote nothing; tree snapshot equal before/after",
+   "finished_at": "2026-10-25T15:28:38Z",
+   "started_at": "2026-10-25T15:28:36Z"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "RESULT:{\"unit_id\": \"IMP-0151\", \"probe\": \"probe2-both-directions\", \"repo_only\": true, \"live_only\": true, \"shared_classed\": true, \"no_false_divergence\": true, \"drift_fires\": true, \"shared_not_orphan\": true, \"pass\": true}\nSUCCESS:IMP-0151-probe2 both divergence directions detected; drift control fires; shared never orphaned",
+   "finished_at": "2026-10-25T15:28:39Z",
+   "started_at": "2026-10-25T15:28:38Z"
+  }
+ ],
+ "extensions": {
+  "prev_closure": [
+   {
+    "demoted_by": "shard11 wave-2 builder 2026-10-25: builder-authored probe closure is not an independent review; only the independent reviewer closes (program contract, receipt state=BLOCKED with failure.classification reviewer-absent)",
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Mechanical second signal (classification both-states) is independent of the mtime audit. Not a second human in a fresh context; disclosed.",
+    "reviewer_id": "IMP-0151-probe2-both-directions",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+   }
+  ],
+  "shard11_w2_resume_2026-10-25": {
+   "action": "shard11 wave-2 resume 2026-10-25: prior builder died mid-flight (host session ended). Artifact and implementation surfaces verified live by this resume; probe kit rebuilt where the dead attempt had not yet written it; both probes re-run exit 0; builder-authored reviewer self-closure demoted to prev_closure; receipt set BLOCKED/reviewer-absent.",
+   "builder": "shard11 wave-2 builder"
+  },
+  "builder_tests_detail": [
+   {
+    "assertions": 3,
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe1_zero_writes.py",
+    "id": "T1-zero-live-tree-writes",
+    "output_tail": "live_equal=True repo_equal=True host_created=[] files=11 union=11 repo-only=2 live-only=2",
+    "result": "PASS"
+   },
+   {
+    "assertions": 6,
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0151/probe2_both_directions.py",
+    "id": "T2-repo-only-and-live-only-both-directions",
+    "output_tail": "silent_on_good=True fired_on_bad=True shared_not_orphan=True divergent=True commands_ok=True repo-only=['repo-only-skill'] live-only=['live-only-skill']",
+    "result": "PASS"
+   }
+  ],
+  "builder_produced_by_detail": {
+   "execution_substrate": "local-serialized",
+   "model": "grok-4.6",
+   "role": "implementer",
+   "vendor": "cursor"
+  },
+  "prev_state_blocker": {
+   "classification": [
+    "reviewer-absent"
+   ],
+   "reason": "Builder lane may not self-certify: artifact live-verified by both named probes (exit 0) and registered in the per-unit manifest with the CRLF-normalized sha256. The prior attempt's reviewer closure was authored from the builder's own probe2 output (not an independent fresh-context review) and is demoted to extensions.prev_closure. receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, so the receipt stays BLOCKED until the independent reviewer closes."
+  },
+  "independent_closure_2026-10-25": {
+   "verdict": "PASS",
+   "closed_by": "wf2-shard11-independent-closer-2026-10-25",
+   "reviewed_at": "2026-10-25T17:33:50Z",
+   "method": "live re-run of both named probes (exit 0 this session); receipt+manifest sha256 verified with CRLF-to-LF normalization; jsonschema draft2020-12 validation of the closed receipt; artifact-row hash census; independent code read where the catalog reviewer requirement demanded more than probes",
+   "corrections": [
+    {
+     "fix": "probe-method-mapped",
+     "from": "mtime-snapshot",
+     "to": "command"
+    },
+    {
+     "fix": "probe-fingerprint-recomputed-per-wflib",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/"
+    },
+    {
+     "fix": "evidence-probes-rebuilt-from-live-rerun",
+     "claim": "Filesystem audit: mtime/size/ino/sha256 snapshot of the live fixture tree (11 fi"
+    },
+    {
+     "fix": "probe-method-mapped",
+     "from": "both-states-plant",
+     "to": "command"
+    },
+    {
+     "fix": "probe-fingerprint-recomputed-per-wflib",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/"
+    },
+    {
+     "fix": "evidence-probes-rebuilt-from-live-rerun",
+     "claim": "Known repo-only skill and known live-only skill are both classified correctly (r"
+    },
+    {
+     "fix": "probe-method-mapped",
+     "from": "stat",
+     "to": "command"
+    },
+    {
+     "fix": "probe-fingerprint-recomputed-per-wflib",
+     "command": "Path.home()/'.claude' and Path.home()/'.agents'"
+    },
+    {
+     "fix": "evidence-probes-rebuilt-from-live-rerun",
+     "claim": "Host live trees ~/.claude and ~/.agents are ABSENT on this Linux worktree (any_h"
+    },
+    {
+     "fix": "negctl-kind-mapped",
+     "id": "IMP0151-C1",
+     "from": "mtime-set-equality",
+     "to": "other"
+    },
+    {
+     "fix": "negctl-kind-mapped",
+     "id": "IMP0151-C2",
+     "from": "both-states-orphan-classification",
+     "to": "other"
+    },
+    {
+     "fix": "produced_by-preserved-to-extensions",
+     "why": "vendor 'cursor' is not in the schema vendor_id enum; builder attribution preserved verbatim"
+    },
+    {
+     "fix": "failure-blocker-archived-to-extensions"
+    }
+   ]
+  }
+ },
+ "status": "SUCCESS",
+ "downstream_consumers": [
+  {
+   "consumer": "wf2-shard11 independent reviewer closed-receipt read",
+   "artifact_path": "command-center/receipts/IMP-0151.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "python -c json.load command-center/receipts/IMP-0151.json",
+    "raw_output": "closed-receipt parse OK: state=SUCCESS reviewer=PASS independent=true",
+    "fingerprint": "097823fcd6521248c6bdd0934593965f",
+    "exit_code": 0
+   }
+  }
+ ]
+}

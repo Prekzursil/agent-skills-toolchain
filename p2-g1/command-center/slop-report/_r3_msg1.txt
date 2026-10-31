@@ -1,0 +1,60 @@
+fix(twin-parity): the gate guarded 7 pairs of 195, so 27 drifted unseen
+
+`ci/tests/test_deployed_hook_twin_parity.py` compared four pinned pairs and
+three known-divergent ones. It passed, and it was right to -- within its
+declared set. The set was 7 of a 195-pair surface, so the other 188 could drift
+with CI green, and 27 had.
+
+Both trees are DEPLOYED. `scripts/bootstrap-codespace.sh` copies the repo-root
+`hooks/`, `rules/` and `commands/` into ~/.claude; `agent-self/bootstrap.ps1`
+lays `agent-self/config/*` over them. A fix landed in one tree and not the other
+is live on whichever box ran the other bootstrap -- which is what the gate's own
+docstring already warned about.
+
+The gate now DISCOVERS the surface from `git ls-files` and requires every
+discovered pair to be byte-identical or DECLARED. 161 identical pairs become a
+ratchet (was 4); a new undeclared divergence is a red build; a declaration that
+no longer matches a real twin is flagged stale. 21 tests -> 125.
+
+Declared, with what was measured rather than an approval:
+  30 KNOWN_DIVERGENT  (3 pre-existing REVIEWED extensions + 27 recorded DRIFT)
+   2 TEMPLATED        ({{USER_HOME}}, and the exemption is now PROVEN per pair:
+                       same line count, token on the mirror side, prefix and
+                       suffix match, one consistent expansion)
+   2 NOT_TWINS        (AGENTS.md / CLAUDE.md are different documents that share
+                       a filename; the old pairing rule over-matched them)
+
+Adding a KNOWN_DIVERGENT row RECORDS a divergence, it does not fix one. So the
+commit also ships the measurement that says which ones a script could fix:
+
+  needs-human-read   30   each side holds bytes the other lacks in the same slot
+  safe mirror<-root   3   mirror is a strict subset
+  safe root<-mirror   1   root is a strict subset
+
+30 of 34 cannot be reconciled mechanically, which is why this is a guard and not
+a sync. Highest-severity pair found: `hooks/precompact-basicmemory/capture.ps1`,
+where the repo-root copy is a compatibility shim whose docstring says it exists
+so a cached hook definition cannot revive the previous capture behaviour -- and
+the mirror IS that behaviour, ~78 lines, still installed by the other bootstrap.
+Second: `hooks/event-ledger/test_prune_oats.py`, where each side holds test
+coverage the other lacks, so reconciling either way deletes tests.
+
+BOTH-STATES PROOF, because 125 green tests on a tree that satisfies them is not
+evidence: `_r3_redproof.py` builds a throwaway git repo, copies the REAL gate
+file into it byte-for-byte, and runs it against a known-broken surface.
+Identical fixture twins -> ratchet rc 0; the same twins made to differ -> rc 1;
+a 1-pair repo -> plausibility floor rc 1; no declared paths -> staleness rc 1;
+live tree -> 0 on all four. 10/10, and the ratchet is the only check whose
+verdict differs between the fixture states.
+
+An instrument correction is recorded rather than dropped: a line-multiset
+differ said 30 pairs were "two-way" and an opcode differ said 3. That looked
+like a refutation and calling it one would have been the overclaim -- a
+`replace` run means both sides hold bytes in the same slot, so it is as
+content-destroying to sync as an `insert`. The first partition was right and
+only its label was wrong.
+
+`python -m pytest ci/tests -q` at this tree: 781 passed, 1 skipped, 1 failed.
+The failure is a Windows-only UnicodeDecodeError on a 0xff filename byte in
+test_check_skill_dual_write.py, proven pre-existing by running it in a detached
+worktree at HEAD carrying none of these changes.

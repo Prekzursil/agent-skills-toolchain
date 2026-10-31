@@ -1,0 +1,3672 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1027,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/manifest-audit.schema.json",
+      "role": "supporting",
+      "sha256": "0cbfa346adcb4fa5d642286fdd4b269b2b59cd4e2c460a734753b6e415a5938b"
+    },
+    {
+      "bytes": 16454,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0122/walker.py",
+      "role": "supporting",
+      "sha256": "1c685ac2827c43aa536d730122d99d34d1b4cb268a968100291a01b17e9332ae"
+    },
+    {
+      "bytes": 3070,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+      "role": "supporting",
+      "sha256": "06e10921532377e4e2c04ebb8ebc48a7fcb25f6cc6d3069a3f7e8f7671f94c98"
+    },
+    {
+      "bytes": 2325,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0122/probe2_unmanifested_control.py",
+      "role": "supporting",
+      "sha256": "ece0ec5cbb1e4b2df9d23096361785f3c61b7144c1573f13fefbfaa2d6e098eb"
+    },
+    {
+      "bytes": 28708,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0122/emit.py",
+      "role": "supporting",
+      "sha256": "9774df5b7716b3fe32fbb609db8768d2ed3e03f4004803ed4e7111b84b073618"
+    },
+    {
+      "bytes": 15655,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/command-center/render.py",
+      "role": "supporting",
+      "sha256": "67b8f5e764e3314b747fabbf72a64440646202a545bce6c74a174cdbdaaa06a3"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0122-manifest-vs-disk.json",
+      "consumer": "json.loads + Draft202012Validator(manifest-audit)",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -c json.loads + jsonschema.Draft202012Validator with disk RefResolver store for manifest-audit.schema.json",
+        "exit_code": 0,
+        "fingerprint": "schema-validate-manifest-audit",
+        "method": "schema-validate",
+        "raw_output": "in-memory schema errors=0; garbage rejected=3/3",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:1",
+      "claim": "walker.py does not import tools/command-center/render.py or unit_manifest, so a shared writer bug cannot certify itself.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+          "exit_code": 0,
+          "fingerprint": "probe1-ast-independence",
+          "method": "static-analysis",
+          "raw_output": "{\"absent_reported\": true, \"hash_basis\": \"worktree-bytes-lf-normalized\", \"hash_mismatch_reported\": true, \"independent\": true, \"matching_kept\": true, \"walker_source\": \"command-center/p2-wave/probes/CNF-0122/walker.py:202\"}\nSUCCESS:CNF-0122-probe1 walker independent of writer; fixture hash and absent drift reported",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/CNF-0122/walker.py:FORBIDDEN_IMPORT_ROOTS",
+          "exit_code": 0,
+          "fingerprint": "file-read-forbidden-imports",
+          "method": "file-read",
+          "raw_output": "{\"forbidden_imports\": [], \"imports_manifest_writer\": false, \"independent\": true, \"walker_path\": \"command-center/p2-wave/probes/CNF-0122/walker.py\", \"writer_function\": \"render_manifest\", \"writer_path\": \"tools/command-center/render.py\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:run_unmanifested_control",
+      "claim": "The unmanifested-file detector control reports command-center/UNMANIFESTED-CONTROL.txt on the known-broken fixture and is silent on the clean fixture.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe2_unmanifested_control.py",
+          "exit_code": 0,
+          "fingerprint": "probe2-unmanifested-control",
+          "method": "command",
+          "raw_output": "{\"fired_on_broken\": true, \"planted_path\": \"command-center/UNMANIFESTED-CONTROL.txt\", \"reported\": true, \"silent_on_clean\": true}\nSUCCESS:CNF-0122-probe2 unmanifested-file control fired; clean fixture silent",
+          "role": "source"
+        },
+        {
+          "command": "walker.run_unmanifested_control + walker.run_clean_control",
+          "exit_code": 0,
+          "fingerprint": "emit-both-states-controls",
+          "method": "test-run",
+          "raw_output": "{\"garbage_schema_rejected\": 3, \"planted_path\": \"command-center/UNMANIFESTED-CONTROL.txt\", \"reported\": true, \"silent_on_clean\": true}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+      "claim": "Live set difference on this worktree: 384 on-disk-but-unmanifested, 0 manifested-but-absent, 0 hash mismatches. POSIX find agrees with the walker disk set (398 paths).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "walker.walk_and_compare(REPO)",
+          "exit_code": 0,
+          "fingerprint": "walker-walk-and-compare",
+          "method": "byte-compare",
+          "raw_output": "{\"absent\": 0, \"hash_mismatches\": 0, \"manifested_count\": 14, \"matching\": 13, \"on_disk_count\": 398, \"unmanifested\": 384}",
+          "role": "source"
+        },
+        {
+          "command": "find command-center -maxdepth 1 -type f; find command-center/events -maxdepth 1 -type f",
+          "exit_code": 0,
+          "fingerprint": "posix-find-charter-tree",
+          "method": "command",
+          "raw_output": "{\"find_count\": 398, \"find_equals_walker_disk\": true, \"manifested_count\": 14}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "completion_sentinel": "SUCCESS:CNF-0122 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the walker is independent of the manifest writer and the unmanifested-file control was reported. Any other terminal state is FAILED:CNF-0122 <classification> with the diagnostic tail attached.",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+        "exit_code": 0,
+        "id": "probe1",
+        "raw_output": "{\"absent_reported\": true, \"hash_basis\": \"worktree-bytes-lf-normalized\", \"hash_mismatch_reported\": true, \"independent\": true, \"matching_kept\": true, \"walker_source\": \"command-center/p2-wave/probes/CNF-0122/walker.py:202\"}\nSUCCESS:CNF-0122-probe1 walker independent of writer; fixture hash and absent drift reported"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe2_unmanifested_control.py",
+        "exit_code": 0,
+        "id": "probe2",
+        "raw_output": "{\"fired_on_broken\": true, \"planted_path\": \"command-center/UNMANIFESTED-CONTROL.txt\", \"reported\": true, \"silent_on_clean\": true}\nSUCCESS:CNF-0122-probe2 unmanifested-file control fired; clean fixture silent"
+      }
+    ]
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0122",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0122/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"absent_paths\": [\"command-center/OWNER-DECISIONS.md\"], \"hash_mismatch_paths\": [\"command-center/STATUS.md\"], \"planted_path\": \"command-center/UNMANIFESTED-CONTROL.txt\", \"unmanifested_paths\": [\"command-center/UNMANIFESTED-CONTROL.txt\"]}",
+      "description": "Plant command-center/UNMANIFESTED-CONTROL.txt plus a hash mismatch and an absent manifested path. The walker must report the planted file as on-disk-but-unmanifested.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"absent_paths\": [], \"hash_mismatch_paths\": [], \"silent_on_clean\": true, \"unmanifested_paths\": []}",
+      "id": "unmanifested-file-control",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok",
+    "role": "manifest-auditor",
+    "vendor": "xai"
+  },
+  "profile": "manifest-audit",
+  "report": {
+    "answers": {
+      "charter_files_absent": [],
+      "charter_files_present": [
+        "command-center/PROGRAM-CHARTER.md",
+        "command-center/OWNER-DECISIONS.md",
+        "command-center/WORK-UNIT-CATALOG.json",
+        "command-center/DEPENDENCY-GRAPH.json",
+        "command-center/ARTIFACT-MANIFEST.json",
+        "command-center/CLAIM-REGISTRY.json",
+        "command-center/TEST-REGISTRY.json",
+        "command-center/RISK-REGISTER.md",
+        "command-center/UNKNOWNS-REGISTER.md",
+        "command-center/RELEASE-CHECKLIST.md",
+        "command-center/ROLLBACK-MANIFEST.md",
+        "command-center/RUNBOOK.md",
+        "command-center/STATUS.md",
+        "command-center/events/EVENTS.jsonl"
+      ],
+      "hash_mismatch_count": 0,
+      "hash_mismatch_paths": [],
+      "manifest_describes_reality": false,
+      "manifest_present": true,
+      "manifest_status": "ok",
+      "manifested_but_absent_count": 0,
+      "manifested_but_absent_paths": [],
+      "matching_count": 13,
+      "on_disk_but_unmanifested_count": 384,
+      "on_disk_but_unmanifested_paths": [
+        "command-center/BASELINE-SNAPSHOT.json",
+        "command-center/BASELINE-SNAPSHOT.md",
+        "command-center/BP5-VALIDATOR-OUTPUT.json",
+        "command-center/CATALOG-INTEGRITY.json",
+        "command-center/CATALOG-INTEGRITY.md",
+        "command-center/CLOSE-PROPOSALS-A1.md",
+        "command-center/CLOSE-PROPOSALS-A2.md",
+        "command-center/CLOSE-PROPOSALS-A3.md",
+        "command-center/CLOSE-PROPOSALS-M1.md",
+        "command-center/CLOSE-PROPOSALS-M2.md",
+        "command-center/CLOSE-PROPOSALS-M3.md",
+        "command-center/CLOSE-VERIFY.json",
+        "command-center/CODEX-STUB-RETIREMENT-LANE.md",
+        "command-center/COMPLETION-GATES.json",
+        "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+        "command-center/D1-CLOSE-MATRIX.after.json",
+        "command-center/D1-CLOSE-MATRIX.before.json",
+        "command-center/D1-CLOSE-REGISTRY-GAP.md",
+        "command-center/D2-WORKUNIT-AUTHZ.json",
+        "command-center/D2-WORKUNIT-AUTHZ.md",
+        "command-center/D4-ID-COLLISION-CLOSE.md",
+        "command-center/D5-VENDOR-ROLE-CANONICAL.md",
+        "command-center/DELIVERED-VS-SUBSTANTIVE.md",
+        "command-center/DELIVERY-RECONCILIATION.json",
+        "command-center/DELIVERY-RECONCILIATION.md",
+        "command-center/E2E-WAVE-STATUS.md",
+        "command-center/FOUR-PROGRAM-DECISION-QUEUE.md",
+        "command-center/GRIND-GATE-RESULTS.json",
+        "command-center/GRIND-STATUS.md",
+        "command-center/HOOK-MANIFEST-DRIFT.md",
+        "command-center/NAMESPACE-SWEEP.json",
+        "command-center/OPTION-ID-RESOLUTION.json",
+        "command-center/OPTION-ID-RESOLUTION.md",
+        "command-center/OWNER-PACKET-2026-08-11.md",
+        "command-center/OWNER-QUESTION-PACKET.md",
+        "command-center/P10-REREVIEW-AND-C11-REFUTATION.md",
+        "command-center/P10-REVIEW-TST-0334-0350.md",
+        "command-center/P11-CONFIRMATION.json",
+        "command-center/P11-CONFIRMATION.md",
+        "command-center/P11-D1.json",
+        "command-center/P11-EXPANSION.json",
+        "command-center/P11-FLOORS.json",
+        "command-center/P11-MUTATION-BOTHSTATES.json",
+        "command-center/P11-REGISTRY.json",
+        "command-center/P11-RERUNS.json",
+        "command-center/P11-TEST-DELTA.json",
+        "command-center/P11-TRACKING-AND-IDS.json",
+        "command-center/P11-WAVE3.json",
+        "command-center/P12-ADVERSARIAL-REFUTATION.md",
+        "command-center/P13-BLINDSPOT-REVIEW.json",
+        "command-center/P13-BLINDSPOT-REVIEW.md",
+        "command-center/P13-EXECUTION-GAP.json",
+        "command-center/P13-LINUX-SUITE.json",
+        "command-center/P13-ORPHAN-PLAN.json",
+        "command-center/P13-REFERENCE-TRIAGE.md",
+        "command-center/P13-ROUTING-HERMETIC.md",
+        "command-center/P13-SKIP-MASK-PROOF.json",
+        "command-center/P13-SUPPRESSION-CENSUS.json",
+        "command-center/P14-CLOSE-VERIFY.json",
+        "command-center/P14-FLOORS.json",
+        "command-center/P14-MANIFEST-VERIFY.json",
+        "command-center/PHASE-GRAPH.json",
+        "command-center/PHASE14-SYNTHESIS.md",
+        "command-center/PHASE15-16-STATUS.md",
+        "command-center/PROGRAM-STOPPING-SCORECARD.json",
+        "command-center/PROMPT-1_5-CLOSURE.md",
+        "command-center/PROMPT-ONE-FLOOR-AUDIT.json",
+        "command-center/PROMPT-ONE-FLOOR-AUDIT.md",
+        "command-center/PROMPT-ONE-REVERIFY.md",
+        "command-center/READY-UNITS.json",
+        "command-center/RECOVERED-OVERLAP-LENS.md",
+        "command-center/S2-WORKFLOW-AUTHORING-UNION-MERGE.md",
+        "command-center/SKILL-FLEET-SOTA-PLAN.md",
+        "command-center/SKILL-PLAN-EXECUTION.md",
+        "command-center/STOPPING-RULE-REDERIVATION.md",
+        "command-center/STRUCTURAL-CONDITION-11.md",
+        "command-center/UNIT-ARTIFACT-MANIFEST.json",
+        "command-center/WAVE1-FLOOR-AUDIT.json",
+        "command-center/WAVE1-FLOOR-AUDIT.md",
+        "command-center/WAVE2-FLOOR-AUDIT.json",
+        "command-center/WAVE2-FLOOR-AUDIT.md",
+        "command-center/WAVE3-AUDIT-CORRECTION.md",
+        "command-center/WAVE3-FLOOR-AUDIT.json",
+        "command-center/WAVE3-FLOOR-AUDIT.md",
+        "command-center/WAVE4-ABSTAIN-PROBE.json",
+        "command-center/WAVE4-CEILING-PROBE.json",
+        "command-center/WAVE4-HOLDOUT-LEAK.json",
+        "command-center/WAVE4-MARKETPLACE-LIFECYCLE.json",
+        "command-center/WAVE4-MARKETPLACE-LIFECYCLE.md",
+        "command-center/WAVE4-OOD-PARAPHRASE.json",
+        "command-center/WAVE4-OOD-SEPARATION.json",
+        "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json",
+        "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.md",
+        "command-center/WAVE4-ROUTING-PROBE.json",
+        "command-center/WAVE4-ROUTING-PROBE.md",
+        "command-center/WORK-UNIT-CATALOG.premerge-fix-backup.json",
+        "command-center/WORK-UNIT-CATALOG.register-backup-20260809.json",
+        "command-center/_a3_probe.py",
+        "command-center/_a3_probe_out.err",
+        "command-center/_a3_probe_out.json",
+        "command-center/_a3_rules_skills.py",
+        "command-center/_a3_rules_skills_out.err",
+        "command-center/_a3_rules_skills_out.json",
+        "command-center/_adv0031_inventory.py",
+        "command-center/_adv0031_inventory_out.json",
+        "command-center/_adv0031_narrow.py",
+        "command-center/_adv0031_narrow_out.json",
+        "command-center/_adv0031_precise_out.json",
+        "command-center/_adv0031_runtime_out.json",
+        "command-center/_adv0031_verdict_out.json",
+        "command-center/_adv0041_deliver.py",
+        "command-center/_adv0041_filereadprobe.py",
+        "command-center/_adv0041_register.py",
+        "command-center/_adv0041_verify.py",
+        "command-center/_b2_m09_probe.py",
+        "command-center/_b2_m09_probe2.py",
+        "command-center/_b2_m09_probe2_out.err",
+        "command-center/_b2_m09_probe2_out.json",
+        "command-center/_baseline_probe.py",
+        "command-center/_baseline_probe_out.err",
+        "command-center/_baseline_probe_out.json",
+        "command-center/_baseline_tests.py",
+        "command-center/_baseline_tests_console.log",
+        "command-center/_baseline_tests_out.json",
+        "command-center/_c1_probe_dangling.py",
+        "command-center/_c1_probe_delivmap.py",
+        "command-center/_c1_probe_p15_units.py",
+        "command-center/_c1_probe_phase1516.py",
+        "command-center/_c1_probe_ready.py",
+        "command-center/_c1_probe_schemas.py",
+        "command-center/_c2_c21_probe.py",
+        "command-center/_c_vendorgate_review_probe.py",
+        "command-center/_catalog_integrity.py",
+        "command-center/_catalog_integrity_run.log",
+        "command-center/_catalog_jaccard_control.py",
+        "command-center/_catalog_jaccard_control_out.json",
+        "command-center/_catalog_shortfall_attrib.py",
+        "command-center/_catalog_shortfall_attrib_out.json",
+        "command-center/_cnl_build.py",
+        "command-center/_cnl_coverage.py",
+        "command-center/_cnl_verify.py",
+        "command-center/_d1_dryrun.py",
+        "command-center/_d1_escape_unicode.py",
+        "command-center/_d1_patch_schema.py",
+        "command-center/_d1_reverify_artifacts.out.json",
+        "command-center/_d1_reverify_artifacts.py",
+        "command-center/_d1_reverify_f345.out.json",
+        "command-center/_d1_reverify_f345.py",
+        "command-center/_d1_reverify_followup.out.json",
+        "command-center/_d1_reverify_followup.py",
+        "command-center/_d1_reverify_probes.out.json",
+        "command-center/_d1_reverify_probes.py",
+        "command-center/_imp2_build.py",
+        "command-center/_imp2_data1.py",
+        "command-center/_imp2_data2.py",
+        "command-center/_imp2_data3.py",
+        "command-center/_m1_bak_probe.py",
+        "command-center/_m1_deny_cost.py",
+        "command-center/_m1_drift_probe.py",
+        "command-center/_p14_close_verify.py",
+        "command-center/_p14_floors.py",
+        "command-center/_p14_manifest_verify.py",
+        "command-center/_p14_suite_platform.log",
+        "command-center/_preset2_probe_schema.py",
+        "command-center/_proto3_citation_anchors.py",
+        "command-center/_proto3_conditionals.py",
+        "command-center/_proto3_probe_sem001_vs_sem012.py",
+        "command-center/_proto3_schema_outline.py",
+        "command-center/_register_adv0034.py",
+        "command-center/_sub1_contract_probe.py",
+        "command-center/_sub1_contract_probe_out.json",
+        "command-center/_sub1_normalize_probe.py",
+        "command-center/_sub1_normalize_probe_out.json",
+        "command-center/_sub1_premise_probe.py",
+        "command-center/_sub1_premise_probe_out.json",
+        "command-center/_synth_probe.py",
+        "command-center/_synth_probe2.py",
+        "command-center/_synthrev2_bothstates.py",
+        "command-center/_synthrev2_checks.py",
+        "command-center/_synthrev2_claims.py",
+        "command-center/_synthrev2_docs.py",
+        "command-center/_synthrev2_fixtable.py",
+        "command-center/_synthrev2_gates.py",
+        "command-center/_synthrev2_portable.py",
+        "command-center/_synthrev_blob.py",
+        "command-center/_synthrev_checks.py",
+        "command-center/_synthrev_checks2.py",
+        "command-center/_synthrev_residuals.py",
+        "command-center/_synthrev_ruff.py",
+        "command-center/_wave1_floor_audit.py",
+        "command-center/_wave1_floor_audit2.py",
+        "command-center/_wave1_floor_audit2_out.err",
+        "command-center/_wave1_floor_audit2_out.json",
+        "command-center/_wave1_floor_audit_out.err",
+        "command-center/_wave1_floor_audit_out.json",
+        "command-center/_wave1_fork_probe.py",
+        "command-center/_wave1_fork_probe_fast.py",
+        "command-center/_wave1_fork_probe_fast_out.err",
+        "command-center/_wave1_fork_probe_fast_out.json",
+        "command-center/_wave1_fork_probe_out.err",
+        "command-center/_wave1_fork_probe_out.json",
+        "command-center/_wave1_marketplace_pairs.py",
+        "command-center/_wave1_marketplace_pairs_out.err",
+        "command-center/_wave1_marketplace_pairs_out.json",
+        "command-center/_wave1_mutation_control.py",
+        "command-center/_wave1_mutation_control_out.err",
+        "command-center/_wave1_mutation_control_out.json",
+        "command-center/_wave1audit_mutation_selfcheck.err",
+        "command-center/_wave1audit_mutation_selfcheck.json",
+        "command-center/_wave1audit_mutation_selfcheck.parsed.json",
+        "command-center/_wave2_blindspot_check.py",
+        "command-center/_wave2_floor_audit.py",
+        "command-center/_wave2_floor_audit2.py",
+        "command-center/_wave2_floor_audit3.py",
+        "command-center/_wave2_floor_audit4.py",
+        "command-center/_wave2_floor_audit5.py",
+        "command-center/_wfa1_bothstates.py",
+        "command-center/_wfa1_build_registry.py",
+        "command-center/_wfa1_cross_unit_overlap.py",
+        "command-center/_wfa1_deep_scan.json",
+        "command-center/_wfa1_deep_scan2.py",
+        "command-center/_wfa1_digest.py",
+        "command-center/_wfa1_digest.txt",
+        "command-center/_wfa1_extract_range.py",
+        "command-center/_wfa1_final_check.py",
+        "command-center/_wfa1_fix_c2.py",
+        "command-center/_wfa1_fix_c2b.py",
+        "command-center/_wfa1_probe_structure.py",
+        "command-center/_wfa1_range_probe.json",
+        "command-center/_wfa1_resolve_linecounts.py",
+        "command-center/_wfa1_stoprules.py",
+        "command-center/_wfa1_validate.py",
+        "command-center/_wfa1_verify_claims.json",
+        "command-center/_wfa1_verify_claims.py",
+        "command-center/_wfa2_build.py",
+        "command-center/_wfa2_entries.json",
+        "command-center/_wfa2_enumerate.py",
+        "command-center/_wfa2_probe.py",
+        "command-center/_wfa2_verify.py",
+        "command-center/_wfa2b_build_registry.py",
+        "command-center/_wfa2b_lf.py",
+        "command-center/_wfa2b_probe.py",
+        "command-center/_wfa2b_probe_out.json",
+        "command-center/_wfa2b_verify.py",
+        "command-center/_wfa3_build_registry.py",
+        "command-center/_wfa3_collision_check.py",
+        "command-center/_wfa3_licenses_out.json",
+        "command-center/_wfa3_plugincache_out.json",
+        "command-center/_wfa3_probe_anchors.py",
+        "command-center/_wfa3_probe_licenses.py",
+        "command-center/_wfa3_probe_plugincache.py",
+        "command-center/_wfa3_validate.py",
+        "command-center/_wfa3_verify.py",
+        "command-center/_wfa3_verify_out.json",
+        "command-center/_wfa4_build_registry.py",
+        "command-center/_wfa4_crossfile_overlap.py",
+        "command-center/_wfa4_digest.py",
+        "command-center/_wfa4_dupescan.json",
+        "command-center/_wfa4_extend_entry.py",
+        "command-center/_wfa4_extend_scan.json",
+        "command-center/_wfa4_h_scan.json",
+        "command-center/_wfa4_harvest_h.py",
+        "command-center/_wfa4_license.json",
+        "command-center/_wfa4_license_probe.py",
+        "command-center/_wfa4_probe_extend.py",
+        "command-center/_wfa4_probe_slice.py",
+        "command-center/_wfa4_probe_structure.py",
+        "command-center/_wfa4_probe_tombstone.py",
+        "command-center/_wfa4_provenance.json",
+        "command-center/_wfa4_resolve_conflict.py",
+        "command-center/_wfa4_spine.json",
+        "command-center/_wfa4_spine_check.py",
+        "command-center/_wfa4_validate.py",
+        "command-center/_wfa4_verify_provenance.py",
+        "command-center/_wfa5_build.py",
+        "command-center/_wfa5_corpus.json",
+        "command-center/_wfa5_digest.py",
+        "command-center/_wfa5_drift.json",
+        "command-center/_wfa5_drift.py",
+        "command-center/_wfa5_enumerate.py",
+        "command-center/_wfa5_features.json",
+        "command-center/_wfa5_features.py",
+        "command-center/_wfa5_licence.json",
+        "command-center/_wfa5_licence.py",
+        "command-center/_wfa5_patch2.py",
+        "command-center/_wfa5_readback.py",
+        "command-center/_wfa5_resolve.json",
+        "command-center/_wfa5_resolve.py",
+        "command-center/_wfa5_skeleton.py",
+        "command-center/_wfa5_skillfeat.json",
+        "command-center/_wfa5_skillfeat.py",
+        "command-center/_wfa5_verify.json",
+        "command-center/_wfa5_verify.py",
+        "command-center/_wfdsl_probe_constraints.py",
+        "command-center/_wfdsl_probe_constraints_out.json",
+        "command-center/_wfdsl_probe_profiles.py",
+        "command-center/_wfdsl_probe_profiles_out.json",
+        "command-center/_wfdsl_probe_types.py",
+        "command-center/_wfdsl_probe_types_out.err",
+        "command-center/_wfdsl_probe_types_out.json",
+        "command-center/answer_owner_questions.py",
+        "command-center/authz-final-suite.log",
+        "command-center/authz_apply_fixes.py",
+        "command-center/authz_diff_audit.py",
+        "command-center/authz_head_diff.py",
+        "command-center/authz_measure.py",
+        "command-center/blocker_census.py",
+        "command-center/clear_answered_gates.py",
+        "command-center/close_apply.py",
+        "command-center/close_round2.py",
+        "command-center/close_verify.py",
+        "command-center/curate_all_skills.py",
+        "command-center/curate_security_skills.py",
+        "command-center/curate_to_budget.py",
+        "command-center/d1_close_matrix.py",
+        "command-center/d1_close_report.py",
+        "command-center/d5_measure.py",
+        "command-center/d5_normalize_assignment.py",
+        "command-center/d5_preflight.py",
+        "command-center/eol_probe.py",
+        "command-center/fix_blob_recipe.py",
+        "command-center/fix_hook_timeouts.py",
+        "command-center/fix_reach6_register_provenance.py",
+        "command-center/fix_reach_violations.py",
+        "command-center/fix_sast_findings.py",
+        "command-center/fix_settings_budget_drift.py",
+        "command-center/harvest_dispositions.py",
+        "command-center/harvest_workflow_journal.py",
+        "command-center/mutate_jsonparse.py",
+        "command-center/namespace_sweep.py",
+        "command-center/p11_probe_d1.py",
+        "command-center/p11_probe_expand.py",
+        "command-center/p11_probe_floors.py",
+        "command-center/p11_probe_mutation.py",
+        "command-center/p11_probe_registry2.py",
+        "command-center/p11_probe_reruns.py",
+        "command-center/p11_probe_testdelta.py",
+        "command-center/p11_probe_tracking.py",
+        "command-center/p11_probe_wave3.py",
+        "command-center/p11_suite_full.log",
+        "command-center/p11_suite_platform.log",
+        "command-center/p13_emit_receipt.py",
+        "command-center/p13_execution_gap.py",
+        "command-center/p13_linux_fails.txt",
+        "command-center/p13_orphan_plan.py",
+        "command-center/p13_skip_masks_absence.py",
+        "command-center/p13_suppression_census.py",
+        "command-center/p13_survey.py",
+        "command-center/p13_write_companion.py",
+        "command-center/p13_write_linux_report.py",
+        "command-center/p13_wu_shape.py",
+        "command-center/probe_hook_manifest_drift.py",
+        "command-center/read_harvest.py",
+        "command-center/ready_units.py",
+        "command-center/receipt_validate.py",
+        "command-center/recover_failed_agents.py",
+        "command-center/recover_overlap_lens.py",
+        "command-center/remeasure_defects.py",
+        "command-center/scan_root_probes.py",
+        "command-center/scope_pointers.py",
+        "command-center/show_rows.py",
+        "command-center/triage_noremote.py",
+        "command-center/wave3_audit_suite_baseline.log",
+        "command-center/wave3_audit_suite_final.log",
+        "command-center/wave3_d3_audit.py",
+        "command-center/wave3_floor_audit.py",
+        "command-center/wave3_lifecycle_audit.py",
+        "command-center/wave3_marketplace_audit.py",
+        "command-center/wave4_abstain.log",
+        "command-center/wave4_abstain_probe.py",
+        "command-center/wave4_ceiling.log",
+        "command-center/wave4_ceiling_probe.py",
+        "command-center/wave4_control_fix.py",
+        "command-center/wave4_holdout_leak_probe.py",
+        "command-center/wave4_index_dump.py",
+        "command-center/wave4_marketplace_lifecycle_verify.py",
+        "command-center/wave4_ood_paraphrase.py",
+        "command-center/wave4_ood_separation.py",
+        "command-center/wave4_probe.log",
+        "command-center/wave4_routing_probe.py",
+        "command-center/wave4_suite_after.log",
+        "command-center/wf_results.py",
+        "command-center/wf_status.py",
+        "command-center/why_not_delivered.py"
+      ],
+      "summary": "ARTIFACT-MANIFEST.json is present and parses. Independent walk of the charter tree found 384 on-disk file(s) unmanifested, 0 manifested-but-absent path(s), 0 hash mismatch(es), 13 matching hash(es), and 1 self-referential ARTIFACT-MANIFEST.json row(s). Charter files present=14/14. manifest_describes_reality=False. Hash basis is worktree-bytes-lf-normalized (not committed git-blob bytes). SUCCESS:CNF-0122 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the walker is independent of the manifest writer and the unmanifested-file control was reported. Any other terminal state is FAILED:CNF-0122 <classification> with the diagnostic tail attached."
+    },
+    "control_ids": [
+      "unmanifested-file-control",
+      "clean-fixture-silent",
+      "walker-independence"
+    ],
+    "hash_basis": {
+      "committed_bytes_used": false,
+      "mode": "worktree-bytes-lf-normalized",
+      "note": "SHA-256 of worktree file bytes after CRLF-to-LF normalization. Committed git-blob bytes are not the hash basis: on this platform a Windows checkout with core.autocrlf=true materializes CRLF while git stores LF, so worktree and committed digests differ. The writer in tools/command-center/render.py:render_manifest has the same LF-normalize rule; this walker reimplements it instead of calling that function."
+    },
+    "independence": {
+      "forbidden_imports": [],
+      "imports_manifest_writer": false,
+      "independent": true,
+      "walker_path": "command-center/p2-wave/probes/CNF-0122/walker.py",
+      "writer_function": "render_manifest",
+      "writer_path": "tools/command-center/render.py"
+    },
+    "kind": "manifest-audit",
+    "live_comparison": {
+      "charter_files_absent": [],
+      "charter_files_present": [
+        "command-center/PROGRAM-CHARTER.md",
+        "command-center/OWNER-DECISIONS.md",
+        "command-center/WORK-UNIT-CATALOG.json",
+        "command-center/DEPENDENCY-GRAPH.json",
+        "command-center/ARTIFACT-MANIFEST.json",
+        "command-center/CLAIM-REGISTRY.json",
+        "command-center/TEST-REGISTRY.json",
+        "command-center/RISK-REGISTER.md",
+        "command-center/UNKNOWNS-REGISTER.md",
+        "command-center/RELEASE-CHECKLIST.md",
+        "command-center/ROLLBACK-MANIFEST.md",
+        "command-center/RUNBOOK.md",
+        "command-center/STATUS.md",
+        "command-center/events/EVENTS.jsonl"
+      ],
+      "committed_bytes_used_for_comparison": false,
+      "derivation_in_manifest": "tools/command-center/render.py:render_manifest",
+      "hash_basis": "worktree-bytes-lf-normalized",
+      "hash_basis_note": "SHA-256 of worktree file bytes after CRLF-to-LF normalization. Committed git-blob bytes are not the hash basis: on this platform a Windows checkout with core.autocrlf=true materializes CRLF while git stores LF, so worktree and committed digests differ. The writer in tools/command-center/render.py:render_manifest has the same LF-normalize rule; this walker reimplements it instead of calling that function.",
+      "hash_mismatches": [],
+      "manifest_describes_reality": false,
+      "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+      "manifest_present": true,
+      "manifest_status": "ok",
+      "manifested_but_absent": [],
+      "manifested_count": 14,
+      "matching": [
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 10940,
+          "manifest_present_claim": true,
+          "manifest_sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+          "path": "command-center/CLAIM-REGISTRY.json",
+          "worktree_bytes": 10940,
+          "worktree_sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 25025,
+          "manifest_present_claim": true,
+          "manifest_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455",
+          "path": "command-center/DEPENDENCY-GRAPH.json",
+          "worktree_bytes": 25025,
+          "worktree_sha256": "b6e82c22562a89e58cee7436267369dc42ea46bd31bc25b9395bde8680fb1455"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 10332,
+          "manifest_present_claim": true,
+          "manifest_sha256": "61c9201c6bd0cbb6ca4a71e203e59a968cb6fb8a7d195a5565439050079db89e",
+          "path": "command-center/OWNER-DECISIONS.md",
+          "worktree_bytes": 10332,
+          "worktree_sha256": "61c9201c6bd0cbb6ca4a71e203e59a968cb6fb8a7d195a5565439050079db89e"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 4316,
+          "manifest_present_claim": true,
+          "manifest_sha256": "2cc4e7cf9f3b1a14ce3ab3daba78dcbf329e0c2f4ee810ce42158cc33c7897e4",
+          "path": "command-center/PROGRAM-CHARTER.md",
+          "worktree_bytes": 4316,
+          "worktree_sha256": "2cc4e7cf9f3b1a14ce3ab3daba78dcbf329e0c2f4ee810ce42158cc33c7897e4"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 3676,
+          "manifest_present_claim": true,
+          "manifest_sha256": "30c1487cbdc9773fd6c3d9d4ed91c78e148a8516a4018b3bcbf6706b1d327ae5",
+          "path": "command-center/RELEASE-CHECKLIST.md",
+          "worktree_bytes": 3676,
+          "worktree_sha256": "30c1487cbdc9773fd6c3d9d4ed91c78e148a8516a4018b3bcbf6706b1d327ae5"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 5897,
+          "manifest_present_claim": true,
+          "manifest_sha256": "458100e785a8d9bd895a5c88a6eb1041bc9e330c3ddb81c94649a9b631a90e91",
+          "path": "command-center/RISK-REGISTER.md",
+          "worktree_bytes": 5897,
+          "worktree_sha256": "458100e785a8d9bd895a5c88a6eb1041bc9e330c3ddb81c94649a9b631a90e91"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 3057,
+          "manifest_present_claim": true,
+          "manifest_sha256": "ca0281ccb3101f7222b5dc7b2758da397fdeeff998a5eb0616189498fce18923",
+          "path": "command-center/ROLLBACK-MANIFEST.md",
+          "worktree_bytes": 3057,
+          "worktree_sha256": "ca0281ccb3101f7222b5dc7b2758da397fdeeff998a5eb0616189498fce18923"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 3781,
+          "manifest_present_claim": true,
+          "manifest_sha256": "dc0b4a0050995ed965d80f56b4b4d8c7f5039cd69f46128791cb23208ef0e1db",
+          "path": "command-center/RUNBOOK.md",
+          "worktree_bytes": 3781,
+          "worktree_sha256": "dc0b4a0050995ed965d80f56b4b4d8c7f5039cd69f46128791cb23208ef0e1db"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 1953,
+          "manifest_present_claim": true,
+          "manifest_sha256": "926e8f5b65f8f6a486983eb08726bfef6ee232f25bd99d19d9527873c7e77b51",
+          "path": "command-center/STATUS.md",
+          "worktree_bytes": 1953,
+          "worktree_sha256": "926e8f5b65f8f6a486983eb08726bfef6ee232f25bd99d19d9527873c7e77b51"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 8486,
+          "manifest_present_claim": true,
+          "manifest_sha256": "e41cdf4d34a558c1b1a4a22fe1bb2628a10306310cd52d6576a706ab862ad8d9",
+          "path": "command-center/TEST-REGISTRY.json",
+          "worktree_bytes": 8486,
+          "worktree_sha256": "e41cdf4d34a558c1b1a4a22fe1bb2628a10306310cd52d6576a706ab862ad8d9"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 5287,
+          "manifest_present_claim": true,
+          "manifest_sha256": "7b73bbd05aa53c963d97f29d9da622c5ac3791681ee5be8aba9ae6beddad0db7",
+          "path": "command-center/UNKNOWNS-REGISTER.md",
+          "worktree_bytes": 5287,
+          "worktree_sha256": "7b73bbd05aa53c963d97f29d9da622c5ac3791681ee5be8aba9ae6beddad0db7"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 5284323,
+          "manifest_present_claim": true,
+          "manifest_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "worktree_bytes": 5284323,
+          "worktree_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+        },
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 404,
+          "manifest_present_claim": true,
+          "manifest_sha256": "c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096",
+          "path": "command-center/events/EVENTS.jsonl",
+          "worktree_bytes": 404,
+          "worktree_sha256": "c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096"
+        }
+      ],
+      "on_disk_but_unmanifested": [
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/BASELINE-SNAPSHOT.json",
+          "present": true,
+          "worktree_bytes": 25638,
+          "worktree_sha256": "5acae70e7dad407e00a6310c01f136023c20b1b578c1ba96e48f1489767d3e50"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/BASELINE-SNAPSHOT.md",
+          "present": true,
+          "worktree_bytes": 14992,
+          "worktree_sha256": "a34da21d237fb605977d9d5ede93600591ddee5d499b32faef88ded91dcbbc95"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/BP5-VALIDATOR-OUTPUT.json",
+          "present": true,
+          "worktree_bytes": 37893,
+          "worktree_sha256": "4cb07124170ad0d144707d6660f5710caa6fc2dc8c5f2688d7fc62acee8cf828"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CATALOG-INTEGRITY.json",
+          "present": true,
+          "worktree_bytes": 45346,
+          "worktree_sha256": "be41d39b32d59d21187938bb8deebb078f97ac130d73183d91a3c68dbb954e7c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CATALOG-INTEGRITY.md",
+          "present": true,
+          "worktree_bytes": 22386,
+          "worktree_sha256": "4c9c054b08076e4814d1e74199d0e8bac34cd9d1b99b69e3459aae1f74dcaf63"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-A1.md",
+          "present": true,
+          "worktree_bytes": 13681,
+          "worktree_sha256": "1f5d0e02b5f5f3e82c75fea95d6b364b36064c39c349ce716c5e8bd8e31b5559"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-A2.md",
+          "present": true,
+          "worktree_bytes": 14144,
+          "worktree_sha256": "01915df087ab36547b75819c67a2c7f7aaf80f3f446501b15866d2761193bef6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-A3.md",
+          "present": true,
+          "worktree_bytes": 26751,
+          "worktree_sha256": "687dc80e77a3be98ad5fbaea74e6b2d8f7ce27ab4ca86e187f7205e55cde1b91"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-M1.md",
+          "present": true,
+          "worktree_bytes": 14284,
+          "worktree_sha256": "2e068b1f721515e08115cef59fea51b2e7d0cb87d276daf3a22e1e6cb1900349"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-M2.md",
+          "present": true,
+          "worktree_bytes": 14001,
+          "worktree_sha256": "bab0c1c76129978018109d4d29ab3dfc20f3a0b5c032315516763e78a14c7150"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-PROPOSALS-M3.md",
+          "present": true,
+          "worktree_bytes": 14324,
+          "worktree_sha256": "7b8e5297573fb9b5250dd95625cdd940063318d8f50e9e2c2e89fab8550e986e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CLOSE-VERIFY.json",
+          "present": true,
+          "worktree_bytes": 2987,
+          "worktree_sha256": "732ad14f6653f7f7c29f50a266355b19e56a1804a02e6f7fd69b2bcbc0f9bc17"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CODEX-STUB-RETIREMENT-LANE.md",
+          "present": true,
+          "worktree_bytes": 24891,
+          "worktree_sha256": "b771542424d3d2b968c4f9ff80e24aa02bbbe1af65fc3d27217f0615321eb60f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/COMPLETION-GATES.json",
+          "present": true,
+          "worktree_bytes": 16770,
+          "worktree_sha256": "5f92b76a061c662913e528e6e6437fc04e04420cfbf40abd90b6272f78da1c50"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+          "present": true,
+          "worktree_bytes": 15954,
+          "worktree_sha256": "b320c68d73ded317553a6994a00c31d404ad352c958e9d70787bf12fb8bc1f03"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D1-CLOSE-MATRIX.after.json",
+          "present": true,
+          "worktree_bytes": 41442,
+          "worktree_sha256": "0460ad7b93e8ec149bcb3e617923ecbeb711d0edcd75c2626108ee355810447c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D1-CLOSE-MATRIX.before.json",
+          "present": true,
+          "worktree_bytes": 44554,
+          "worktree_sha256": "0fbe9aa272b23864634702c0f75ab20239909378ef12aae6ec761b48ee3e6779"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D1-CLOSE-REGISTRY-GAP.md",
+          "present": true,
+          "worktree_bytes": 27207,
+          "worktree_sha256": "90cecdfd899067f87116d4f3dacc3eddfe9d952c5465bfc3d57a0d3e94b2ce6f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D2-WORKUNIT-AUTHZ.json",
+          "present": true,
+          "worktree_bytes": 5999,
+          "worktree_sha256": "952b144d776aa1724e7e031b26771a6137ff937cd94775895adc064103a8f69f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D2-WORKUNIT-AUTHZ.md",
+          "present": true,
+          "worktree_bytes": 17407,
+          "worktree_sha256": "78c5a5cf7f208edbd8637b4a6723ed64d1bf006fb3310b499b5b33331f1abf05"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D4-ID-COLLISION-CLOSE.md",
+          "present": true,
+          "worktree_bytes": 10787,
+          "worktree_sha256": "16895ac628f50822290669357e1ca3ecb974c391c83ee3e3d9a022d9a85b8ae2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/D5-VENDOR-ROLE-CANONICAL.md",
+          "present": true,
+          "worktree_bytes": 15480,
+          "worktree_sha256": "3cff452ab471d7405ab78f7fb494d4bbcd0d0842379ea9f992ba1a34010cf152"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/DELIVERED-VS-SUBSTANTIVE.md",
+          "present": true,
+          "worktree_bytes": 4343,
+          "worktree_sha256": "03df6d2f13b8f006191850a9bb7ed2fb2f5d896a1900c751f2d97ae09bcea1e1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/DELIVERY-RECONCILIATION.json",
+          "present": true,
+          "worktree_bytes": 498801,
+          "worktree_sha256": "e129d9e7103d06505bbea40023c232f9ac0caeb873e000aa0dac70b3dd801e99"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/DELIVERY-RECONCILIATION.md",
+          "present": true,
+          "worktree_bytes": 4751,
+          "worktree_sha256": "86cc1f5b79c30b77d3e0103839e293fd946db66082ee2c83e3b4492ef98bde98"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/E2E-WAVE-STATUS.md",
+          "present": true,
+          "worktree_bytes": 56643,
+          "worktree_sha256": "d8d905b7729b72a1f3ff4e00593741f77b80bcb1534cbbe723986cc0ffd99976"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/FOUR-PROGRAM-DECISION-QUEUE.md",
+          "present": true,
+          "worktree_bytes": 35589,
+          "worktree_sha256": "1762439214884ade7bda03543cf72aa6ce38421975700542ba1e397a2c3c71e3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/GRIND-GATE-RESULTS.json",
+          "present": true,
+          "worktree_bytes": 4252,
+          "worktree_sha256": "3cf2e006652f20738975663ea63b7742b19da0774b7f0c37a558e4f4d0de2749"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/GRIND-STATUS.md",
+          "present": true,
+          "worktree_bytes": 61555,
+          "worktree_sha256": "3d6433d770c3edb13c9088b82e7a7262f074e0c98c6e3315adea358346c68af9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/HOOK-MANIFEST-DRIFT.md",
+          "present": true,
+          "worktree_bytes": 1252,
+          "worktree_sha256": "9e0877e0efd3e5dce395145bf5fae133ad9f93cd6b451adbad3414d8d6ea1f69"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/NAMESPACE-SWEEP.json",
+          "present": true,
+          "worktree_bytes": 6236,
+          "worktree_sha256": "df70415652c704ddda30b561a48013e5298edc00286ad7bd3b007177576f96a4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/OPTION-ID-RESOLUTION.json",
+          "present": true,
+          "worktree_bytes": 31758,
+          "worktree_sha256": "1789244651a032f89cea8993afdb0c9ff86a5bd6cc4f0c19dc7f6e6275bb1895"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/OPTION-ID-RESOLUTION.md",
+          "present": true,
+          "worktree_bytes": 16433,
+          "worktree_sha256": "83504dbb00bae6a85441ae7e9991efdc93b2d299ef3d93d72b203d6dd0396441"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/OWNER-PACKET-2026-08-11.md",
+          "present": true,
+          "worktree_bytes": 14767,
+          "worktree_sha256": "c60d716a60e0283d34ebae6eda45562166ff1bde9c8779b6fb37cb2cdd9ee84e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/OWNER-QUESTION-PACKET.md",
+          "present": true,
+          "worktree_bytes": 42300,
+          "worktree_sha256": "11e2f7c043aef633c120edd835967f5025cdb9cf8177fa29163bd10a2588598c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P10-REREVIEW-AND-C11-REFUTATION.md",
+          "present": true,
+          "worktree_bytes": 10069,
+          "worktree_sha256": "47de211eab505c0d4a5fe87c3714106b19764eda936d608b0f8d3bd3f829062e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P10-REVIEW-TST-0334-0350.md",
+          "present": true,
+          "worktree_bytes": 10410,
+          "worktree_sha256": "bd73aeb87689cdebb01299597bf94243742759866e33e2efd4d3251cb7ba0c9a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-CONFIRMATION.json",
+          "present": true,
+          "worktree_bytes": 28812,
+          "worktree_sha256": "8ea0e86617a19f99b319f7a1f70d7d195617c7a1052dae0033e9af3406028fb5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-CONFIRMATION.md",
+          "present": true,
+          "worktree_bytes": 12415,
+          "worktree_sha256": "96d6249a698266f5df6e99b6db667b863870634f3cc63f8917981b48645ca337"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-D1.json",
+          "present": true,
+          "worktree_bytes": 3071,
+          "worktree_sha256": "60885b9290c7b941cb4085f400fcd0a9a1f09231f5c638b272f24323265de45c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-EXPANSION.json",
+          "present": true,
+          "worktree_bytes": 6010,
+          "worktree_sha256": "6536d40ea15f77f2cfbcdbd46a69311627302f25f3f21c73773a98dd2a6757ef"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-FLOORS.json",
+          "present": true,
+          "worktree_bytes": 9862,
+          "worktree_sha256": "39bd8612f0fe7f63fb525427e8dc3ee2a5d27040d31d6fea4795b94ef6dec8a1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-MUTATION-BOTHSTATES.json",
+          "present": true,
+          "worktree_bytes": 1204,
+          "worktree_sha256": "a1337fc3d5ba81a90b84205c1e31f7717116caf8c404c196e4fbee956df79d7b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-REGISTRY.json",
+          "present": true,
+          "worktree_bytes": 4645,
+          "worktree_sha256": "49440b878f752b509342846fa96d4cc2685659cc8c6f0db1dc5386da64ba6d0e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-RERUNS.json",
+          "present": true,
+          "worktree_bytes": 2279,
+          "worktree_sha256": "4ede1cf37e38fcfe6ddef434089fc34df590e3dfc7d7e64232c2e82160230c41"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-TEST-DELTA.json",
+          "present": true,
+          "worktree_bytes": 455,
+          "worktree_sha256": "1a217d3aaa8fb274fcf877ed1c05eda2e6c211c12e56fb8735b11af45955d7a2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-TRACKING-AND-IDS.json",
+          "present": true,
+          "worktree_bytes": 4402,
+          "worktree_sha256": "f7c842aed20cb6ab175c95f9aa7f4f3b0f8c8a35a882c05fe83d3b86aba98052"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P11-WAVE3.json",
+          "present": true,
+          "worktree_bytes": 4571,
+          "worktree_sha256": "e697f80210bd96dfaf77505aae6cc20f49de267e16a15f19b9fac158ff8495ca"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P12-ADVERSARIAL-REFUTATION.md",
+          "present": true,
+          "worktree_bytes": 24830,
+          "worktree_sha256": "3c004b0bbe7c57dae620a8bc757a3bf49d2e99ff81293ffd4cb5ccade0060653"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-BLINDSPOT-REVIEW.json",
+          "present": true,
+          "worktree_bytes": 15856,
+          "worktree_sha256": "ef389aa63f87b6533a4dbdfa0a426392ace0827b58c3cbe12fafbdff3070de39"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-BLINDSPOT-REVIEW.md",
+          "present": true,
+          "worktree_bytes": 25211,
+          "worktree_sha256": "0cda263419084f079f638277599d5b49925ebb0f5f1f12a92ed9b25d5c5cdcf8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-EXECUTION-GAP.json",
+          "present": true,
+          "worktree_bytes": 8287,
+          "worktree_sha256": "bf7fca5fdab61784d00338278d51dae0c5927d0d978ea0b0c77d00c2bd85eeea"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-LINUX-SUITE.json",
+          "present": true,
+          "worktree_bytes": 6085,
+          "worktree_sha256": "d0cd478185cd6ad9de43d2047f64d5c9e3c4624a7a4cd9b52d8f91a640bba4f1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-ORPHAN-PLAN.json",
+          "present": true,
+          "worktree_bytes": 1795,
+          "worktree_sha256": "aa579aa58163d7a3f427bc9b036a7aa497801c855710ac252228a768bd6cdf9a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-REFERENCE-TRIAGE.md",
+          "present": true,
+          "worktree_bytes": 14181,
+          "worktree_sha256": "b4f4db797ea4ddc3fa1c5965f4ef0b0fc0bd4f2c2b90e6ec682131b6fa0c3196"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-ROUTING-HERMETIC.md",
+          "present": true,
+          "worktree_bytes": 12814,
+          "worktree_sha256": "3798f072bb0c03dae8ed70032cde0fc413c69225d1bb3f061682096b32f1981a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-SKIP-MASK-PROOF.json",
+          "present": true,
+          "worktree_bytes": 2005,
+          "worktree_sha256": "dc0e86c3df680c85c6be4ffa2e49847743c8a2f2082ae5d3769b826a1323a53c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P13-SUPPRESSION-CENSUS.json",
+          "present": true,
+          "worktree_bytes": 19862,
+          "worktree_sha256": "aabe0d453f3308e9611af012621ef5bc2bb503481a0493db9e35dda975cd64fb"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P14-CLOSE-VERIFY.json",
+          "present": true,
+          "worktree_bytes": 892,
+          "worktree_sha256": "1cecc12895bda4f773c768ac5b6a28de7ff2de0e43121b97010af44363e65df9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P14-FLOORS.json",
+          "present": true,
+          "worktree_bytes": 2435,
+          "worktree_sha256": "142a7053ecf04f355e9313f53eb4ef3b885f3daba957dc950e58cc4797890d6a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/P14-MANIFEST-VERIFY.json",
+          "present": true,
+          "worktree_bytes": 29872,
+          "worktree_sha256": "e5c4e5d8cb321010d047ebdd23b2f23fc13e081ff9469f9e77e428947050c5e5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PHASE-GRAPH.json",
+          "present": true,
+          "worktree_bytes": 51401,
+          "worktree_sha256": "5f42dda05b098bff7e0eaa2bfd6b8a48961aa425a9aae2b1fd8febdda28292a5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PHASE14-SYNTHESIS.md",
+          "present": true,
+          "worktree_bytes": 32158,
+          "worktree_sha256": "8f435f3cf57cc7baec5d6ae89235c9de55ef3216d809fa437a0570792e6e6bc4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PHASE15-16-STATUS.md",
+          "present": true,
+          "worktree_bytes": 32074,
+          "worktree_sha256": "e03d54e81033fb9674abd85ce10c35b71b557044bc56f912840e279f28c4e753"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PROGRAM-STOPPING-SCORECARD.json",
+          "present": true,
+          "worktree_bytes": 56916,
+          "worktree_sha256": "bfc58efa7a0c6144c90fd8eac68518a0aec782d8d530ef129367848952e4cac0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PROMPT-1_5-CLOSURE.md",
+          "present": true,
+          "worktree_bytes": 13399,
+          "worktree_sha256": "5cf10d66082d004bfa2dfebaf98eb4c1fdb4e43c4c4a552fe896d29668a9cf4b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PROMPT-ONE-FLOOR-AUDIT.json",
+          "present": true,
+          "worktree_bytes": 15916,
+          "worktree_sha256": "59c076d82bf3ab30aa547dabb63cedeafa7d80b756f9dfddfc9b2dee52d41c5a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PROMPT-ONE-FLOOR-AUDIT.md",
+          "present": true,
+          "worktree_bytes": 12778,
+          "worktree_sha256": "ebb7834918e53f57da08ca546a69bcc55f46d55739783f9dce0d7f1d43e0e0f0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/PROMPT-ONE-REVERIFY.md",
+          "present": true,
+          "worktree_bytes": 15484,
+          "worktree_sha256": "03ee712fef77a107e3a34e1ac227c73a51db04d7a7861e5d242688a817e0e959"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/READY-UNITS.json",
+          "present": true,
+          "worktree_bytes": 7602,
+          "worktree_sha256": "7f02a95da1a8ea5b38526e54d86354cf1183d0cacdf2152c3c0bb46a47ea3943"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/RECOVERED-OVERLAP-LENS.md",
+          "present": true,
+          "worktree_bytes": 7266,
+          "worktree_sha256": "9924f193b6fc95b6cd2ae4acc525d694f7ae19a05545a5e90db368b2adca5289"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/S2-WORKFLOW-AUTHORING-UNION-MERGE.md",
+          "present": true,
+          "worktree_bytes": 7680,
+          "worktree_sha256": "700c2b5bc1a18acc7b23f664674d59a639f631ed941d45f70f409aa3f80f1ad8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/SKILL-FLEET-SOTA-PLAN.md",
+          "present": true,
+          "worktree_bytes": 40272,
+          "worktree_sha256": "ef708116ccea627e4f2dc324f4a10a1cd208284fc60aaca1e9f7606bb76b7fcd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/SKILL-PLAN-EXECUTION.md",
+          "present": true,
+          "worktree_bytes": 25150,
+          "worktree_sha256": "648333912b74964bb08ae7cafd59f9ae09bbcba0659e6ec6fd88a056f9a2f900"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/STOPPING-RULE-REDERIVATION.md",
+          "present": true,
+          "worktree_bytes": 25227,
+          "worktree_sha256": "e9ca723e21f0d4359c0c162b2442c56879348f021ca7ede82935a3f5978507cd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/STRUCTURAL-CONDITION-11.md",
+          "present": true,
+          "worktree_bytes": 6420,
+          "worktree_sha256": "85bff5ed96e3a3f703e1e0467f51246d1945917dbe8587f247d003163c5546c0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+          "present": true,
+          "worktree_bytes": 62688,
+          "worktree_sha256": "8eff738d73caa7ea558fdee36da6ace6542067bd7fe67b0dea27fca2887bbd9e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE1-FLOOR-AUDIT.json",
+          "present": true,
+          "worktree_bytes": 31076,
+          "worktree_sha256": "6fb0f8279cbc10ba1c2766ae95f359d45a2346b2c4baad793a168af8ac3ff22a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE1-FLOOR-AUDIT.md",
+          "present": true,
+          "worktree_bytes": 12400,
+          "worktree_sha256": "cd0a725e433642fc0281b18fbd3369915efaae47d106e58f28864d71db17c09b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE2-FLOOR-AUDIT.json",
+          "present": true,
+          "worktree_bytes": 82276,
+          "worktree_sha256": "4e87935fa06fa5f69338ffa78b2c98faad2f200c3a6fc85f47698b5556a2b03d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE2-FLOOR-AUDIT.md",
+          "present": true,
+          "worktree_bytes": 19576,
+          "worktree_sha256": "b07452885ac878cd5d0bb3fd7eaff370dea43105e308e0d12d432f2ed1035d33"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE3-AUDIT-CORRECTION.md",
+          "present": true,
+          "worktree_bytes": 2384,
+          "worktree_sha256": "72c9444040acb12d9983e5381e91264ee0538be9f79ebbbee65063c6a8e7f1cf"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE3-FLOOR-AUDIT.json",
+          "present": true,
+          "worktree_bytes": 112700,
+          "worktree_sha256": "c19d3e748d8046f7a4612fb8bfab1cab441e8deab79063423c42f97e20abbb73"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE3-FLOOR-AUDIT.md",
+          "present": true,
+          "worktree_bytes": 30122,
+          "worktree_sha256": "96a9e2c7cffa9b7f7ae592dd4c6714e7156d62449251d0187e337debb60574e9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-ABSTAIN-PROBE.json",
+          "present": true,
+          "worktree_bytes": 41131,
+          "worktree_sha256": "78a19b8919399ff28b0a2d40ccb239d4acdfba0ca36445ddce11131274962f21"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-CEILING-PROBE.json",
+          "present": true,
+          "worktree_bytes": 24017,
+          "worktree_sha256": "484d885f26c6b8d07daf8d6a4970c26cb230a6d0a8f3f8bf8b219dbfc53b0fd2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-HOLDOUT-LEAK.json",
+          "present": true,
+          "worktree_bytes": 10035,
+          "worktree_sha256": "cf799804125a8a50bcfc124947a2d0e08d0a13e8ba1ac43dac5dd7dd238a1b94"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-MARKETPLACE-LIFECYCLE.json",
+          "present": true,
+          "worktree_bytes": 27465,
+          "worktree_sha256": "bf56b640c68e2062ec34956825a674795d45aef6b9f0ecd5679d496772af4a54"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-MARKETPLACE-LIFECYCLE.md",
+          "present": true,
+          "worktree_bytes": 16330,
+          "worktree_sha256": "bae732dd0002934ba5078a38b3ae450314e434e6ba42e0bf8151cfe63f631532"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-OOD-PARAPHRASE.json",
+          "present": true,
+          "worktree_bytes": 19527,
+          "worktree_sha256": "2f794419bc114644ccbbe0a336863b19cb5698020046d414555f8f2b7d9a9cc4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-OOD-SEPARATION.json",
+          "present": true,
+          "worktree_bytes": 4005,
+          "worktree_sha256": "4463a242a3cfcf60b8db50274a1a328864be0385fa07e60d050919178428e2e9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json",
+          "present": true,
+          "worktree_bytes": 11994,
+          "worktree_sha256": "2dd96470216d6e88441bc2c3c84175d80168d643f7fd7b272bc86bdc740edcb0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.md",
+          "present": true,
+          "worktree_bytes": 21416,
+          "worktree_sha256": "8da9d41007ab9645573a0e27a25c32df2d0e498ae65dc98dd060809ec29f3bcc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-ROUTING-PROBE.json",
+          "present": true,
+          "worktree_bytes": 104578,
+          "worktree_sha256": "19d10443a12d4cf31124f62124dc5625a902cd2ba1a9a789cb852d1b21927b16"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WAVE4-ROUTING-PROBE.md",
+          "present": true,
+          "worktree_bytes": 10179,
+          "worktree_sha256": "f42bdfd91c47a043a4c55e8b110cca4ab5d21dca46df9ce5b2a3841a56e61b9f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WORK-UNIT-CATALOG.premerge-fix-backup.json",
+          "present": true,
+          "worktree_bytes": 5243677,
+          "worktree_sha256": "c30642e3d969f9f9c726a48c8172955dde7ade2101510f2ac48c1a2472ce9083"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/WORK-UNIT-CATALOG.register-backup-20260809.json",
+          "present": true,
+          "worktree_bytes": 142204,
+          "worktree_sha256": "c83a75d8313cabfdf835a2b034f8524bafc9fd1b1155c49d07a669ecae68effb"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_probe.py",
+          "present": true,
+          "worktree_bytes": 3883,
+          "worktree_sha256": "0a3b99788fe792a583fcd2313e8b4b12bf9f62a512f7f5af175ee2f47f9ad9ed"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_probe_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_probe_out.json",
+          "present": true,
+          "worktree_bytes": 5549,
+          "worktree_sha256": "abc35ac392e8206eb0269a27e876a71da8167648114559fd772cffb9f0376dea"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_rules_skills.py",
+          "present": true,
+          "worktree_bytes": 4319,
+          "worktree_sha256": "47ada9514e1bad95f60d80c6eb5e1cafdd749f6c46464d00521e2ed33fd36362"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_rules_skills_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_a3_rules_skills_out.json",
+          "present": true,
+          "worktree_bytes": 35511,
+          "worktree_sha256": "57fb38b30aaa434964648a26f690318a715608e951f355c15f5b9ce8b800bf5e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_inventory.py",
+          "present": true,
+          "worktree_bytes": 9106,
+          "worktree_sha256": "fe3d2608f8499a78982bb69ae5f7b3be58057884267a652d8e165e6975f16fd9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_inventory_out.json",
+          "present": true,
+          "worktree_bytes": 346384,
+          "worktree_sha256": "ea276d949b6c4e17751fe961f6690824b8c0ad2b3968f4786aaed4235e6a4399"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_narrow.py",
+          "present": true,
+          "worktree_bytes": 2557,
+          "worktree_sha256": "0744205a5cf9e088ddbe949334c3f7471ec746168befce0bafe52b14530a2ab3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_narrow_out.json",
+          "present": true,
+          "worktree_bytes": 100921,
+          "worktree_sha256": "3dc96e69d585494a3a12ff1e9bb2ec8249fd73baf26520d80223872abcbab8ee"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_precise_out.json",
+          "present": true,
+          "worktree_bytes": 13444,
+          "worktree_sha256": "6726b6158b25428698d32216332fac212a4e88bf9ecfc8c910ac2bd735e28222"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_runtime_out.json",
+          "present": true,
+          "worktree_bytes": 577908,
+          "worktree_sha256": "db7b3dda84fe66b886393738890594417699d0b2dd229bc019e0b66d866ccffe"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0031_verdict_out.json",
+          "present": true,
+          "worktree_bytes": 53572,
+          "worktree_sha256": "b0423be935fdbb1f1b56bab88d78c4d61336a444647d0ca03e4b7194e2da8a53"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0041_deliver.py",
+          "present": true,
+          "worktree_bytes": 25008,
+          "worktree_sha256": "1147cf2765a3bf788dbceb9ec6296f96c01fe8d35e2d7cafaf699cb30b4ef6c9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0041_filereadprobe.py",
+          "present": true,
+          "worktree_bytes": 3289,
+          "worktree_sha256": "d61650ed55d092b1e778b55b75cf0901360f23613789bc4eb4d7e54b30cd6e95"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0041_register.py",
+          "present": true,
+          "worktree_bytes": 12101,
+          "worktree_sha256": "30aa05c3222d06346aec8066a3c17944729c3be41ea5149927c372ec56efa2a6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_adv0041_verify.py",
+          "present": true,
+          "worktree_bytes": 6710,
+          "worktree_sha256": "6ad9e85cf51dd65a5471bf07af7228a19b3d3923734d9e93457b1b1d90b397f2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_b2_m09_probe.py",
+          "present": true,
+          "worktree_bytes": 4337,
+          "worktree_sha256": "2b7f2213f34c128920a982ac4b3b108e4412888d88de01f7a77db7f2d52d69f7"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_b2_m09_probe2.py",
+          "present": true,
+          "worktree_bytes": 4762,
+          "worktree_sha256": "eae0fdc2c4a19d6753ba9da060e3d646c3881ff560b941d8f3dcecfd89019e5f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_b2_m09_probe2_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_b2_m09_probe2_out.json",
+          "present": true,
+          "worktree_bytes": 3402,
+          "worktree_sha256": "e270fddd7fb41f22cbeb679672b1d1d6575f359a8c0c47f3416578740c80f48f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_probe.py",
+          "present": true,
+          "worktree_bytes": 9752,
+          "worktree_sha256": "052dcaea1e58b9857644829d7da3e16214d64dfaf0ee6e5758173f462051308c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_probe_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_probe_out.json",
+          "present": true,
+          "worktree_bytes": 1364513,
+          "worktree_sha256": "60733304846f3bb90f9d4d4268d6d59962fe3e4de17547e9ad928ea6dee64215"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_tests.py",
+          "present": true,
+          "worktree_bytes": 7905,
+          "worktree_sha256": "e275634d057b51385732923857d63338875212daeb79822c90f941ce020a3194"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_tests_console.log",
+          "present": true,
+          "worktree_bytes": 1692,
+          "worktree_sha256": "566e73dc2ac404c6623da8ed274f716e1658cc2d2c98e528f2ba50b45545d1fa"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_baseline_tests_out.json",
+          "present": true,
+          "worktree_bytes": 20468,
+          "worktree_sha256": "8702a814350d4e8b57337f9395fbdb17844d6b956e4a939832ef187c86e494f3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_dangling.py",
+          "present": true,
+          "worktree_bytes": 3369,
+          "worktree_sha256": "dfb4a34ecd0968881b91bd16e516573b48f0775fcf00e913ba710111e6cdd5ea"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_delivmap.py",
+          "present": true,
+          "worktree_bytes": 5983,
+          "worktree_sha256": "06fb59fa2325696dbeb0bd08a0e3fe1731e890fe9c931116c9eee0bfec0d1630"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_p15_units.py",
+          "present": true,
+          "worktree_bytes": 1339,
+          "worktree_sha256": "66f271deb3c7d595fd93ce6aa58427e3fb038dd20dca8b344dc17a0b91bfb70b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_phase1516.py",
+          "present": true,
+          "worktree_bytes": 2207,
+          "worktree_sha256": "792fb0e6f627b504580a0fa3971cb8c4c091dea0771267c1c2cbbcb5682f027b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_ready.py",
+          "present": true,
+          "worktree_bytes": 3007,
+          "worktree_sha256": "b760e9924878e968e2f6c173f8be2c8a4b7b1884ff8b0ab87a6df42520d9d352"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c1_probe_schemas.py",
+          "present": true,
+          "worktree_bytes": 2369,
+          "worktree_sha256": "672e3f7a7d65b495683703d8b10cd247372b961e8e9c34b04d1b6ebe78b5ba51"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c2_c21_probe.py",
+          "present": true,
+          "worktree_bytes": 1476,
+          "worktree_sha256": "cd9a655cd620e9e4a20e6c9ecb5153d2c054995adc22a7e0a7b4aa8b6dadcf87"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_c_vendorgate_review_probe.py",
+          "present": true,
+          "worktree_bytes": 2287,
+          "worktree_sha256": "d553e5d9b27dc3788d255684142b0ba79521858de1549471a188e0479840a091"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_integrity.py",
+          "present": true,
+          "worktree_bytes": 53322,
+          "worktree_sha256": "278cd2963fa522701c01aaa2a90a4fdb864df4a093bf2231a0f44bb29c9d1a8b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_integrity_run.log",
+          "present": true,
+          "worktree_bytes": 1018,
+          "worktree_sha256": "2a9cf67844ac345dee95e14be6d6e7cfcf7ebc76a40fb4eeb1a217ed426c65f8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_jaccard_control.py",
+          "present": true,
+          "worktree_bytes": 5504,
+          "worktree_sha256": "8042165eec5d6d33e240e439a911da3d014e8877db024777e43b2549ada5a725"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_jaccard_control_out.json",
+          "present": true,
+          "worktree_bytes": 5654,
+          "worktree_sha256": "5890a1fdf8fa94b8976f794a3cd053059db31c6e6b8536af9aafba15674ba911"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_shortfall_attrib.py",
+          "present": true,
+          "worktree_bytes": 7240,
+          "worktree_sha256": "6149f387d7a7c7b2c9fa23da3194c492978cc4730ffa368f3ac1bd96b0060734"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_catalog_shortfall_attrib_out.json",
+          "present": true,
+          "worktree_bytes": 2995,
+          "worktree_sha256": "40475ac04104734c9ca64e9d444c812800c92dfc39c246c99fbdea7b7dcd06d9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_cnl_build.py",
+          "present": true,
+          "worktree_bytes": 95142,
+          "worktree_sha256": "4ca3266f86d618a533a84e9f8be7395cdee11de82a8384fc9bd879a64ea3f559"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_cnl_coverage.py",
+          "present": true,
+          "worktree_bytes": 7910,
+          "worktree_sha256": "d6f47837c16e75715fdf7a021a6bca815b4bd2329f59559686064e19ea46b7be"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_cnl_verify.py",
+          "present": true,
+          "worktree_bytes": 7450,
+          "worktree_sha256": "6677899bc32f36456ac34c1878f91773403ef47610288c0c7fce8f9b49d23dae"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_dryrun.py",
+          "present": true,
+          "worktree_bytes": 5576,
+          "worktree_sha256": "7bd055c7d24722f1865d8ea96a1684d3077f18f234bfc64c67f3c2979c7e3b0f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_escape_unicode.py",
+          "present": true,
+          "worktree_bytes": 1268,
+          "worktree_sha256": "a7f2d82ee29a6461abb3984441f210f790f243c3db804605024db9adbcbd01a1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_patch_schema.py",
+          "present": true,
+          "worktree_bytes": 3547,
+          "worktree_sha256": "28a027511d7c6ab9f285cb13b88522a4297f1a4bc61bc4bf2d8eea1309894499"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_artifacts.out.json",
+          "present": true,
+          "worktree_bytes": 16298,
+          "worktree_sha256": "1ca224311949c2ebf63a60004e909ded4847b92105ae929c698b3bfd6bc2c02c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_artifacts.py",
+          "present": true,
+          "worktree_bytes": 7237,
+          "worktree_sha256": "4d750267d978bc19ef4cd5bea5f145401ae9d4e1e34a4a18ccd260ff83beaeae"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_f345.out.json",
+          "present": true,
+          "worktree_bytes": 1058,
+          "worktree_sha256": "edb56ead6fa78f1faa4bfa01a928be68c381c817f44e160f98e16bcb90e2b648"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_f345.py",
+          "present": true,
+          "worktree_bytes": 3661,
+          "worktree_sha256": "4ebbc82c763ba1b4ccccde13bd5203df75f0acc03c649c875bbdc6fc9d0abc26"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_followup.out.json",
+          "present": true,
+          "worktree_bytes": 9054,
+          "worktree_sha256": "c687d6f8f082de93a4210567e3ec4515d6b707db0243a77e1db9b104aa9262da"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_followup.py",
+          "present": true,
+          "worktree_bytes": 4613,
+          "worktree_sha256": "42a0abaa0275f1156a411cfc6d735ab85941a7b70839b9572f305bb26ff2f0fe"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_probes.out.json",
+          "present": true,
+          "worktree_bytes": 1992,
+          "worktree_sha256": "af8e05740234d9ff9e37413813da30ede5c66d995917e1c0097c5fc844694748"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_d1_reverify_probes.py",
+          "present": true,
+          "worktree_bytes": 8022,
+          "worktree_sha256": "863223a186c7b65c4a3d6a8e766d46cf6251d33114595f5f359a34233706d439"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_imp2_build.py",
+          "present": true,
+          "worktree_bytes": 13054,
+          "worktree_sha256": "2eca6640d26fc778c03db2339b0b2abfbe317d6967c94be279e1d394fa76069a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_imp2_data1.py",
+          "present": true,
+          "worktree_bytes": 85041,
+          "worktree_sha256": "a0e21fe83c5d0473a720988be7b104026f3b5c2ee1895790b49c7db2092901c8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_imp2_data2.py",
+          "present": true,
+          "worktree_bytes": 45050,
+          "worktree_sha256": "a6c48d29b3123aa4c9566dd112c1eecbdb3c73a1bb22afc8189371d17f9f33e7"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_imp2_data3.py",
+          "present": true,
+          "worktree_bytes": 42232,
+          "worktree_sha256": "cbbc4261cc6e95a8fe7fc173ea81d0647ac28f8ff9087429e667730639f29df0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_m1_bak_probe.py",
+          "present": true,
+          "worktree_bytes": 3156,
+          "worktree_sha256": "a6943069d7063ccef69c712a9fb3c55db9eab7b9bf4362507d7ea88ab2429011"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_m1_deny_cost.py",
+          "present": true,
+          "worktree_bytes": 2689,
+          "worktree_sha256": "3729508a93affc0e194a011f48f694fe4a459a52ae250ce501716031fb3e81c5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_m1_drift_probe.py",
+          "present": true,
+          "worktree_bytes": 2924,
+          "worktree_sha256": "f627ebc55cae892350e6caa402f3bf5f99a4cc8fe556c7b85ce35fbb5789ac98"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_p14_close_verify.py",
+          "present": true,
+          "worktree_bytes": 3688,
+          "worktree_sha256": "996fdc51b4bc18af7ea356ae7178a5fb742c26ffedc9b835a0ae509037514f23"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_p14_floors.py",
+          "present": true,
+          "worktree_bytes": 5808,
+          "worktree_sha256": "9118bcfc0753a18713fde5707f6b62c9ba3bffd12070a2df962399cd03daae55"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_p14_manifest_verify.py",
+          "present": true,
+          "worktree_bytes": 5086,
+          "worktree_sha256": "9c8fbb1909c5b1e290845007731be0e66e4eabeb32c3756bb6aa440effe29cc1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_p14_suite_platform.log",
+          "present": true,
+          "worktree_bytes": 4452,
+          "worktree_sha256": "8f1cf1f1eda1f2fd6c678a59b6b3650f3a95bed7657f00a929663a88bd93e9c9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_preset2_probe_schema.py",
+          "present": true,
+          "worktree_bytes": 2142,
+          "worktree_sha256": "ced7aaf8e7c38f61f447e8b019fa02967578dfe0b545842ec3502f01de3762e4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_proto3_citation_anchors.py",
+          "present": true,
+          "worktree_bytes": 2123,
+          "worktree_sha256": "ee1669d33060ba4ff3de62ba1532b9d3333b666e933028340a6d73e3ce417703"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_proto3_conditionals.py",
+          "present": true,
+          "worktree_bytes": 1019,
+          "worktree_sha256": "ec8327710aa106dcd321cef90615d17cb103a66704ea7b47e0ec0bd0e76aabfd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_proto3_probe_sem001_vs_sem012.py",
+          "present": true,
+          "worktree_bytes": 4483,
+          "worktree_sha256": "ac37603d86668620591d18e33171368a12378c74537f975aa04425d21f1eb6a0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_proto3_schema_outline.py",
+          "present": true,
+          "worktree_bytes": 3061,
+          "worktree_sha256": "a34c8c56c4f22638cf4bcbc5fd16cd240d1be472665141e6a888cdb6089aee64"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_register_adv0034.py",
+          "present": true,
+          "worktree_bytes": 4527,
+          "worktree_sha256": "ea65b6514a604e887f4a6123beaf7c8428f94b2450cc315805a96955c870cfa1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_contract_probe.py",
+          "present": true,
+          "worktree_bytes": 5751,
+          "worktree_sha256": "f370adcd108c3066f5c24ca5300a884a1b7cfb38a35e8d7f6f54f11568842d91"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_contract_probe_out.json",
+          "present": true,
+          "worktree_bytes": 7779,
+          "worktree_sha256": "d96df503d1b0c8b0d2c3c2d0b70e27745b431a1090de154f73ca840346cd0424"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_normalize_probe.py",
+          "present": true,
+          "worktree_bytes": 3560,
+          "worktree_sha256": "3d8c7697e0ab225ab4fd1778a12fb7ea204f849aa8bf6c421ed88e9f8efe4ad8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_normalize_probe_out.json",
+          "present": true,
+          "worktree_bytes": 31430,
+          "worktree_sha256": "0fd1a1c51a1892583ca956da5f4896134d39f38ab73e35eb9403624891677764"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_premise_probe.py",
+          "present": true,
+          "worktree_bytes": 5357,
+          "worktree_sha256": "066303466cc5458d1e1ae7f6edff2246de72bc087748faffb95d869a6ba2f47e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_sub1_premise_probe_out.json",
+          "present": true,
+          "worktree_bytes": 27266,
+          "worktree_sha256": "6697fc7d482ec2d915298f8212838bda54afb654db32211f73efa0eb9fe53c34"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synth_probe.py",
+          "present": true,
+          "worktree_bytes": 3233,
+          "worktree_sha256": "29d9ed86d5e596da481570101fd011579731f1b43bd33ca628e82371321be6a5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synth_probe2.py",
+          "present": true,
+          "worktree_bytes": 1713,
+          "worktree_sha256": "a5a496636eaeeb6beb5710ba1fe00547dee5cc38e3a7a3b25a48f7e127783e47"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_bothstates.py",
+          "present": true,
+          "worktree_bytes": 4755,
+          "worktree_sha256": "86cc33cde6ee76c7498fa6c83363576b727d2a5840d826f3e470b3a044276591"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_checks.py",
+          "present": true,
+          "worktree_bytes": 6389,
+          "worktree_sha256": "0a76a1cd63adcd7c428a85d9f776b07dce80dba6c84126f4d21b2df9399160a7"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_claims.py",
+          "present": true,
+          "worktree_bytes": 5438,
+          "worktree_sha256": "052c2914f2606c7a35c4f49bff8ff3162fe2e3634a302ac939b368f44e963350"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_docs.py",
+          "present": true,
+          "worktree_bytes": 4702,
+          "worktree_sha256": "3c7b84d3a04203fe86ee591fb4d751f3d32dae6445fcc1160c8b251b75a286d8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_fixtable.py",
+          "present": true,
+          "worktree_bytes": 1889,
+          "worktree_sha256": "948c7a26f50616d81df2740bc191d9a39d2885112dfa98a4fe157a41811b62b3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_gates.py",
+          "present": true,
+          "worktree_bytes": 5524,
+          "worktree_sha256": "5c6dc3cbf5b3b1071b03b660aeaed9b2c4535c1da396c1aaa0bf0c331211a0ce"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev2_portable.py",
+          "present": true,
+          "worktree_bytes": 1796,
+          "worktree_sha256": "354bafedfa5c4be80cf032efb777c45a027502279f17f628f083327c6a311038"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev_blob.py",
+          "present": true,
+          "worktree_bytes": 4301,
+          "worktree_sha256": "d5f12f2e7b02f07e6376336f6c6b4ad89b4f5003408a98e5b44d1ce6785ef824"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev_checks.py",
+          "present": true,
+          "worktree_bytes": 8266,
+          "worktree_sha256": "ff12b299a001c644e0d08f5e7020019cc7f9301bc27add33a00bd8a93183e830"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev_checks2.py",
+          "present": true,
+          "worktree_bytes": 4054,
+          "worktree_sha256": "f4c62024bdce21e4a8149229433758a4568352bdb491c48358c216eb335b64ad"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev_residuals.py",
+          "present": true,
+          "worktree_bytes": 2363,
+          "worktree_sha256": "22da0ca1b94de011f3024940c30aec380d8b2bd433d1c7c6111e63760dea2946"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_synthrev_ruff.py",
+          "present": true,
+          "worktree_bytes": 2045,
+          "worktree_sha256": "fc58a4507216a67cb426947a3beb688e0ba93d5d4ebf7db701d78987eacf9933"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit.py",
+          "present": true,
+          "worktree_bytes": 22868,
+          "worktree_sha256": "41c08eb7ddeef12b8bf40a76e57fb9d28dd8e7b513cd9ec42e6e75bffa7695bf"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit2.py",
+          "present": true,
+          "worktree_bytes": 6451,
+          "worktree_sha256": "0d8b9053d49b96c81934c939ac5325ac19ffed34c11a83f2464db8f5314a2244"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit2_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit2_out.json",
+          "present": true,
+          "worktree_bytes": 62902,
+          "worktree_sha256": "eb39c07d3fd3b847ff987ecbaa1f78ec2ff2cf4df72c77c8fd2fc642ee41f8ed"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_floor_audit_out.json",
+          "present": true,
+          "worktree_bytes": 57888,
+          "worktree_sha256": "39c5183f6e39bccbe66168a5555bb095544e55f3e017328e1815466f8b791179"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe.py",
+          "present": true,
+          "worktree_bytes": 6201,
+          "worktree_sha256": "ea3571c716c745d3f5a0ae15ced46d5b28d3c09fa4a231f7bbe665c58149c8f1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe_fast.py",
+          "present": true,
+          "worktree_bytes": 7108,
+          "worktree_sha256": "a9beeb1cc3368cf09d5ad66cbcf47f7a54dbd1cc4c238e6289077eabcb04ec68"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe_fast_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe_fast_out.json",
+          "present": true,
+          "worktree_bytes": 20326,
+          "worktree_sha256": "0906c3d1a83607b8c1935da8cbcf078ec22ded10fb4c4086381f0afd25510d03"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_fork_probe_out.json",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_marketplace_pairs.py",
+          "present": true,
+          "worktree_bytes": 6249,
+          "worktree_sha256": "955a849af22c1e1c97365b685fcb318036bd946b803518d06c7ec4d05ca844cd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_marketplace_pairs_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_marketplace_pairs_out.json",
+          "present": true,
+          "worktree_bytes": 14263,
+          "worktree_sha256": "51b48fd262a59acf3fc71c303208032f77f790d9b9a6bf54d01f81f7a5cbfbf6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_mutation_control.py",
+          "present": true,
+          "worktree_bytes": 6575,
+          "worktree_sha256": "6e175bee42ffc1f50f6706574758e8a29d345803b5f9d0ef6c348efa0a745fb8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_mutation_control_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1_mutation_control_out.json",
+          "present": true,
+          "worktree_bytes": 4044,
+          "worktree_sha256": "e0f59a6fd25e0bac3eed7d8a36aba92a8b720782ed0a3454267bbe86e8339452"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1audit_mutation_selfcheck.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1audit_mutation_selfcheck.json",
+          "present": true,
+          "worktree_bytes": 3982,
+          "worktree_sha256": "c30430a94e6a47fcb091a7918cf9adc2e428b466afe39f61a4773f2a7e29f069"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave1audit_mutation_selfcheck.parsed.json",
+          "present": true,
+          "worktree_bytes": 3899,
+          "worktree_sha256": "80604a2dc948368a1a15f4760c7081a5dea779fa7b44962ed0457091092bda51"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_blindspot_check.py",
+          "present": true,
+          "worktree_bytes": 1826,
+          "worktree_sha256": "60274c24b1133b9341c5a8841aac78ab6f9f921f1a7924642eb49e45d3836b7a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_floor_audit.py",
+          "present": true,
+          "worktree_bytes": 18316,
+          "worktree_sha256": "d0c721bff9e674930f4f7b93c353c28377be25a9747c1fbf2ec637ce01ff7683"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_floor_audit2.py",
+          "present": true,
+          "worktree_bytes": 13241,
+          "worktree_sha256": "0664e017f8e9f19d71e273807934d5f8c788a86cbbe69740aa94e805547310a9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_floor_audit3.py",
+          "present": true,
+          "worktree_bytes": 7123,
+          "worktree_sha256": "e963f125873f8f46da569d1a127fe5f535d950f450afff9992464ca85b37b2f8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_floor_audit4.py",
+          "present": true,
+          "worktree_bytes": 7190,
+          "worktree_sha256": "3f4087cbe6747cea5089b420f85cb3a9d6ab9d9f27765abbc3927c1d2ab9f152"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wave2_floor_audit5.py",
+          "present": true,
+          "worktree_bytes": 9638,
+          "worktree_sha256": "423d5f6aa9f3e9f9bb28b901ea731bfa83d09692aab6032f8c0ac215447cc284"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_bothstates.py",
+          "present": true,
+          "worktree_bytes": 1931,
+          "worktree_sha256": "e499970aec336e3a7551062317f49749416331bc42800001426ed6ef3daaef8a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_build_registry.py",
+          "present": true,
+          "worktree_bytes": 57034,
+          "worktree_sha256": "dc680c420d12968c767decb346cc2f36eaac7e8d807bd5a17f1d2a80837e1a98"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_cross_unit_overlap.py",
+          "present": true,
+          "worktree_bytes": 2373,
+          "worktree_sha256": "435eb2813271ae8d46717c2bca07e6f272fdfa39d094e29a77746dc54092a07e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_deep_scan.json",
+          "present": true,
+          "worktree_bytes": 166147,
+          "worktree_sha256": "86d06067cd4019383e06f5279ecc3fa1c4e904ad0b1e5cdb2cc86a0705127ed0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_deep_scan2.py",
+          "present": true,
+          "worktree_bytes": 9011,
+          "worktree_sha256": "9028cc54575d234ff10eb08ec22a6abfbfdfc00ec22490f23a139e8f817461f8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_digest.py",
+          "present": true,
+          "worktree_bytes": 1400,
+          "worktree_sha256": "166d4c50545ad43d6793c696f62e72e92d34d8ced2984701b441029fdcd9d10e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_digest.txt",
+          "present": true,
+          "worktree_bytes": 82874,
+          "worktree_sha256": "5c42d53e2999fc2cb87b60dce2cc4a698912cf9cc538f9a41caa261a0daca7f3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_extract_range.py",
+          "present": true,
+          "worktree_bytes": 4071,
+          "worktree_sha256": "3efa6a35e1076daf3ec3a798441533f129a9d9d89596ab1355e6f0bc00d9fdc4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_final_check.py",
+          "present": true,
+          "worktree_bytes": 4407,
+          "worktree_sha256": "c2ee8685db168084858aafa8ce4825e90cc6dd2c7ea6b83eadd2ca81df71fd26"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_fix_c2.py",
+          "present": true,
+          "worktree_bytes": 1890,
+          "worktree_sha256": "dfbd95e0d95a1a66e3d084c1eef7742038c2d5262d6c76b27ca45fc70cc91bc4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_fix_c2b.py",
+          "present": true,
+          "worktree_bytes": 2966,
+          "worktree_sha256": "74eb37fac52b6b97d83c253ff90493b4862bd492ef7bfbcbab85594f449588da"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_probe_structure.py",
+          "present": true,
+          "worktree_bytes": 1456,
+          "worktree_sha256": "15e3557a047607a07b79c202dc9f49cabf46d93366ef8f9e09f1268cc6b0f86e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_range_probe.json",
+          "present": true,
+          "worktree_bytes": 46374,
+          "worktree_sha256": "6f17c9e721b9aaa2c9cceed3cfb18a87fb16d16cfd51e3452ae3db5fe2e55060"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_resolve_linecounts.py",
+          "present": true,
+          "worktree_bytes": 3132,
+          "worktree_sha256": "465d5ac929c2d0538c679bb05e5d56b4c2ed3ab71b474149d1167e06c030dfcf"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_stoprules.py",
+          "present": true,
+          "worktree_bytes": 2712,
+          "worktree_sha256": "f08837cb764b2df7453512939181e8f211c8dd50a1197db1f0b114aa48b38c1a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_validate.py",
+          "present": true,
+          "worktree_bytes": 5736,
+          "worktree_sha256": "346de17a14179afdbb28fa0b694de8d96907d97c359f0857b5efa9a93a4a91f9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_verify_claims.json",
+          "present": true,
+          "worktree_bytes": 874,
+          "worktree_sha256": "09191cbcb4e1aaec2545538e995051167ed6656df333ea9589ed1d326dc86942"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa1_verify_claims.py",
+          "present": true,
+          "worktree_bytes": 5988,
+          "worktree_sha256": "67674b26ca2909ac90ba0e9e2e54cb9951f17956329d4bf4304dc4586afeb56b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2_build.py",
+          "present": true,
+          "worktree_bytes": 68952,
+          "worktree_sha256": "6d21a62e738929931fc3383402aab270929874c8643e08aa2ec7e51ed746b867"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2_entries.json",
+          "present": true,
+          "worktree_bytes": 58125,
+          "worktree_sha256": "0f145965291ad77788fab7eff009b1a934ed599d9685862d7e7cd84533dcf5ac"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2_enumerate.py",
+          "present": true,
+          "worktree_bytes": 1962,
+          "worktree_sha256": "2c0c0dc36c1828aef2761f2e76c64f2db542118dd0ad266435caa56b13c2c324"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2_probe.py",
+          "present": true,
+          "worktree_bytes": 4538,
+          "worktree_sha256": "b23da0202ea435e0f8558c831fa1c8b5412b7d8ca801b3d933c8d82e8a679ba1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2_verify.py",
+          "present": true,
+          "worktree_bytes": 3847,
+          "worktree_sha256": "67658d203fd7eaacff9c3a46dd05a1ad4f62006705955acfa16ec8c1c2b2c25b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2b_build_registry.py",
+          "present": true,
+          "worktree_bytes": 66181,
+          "worktree_sha256": "4becf30348926d45d8e55d05e125a380ff7648441bf2b23d2efe9bc5518fb765"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2b_lf.py",
+          "present": true,
+          "worktree_bytes": 1422,
+          "worktree_sha256": "1d407997f52969655d87ddf022df103ba59084aa216ec9093ae8374e261e0cdf"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2b_probe.py",
+          "present": true,
+          "worktree_bytes": 16149,
+          "worktree_sha256": "906c66cf9766bd773d83867889e6a349d798f43c49a33d81cb125fdbbb53629a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2b_probe_out.json",
+          "present": true,
+          "worktree_bytes": 72524,
+          "worktree_sha256": "40124b3597f6981d591ab7aa94032acc0f9fe929c5227579d0e5f1988d0d66c5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa2b_verify.py",
+          "present": true,
+          "worktree_bytes": 11835,
+          "worktree_sha256": "73cf8b00761a239e09ecc118e1c2703b27363cad9e08a382fdcf3c4cd96c9035"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_build_registry.py",
+          "present": true,
+          "worktree_bytes": 80789,
+          "worktree_sha256": "01ee9a210d33b0caf8543f38afd9583591260a6c3ab628d15db037eae1e84879"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_collision_check.py",
+          "present": true,
+          "worktree_bytes": 3055,
+          "worktree_sha256": "d68ce473cbf78331f50d11fda95f11e8c83e94befc2e1fa0f8335df0f27baf4f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_licenses_out.json",
+          "present": true,
+          "worktree_bytes": 15887,
+          "worktree_sha256": "ab6473244b22760c41d1bde9085f33bc4abc37469a59bd403feda1bf1a435f97"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_plugincache_out.json",
+          "present": true,
+          "worktree_bytes": 55853,
+          "worktree_sha256": "beeaf729791fcde63bfa91a1e1f0d9dfc50a11b004e3ffe58d1098cd0deab44d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_probe_anchors.py",
+          "present": true,
+          "worktree_bytes": 2106,
+          "worktree_sha256": "839a030456b46b351d1df43805d9732a125dd3fe55cebbff0dc35ae47caec5b8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_probe_licenses.py",
+          "present": true,
+          "worktree_bytes": 4859,
+          "worktree_sha256": "33d1f20cd0508129c9241f3b19a3da4f35f86de1d0a218fb029d5a93b161680e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_probe_plugincache.py",
+          "present": true,
+          "worktree_bytes": 4538,
+          "worktree_sha256": "f8d65b0eaf40814ee2d3e6f55826dbebfe2c8bb0cac87bbafc59df9010c6eddb"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_validate.py",
+          "present": true,
+          "worktree_bytes": 7790,
+          "worktree_sha256": "098818d7f46163ee96d5d5a9639dab4f4defb0b5b422fd3093be7fac544ace03"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_verify.py",
+          "present": true,
+          "worktree_bytes": 10737,
+          "worktree_sha256": "779f899f703e4fc352d9edcb9ea89d03199464947b91566d01f3f5defa2f1455"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa3_verify_out.json",
+          "present": true,
+          "worktree_bytes": 60270,
+          "worktree_sha256": "025d6b0b7eb96847e0ed6283d4190bd63a13ff3cc526e46525b5ff0580c065d9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_build_registry.py",
+          "present": true,
+          "worktree_bytes": 27007,
+          "worktree_sha256": "55f06745c87218f58b234edf93a365c02cee157ff47c92be03c2e9f056b96bc8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_crossfile_overlap.py",
+          "present": true,
+          "worktree_bytes": 3164,
+          "worktree_sha256": "5a935ff6d38d514b2f18e7f1145a1544cfde7e8a31249d382b22d8566b88f5fd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_digest.py",
+          "present": true,
+          "worktree_bytes": 1598,
+          "worktree_sha256": "09057f5df0d9d3bc2795bc145d741c9eb18f69f1f4f13b6762d8f8043522cea2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_dupescan.json",
+          "present": true,
+          "worktree_bytes": 3708,
+          "worktree_sha256": "7b4636d22a9c996646c8700314dff67043e48d5c3787182e2c6602f5e02cf84c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_extend_entry.py",
+          "present": true,
+          "worktree_bytes": 8188,
+          "worktree_sha256": "f78e594c37176a53e0ebff2795f0dfce426f96cc6b963aed0cfcb619f27218d6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_extend_scan.json",
+          "present": true,
+          "worktree_bytes": 2972,
+          "worktree_sha256": "16fe6b6f18c77b883d6233e34bbd0d4e476d9eb3989afdb0d733f0a1d68f89cc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_h_scan.json",
+          "present": true,
+          "worktree_bytes": 17960,
+          "worktree_sha256": "4cecd5627876c9ba4f535c6e8fe15fc4f28215980dbcc147c8e701f08f474a30"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_harvest_h.py",
+          "present": true,
+          "worktree_bytes": 2156,
+          "worktree_sha256": "6ee8723d06ae64522541ac5d008e1e9e9ea2833b65d33fda06de2c59e78ad521"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_license.json",
+          "present": true,
+          "worktree_bytes": 11059,
+          "worktree_sha256": "625fb7f55670f197d9e0c977fedbd9eadd28331bc254cdf51dd8c8bd90813f13"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_license_probe.py",
+          "present": true,
+          "worktree_bytes": 6421,
+          "worktree_sha256": "fc5b9892c725d0179c49b4aadbe35904fcad8af3f4d38c5cc265c9b73fe85f5f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_probe_extend.py",
+          "present": true,
+          "worktree_bytes": 4575,
+          "worktree_sha256": "8b078eee2ebbc02c05896e73e0dd98763596d68514a8c011de4e17197c790067"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_probe_slice.py",
+          "present": true,
+          "worktree_bytes": 933,
+          "worktree_sha256": "37200f8c4cc6c7c2b488858c964e71a6d42bec00bb5516ba19d62f45914f8d75"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_probe_structure.py",
+          "present": true,
+          "worktree_bytes": 1705,
+          "worktree_sha256": "faf24cae0485fd66ec6caad4d60a120f8e08cb52ecce436194e71626f4a66de9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_probe_tombstone.py",
+          "present": true,
+          "worktree_bytes": 4370,
+          "worktree_sha256": "d1d9fb60ad5d87e094b37d452f618bd491494e2606ade277aeae655925894911"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_provenance.json",
+          "present": true,
+          "worktree_bytes": 107741,
+          "worktree_sha256": "4d14be2cbef2a224d5ba9712fce7c8cd2998c86dafd5b11ca6503a2620bd5e55"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_resolve_conflict.py",
+          "present": true,
+          "worktree_bytes": 2042,
+          "worktree_sha256": "1d2b8a2caf89e27b88ea1d79a6b92c168bd3bc0d169527198f5e85604304cf03"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_spine.json",
+          "present": true,
+          "worktree_bytes": 1130,
+          "worktree_sha256": "8f3a278d82982232c6fa3274a4affb615ea67dd0277073dff970d1fad81848bc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_spine_check.py",
+          "present": true,
+          "worktree_bytes": 3958,
+          "worktree_sha256": "54fff354b69a8da40f78fb35c13ff3cd4fecb1343285d50acbb7c69ab3549940"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_validate.py",
+          "present": true,
+          "worktree_bytes": 7755,
+          "worktree_sha256": "8b654ca5475bd8b88377ceb51c4101ace80a4d228de74c15fcf0a29b0354729f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa4_verify_provenance.py",
+          "present": true,
+          "worktree_bytes": 10232,
+          "worktree_sha256": "65da14daef740858de3b4ac512b7749ef37cd03cbf7498d33b6336a628c58dbc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_build.py",
+          "present": true,
+          "worktree_bytes": 56681,
+          "worktree_sha256": "3b1eeb2ac51cf8144ec9296c99051c116de846e5003594c340333106c1822c41"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_corpus.json",
+          "present": true,
+          "worktree_bytes": 784417,
+          "worktree_sha256": "a8b6d7d18cf924815fc5b05a201d61035cdc4dfe4183fef6a2b77e2e03eb85ee"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_digest.py",
+          "present": true,
+          "worktree_bytes": 2832,
+          "worktree_sha256": "1296ae1968146977f5f4c06fde9ae40543fecf8e7fc1ffccfe9507b29f9a1127"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_drift.json",
+          "present": true,
+          "worktree_bytes": 26912,
+          "worktree_sha256": "468722c16ece32f501b99411cb58258afc539370fe84f98a80c21fc806773677"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_drift.py",
+          "present": true,
+          "worktree_bytes": 4534,
+          "worktree_sha256": "cee7c4907130ceb3f2d152cf7605f8098c2039f1368b2a9f42cf258a51ac1f0a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_enumerate.py",
+          "present": true,
+          "worktree_bytes": 4352,
+          "worktree_sha256": "8f01b11bac4a924ae378e67a69d0f5dc5a285de812662b82617b71fe614af40d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_features.json",
+          "present": true,
+          "worktree_bytes": 1409413,
+          "worktree_sha256": "bc62b55f9d2f2382f91ce3163225fb980045543e3639f128277b14c15db9a10a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_features.py",
+          "present": true,
+          "worktree_bytes": 9204,
+          "worktree_sha256": "a161d1d771ea11ea8dc0cf4a97194c2a33f17ba84848df547b0ecf619cd24f12"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_licence.json",
+          "present": true,
+          "worktree_bytes": 35379,
+          "worktree_sha256": "c3d9456a39b354a5899ede40dfd087689bf65d682e258462c0c7b4e5d580e8ff"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_licence.py",
+          "present": true,
+          "worktree_bytes": 3318,
+          "worktree_sha256": "2718f532905b04dd926529ec8061306038ba759ad05f093f936720171a841262"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_patch2.py",
+          "present": true,
+          "worktree_bytes": 4355,
+          "worktree_sha256": "3aa5d7f5d22323a67d3a34803a06ebf8aaf399d52d6c5ba5718dba15df4ae9ab"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_readback.py",
+          "present": true,
+          "worktree_bytes": 6995,
+          "worktree_sha256": "d144bfe78243d55f41faa7ad1c8822929ac1ed79f7c7ffbf1f2ed37d6a758346"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_resolve.json",
+          "present": true,
+          "worktree_bytes": 56185,
+          "worktree_sha256": "1b85db781cb7ae9471829ff1b1f2a7cf94e3bf05a604dba7dbd39fe1d84b677b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_resolve.py",
+          "present": true,
+          "worktree_bytes": 3887,
+          "worktree_sha256": "134430c9527d45909a1b06322f40cb156a4dcd7c9ef6fb39dfe9f9b580abf012"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_skeleton.py",
+          "present": true,
+          "worktree_bytes": 1815,
+          "worktree_sha256": "9e47abeb5d09c67a2422f2400e3053bccf557327f60c8d6a37fbafb71bd5800a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_skillfeat.json",
+          "present": true,
+          "worktree_bytes": 142866,
+          "worktree_sha256": "1128a7c6be0333e91466f44ca4dc0a17d98c9accb64f36552c838f10f1f4711c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_skillfeat.py",
+          "present": true,
+          "worktree_bytes": 10260,
+          "worktree_sha256": "89c1fc3e2a07b8901cac84f3cc9c600ff855ad6c7a05eab5bb7bb80989dcd61f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_verify.json",
+          "present": true,
+          "worktree_bytes": 7280,
+          "worktree_sha256": "6d4f8c9852016837105594a5cb3bddb1cbc12cc0857770b23836a2cda06fbe47"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfa5_verify.py",
+          "present": true,
+          "worktree_bytes": 6069,
+          "worktree_sha256": "fb5a87bdd89a3b8bf49a06271ebbc828fdf4bd033f3f872352f14aaa902b04d2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_constraints.py",
+          "present": true,
+          "worktree_bytes": 10410,
+          "worktree_sha256": "2a8c7982766ee7ffef2b295fcc52bd098f2f78e60d87934976c818396ba2e6dc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_constraints_out.json",
+          "present": true,
+          "worktree_bytes": 12407,
+          "worktree_sha256": "3562aa2fa8a11e5052b4c191dc7ec17fdfed466ab2d8511248a50ae422175d1d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_profiles.py",
+          "present": true,
+          "worktree_bytes": 8906,
+          "worktree_sha256": "23f620a66440e36659438d298b5a03ff1a6a1793b12091fe40525e8e0b32d366"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_profiles_out.json",
+          "present": true,
+          "worktree_bytes": 2706,
+          "worktree_sha256": "c0ffcecbe66ed76c872841d1238db008e04ca7b50381369bc708dc41398a92ba"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_types.py",
+          "present": true,
+          "worktree_bytes": 6635,
+          "worktree_sha256": "e5a9e869de7f258e08ab0abbf6c5cfbd03d8574203f4e3fe478a210fd8faece2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_types_out.err",
+          "present": true,
+          "worktree_bytes": 0,
+          "worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/_wfdsl_probe_types_out.json",
+          "present": true,
+          "worktree_bytes": 20855,
+          "worktree_sha256": "1b310c6b7918ac48f96522cfe96272dbc89e9e28c0083f4f5634e8de730a68c5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/answer_owner_questions.py",
+          "present": true,
+          "worktree_bytes": 6921,
+          "worktree_sha256": "aeaac6623bcaf7d44db0b6af01ad521149c64c0404a19a515149ececa372358e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/authz-final-suite.log",
+          "present": true,
+          "worktree_bytes": 205,
+          "worktree_sha256": "0ac334dc27f8e06f5d5e6878559be7b9be0d7f7bf0ca7ae4097c55a651d11d23"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/authz_apply_fixes.py",
+          "present": true,
+          "worktree_bytes": 11048,
+          "worktree_sha256": "2e5cb0f8255f0305076884dc5e7bd9b95448bfd7c402adce365cdc536a9bbb4f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/authz_diff_audit.py",
+          "present": true,
+          "worktree_bytes": 3106,
+          "worktree_sha256": "6e93e90dbd66c9ce504acc0680eba8608f13cab651978a739499d1dd97b596e5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/authz_head_diff.py",
+          "present": true,
+          "worktree_bytes": 5835,
+          "worktree_sha256": "81e4c38ebb40087a97e534474cb0c843a713874b6d39046db4765a302f9e5391"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/authz_measure.py",
+          "present": true,
+          "worktree_bytes": 5007,
+          "worktree_sha256": "36653048669d404e01922ab94423675921d9c03c945e12f310fb1f3c3097ab7c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/blocker_census.py",
+          "present": true,
+          "worktree_bytes": 7293,
+          "worktree_sha256": "882d5bd06966504aa2a75af98567bbd32608471b7d03504175ab7698b9a2428a"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/clear_answered_gates.py",
+          "present": true,
+          "worktree_bytes": 5691,
+          "worktree_sha256": "d8c0d8f9ce40d7b808bcf5745311d0c01d03af4bb75d103a2ee03e3ba11cb0a1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/close_apply.py",
+          "present": true,
+          "worktree_bytes": 11472,
+          "worktree_sha256": "17a639504453c202ec4042f2b3c3d414a876391c8f54fe16e80fb3c43023caf1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/close_round2.py",
+          "present": true,
+          "worktree_bytes": 12440,
+          "worktree_sha256": "8a7e828abe2ab62f441a615f057268e4657fff9869086c6e73c0b64a584a6405"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/close_verify.py",
+          "present": true,
+          "worktree_bytes": 16687,
+          "worktree_sha256": "14a5b7e945cc742a24d67253c90b00371dee76effe26623270df4d097979bc56"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/curate_all_skills.py",
+          "present": true,
+          "worktree_bytes": 4279,
+          "worktree_sha256": "45a0fc555258822f7edbe059f64a9d9dc0da5cf142d95d08ba8c41bf36b2b7b9"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/curate_security_skills.py",
+          "present": true,
+          "worktree_bytes": 4496,
+          "worktree_sha256": "aef7a9ba053acfbfac0b313edc9ee3a87406a23ee47e57b568410db87bc5defd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/curate_to_budget.py",
+          "present": true,
+          "worktree_bytes": 4055,
+          "worktree_sha256": "fd4e5943b958e3aa8a183964fa57997fd1e5a36bea54528ad316a0941cdf1505"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/d1_close_matrix.py",
+          "present": true,
+          "worktree_bytes": 15436,
+          "worktree_sha256": "cc7d955d6666e7f71044058da666ffd345dfd41fdbbd154e29b5cd7d5142454f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/d1_close_report.py",
+          "present": true,
+          "worktree_bytes": 5833,
+          "worktree_sha256": "7ce62f2f5438e0d33ec32b31670cb70234fca6e451adfc500db24e530996682f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/d5_measure.py",
+          "present": true,
+          "worktree_bytes": 4520,
+          "worktree_sha256": "36803ee3c1efef9d90b789eb892bb4a978df72597dea2b6b919f38b5dbec85a7"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/d5_normalize_assignment.py",
+          "present": true,
+          "worktree_bytes": 12626,
+          "worktree_sha256": "30a349bed48af7bfb8d22c23dd33821b1f2a1da6dd2f32cdacbbd47eb3b37c54"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/d5_preflight.py",
+          "present": true,
+          "worktree_bytes": 3085,
+          "worktree_sha256": "f94c0ba944527bde5f549d5d4b9182905f766730dee9bd614b153e4c222234f0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/eol_probe.py",
+          "present": true,
+          "worktree_bytes": 4270,
+          "worktree_sha256": "9aa8bd666be6f93a392c8cd73864e719730819dd4d814e58eda232aa3bb8f5cf"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_blob_recipe.py",
+          "present": true,
+          "worktree_bytes": 4819,
+          "worktree_sha256": "121e230a24543d3c5326db7022706e67c3af466dab21e3ac12b94c1b8165e9fc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_hook_timeouts.py",
+          "present": true,
+          "worktree_bytes": 6939,
+          "worktree_sha256": "426c7180f2d1fd7413a3480dd95694bb0dff37678a8d5d39ede6d1d5348927f0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_reach6_register_provenance.py",
+          "present": true,
+          "worktree_bytes": 12329,
+          "worktree_sha256": "17ef0cb1de74ea4d1a451db3575a32d86a6ffbcbd2753700774dc7977da36a1d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_reach_violations.py",
+          "present": true,
+          "worktree_bytes": 5158,
+          "worktree_sha256": "e92fddaa304d5562f8e076321dcadbf6a4db0ec0217b1072e193439ed32007d1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_sast_findings.py",
+          "present": true,
+          "worktree_bytes": 9067,
+          "worktree_sha256": "09181721b663025c0f08f8cb0dce2d9a13ec921850d184b521b631bc831287e4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/fix_settings_budget_drift.py",
+          "present": true,
+          "worktree_bytes": 3667,
+          "worktree_sha256": "fbceb8b408c116918981b305e964473dc5103d63cae1407e2e7a700edf650730"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/harvest_dispositions.py",
+          "present": true,
+          "worktree_bytes": 4073,
+          "worktree_sha256": "70bdd1261191e8878ff5927cddaf71f87cf5084662dea1aa34d622e2a1d71f7d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/harvest_workflow_journal.py",
+          "present": true,
+          "worktree_bytes": 4978,
+          "worktree_sha256": "b3501487687a2a3cfa4cfbbf1c7affd5880a8651b01ccd01347bb6f42a2862f6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/mutate_jsonparse.py",
+          "present": true,
+          "worktree_bytes": 2108,
+          "worktree_sha256": "0818aa4e074d14a3f2d0d6759c5c2ac0bd47224cae49605e4be6e368560dd2ae"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/namespace_sweep.py",
+          "present": true,
+          "worktree_bytes": 6159,
+          "worktree_sha256": "c16d0a087eeccb751a84c631b78ca988eb776baac96a8667cb5ea141a9a8756e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_d1.py",
+          "present": true,
+          "worktree_bytes": 7085,
+          "worktree_sha256": "9904d0a05232c03e2270a970cf2d97e371e208c125346bdb359117ab0c4bd628"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_expand.py",
+          "present": true,
+          "worktree_bytes": 5639,
+          "worktree_sha256": "d3740d85319956c36af67a8bc6495e020e8dcdae2cce0b79b5379a050657e193"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_floors.py",
+          "present": true,
+          "worktree_bytes": 13880,
+          "worktree_sha256": "5c05712b5820481d7a7bd293befc917c1515104d12edaea9db09613aa94c834f"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_mutation.py",
+          "present": true,
+          "worktree_bytes": 5026,
+          "worktree_sha256": "8a1723f6d09231928ca503c7de629ef2a83fd52480a564e467ae6ff156134fce"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_registry2.py",
+          "present": true,
+          "worktree_bytes": 4941,
+          "worktree_sha256": "f9762dbe06ad13120f28c3308267f2271be4a5b20c455f6dd0287d3040f4bbe1"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_reruns.py",
+          "present": true,
+          "worktree_bytes": 8436,
+          "worktree_sha256": "fb654d435c8307a94d184032fc114244c43bfa4b57bb48fa4fa2c0126dbeef54"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_testdelta.py",
+          "present": true,
+          "worktree_bytes": 4316,
+          "worktree_sha256": "97070594f354bbb35e0fc98ca93d68cdc4ae4022d7ffba452d59690e4aca20c8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_tracking.py",
+          "present": true,
+          "worktree_bytes": 4450,
+          "worktree_sha256": "002aa3fefcbd80c265effb15622e0dc37c1e0c955dacb7b44992082c170534a4"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_probe_wave3.py",
+          "present": true,
+          "worktree_bytes": 10624,
+          "worktree_sha256": "91f5f11fd744f37cd3baa06297972eb99b6358c792907491c53c53663727fb18"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_suite_full.log",
+          "present": true,
+          "worktree_bytes": 3572,
+          "worktree_sha256": "7717c88fa1faee54d90364a8b53db0859e7ffb2bd63cf571465c169254a56843"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p11_suite_platform.log",
+          "present": true,
+          "worktree_bytes": 4452,
+          "worktree_sha256": "6beca3a187c633d3a37074860cc1868f1f4dab6a4e1690bd408f36e48687bfa5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_emit_receipt.py",
+          "present": true,
+          "worktree_bytes": 42480,
+          "worktree_sha256": "ab57f76ab2fb2de097b9453f828e4c28ea7b49c34f511ed7b75059590c218dfd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_execution_gap.py",
+          "present": true,
+          "worktree_bytes": 7139,
+          "worktree_sha256": "68e35b6b6c78996d455f931647ae5acd5ae12bd348e24e9513ba392115e8dd23"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_linux_fails.txt",
+          "present": true,
+          "worktree_bytes": 2302,
+          "worktree_sha256": "9fd6fdf89ea316ff7fc0579c41584602eb85282da61c356fdbc726f628fd654c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_orphan_plan.py",
+          "present": true,
+          "worktree_bytes": 6872,
+          "worktree_sha256": "99b2002346d7bccfa78eb68976cc320dbee9b14aa900d536ea4e007079866b3e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_skip_masks_absence.py",
+          "present": true,
+          "worktree_bytes": 6453,
+          "worktree_sha256": "de4506c439f3bd1863b78fcea433117c6209ddc770142a75326e70de950f9581"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_suppression_census.py",
+          "present": true,
+          "worktree_bytes": 8019,
+          "worktree_sha256": "77c034a65cd4c3155db6bc7afe5c8986b790e2e214f5a65584f9e9f5b3279b3e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_survey.py",
+          "present": true,
+          "worktree_bytes": 2170,
+          "worktree_sha256": "23e8dfdab96e1e6f1e12d02506c9d562c576a4b36bcf83076b8aa77a6035e9bd"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_write_companion.py",
+          "present": true,
+          "worktree_bytes": 16843,
+          "worktree_sha256": "4bdfeaac5bbd9fea8f8be2884be0dd979e9131bcc3082fdd6cc46b066b4db110"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_write_linux_report.py",
+          "present": true,
+          "worktree_bytes": 7114,
+          "worktree_sha256": "adae183cdf15b4c2a37c0ab5b7e95ea278a292e19d1a7454114366d540301c52"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/p13_wu_shape.py",
+          "present": true,
+          "worktree_bytes": 1962,
+          "worktree_sha256": "27f091555ec6161463915a883cde287f1ff803377dbc875f9a1c8796b7fa3f70"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/probe_hook_manifest_drift.py",
+          "present": true,
+          "worktree_bytes": 8186,
+          "worktree_sha256": "c4aab0f6ce863ff017f4d20bdcb615dc7791a711bc6d3b0ad72490b4882a256c"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/read_harvest.py",
+          "present": true,
+          "worktree_bytes": 4071,
+          "worktree_sha256": "067d1295af92b93d6a6a391bde5f6b0658476d651deb4f7230e77085bdc23814"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/ready_units.py",
+          "present": true,
+          "worktree_bytes": 33782,
+          "worktree_sha256": "b307b26599a5ce8b41502d672b890b3e0f85931f5e476fc4b20d2320c4c89a73"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/receipt_validate.py",
+          "present": true,
+          "worktree_bytes": 8207,
+          "worktree_sha256": "c8b89676926ca98379be03cd28ae9e6c1510c02a38d6d92355e2e01eb04e6e55"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/recover_failed_agents.py",
+          "present": true,
+          "worktree_bytes": 6309,
+          "worktree_sha256": "1f38fd6f799374a2c40014c3af65d5d8c825a3322dbdd39ef90c6eeb6d6a7ec5"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/recover_overlap_lens.py",
+          "present": true,
+          "worktree_bytes": 7524,
+          "worktree_sha256": "3eff3bb318ce64b98580ad1ebe7128281f79e5602335d7f82023bb374dd69110"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/remeasure_defects.py",
+          "present": true,
+          "worktree_bytes": 5920,
+          "worktree_sha256": "e1bca6baff3b676391fe0ce85cbdad50df868b59b1df5d1cfedf412b32c14514"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/scan_root_probes.py",
+          "present": true,
+          "worktree_bytes": 2990,
+          "worktree_sha256": "d0e4b3feddfb84081ec2870dd8d1f51b27c573d25cc96d5995104db3c68abcc8"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/scope_pointers.py",
+          "present": true,
+          "worktree_bytes": 5357,
+          "worktree_sha256": "a3ffc5b87e7f698748fac475f86e2b0b872a172188f925c81325408bc18a7c8d"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/show_rows.py",
+          "present": true,
+          "worktree_bytes": 2815,
+          "worktree_sha256": "01129074091c02bfdd57303335ff7357a8215a82e3de7803969e2e2c1b49a673"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/triage_noremote.py",
+          "present": true,
+          "worktree_bytes": 5448,
+          "worktree_sha256": "db712539cdd6be23f27d7627f90299135ae0d3779b67aab7e47d21108cebe781"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_audit_suite_baseline.log",
+          "present": true,
+          "worktree_bytes": 4372,
+          "worktree_sha256": "0916c2ec18913db69f0b7e3f93d0a22250a9f56d99a58bdf9a3ae92e8fa9c097"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_audit_suite_final.log",
+          "present": true,
+          "worktree_bytes": 4452,
+          "worktree_sha256": "5546e129f488246d0bc645490b37c864040fcd36d8fa8bc77c36fb3063c8aa31"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_d3_audit.py",
+          "present": true,
+          "worktree_bytes": 11193,
+          "worktree_sha256": "199a258d9b361e1aaff51af0b2d2c9e20bf74109826c9e077dde8ed7bddf13ce"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_floor_audit.py",
+          "present": true,
+          "worktree_bytes": 50381,
+          "worktree_sha256": "a12fa981a5a0c84b51c66762bb629d3c7f7692170a267266d1ecebccce4b97d2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_lifecycle_audit.py",
+          "present": true,
+          "worktree_bytes": 24713,
+          "worktree_sha256": "7648488cdcc4cf8bd3ad211e3504ae58e6801af4b65e495db970e8f4a393cdea"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave3_marketplace_audit.py",
+          "present": true,
+          "worktree_bytes": 24761,
+          "worktree_sha256": "c2429db091734345a499785c6bb9d25710efb5ed88f0f59e9c3080bcc02bab93"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_abstain.log",
+          "present": true,
+          "worktree_bytes": 119,
+          "worktree_sha256": "32448b3e515dcbcbbb91f7ed02d25fd10ad427b8778129dfb489632b4d091ad3"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_abstain_probe.py",
+          "present": true,
+          "worktree_bytes": 10808,
+          "worktree_sha256": "89dd0681a42098157b933ebece3e21a50ce8540dde9cf43ca7ce6b1d66bc98ba"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_ceiling.log",
+          "present": true,
+          "worktree_bytes": 2276,
+          "worktree_sha256": "5d931897716ad74a7bc8eced4dd021569a75c23857de2272d04f392591bb6c49"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_ceiling_probe.py",
+          "present": true,
+          "worktree_bytes": 6551,
+          "worktree_sha256": "4078abfe1b37e11516412f8839c1467f8b31cfbc805b60703eddc7f19cb4268e"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_control_fix.py",
+          "present": true,
+          "worktree_bytes": 3459,
+          "worktree_sha256": "a195635d7c11e66ac915d79768046e6e90593a046bc1197d1b8a8bc8df0d7a7b"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_holdout_leak_probe.py",
+          "present": true,
+          "worktree_bytes": 3258,
+          "worktree_sha256": "31c9aaf248d7490d65f15f67ad48068c1c0e95ca6303d93aa66cbc210d7aa7c0"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_index_dump.py",
+          "present": true,
+          "worktree_bytes": 1435,
+          "worktree_sha256": "ed8dd741d985baf2015ccbfb43ad3a2278dd9c8887d8b9b561bfd219d09d6cfc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_marketplace_lifecycle_verify.py",
+          "present": true,
+          "worktree_bytes": 39062,
+          "worktree_sha256": "6846fba99f838a7216a5fa01298a6412cb09f3f034ef5a85ab43cad4a6be6009"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_ood_paraphrase.py",
+          "present": true,
+          "worktree_bytes": 5501,
+          "worktree_sha256": "9b90615789d192cd7026d005d2867637f604468695e4c1f133463d377fb34007"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_ood_separation.py",
+          "present": true,
+          "worktree_bytes": 4154,
+          "worktree_sha256": "abd79b1e96ab44f2b8244762bc96b8ffd743e4cecb50628221c6733385686ab2"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_probe.log",
+          "present": true,
+          "worktree_bytes": 847,
+          "worktree_sha256": "2e4e40bb3e6197e17e42a5543a988947f14b5ddc9845b544c388eaa881a9a266"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_routing_probe.py",
+          "present": true,
+          "worktree_bytes": 34425,
+          "worktree_sha256": "5c5f7cf13dfb33447670ff49060da744fc37446424eae54143e607e8d7b92466"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wave4_suite_after.log",
+          "present": true,
+          "worktree_bytes": 4372,
+          "worktree_sha256": "23b9528baf441abcc06b05d4d6086c2c00d1b4155409529ece1d621a6d5030f6"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wf_results.py",
+          "present": true,
+          "worktree_bytes": 2643,
+          "worktree_sha256": "7c4ea026d4dad45384da0caa9f6cb039bb7c5a14b70b3351b6b17b8bb60f12bc"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/wf_status.py",
+          "present": true,
+          "worktree_bytes": 2669,
+          "worktree_sha256": "4df0c66b1049609757ca39838b8082b897d64601cf8774e0edf7c30c4cb58291"
+        },
+        {
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "path": "command-center/why_not_delivered.py",
+          "present": true,
+          "worktree_bytes": 4233,
+          "worktree_sha256": "4cfb9129cdccc39ebe0387f77da09e97c997269d45deea1f0df9b5fef749ae48"
+        }
+      ],
+      "on_disk_count": 398,
+      "schema_version_in_manifest": 1,
+      "self_referential": [
+        {
+          "committed": {
+            "available": false,
+            "reason": "no .git directory on this worktree",
+            "sha256": null
+          },
+          "hash_basis": "worktree-bytes-lf-normalized",
+          "manifest_bytes": 0,
+          "manifest_present_claim": true,
+          "manifest_sha256": "(self)",
+          "path": "command-center/ARTIFACT-MANIFEST.json",
+          "self_referential": true,
+          "worktree_bytes": 2876,
+          "worktree_sha256": "9ca9e24ec94fc95bf787b69d9b7ab1012e3aa6453a0d689004f2091253ab4409"
+        }
+      ],
+      "walker_source": "command-center/p2-wave/probes/CNF-0122/walker.py:202"
+    },
+    "observations": [
+      {
+        "anchor": "command-center/ARTIFACT-MANIFEST.json:1",
+        "measured": true,
+        "method": "json.loads of command-center/ARTIFACT-MANIFEST.json",
+        "name": "manifest_present"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+        "measured": 384,
+        "method": "walker.walk_and_compare set difference",
+        "name": "on_disk_but_unmanifested_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+        "measured": 0,
+        "method": "walker.walk_and_compare set difference",
+        "name": "manifested_but_absent_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+        "measured": 0,
+        "method": "worktree-bytes-lf-normalized SHA-256 vs manifest sha256",
+        "name": "hash_mismatch_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+        "measured": false,
+        "method": "empty unmanifested, absent, and mismatch lists and manifest_status=ok",
+        "name": "manifest_describes_reality"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+        "measured": true,
+        "method": "AST import scan of walker.py",
+        "name": "walker_independent_of_writer"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/probe2_unmanifested_control.py",
+        "measured": true,
+        "method": "known-broken fixture plant",
+        "name": "unmanifested_file_control_reported"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0122/emit.py:find_charter_paths",
+        "measured": true,
+        "method": "POSIX find -maxdepth 1 -type f",
+        "name": "find_agrees_with_walker_disk_set"
+      }
+    ],
+    "posix_find_verifier": {
+      "equals_walker_disk_set": true,
+      "path_count": 398
+    },
+    "question": "Does the artifact manifest describe reality? Walk the disk independently of the manifest writer and compare both ways, and answer: what is on disk but unmanifested, what is manifested but absent, and does any manifested hash disagree with the file it names?",
+    "unmanifested_file_control": {
+      "also_reported_absent": [
+        "command-center/OWNER-DECISIONS.md"
+      ],
+      "also_reported_hash_mismatches": [
+        "command-center/STATUS.md"
+      ],
+      "clean_fixture_silent": true,
+      "planted_path": "command-center/UNMANIFESTED-CONTROL.txt",
+      "reported": true,
+      "unmanifested_paths": [
+        "command-center/UNMANIFESTED-CONTROL.txt"
+      ]
+    },
+    "walker": {
+      "function": "walk_and_compare",
+      "imports_manifest_writer": false,
+      "line": 202,
+      "path": "command-center/p2-wave/probes/CNF-0122/walker.py",
+      "snippet": "    return found\n\n\ndef walk_and_compare(repo_root: Path) -> dict[str, Any]:\n    \"\"\"Compare the charter manifest against disk. Independent of render.py.\n\n    This function is the walker cited at file:line in the confirmation artifact.",
+      "source": "command-center/p2-wave/probes/CNF-0122/walker.py:202",
+      "writer_function": "render_manifest",
+      "writer_line": 220,
+      "writer_path": "tools/command-center/render.py"
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether a later render_manifest rewrite of ARTIFACT-MANIFEST.json would shrink the unmanifested set is not measured here; this unit must not run the writer.",
+      "settling_experiment": "Run tools/command-center/render.py:render_manifest in a separate unit, then re-run walker.walk_and_compare and diff the two on_disk_but_unmanifested lists.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Reviewer re-ran the DETECTOR CONTROL (probe2) on the known-broken fixture and the clean fixture. Re-reading this receipt is not the review.",
+    "reviewer_id": "CNF-0122-probe2-unmanifested-control",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0122 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the walker is independent of the manifest writer and the unmanifested-file control was reported. Any other terminal state is FAILED:CNF-0122 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0122; Prompt Two charter tree _USER-PROMPTS.md:10590-10603",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+      "id": "T1-walker-must-not-import-writer",
+      "name": "the walker must not import the manifest writer, or a shared bug certifies itself",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe1_independence.py",
+      "id": "T2-hash-basis-stated",
+      "name": "hash comparison must state whether it hashes worktree bytes or committed bytes, because the two differ on this platform",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0122/probe2_unmanifested_control.py",
+      "id": "T3-unmanifested-file-control",
+      "name": "control: add one unmanifested file and confirm the comparison reports it",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:59Z",
+    "started_at": "2026-08-25T00:57:58Z"
+  },
+  "unit_id": "CNF-0122"
+}

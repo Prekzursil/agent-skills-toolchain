@@ -1,0 +1,48 @@
+"""Worktree-per-shard provisioning with content-preserving teardown (IMP-0446)."""
+from __future__ import annotations
+
+from worktree_shard.provisioner import (
+    FIXTURE_MARKER,
+    UNPROVEN_TEARDOWN,
+    Ancestry,
+    Proof,
+    Shard,
+    TeardownDecision,
+    authorize_teardown,
+    build_pr_merged_unique_fixture,
+    build_squash_merge_fixture,
+    build_unproven_fixture,
+    compute_ancestry,
+    content_digest_proof,
+    git,
+    harvest_unique_into,
+    init_fixture_repo,
+    merged_pr_proof,
+    naive_ancestry_authorize,
+    provision_shard,
+    staged_names,
+    teardown_shard,
+)
+
+__all__ = [
+    "UNPROVEN_TEARDOWN",
+    "FIXTURE_MARKER",
+    "Ancestry",
+    "Proof",
+    "Shard",
+    "TeardownDecision",
+    "authorize_teardown",
+    "build_pr_merged_unique_fixture",
+    "build_squash_merge_fixture",
+    "build_unproven_fixture",
+    "compute_ancestry",
+    "content_digest_proof",
+    "git",
+    "harvest_unique_into",
+    "init_fixture_repo",
+    "merged_pr_proof",
+    "naive_ancestry_authorize",
+    "provision_shard",
+    "staged_names",
+    "teardown_shard",
+]

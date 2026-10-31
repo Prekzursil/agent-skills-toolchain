@@ -1,0 +1,699 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "crv.overclaim-scoping-review",
+  "name": "Overclaim-scoping review: fix the sentence, not the code",
+  "description": "Handle the MEASURED most-common adversarial outcome correctly. Across three lanes and four adversarial reviews, 5 of 8 refutations were OVERCLAIMS - the code was right and the sentence was wider than its evidence. This blueprint compares a claim's asserted scope against its evidence's actual scope and, where the claim is wider, emits the correctly-scoped replacement sentence. An overclaim is a REFUTED verdict even when the code is fine; a genuine defect must NOT be softened into a scoping note; and a residual that is honestly scoped and disclosed INLINE is not a refuted item and must not block.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "code-review",
+    "overclaim",
+    "scope",
+    "evidence",
+    "claim-rewrite"
+  ],
+  "flagship": true,
+  "params": {
+    "claim_ref": {
+      "type": "path",
+      "required": true,
+      "description": "The document carrying the claims under review (report, PR body, skill doc)"
+    },
+    "evidence_manifest": {
+      "type": "path",
+      "required": true,
+      "description": "What was actually measured, so the evidence scope is readable rather than assumed"
+    },
+    "claim_selector": {
+      "type": "enum",
+      "enum": [
+        "all",
+        "confirmed-only",
+        "p0-p1-only"
+      ],
+      "default": "confirmed-only",
+      "description": "Which claims to review; CONFIRMED claims are where overclaims hide"
+    },
+    "retain_refuted_wording": {
+      "type": "boolean",
+      "default": true,
+      "description": "Keep the refuted sentence in the record with a REFUTED tag rather than deleting it"
+    }
+  },
+  "roles": {
+    "scope-measurer": {
+      "description": "Reads the evidence manifest and states what scope it actually covers",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python"
+      ],
+      "speaking_rights": "always"
+    },
+    "claim-rewriter": {
+      "description": "Emits the correctly-scoped replacement sentence for an overclaim",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/review/**)"
+      ],
+      "write_paths": [
+        "command-center/review/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "defect-police": {
+      "description": "Guards the weasel path: a real defect must not be reclassified as a scoping note",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "rebuttal-only"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/review/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "mcp__codex__codex"
+    ],
+    "write_paths": [
+      "command-center/review/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == DEFECT_POLICE",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "the reclassification guard is the one place a soft verdict does real damage"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "rescoped-sentence-supplied": {
+      "predicate": "custom-expression",
+      "expression": "refuted_overclaims_without_rescoped_sentence == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "inline-adjacency": {
+      "predicate": "custom-expression",
+      "expression": "residual_disclosed_inline == true AND trailing_limitations_section_used_as_substitute == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "defect-not-softened": {
+      "predicate": "custom-expression",
+      "expression": "genuine_defects_classed_as_overclaim == 0 AND defect_verdicts_available == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "settling-experiment-named": {
+      "predicate": "custom-expression",
+      "expression": "residuals_without_settling_experiment == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "extract-asserted-scope",
+      "title": "What does each claim actually assert?",
+      "kind": "task",
+      "role": "scope-measurer",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "CRV-5301",
+        "title": "Extract each claim's asserted scope, including its implicit quantifier",
+        "phase": "2B",
+        "question_or_target": "For every selected claim, write down the scope it asserts - the quantifier (every / all / N of M / this one case), the population, and the time window. 'recall = 1.0' asserts a universal; 'recall = 1.0 on the 20-case sample' asserts a sample. The difference is the whole review.",
+        "inputs": [
+          "params.claim_ref",
+          "params.claim_selector"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "scope-measurer",
+          "basis": "quantifier extraction is a language judgement no regex makes reliably"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/review/crv-53-asserted-scopes.json",
+        "output_schema": "command-center/schema/claim-record.schema.json",
+        "evidence_requirement": "each claim quotes its own sentence verbatim with a file:line anchor and names its quantifier",
+        "tests_required": [
+          "a bare universal ('FP=0') and a scoped one ('FP=0 over the 30 fixtures') must extract to DIFFERENT quantifiers",
+          "both-states control: a claim with no quantifier must be recorded as UNQUANTIFIED, not silently promoted to universal"
+        ],
+        "reviewer_requirement": "the defect-police role cross-examines any claim whose quantifier was read down",
+        "completion_sentinel": "SUCCESS:CRV-5301 emitted only when every selected claim carries a verbatim quote, a file:line anchor and an explicit quantifier or an UNQUANTIFIED marker; otherwise FAILED:CRV-5301 <reason>",
+        "retry_policy": "two strikes then pivot to reviewing claims one at a time instead of in a batch",
+        "failure_classification": [
+          "spec-underspecified",
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "per-claim quantifier and population extraction from the claim text"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-53-asserted-scopes.json",
+          "schema_ref": "command-center/schema/claim-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CRV-5301",
+          "consumers": [
+            "measure-evidence-scope",
+            "classify-width"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "measure-evidence-scope",
+      "title": "What does the evidence actually cover?",
+      "kind": "task",
+      "depends_on": [
+        "extract-asserted-scope"
+      ],
+      "role": "scope-measurer",
+      "work_unit_ref": "ADV-0006",
+      "timeout_seconds": 2700
+    },
+    {
+      "id": "classify-width",
+      "title": "CONFIRMED, REFUTED-OVERCLAIM, or REFUTED-DEFECT",
+      "kind": "fanout",
+      "depends_on": [
+        "measure-evidence-scope"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/review/crv-53-asserted-scopes.json",
+        "item_var": "claim",
+        "key_field": "claim_id"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 100,
+      "max_items": 400,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "one-claim-verdict",
+          "kind": "task",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob"
+          ],
+          "work_unit_ref": "ADV-0113",
+          "timeout_seconds": 900
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "^\\s*$"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "rescope-sentence",
+      "title": "Emit the correctly-scoped replacement sentence",
+      "kind": "task",
+      "depends_on": [
+        "classify-width"
+      ],
+      "role": "claim-rewriter",
+      "when": "overclaims_found > 0",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "CRV-5302",
+        "title": "Rewrite each overclaimed sentence to the scope its evidence actually supports",
+        "phase": "2B",
+        "question_or_target": "For every REFUTED-OVERCLAIM, write the replacement sentence: state the scope MEASURED, disclose the residual INLINE adjacent to the claim (a trailing limitations section does not satisfy this), and name the experiment that would settle the residual. Keep the refuted wording in the record with a REFUTED tag rather than deleting it, so the dead end is retired instead of forgotten.",
+        "inputs": [
+          "command-center/review/crv-53-asserted-scopes.json",
+          "command-center/review/crv-53-claim-verdicts.json",
+          "params.retain_refuted_wording"
+        ],
+        "dependencies": [
+          "CRV-5301"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "claim-rewriter",
+          "basis": "rewriting to exactly the measured scope is the deliverable and needs the strong model"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/review/crv-53-rescoped-claims.json",
+        "output_schema": "command-center/schema/overclaim-scan.schema.json",
+        "evidence_requirement": "each rewrite pairs the original sentence, the replacement, the measured scope, the inline residual and the settling experiment",
+        "tests_required": [
+          "a 'recall = 1.0' claim backed by a 20-case sample must be rescoped to the sample, NOT rejected outright",
+          "both-states control: a rewrite whose residual sits only in a trailing limitations section must FAIL the inline-adjacency gate"
+        ],
+        "reviewer_requirement": "the defect-police role checks that nothing reclassified here was a genuine defect",
+        "completion_sentinel": "SUCCESS:CRV-5302 emitted only when every overclaim has a replacement sentence, an inline residual and a named settling experiment, and the refuted wording is retained; otherwise FAILED:CRV-5302 <reason>",
+        "retry_policy": "two strikes then pivot to marking the claim UNRESOLVED, which is itself a scoping defect",
+        "failure_classification": [
+          "overclaim",
+          "spec-underspecified",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "sentence rewrite bounded by the measured evidence scope",
+        "not_a_duplicate_because": "an adversarial premise attack looks for a shared FALSE premise across lanes; this measures the WIDTH of one sentence against its own evidence and its output is a rewritten sentence"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-53-rescoped-claims.json",
+          "schema_ref": "command-center/schema/overclaim-scan.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json",
+            "crv.split-role-reviewer-panel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rescoped-sentence-supplied",
+      "title": "A refuted overclaim without a replacement sentence is an incomplete review",
+      "kind": "gate",
+      "depends_on": [
+        "rescope-sentence"
+      ],
+      "gate_ref": "rescoped-sentence-supplied"
+    },
+    {
+      "id": "inline-adjacency",
+      "title": "The residual must sit next to the claim, not in a trailing section",
+      "kind": "gate",
+      "depends_on": [
+        "rescoped-sentence-supplied"
+      ],
+      "gate_ref": "inline-adjacency"
+    },
+    {
+      "id": "settling-experiment-named",
+      "title": "Every residual names the experiment that would settle it",
+      "kind": "gate",
+      "depends_on": [
+        "inline-adjacency"
+      ],
+      "gate_ref": "settling-experiment-named"
+    },
+    {
+      "id": "defect-police-review",
+      "title": "Cross-examine every overclaim verdict for a hidden real defect",
+      "kind": "task",
+      "depends_on": [
+        "settling-experiment-named"
+      ],
+      "role": "defect-police",
+      "work_unit_ref": "ADV-0112",
+      "timeout_seconds": 2700
+    },
+    {
+      "id": "defect-not-softened",
+      "title": "A genuine defect may not be reclassified as a scoping note",
+      "kind": "gate",
+      "depends_on": [
+        "defect-police-review"
+      ],
+      "gate_ref": "defect-not-softened"
+    },
+    {
+      "id": "emit-scoping-verdict",
+      "title": "Emit the scoping verdict only after the defect-police gate clears",
+      "kind": "task",
+      "depends_on": [
+        "defect-not-softened"
+      ],
+      "role": "claim-rewriter",
+      "work_unit_ref": "SYN-0015",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/review/crv-53-scoping-verdict.json",
+          "schema_ref": "command-center/schema/completion-verdict.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-claim-has-a-verdict",
+      "expression": "claims_without_verdict == 0 AND refuted_overclaims_without_rescoped_sentence == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "claims_reviewed >= 1"
+    },
+    {
+      "id": "unresolvable-evidence-scope",
+      "expression": "claims_unresolved > 0 AND unresolved_recorded_as_scoping_defect == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "defect-police-review"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "overclaim",
+      "spec-underspecified",
+      "detector-failure"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "defect-police-review",
+    "quarantine_path": "command-center/quarantine/crv-53"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/crv-53",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260814,
+    "journal_path": "command-center/replay/crv-53-overclaim.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/crv-53",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/crv-53-plan.json",
+    "forbid_tools": [
+      "Write(command-center/review/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.5,
+      "max": 2.0
+    },
+    "wallclock_seconds": {
+      "expected": 1200,
+      "max": 5400
+    },
+    "tokens": {
+      "expected": 150000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "produces rewritten sentences as proposals under command-center/review/**; never edits the claim document in place",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/crv-53-overclaim.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CRV-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/fan-out-contract.md#C2",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/agent-as-judge",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "rules/common/fan-out-contract.md"
+    ]
+  },
+  "outputs": {
+    "rescoped-claims": {
+      "path": "command-center/review/crv-53-rescoped-claims.json",
+      "schema_ref": "command-center/schema/overclaim-scan.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-CRV-05",
+    "card_index": 53,
+    "family": "D10-code-review",
+    "acquisition_route": "BUILD-NEW",
+    "mechanism_fingerprint": {
+      "subject": "claim-text",
+      "oracle": "scope-width-comparison",
+      "execution_required": false,
+      "mutation_target": "none",
+      "comparison_axis": "asserted-scope-vs-evidence-scope",
+      "output_type": "rescoped-sentence",
+      "information_barrier": false
+    },
+    "mechanism": "Measure the quantifier a sentence asserts, measure the scope its evidence covers, and where the first exceeds the second emit a narrower sentence. The artifact is a rewritten claim, not a finding about code.",
+    "contraindications": [
+      "NOT for code correctness - that is BP-CRV-01 (reading) or BP-CRV-03 (proving)",
+      "NOT where there is no claim, only code",
+      "NOT a route to soften a real defect: defect-not-softened is a veto gate for exactly that"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "sampled-recall-claim",
+        "setup": "'recall = 1.0' backed by a 20-case sample",
+        "expected": "REFUTED-OVERCLAIM, rescoped to the 20-case sample - NOT rejected outright"
+      },
+      {
+        "name": "genuine-defect",
+        "setup": "a claim that is false because the code is wrong",
+        "expected": "REFUTED-DEFECT; classing it as an overclaim is the failure this blueprint must not commit"
+      }
+    ],
+    "why_not_a_duplicate": "BP-CNC-04 attacks shared PREMISES across lanes; BP-CRV-01/03 judge code. This attacks the WIDTH of a single sentence relative to its own evidence, and its only output is a rewritten sentence.",
+    "measured_basis": "MEASURED, not assumed: 5 of 8 refutations across three lanes and four adversarial reviews were overclaims with correct code (fan-out-contract C2). Only 3 of 8 were genuine defects and each closed in one round - which is why a 'round N until green' stopping rule is tractable.",
+    "unverified": "UNVERIFIED (very-likely, given 5/8 measured) that the ratio reproduces; settling experiment = classify the next 8 adversarial refutations and check whether the 5-in-8 overclaim ratio holds.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "review the CONFIRMED claims in a completion report",
+      "params": {
+        "claim_ref": "command-center/reports/substrate-status.md",
+        "evidence_manifest": "platform/schema/SUBSTRATE-RESOLUTION-STATUS.json",
+        "claim_selector": "confirmed-only",
+        "retain_refuted_wording": true
+      },
+      "narrative": "Nine CONFIRMED claims reviewed. Seven survived. One asserted 'every declared path resolves' where the manifest measured only the 234 distinct logical files, so it was rescoped to that population with the residual disclosed in the same sentence and a settling experiment named. One was a real defect and the defect-police role kept it classed REFUTED-DEFECT.",
+      "context": {
+        "claims_reviewed": 9,
+        "claims_without_verdict": 0,
+        "overclaims_found": 1,
+        "refuted_overclaims_without_rescoped_sentence": 0,
+        "residual_disclosed_inline": true,
+        "trailing_limitations_section_used_as_substitute": false,
+        "residuals_without_settling_experiment": 0,
+        "genuine_defects_classed_as_overclaim": 0,
+        "defect_verdicts_available": true,
+        "claims_unresolved": 0,
+        "unresolved_recorded_as_scoping_defect": false,
+        "stage_role": "SCOPE_MEASURER"
+      },
+      "expected_gate_pass": [
+        "rescoped-sentence-supplied",
+        "inline-adjacency",
+        "settling-experiment-named",
+        "defect-not-softened"
+      ],
+      "expected_stop": [
+        "every-claim-has-a-verdict"
+      ],
+      "negative_control": {
+        "gate": "inline-adjacency",
+        "overrides": {
+          "residual_disclosed_inline": false,
+          "trailing_limitations_section_used_as_substitute": true
+        },
+        "expected": false,
+        "why": "the measured failure was 40% of UNVERIFIED tags sitting in the final 15% of their document; a trailing limitations section must not satisfy the disclosure requirement"
+      }
+    }
+  }
+}

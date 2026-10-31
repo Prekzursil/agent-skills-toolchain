@@ -1,0 +1,64 @@
+{
+ "id": "IMP-0122",
+ "unit_id": "IMP-0122",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0122",
+ "registered": true,
+ "output_path": "command-center/receipts/IMP-0122.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe1_retry_after.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "RESULT:{\"unit_id\": \"IMP-0122\", \"probe\": \"probe1-retry-after\", \"attempts\": 2, \"final_status\": 200, \"gap_s\": 1.5, \"gap_at_least_retry_after\": true, \"default_backoff_gap\": 0.5, \"default_backoff_used_when_header_absent\": true, \"pass\": true}\nSUCCESS:IMP-0122-probe1 Retry-After honored on the fake-server clock; header-absent arm uses default backoff",
+   "finished_at": "2026-10-25T15:28:11Z",
+   "started_at": "2026-10-25T15:28:10Z"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe2_batch_stagger.py",
+   "exit_code": 0,
+   "role": "probe",
+   "raw_output": "RESULT:{\"unit_id\": \"IMP-0122\", \"probe\": \"probe2-batch-stagger\", \"staggered\": {\"n\": 50, \"span\": 2.45, \"max_count\": 3, \"burst_fraction\": 0.06, \"occupied_bins\": 25}, \"burst_control\": {\"n\": 50, \"span\": 0.0, \"max_count\": 50, \"burst_fraction\": 1.0, \"occupied_bins\": 1}, \"staggered_spread\": true, \"control_is_burst\": true, \"pass\": true}\nSUCCESS:IMP-0122-probe2 50-batch arrivals staggered server-side; unstaggered control is a burst (both-states)",
+   "finished_at": "2026-10-25T15:28:11Z",
+   "started_at": "2026-10-25T15:28:11Z"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0122.json",
+   "sha256": "8acceeeea67cce4e35732d480c9818b8dd7850cf5a6ede26387de7f86c6162b5",
+   "bytes": 11768,
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/IMP-0122/UNIT-ARTIFACT-MANIFEST.json",
+ "extensions": {
+  "prev_closure": [
+   {
+    "demoted_by": "shard11 wave-2 builder 2026-10-25: builder-authored probe closure is not an independent review; only the independent reviewer closes (program contract, receipt state=BLOCKED with failure.classification reviewer-absent)",
+    "fresh_context": true,
+    "independent": true,
+    "method": "Named probe2 independently measures a 50-item server-side histogram and a FixedOffsetRng both-states control. That is the catalog reviewer requirement (jitter is not a fixed offset), not a second human author.",
+    "reviewer_id": "IMP-0122-probe2-batch-stagger",
+    "verdict": "PASS"
+   }
+  ],
+  "shard11_w2_resume_2026-10-25": {
+   "action": "shard11 wave-2 resume 2026-10-25: prior builder died mid-flight (host session ended). Artifact and implementation surfaces verified live by this resume; probe kit rebuilt where the dead attempt had not yet written it; both probes re-run exit 0; builder-authored reviewer self-closure demoted to prev_closure; receipt set BLOCKED/reviewer-absent.",
+   "builder": "shard11 wave-2 builder"
+  }
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder lane may not self-certify: artifact live-verified by both named probes (exit 0) and registered in the per-unit manifest with the CRLF-normalized sha256. The prior attempt's reviewer closure was authored from the builder's own probe2 output (not an independent fresh-context review) and is demoted to extensions.prev_closure. receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, so the receipt stays BLOCKED until the independent reviewer closes."
+ },
+ "cloud_ok": false,
+ "ts": "2026-10-25T15:28:11Z"
+}

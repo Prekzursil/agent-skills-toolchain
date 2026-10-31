@@ -1,0 +1,1132 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-res-01-grounded-evidence-cascade",
+  "name": "Grounded Evidence Cascade",
+  "description": "Answer a research question with every claim carrying a live-fetched source anchor and a two-axis (authority x recency) source assessment, never model recall. A claim with zero anchors is emitted as `unresolved`, never as prose. Mechanism: a tool-health preflight census gates the run, lenses fan out one per SOURCE CLASS, each claim is re-checked FACT/RACE-style, then sources are scored on two axes before synthesis.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence"
+  ],
+  "tags": [
+    "deep-research",
+    "anchored-claims",
+    "tool-health-preflight"
+  ],
+  "flagship": true,
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "max_length": 2000,
+      "description": "The owner question to answer"
+    },
+    "source_classes": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 24,
+      "items": {
+        "type": "string",
+        "min_length": 2
+      },
+      "description": "One grounded lens is fanned out per source class"
+    },
+    "max_sources": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 500,
+      "description": "Upper bound on sources reviewed across all lenses"
+    },
+    "time_horizon": {
+      "type": "enum",
+      "enum": [
+        "any",
+        "last12months",
+        "last90days"
+      ],
+      "default": "any",
+      "description": "Recency floor applied to the recency axis"
+    },
+    "expand_citation_graph": {
+      "type": "boolean",
+      "default": false,
+      "description": "Optional S4b: one-hop citation expansion"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/research/bp-res-01",
+      "description": "Every write is confined here"
+    },
+    "search_api_key": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference NAME of the search credential. The value never enters an artifact, a log, an export bundle or a replay journal."
+    }
+  },
+  "roles": {
+    "preflight-auditor": {
+      "description": "Enumerates the live research MCP inventory and each engine's quota state BEFORE any lens runs; an engine that cannot be shown UP is not used and is recorded as unavailable",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__searxng__searxng_instance_info",
+        "mcp__search-hub__search_usage",
+        "Write(command-center/research/**)"
+      ],
+      "write_paths": [
+        "command-center/research/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "question-architect": {
+      "description": "Decomposes the question into one lens per source class, each with a named settling probe; never answers the question itself",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "grounded-lens": {
+      "description": "Gathers evidence for exactly one source class and must attach a URL or a file:line to every claim it emits",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "WebSearch",
+        "WebFetch",
+        "mcp__search-hub__web_search_exa",
+        "mcp__search-hub__tavily_search",
+        "mcp__search-hub__firecrawl_scrape",
+        "mcp__searxng__searxng_web_search",
+        "Write(command-center/research/**)"
+      ],
+      "write_paths": [
+        "command-center/research/**"
+      ],
+      "min_participants": 1,
+      "max_participants": 24,
+      "speaking_rights": "always"
+    },
+    "fact-verifier": {
+      "description": "Cross-vendor FACT/RACE re-check: re-derives each claim from the raw fetched artifact, never from a lens summary",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "WebFetch",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "source-assessor": {
+      "description": "Scores each surviving source on the two declared axes (authority, recency) and records that this is a MODEL JUDGEMENT, not a measurement",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "synthesiser": {
+      "description": "Writes the report with an inline confidence band per claim and an `unresolved` section that is never silently dropped",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "Write(command-center/research/**)",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__search_usage",
+      "mcp__searxng__searxng_web_search",
+      "mcp__searxng__searxng_instance_info",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "Write(command-center/WORK-UNIT-CATALOG.json)",
+      "mcp__github__create_pull_request"
+    ],
+    "require_owner_approval": [
+      "Write(command-center/export/**)"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/research/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "allow_domains": [],
+      "deny_domains": [
+        "example-content-farm.invalid"
+      ],
+      "offline_only": false,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "CC-BY-4.0",
+        "public-domain"
+      ],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'fact-verifier'",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "a same-vendor verifier shares the lens author's blind spots"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "gpt-5-codex",
+        "vendor": "openai"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "failure",
+        "reviewer-refuted",
+        "quota-429"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "anchor-or-unresolved": {
+      "predicate": "custom-expression",
+      "expression": "claims_without_anchor == 0 AND tool_health_recorded == true AND anchors_from_engines_proven_up == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "platform/schema/completion-predicate-result.schema.json",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "preflight",
+      "title": "Census the live research tools and their quota state",
+      "kind": "task",
+      "role": "preflight-auditor",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0101",
+        "title": "Enumerate live research engines and record each one's UP/DOWN/quota state",
+        "phase": "2B",
+        "question_or_target": "Produce the engine roster this run may use: for every research MCP in the inventory, record reachable/unreachable and remaining quota, and mark the substitution order a lens must follow when its first engine is exhausted.",
+        "inputs": [
+          "params.question",
+          "params.source_classes",
+          "params.search_api_key"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "preflight-auditor",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__searxng__searxng_instance_info",
+          "mcp__search-hub__search_usage",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/research/bp-res-01/tool-health.json",
+        "output_schema": "command-center/schema/health-report.schema.json",
+        "evidence_requirement": "each engine row carries the exact probe invoked and its verbatim reachability response; an engine with no probe output is recorded unavailable, never assumed UP",
+        "tests_required": [
+          "both-states control: an engine pointed at an unreachable endpoint must be recorded DOWN, and the same engine pointed at its real endpoint must be recorded UP in the same run"
+        ],
+        "reviewer_requirement": "the synthesiser re-reads this roster before accepting any anchor and rejects an anchor from an engine not proven UP",
+        "completion_sentinel": "SUCCESS:BPR-0101 emitted only when the roster exists, parses, names every engine the lenses will use, and each row carries a probe output; otherwise FAILED:BPR-0101 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a second failure records the engine unavailable rather than retrying a third time",
+        "failure_classification": [
+          "engine-unreachable",
+          "quota-exhausted",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "tool-health-preflight-census"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/tool-health.json",
+          "schema_ref": "command-center/schema/health-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0101",
+          "consumers": [
+            "decompose",
+            "lens-fanout",
+            "anchor-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decompose",
+      "title": "Decompose the question into one lens per source class",
+      "kind": "task",
+      "depends_on": [
+        "preflight"
+      ],
+      "role": "question-architect",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0102",
+        "title": "Emit the lens plan: one answerable sub-question per source class with a settling probe",
+        "phase": "2B",
+        "question_or_target": "Turn the question into one sub-question per declared source class, each carrying the probe that would settle it and the engine (from the preflight roster) that will be used.",
+        "inputs": [
+          "params.question",
+          "command-center/research/bp-res-01/tool-health.json",
+          "params.max_sources"
+        ],
+        "dependencies": [
+          "BPR-0101"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "question-architect",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/research/bp-res-01/lens-plan.json",
+        "output_schema": "command-center/schema/sampling-plan.schema.json",
+        "evidence_requirement": "every sub-question names its settling probe and the engine assigned to it from the preflight roster",
+        "tests_required": [
+          "a source class whose every engine is DOWN in the preflight roster must appear in the plan as unservable, not silently dropped"
+        ],
+        "reviewer_requirement": "one independent reviewer confirms the sub-questions jointly cover the question and none is unanswerable by construction",
+        "completion_sentinel": "SUCCESS:BPR-0102 emitted only when the plan exists, parses, and has one entry per declared source class; otherwise FAILED:BPR-0102 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two rejected plans, enumerate at least two alternative decompositions before a third attempt",
+        "failure_classification": [
+          "spec-underspecified",
+          "engine-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "source-class-decomposition"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/lens-plan.json",
+          "schema_ref": "command-center/schema/sampling-plan.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0102",
+          "consumers": [
+            "lens-fanout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lens-fanout",
+      "title": "Fan out one grounded lens per source class",
+      "kind": "fanout",
+      "depends_on": [
+        "decompose"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "source_classes",
+        "item_var": "source_class",
+        "key_field": "source_class"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 400,
+      "max_items": 24,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "lens-gather",
+          "title": "Gather anchored evidence for one source class",
+          "kind": "task",
+          "role": "grounded-lens",
+          "timeout_seconds": 2400,
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "model_id",
+              "tool_versions"
+            ],
+            "store": "command-center/research/bp-res-01/cache/lenses",
+            "ttl_seconds": 86400,
+            "verify_integrity": true,
+            "invalidate_on": [
+              "schema-version-change",
+              "tool-version-change"
+            ],
+            "read_only": false
+          },
+          "work_unit": {
+            "id": "BPR-0103",
+            "title": "Gather and anchor every claim for one source class",
+            "phase": "2B",
+            "question_or_target": "For the assigned source class, emit claims each carrying a live URL or file:line, the engine that produced it, and the fetch timestamp; a claim you cannot anchor goes to `unresolved`.",
+            "inputs": [
+              "command-center/research/bp-res-01/lens-plan.json",
+              "command-center/research/bp-res-01/tool-health.json"
+            ],
+            "dependencies": [
+              "BPR-0102"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "grounded-lens",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "WebSearch",
+              "WebFetch",
+              "mcp__search-hub__web_search_exa",
+              "mcp__search-hub__tavily_search",
+              "mcp__search-hub__firecrawl_scrape",
+              "mcp__searxng__searxng_web_search",
+              "Write(command-center/research/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 2400,
+            "output_path": "command-center/research/bp-res-01/lenses/lens-record.json",
+            "output_schema": "command-center/schema/research-claim-record.schema.json",
+            "evidence_requirement": "one URL or file:line per claim plus the engine id and fetch time; an unanchored statement is emitted under `unresolved`, never as prose",
+            "tests_required": [
+              "a question with a known-present anchor must yield that anchor (detector control)",
+              "a deliberately unanswerable sub-question must yield mostly `unresolved`, not confident prose"
+            ],
+            "reviewer_requirement": "the cross-vendor fact-verifier re-derives a sample of claims from the raw fetched page, not from this summary",
+            "completion_sentinel": "SUCCESS:BPR-0103 emitted only when the record exists, parses, and every claim row has either an anchor or an `unresolved` marker; otherwise FAILED:BPR-0103 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: on a second engine failure switch to the next engine in the preflight substitution order and record the substitution",
+            "failure_classification": [
+              "engine-unreachable",
+              "quota-exhausted",
+              "paywalled",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "anchored-lens-gather"
+          },
+          "produces": [
+            {
+              "path": "command-center/research/bp-res-01/lenses/lens-record.json",
+              "schema_ref": "command-center/schema/research-claim-record.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0103",
+              "consumers": [
+                "fact-race-verify",
+                "source-assess"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.75,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "fact-race-verify",
+      "title": "Cross-vendor FACT/RACE re-check of every claim",
+      "kind": "task",
+      "depends_on": [
+        "lens-fanout"
+      ],
+      "role": "fact-verifier",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPR-0104",
+        "title": "Re-derive each claim from its raw source and record CONFIRMED / REFUTED / UNRESOLVED",
+        "phase": "2B",
+        "question_or_target": "For every claim emitted by the lenses, re-fetch the anchor and decide whether the claim survives its own source. A claim whose anchor does not contain it is REFUTED, not softened.",
+        "inputs": [
+          "command-center/research/bp-res-01/lenses/lens-record.json"
+        ],
+        "dependencies": [
+          "BPR-0103"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "fact-verifier",
+          "basis": "cross-vendor verification: an independent vendor has independent failure modes"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "WebFetch",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "cross-vendor-codex",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/research/bp-res-01/claim-confirmations.json",
+        "output_schema": "command-center/schema/confirmation-record.schema.json",
+        "evidence_requirement": "per claim: the re-fetched anchor, the quoted span that carries it, and the verdict; a verdict with no quoted span is UNRESOLVED",
+        "tests_required": [
+          "seed one claim that its own anchor does NOT support - the pass must return REFUTED for it and CONFIRMED for an adjacent true claim in the same run"
+        ],
+        "reviewer_requirement": "the synthesiser may not promote a claim this pass left UNRESOLVED",
+        "completion_sentinel": "SUCCESS:BPR-0104 emitted only when every claim in the lens records has exactly one verdict row carrying a quoted span or an explicit UNRESOLVED reason; otherwise FAILED:BPR-0104 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two severed dispatches, fall back to an in-vendor verifier and record the loss of vendor independence",
+        "failure_classification": [
+          "severed-stream",
+          "codex-exit-nonzero",
+          "quota-exhausted"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "fact-race-reverification"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/claim-confirmations.json",
+          "schema_ref": "command-center/schema/confirmation-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0104",
+          "consumers": [
+            "source-assess",
+            "anchor-gate",
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "source-assess",
+      "title": "Score every surviving source on the authority and recency axes",
+      "kind": "task",
+      "depends_on": [
+        "fact-race-verify"
+      ],
+      "role": "source-assessor",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0105",
+        "title": "Two-axis source assessment with an explicit judgement disclaimer",
+        "phase": "2B",
+        "question_or_target": "Score each surviving source on authority and on recency against the declared time_horizon, and record on the artifact that both axes are model judgement rather than measurement.",
+        "inputs": [
+          "command-center/research/bp-res-01/claim-confirmations.json",
+          "params.time_horizon"
+        ],
+        "dependencies": [
+          "BPR-0104"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "source-assessor",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/research/bp-res-01/source-assessment.json",
+        "output_schema": "command-center/schema/reliability-weighting.schema.json",
+        "evidence_requirement": "each score cites the property it was derived from (publisher, author, date field) and the artifact states in-band that the axes are judgement, not measurement",
+        "tests_required": [
+          "a source dated outside the declared time_horizon must score low on recency and must not be silently excluded"
+        ],
+        "reviewer_requirement": "one independent reviewer spot-checks three scores against the source page and records any disagreement",
+        "completion_sentinel": "SUCCESS:BPR-0105 emitted only when every source in the confirmation record has both axis scores and the judgement disclaimer is present; otherwise FAILED:BPR-0105 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "two-axis-source-assessment"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/source-assessment.json",
+          "schema_ref": "command-center/schema/reliability-weighting.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0105",
+          "consumers": [
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-expansion",
+      "title": "Optional S4b: one-hop citation expansion",
+      "kind": "task",
+      "depends_on": [
+        "source-assess"
+      ],
+      "when": "expand_citation_graph == true",
+      "role": "grounded-lens",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0106",
+        "title": "Expand one hop from the highest-authority sources and re-anchor anything new",
+        "phase": "2B",
+        "question_or_target": "From the top-authority sources, follow one hop of citations and emit only sources that add an anchor the existing set does not already carry.",
+        "inputs": [
+          "command-center/research/bp-res-01/source-assessment.json"
+        ],
+        "dependencies": [
+          "BPR-0105"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "grounded-lens",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "WebFetch",
+          "mcp__search-hub__web_search_exa",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-01/citation-expansion.json",
+        "output_schema": "command-center/schema/citation-audit.schema.json",
+        "evidence_requirement": "each expanded row names the source it was reached from and the anchor it adds; a row adding no new anchor is dropped with that reason recorded",
+        "tests_required": [
+          "a citation set with zero new anchors must produce an empty expansion with the reason recorded, not an empty file"
+        ],
+        "reviewer_requirement": "the synthesiser treats an expanded source as ordinary evidence, subject to the same anchor gate",
+        "completion_sentinel": "SUCCESS:BPR-0106 emitted only when the expansion exists, parses, and every row names its parent source and its new anchor; otherwise FAILED:BPR-0106 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "engine-unreachable",
+          "paywalled"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "one-hop-citation-expansion"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/citation-expansion.json",
+          "schema_ref": "command-center/schema/citation-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0106",
+          "consumers": [
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anchor-gate",
+      "title": "No claim without an anchor; no anchor from an engine not proven UP",
+      "kind": "gate",
+      "depends_on": [
+        "source-assess",
+        "citation-expansion"
+      ],
+      "gate_ref": "anchor-or-unresolved"
+    },
+    {
+      "id": "synthesise",
+      "title": "Write the report with an inline confidence band per claim",
+      "kind": "task",
+      "depends_on": [
+        "anchor-gate"
+      ],
+      "role": "synthesiser",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPR-0107",
+        "title": "Synthesise the anchored answer, the unresolved set, and the tool-health footer",
+        "phase": "2B",
+        "question_or_target": "Write the report: every claim carries its anchor, its verdict and an inline confidence band; the unresolved set is a first-class section; the footer records which engines were UP and which substitutions happened.",
+        "inputs": [
+          "command-center/research/bp-res-01/claim-confirmations.json",
+          "command-center/research/bp-res-01/source-assessment.json",
+          "command-center/research/bp-res-01/tool-health.json"
+        ],
+        "dependencies": [
+          "BPR-0104",
+          "BPR-0105"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "synthesiser",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/research/bp-res-01/report.json",
+        "output_schema": "command-center/schema/research-registry.schema.json",
+        "evidence_requirement": "every claim row carries anchor + verdict + confidence band inline; the unresolved count is stated numerically in the summary",
+        "tests_required": [
+          "delete one anchor from the confirmation record and the report build must FAIL the anchor gate rather than emit the claim as prose (both-states: restore it and the build passes)"
+        ],
+        "reviewer_requirement": "one adversarial reviewer in a fresh context who authored none of the lenses checks for claims whose confidence band exceeds their evidence",
+        "completion_sentinel": "SUCCESS:BPR-0107 emitted only when the report exists, parses, states its unresolved count, and carries the tool-health footer; otherwise FAILED:BPR-0107 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failed syntheses, emit the partial report plus the blocking reason instead of a third attempt",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "anchored-synthesis-with-bands"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-01/report.json",
+          "schema_ref": "command-center/schema/research-registry.schema.json",
+          "min_bytes": 2048,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0107",
+          "consumers": [
+            "completion-gate",
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "completion-gate",
+      "title": "The one shared 12-condition completion predicate",
+      "kind": "gate",
+      "depends_on": [
+        "synthesise"
+      ],
+      "gate_ref": "unit-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "evidence-saturated",
+      "expression": "evidence_saturation == true OR elapsed_minutes >= 180",
+      "applies_to": "workflow",
+      "minimum_conditions": "sources_reviewed >= 10",
+      "on_stop": "complete"
+    },
+    {
+      "id": "marginal-lens-exhausted",
+      "expression": "new_anchors_in_last_two_lenses == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "lenses_returned >= 3",
+      "on_stop": "complete"
+    },
+    {
+      "id": "unanswerable-proved",
+      "expression": "proof_of_impossibility == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "engine-unreachable",
+      "quota-exhausted",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "synthesise"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "engine-unreachable",
+      "quota-exhausted",
+      "paywalled",
+      "detector-failure",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "synthesise",
+    "quarantine_path": "command-center/research/bp-res-01/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/research/bp-res-01/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "replay_source": "artifact-cache",
+    "verify": "none"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "params_hash",
+      "inputs_hash",
+      "model_id",
+      "tool_versions"
+    ],
+    "store": "command-center/research/bp-res-01/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/research/bp-res-01/dry-run-plan.json",
+    "forbid_tools": [
+      "WebFetch",
+      "WebSearch",
+      "Write(command-center/research/**)",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 1.5,
+      "expected": 4.0,
+      "max": 12.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 2400,
+      "max": 7200
+    },
+    "tokens": {
+      "min": 200000,
+      "expected": 900000,
+      "max": 2500000
+    },
+    "tool_calls": {
+      "expected": 220,
+      "max": 900
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/research/bp-res-01/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-01.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/deep-research",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-claude-code-docs-deep-research",
+        "relation": "EXTEND",
+        "credit": "executed workflow corpus"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-RES-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/deep-research@1.0.0"
+    ]
+  },
+  "outputs": {
+    "report": {
+      "path": "command-center/research/bp-res-01/report.json",
+      "schema_ref": "command-center/schema/research-registry.schema.json",
+      "min_bytes": 2048,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json",
+        "bp-res-06-longitudinal-verdict-refresh"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-01",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 204
+    },
+    "acquisition_route_from_card": "ADOPT",
+    "mechanism_signature": [
+      "tool-health-preflight-census",
+      "source-class-lens-fanout",
+      "cross-vendor-fact-race-recheck",
+      "two-axis-source-assessment",
+      "anchor-or-unresolved-hard-gate",
+      "engine-substitution-on-quota-exhaustion"
+    ],
+    "contraindications": [
+      "NOT for a question answerable from the repo - use a grounded file:line lens",
+      "NOT for a single fact lookup - that is one fetch",
+      "NOT when the answer must be deterministically replayable: live web state drifts"
+    ],
+    "replay_note": "replay.deterministic is FALSE on purpose: the open web is not replayable. The artifact cache makes a re-run within TTL reproducible, so the cache key is recorded in the report footer instead of a determinism claim.",
+    "per_item_path_note": "the DSL relative_path grammar forbids brace templating, so a fan-out body declares the canonical per-item record NAME; the runner derives the per-item path from the barrier key_field plus resume.idempotency_key_from item_key.",
+    "unverified": [
+      "UNVERIFIED that this shape beats a bare WebSearch loop on anchors-per-claim; settling experiment = run both on the same five questions and count anchors/claim and unresolved/claim."
+    ],
+    "worked_example": {
+      "name": "what changed in Claude Code Workflows since 2026-06-01",
+      "params": {
+        "question": "What changed in Claude Code saved Workflows between 2026-06-01 and today?",
+        "source_classes": [
+          "vendor-docs",
+          "release-notes",
+          "practitioner-blogs"
+        ],
+        "max_sources": 30,
+        "time_horizon": "last90days",
+        "expand_citation_graph": false,
+        "search_api_key": "EXA_API_KEY"
+      },
+      "expected_stage_order": [
+        "preflight",
+        "decompose",
+        "lens-fanout",
+        "fact-race-verify",
+        "source-assess",
+        "citation-expansion",
+        "anchor-gate",
+        "synthesise",
+        "completion-gate"
+      ],
+      "expected_skipped": [
+        "citation-expansion"
+      ],
+      "expected_max_parallel": 6,
+      "expected_gate_ids": [
+        "anchor-gate",
+        "completion-gate"
+      ],
+      "expected_artifact_count": 7,
+      "acceptance": [
+        ">=8 distinct anchors across the three lenses",
+        "0 claims emitted without an anchor",
+        "the tool-health footer names every engine used"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "evidence-saturated",
+          "why": "the minimum_conditions floor must block a cheap early stop",
+          "fires_on": {
+            "evidence_saturation": true,
+            "elapsed_minutes": 42,
+            "sources_reviewed": 14,
+            "new_anchors_in_last_two_lenses": 5,
+            "lenses_returned": 3,
+            "proof_of_impossibility": false
+          },
+          "does_not_fire_on": {
+            "evidence_saturation": true,
+            "elapsed_minutes": 42,
+            "sources_reviewed": 4,
+            "new_anchors_in_last_two_lenses": 5,
+            "lenses_returned": 3,
+            "proof_of_impossibility": false
+          }
+        },
+        {
+          "rule": "marginal-lens-exhausted",
+          "why": "a lens adding no new anchor stops the cascade only after three lenses have returned",
+          "fires_on": {
+            "evidence_saturation": false,
+            "elapsed_minutes": 30,
+            "sources_reviewed": 12,
+            "new_anchors_in_last_two_lenses": 0,
+            "lenses_returned": 5,
+            "proof_of_impossibility": false
+          },
+          "does_not_fire_on": {
+            "evidence_saturation": false,
+            "elapsed_minutes": 30,
+            "sources_reviewed": 12,
+            "new_anchors_in_last_two_lenses": 0,
+            "lenses_returned": 2,
+            "proof_of_impossibility": false
+          }
+        }
+      ]
+    }
+  }
+}

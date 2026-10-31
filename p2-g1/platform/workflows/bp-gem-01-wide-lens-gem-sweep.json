@@ -1,0 +1,1006 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-gem-01-wide-lens-gem-sweep",
+  "name": "Wide-Lens Gem Sweep",
+  "description": "Discover high-value additions to the owner's own toolkit by fanning ~40 INDEPENDENT discovery lenses and converging to a tiered adopt / build / prune queue. The merge that makes this worth running is the DEDUP GROUNDING stage: the wide-roster source workflow had no grounding pass and re-proposed things already built, while the narrow source had grounding but only 14 lenses. Grounding runs FIRST so no lens can propose an existing capability, and the adopt/prune judgement is delegated to BP-GEM-02 as a SUBWORKFLOW rather than reimplemented here - discovery and judgement stay separable. The blueprint has NO write permission outside its artifact root, which is what makes a 40-agent sweep safe to run.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "discovery",
+    "wide-fanout",
+    "dedup-grounding"
+  ],
+  "flagship": false,
+  "params": {
+    "scope": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "What the sweep is hunting over"
+    },
+    "lens_roster": {
+      "type": "array",
+      "required": true,
+      "min_items": 4,
+      "max_items": 80,
+      "items": {
+        "type": "string",
+        "min_length": 3
+      },
+      "description": "One independent discovery lens per entry; the roster IS the reproducibility surface"
+    },
+    "already_built_inventory": {
+      "type": "path",
+      "required": true,
+      "description": "Inventory of what already exists; without it every lens re-proposes the estate back to itself"
+    },
+    "absorption_budget": {
+      "type": "integer",
+      "default": 6,
+      "minimum": 0,
+      "maximum": 200,
+      "description": "Items the estate will actually build this cycle - discovery without a budget manufactures a backlog"
+    },
+    "include_codex_arm": {
+      "type": "boolean",
+      "default": true,
+      "description": "Optional S1b: a cross-vendor Codex lens set"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/sweeps/bp-gem-01",
+      "description": "The ONLY writable root: discovery has no other write permission"
+    }
+  },
+  "roles": {
+    "grounding-agent": {
+      "description": "Enumerates what already exists so no lens can propose it; produces the dedup set every lens is briefed with",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/sweeps/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "discovery-lens": {
+      "description": "One lens, one angle, no sight of sibling lenses; a lens that finds nothing records a NULL RESULT with its search surface",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch",
+        "mcp__search-hub__web_search_exa",
+        "mcp__search-hub__firecrawl_search",
+        "mcp__searxng__searxng_web_search",
+        "mcp__github__search_repositories",
+        "Write(command-center/sweeps/**)"
+      ],
+      "min_participants": 4,
+      "max_participants": 80,
+      "speaking_rights": "always"
+    },
+    "codex-lens": {
+      "description": "Cross-vendor lens set: independent failure modes, not extra headcount",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex",
+        "Write(command-center/sweeps/**)"
+      ],
+      "speaking_rights": "on-request"
+    },
+    "synthesiser": {
+      "description": "Merges and dedupes the lens output; may not add a candidate no lens produced",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/sweeps/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "queue-builder": {
+      "description": "Turns judged candidates into an owner-consumable decision queue, one line per decision",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/sweeps/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that sets the absorption budget and accepts the queue",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "Write(command-center/sweeps/**)",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__firecrawl_search",
+      "mcp__searxng__searxng_web_search",
+      "mcp__github__search_repositories",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "Write(platform/**)",
+      "Write(command-center/WORK-UNIT-CATALOG.json)",
+      "mcp__github__create_pull_request"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/sweeps/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "command-center/WORK-UNIT-CATALOG.json",
+      "skills/**"
+    ],
+    "source_policy": {
+      "require_provenance": true,
+      "offline_only": false,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "MPL-2.0",
+        "owner-proprietary"
+      ],
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'codex-lens'",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "a cross-vendor arm names options no in-vendor lens names"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "high"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "subworkflows": {
+    "bp-gem-02-anti-overfit-candidate-gate": {
+      "workflow_id": "bp-gem-02-anti-overfit-candidate-gate",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/bp-gem-02-anti-overfit-candidate-gate.json"
+    }
+  },
+  "gates": {
+    "grounding-present": {
+      "predicate": "custom-expression",
+      "expression": "dedup_set_rows > 0 AND lenses_briefed_with_dedup_set == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "null-results-recorded": {
+      "predicate": "custom-expression",
+      "expression": "lenses_returning_nothing_without_search_surface == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "ground",
+      "title": "Enumerate what already exists so no lens can re-propose it",
+      "kind": "task",
+      "role": "grounding-agent",
+      "checkpoint": true,
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPG-0101",
+        "title": "Build the dedup set from the already-built inventory and the estate itself",
+        "phase": "2B",
+        "question_or_target": "Produce the dedup set: every capability that already exists in scope, with the path or identifier that proves it. This set is injected into every lens brief, so a lens proposing an existing capability is a defect, not a duplicate to filter later.",
+        "inputs": [
+          "params.scope",
+          "params.already_built_inventory"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "grounding-agent",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/sweeps/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/sweeps/bp-gem-01/dedup-set.json",
+        "output_schema": "command-center/schema/capability-index.schema.json",
+        "evidence_requirement": "every row carries the path or identifier that proves the capability exists; a row with no locator is dropped and the drop is recorded",
+        "tests_required": [
+          "MANDATORY dedup control: a KNOWN-BUILT item must appear in the dedup set; if it does not, the merge that justifies this blueprint has failed",
+          "a missing already_built_inventory must FAIL this stage, never yield an empty dedup set that silently permits every proposal"
+        ],
+        "reviewer_requirement": "the synthesiser rejects any candidate that string- or semantically matches a dedup-set row and records the match",
+        "completion_sentinel": "SUCCESS:BPG-0101 emitted only when the dedup set exists, is non-empty, and every row carries a locator; otherwise FAILED:BPG-0101 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two attempts, ask the owner for the inventory rather than proceeding without one",
+        "failure_classification": [
+          "inventory-missing",
+          "detector-truncation"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "dedup-grounding-before-discovery"
+      },
+      "produces": [
+        {
+          "path": "command-center/sweeps/bp-gem-01/dedup-set.json",
+          "schema_ref": "command-center/schema/capability-index.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0101",
+          "consumers": [
+            "grounding-gate",
+            "lens-fanout",
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grounding-gate",
+      "title": "No lens launches until the dedup set exists and is in every brief",
+      "kind": "gate",
+      "depends_on": [
+        "ground"
+      ],
+      "gate_ref": "grounding-present"
+    },
+    {
+      "id": "lens-fanout",
+      "title": "Fan out the lens roster, staggered, each blind to its siblings",
+      "kind": "fanout",
+      "depends_on": [
+        "grounding-gate"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "lens_roster",
+        "item_var": "lens",
+        "key_field": "lens"
+      },
+      "max_concurrency": 12,
+      "arrival_stagger_ms": 500,
+      "max_items": 80,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "run-lens",
+          "title": "Run one discovery lens against the dedup set",
+          "kind": "task",
+          "role": "discovery-lens",
+          "timeout_seconds": 3000,
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "model_id"
+            ],
+            "store": "command-center/sweeps/bp-gem-01/cache/lenses",
+            "ttl_seconds": 604800,
+            "verify_integrity": true,
+            "invalidate_on": [
+              "schema-version-change",
+              "tool-version-change"
+            ],
+            "read_only": false
+          },
+          "work_unit": {
+            "id": "BPG-0102",
+            "title": "Emit candidates for one lens, or a null result naming the surface searched",
+            "phase": "2B",
+            "question_or_target": "For the assigned lens, emit candidates that are NOT in the dedup set, each with an external anchor or a file:line. A lens that finds nothing emits a NULL RESULT naming the surface it searched - absence of evidence must be attributable to a search.",
+            "inputs": [
+              "command-center/sweeps/bp-gem-01/dedup-set.json",
+              "params.scope"
+            ],
+            "dependencies": [
+              "BPG-0101"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "discovery-lens",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "WebSearch",
+              "WebFetch",
+              "mcp__search-hub__web_search_exa",
+              "mcp__search-hub__firecrawl_search",
+              "mcp__searxng__searxng_web_search",
+              "mcp__github__search_repositories",
+              "Write(command-center/sweeps/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 3000,
+            "output_path": "command-center/sweeps/bp-gem-01/lenses/lens-candidates.json",
+            "output_schema": "command-center/schema/gem-candidate.schema.json",
+            "evidence_requirement": "every candidate carries an external URL or a file:line plus its licence where third-party; a null result carries the queries run",
+            "tests_required": [
+              "a lens pointed at a KNOWN-BUILT item must return it as deduped, never as a new candidate",
+              "a lens with nothing to report must emit a null result with its search surface, not an empty file"
+            ],
+            "reviewer_requirement": "the anti-overfit gate subworkflow judges every survivor; this lens does not judge its own candidates",
+            "completion_sentinel": "SUCCESS:BPG-0102 emitted only when the lens file exists, parses, and each candidate has an anchor or the file is an explicit null result; otherwise FAILED:BPG-0102 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: after two failures, record the lens as a null result with the failure attached",
+            "failure_classification": [
+              "engine-unreachable",
+              "quota-exhausted",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "independent-discovery-lens"
+          },
+          "produces": [
+            {
+              "path": "command-center/sweeps/bp-gem-01/lenses/lens-candidates.json",
+              "schema_ref": "command-center/schema/gem-candidate.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPG-0102",
+              "consumers": [
+                "synthesise"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.7,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "codex-arm",
+      "title": "Optional S1b: a cross-vendor Codex lens set",
+      "kind": "task",
+      "depends_on": [
+        "lens-fanout"
+      ],
+      "when": "include_codex_arm == true",
+      "role": "codex-lens",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPG-0103",
+        "title": "Run a cross-vendor lens set with the prompt passed BY FILE",
+        "phase": "2B",
+        "question_or_target": "Dispatch a Codex lens set for the same scope, prompt passed BY FILE and blocking, and mark every candidate no in-vendor lens produced. Exit 0 alone is SEVERED, not success: the result must also be a non-empty schema-valid file.",
+        "inputs": [
+          "command-center/sweeps/bp-gem-01/dedup-set.json",
+          "params.scope"
+        ],
+        "dependencies": [
+          "BPG-0101"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "codex-lens",
+          "basis": "cross-vendor discovery: independent failure modes, not extra headcount"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__codex__codex",
+          "Write(command-center/sweeps/**)"
+        ],
+        "execution_substrate": "cross-vendor-codex",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/sweeps/bp-gem-01/codex-candidates.json",
+        "output_schema": "command-center/schema/gem-candidate.schema.json",
+        "evidence_requirement": "the dispatch records exit code, the output file path, its byte count and its schema verdict - all three, because exit 0 alone is not a result",
+        "tests_required": [
+          "a prompt above the Windows command-line limit must go by FILE and succeed, not fail with an argument-length error",
+          "a killed peer must produce a terminal FAILED marker with the diagnostic tail, never silence"
+        ],
+        "reviewer_requirement": "the synthesiser marks cross-vendor-only candidates explicitly so their independence is visible in the queue",
+        "completion_sentinel": "SUCCESS:BPG-0103 emitted only when exit 0 AND a non-empty output file AND a schema-valid parse - or a terminal FAILED marker; otherwise FAILED:BPG-0103 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: retry ONCE ignoring user config on an argument-limit failure, then stop",
+        "failure_classification": [
+          "win-arg-limit",
+          "severed-stream",
+          "codex-exit-nonzero"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "cross-vendor-lens-arm"
+      },
+      "produces": [
+        {
+          "path": "command-center/sweeps/bp-gem-01/codex-candidates.json",
+          "schema_ref": "command-center/schema/gem-candidate.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0103",
+          "consumers": [
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "null-result-gate",
+      "title": "A silent lens is a defect: every empty lens must name its search surface",
+      "kind": "gate",
+      "depends_on": [
+        "codex-arm"
+      ],
+      "gate_ref": "null-results-recorded"
+    },
+    {
+      "id": "synthesise",
+      "title": "Merge and dedupe the lens output against the grounding set",
+      "kind": "task",
+      "depends_on": [
+        "null-result-gate"
+      ],
+      "role": "synthesiser",
+      "timeout_seconds": 3000,
+      "work_unit": {
+        "id": "BPG-0104",
+        "title": "Produce one deduped candidate list with per-candidate provenance and lens attribution",
+        "phase": "2B",
+        "question_or_target": "Merge every lens output into one list: dedupe against the grounding set AND against sibling lenses, attribute each survivor to the lenses that found it, and add nothing no lens produced.",
+        "inputs": [
+          "command-center/sweeps/bp-gem-01/lenses/lens-candidates.json",
+          "command-center/sweeps/bp-gem-01/codex-candidates.json",
+          "command-center/sweeps/bp-gem-01/dedup-set.json"
+        ],
+        "dependencies": [
+          "BPG-0102",
+          "BPG-0103"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "synthesiser",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/sweeps/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 3000,
+        "output_path": "command-center/sweeps/bp-gem-01/candidates.json",
+        "output_schema": "command-center/schema/synthesis-candidate.schema.json",
+        "evidence_requirement": "each survivor names every lens that produced it and its anchor; each dedup drop names the grounding row or sibling it matched",
+        "tests_required": [
+          "MANDATORY: a candidate identical to a dedup-set row must be dropped with the matched row named - this is the measurement that the merge works",
+          "a candidate the synthesiser invented (no lens attribution) must be rejected"
+        ],
+        "reviewer_requirement": "an adversarial reviewer receives the siblings' FULL lens text, not the digest, and checks for a survivor that duplicates a dropped one",
+        "completion_sentinel": "SUCCESS:BPG-0104 emitted only when the candidate list exists, parses, every survivor has at least one lens attribution, and every drop names its match; otherwise FAILED:BPG-0104 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failures emit the partial list plus the unmerged lens files",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact",
+          "duplicate-proposal"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "dedup-against-grounding-and-siblings"
+      },
+      "produces": [
+        {
+          "path": "command-center/sweeps/bp-gem-01/candidates.json",
+          "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0104",
+          "consumers": [
+            "judge-candidates",
+            "tier-queue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "judge-candidates",
+      "title": "Delegate adopt / build / prune to the anti-overfit gate (a subworkflow, not a copy)",
+      "kind": "subworkflow",
+      "depends_on": [
+        "synthesise"
+      ],
+      "workflow": {
+        "workflow_id": "bp-gem-02-anti-overfit-candidate-gate",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "delegated_from": "bp-gem-01-wide-lens-gem-sweep"
+      },
+      "isolation": "none",
+      "propagate_failure": true,
+      "timeout_seconds": 3600
+    },
+    {
+      "id": "tier-queue",
+      "title": "Build the owner-consumable tiered decision queue",
+      "kind": "task",
+      "depends_on": [
+        "judge-candidates"
+      ],
+      "role": "queue-builder",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0105",
+        "title": "Emit the T0-T3 decision queue with one actionable line per candidate",
+        "phase": "2B",
+        "question_or_target": "Turn the judged candidates into a decision queue: T0-T3 tier, the adopt/build/prune verdict with its reason code, the effort estimate, and whether it fits the absorption budget. Prose is not a deliverable here; the queue is.",
+        "inputs": [
+          "command-center/sweeps/bp-gem-01/candidates.json",
+          "params.absorption_budget"
+        ],
+        "dependencies": [
+          "BPG-0104"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "queue-builder",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/sweeps/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/sweeps/bp-gem-01/decision-queue.json",
+        "output_schema": "command-center/schema/disposition-table.schema.json",
+        "evidence_requirement": "every row carries tier, verdict, reason code and budget-fit; the count of rows above the budget is stated numerically",
+        "tests_required": [
+          "a queue with more T0 items than the absorption budget must state the overflow explicitly rather than silently truncating"
+        ],
+        "reviewer_requirement": "the owner reads the queue; a queue longer than the budget with no overflow statement is rejected",
+        "completion_sentinel": "SUCCESS:BPG-0105 emitted only when the queue exists, parses, and reconciles its T0 count against the absorption budget; otherwise FAILED:BPG-0105 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "tiered-decision-queue"
+      },
+      "produces": [
+        {
+          "path": "command-center/sweeps/bp-gem-01/decision-queue.json",
+          "schema_ref": "command-center/schema/disposition-table.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0105",
+          "consumers": [
+            "owner-review"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owner-review",
+      "title": "Owner accepts the queue and confirms the absorption budget",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "tier-queue"
+      ],
+      "prompt": "The sweep produced a tiered decision queue. Accept it as the cycle's build list, trim it to the absorption budget, or reject the sweep. Discovery beyond what the estate will absorb becomes a backlog, so an over-budget queue needs an explicit decision.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": true,
+      "options": [
+        "accept-queue",
+        "trim-to-budget",
+        "reject-sweep"
+      ],
+      "decision_artifact": {
+        "path": "command-center/sweeps/bp-gem-01/owner-decision.json",
+        "schema_ref": "command-center/schema/decision-record.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "command-center/DECISION-LOG.json"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "marginal-lens-zero-survivors",
+      "expression": "surviving_candidates_from_last_three_lenses == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "lenses_returned >= 6",
+      "on_stop": "complete"
+    },
+    {
+      "id": "roster-exhausted",
+      "expression": "lenses_remaining == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "absorption-budget-saturated",
+      "expression": "t0_candidates >= 3 AND surviving_candidates_from_last_three_lenses == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "lenses_returned >= 6",
+      "on_stop": "complete"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "engine-unreachable",
+      "quota-exhausted",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "synthesise"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "engine-unreachable",
+      "quota-exhausted",
+      "duplicate-proposal",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-review",
+    "quarantine_path": "command-center/sweeps/bp-gem-01/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/sweeps/bp-gem-01/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "replay_source": "artifact-cache",
+    "verify": "none"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash",
+      "model_id"
+    ],
+    "store": "command-center/sweeps/bp-gem-01/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/sweeps/bp-gem-01/dry-run-plan.json",
+    "forbid_tools": [
+      "WebSearch",
+      "WebFetch",
+      "mcp__codex__codex",
+      "mcp__search-hub__firecrawl_search",
+      "Write(command-center/sweeps/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "min": 12.0,
+      "expected": 45.0,
+      "max": 160.0
+    },
+    "wallclock_seconds": {
+      "min": 2400,
+      "expected": 9000,
+      "max": 28800
+    },
+    "tokens": {
+      "min": 1500000,
+      "expected": 6000000,
+      "max": 20000000
+    },
+    "tool_calls": {
+      "expected": 400,
+      "max": 3000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "DISCOVERY ONLY: no write permission outside command-center/sweeps/**; that separation is what makes a 40-agent sweep safe",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-gem-01.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "wf-saved-workspace-gem-hunt",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner (~40-lens roster, opus pinning, codex arm, resume)"
+      },
+      {
+        "source": "wf-saved-harness-self-improve-sweep",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner (the dedup GROUNDING stage and T0-T3 tiering)"
+      },
+      {
+        "source": "skills/gem-hunt",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "owner (invocation surface, adopt/prune vocabulary)"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-GEM-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "wf-saved-workspace-gem-hunt",
+      "wf-saved-harness-self-improve-sweep"
+    ]
+  },
+  "outputs": {
+    "decision-queue": {
+      "path": "command-center/sweeps/bp-gem-01/decision-queue.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner-review",
+        "command-center/DECISION-LOG.json"
+      ]
+    },
+    "candidates": {
+      "path": "command-center/sweeps/bp-gem-01/candidates.json",
+      "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "bp-gem-02-anti-overfit-candidate-gate"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-GEM-01",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 468
+    },
+    "acquisition_route_from_card": "MERGE",
+    "mechanism_signature": [
+      "dedup-grounding-before-discovery",
+      "wide-independent-lens-fanout",
+      "null-result-with-search-surface",
+      "cross-vendor-lens-arm",
+      "judgement-delegated-to-a-subworkflow",
+      "absorption-budget-bounded-queue"
+    ],
+    "contraindications": [
+      "NOT for interrogating one existing plan - that is a requirements grill",
+      "NOT for ordinary topic research - that is BP-RES-01",
+      "NOT when the estate cannot absorb more surface: discovery without an absorption budget manufactures a backlog"
+    ],
+    "why_not_a_duplicate_of_bp_gem_02": "This blueprint DISCOVERS and produces a candidate list; BP-GEM-02 only JUDGES a list it did not produce. The relationship is composition, not overlap: the judge-candidates stage CALLS BP-GEM-02 as a subworkflow rather than reimplementing its anchor and budget checks.",
+    "unverified": [
+      "UNVERIFIED post-merge; settling experiment = re-run both source workflows and the merged form on the same scope and count DUPLICATE-of-already-built proposals - the merged form should approach zero, and the dedup control test is the floor."
+    ],
+    "owner_decision": "Merge the two source sweeps into this one canonical form, or keep the narrow 14-lens variant as a cheap mode?",
+    "worked_example": {
+      "name": "sweep for missing harness capabilities with 8 lenses",
+      "params": {
+        "scope": "capabilities the agent harness is missing relative to comparable frontier tooling",
+        "lens_roster": [
+          "external-sota-scan",
+          "adjacent-tool-parity",
+          "internal-gap-from-failures",
+          "rule-derived-gaps",
+          "marketplace-scan",
+          "executed-corpus-mine",
+          "vendor-changelog-delta",
+          "practitioner-forum"
+        ],
+        "already_built_inventory": "command-center/CAPABILITY-INVENTORY.json",
+        "absorption_budget": 6,
+        "include_codex_arm": true
+      },
+      "expected_stage_order": [
+        "ground",
+        "grounding-gate",
+        "lens-fanout",
+        "codex-arm",
+        "null-result-gate",
+        "synthesise",
+        "judge-candidates",
+        "tier-queue",
+        "owner-review"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 12,
+      "expected_gate_ids": [
+        "grounding-gate",
+        "null-result-gate"
+      ],
+      "acceptance": [
+        "a known-built item is deduped by the grounding stage, not re-proposed",
+        "every lens that found nothing carries its search surface",
+        "the queue states its T0 overflow against the budget of 6"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "marginal-lens-zero-survivors",
+          "why": "the floor stops an early barren lens from ending a sweep before six lenses have returned",
+          "fires_on": {
+            "surviving_candidates_from_last_three_lenses": 0,
+            "lenses_returned": 8,
+            "lenses_remaining": 2,
+            "t0_candidates": 4
+          },
+          "does_not_fire_on": {
+            "surviving_candidates_from_last_three_lenses": 0,
+            "lenses_returned": 3,
+            "lenses_remaining": 5,
+            "t0_candidates": 4
+          }
+        },
+        {
+          "rule": "roster-exhausted",
+          "why": "the sweep ends when the roster is spent even if candidates were still arriving",
+          "fires_on": {
+            "surviving_candidates_from_last_three_lenses": 2,
+            "lenses_returned": 8,
+            "lenses_remaining": 0,
+            "t0_candidates": 4
+          },
+          "does_not_fire_on": {
+            "surviving_candidates_from_last_three_lenses": 2,
+            "lenses_returned": 8,
+            "lenses_remaining": 3,
+            "t0_candidates": 4
+          }
+        }
+      ]
+    }
+  }
+}

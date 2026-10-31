@@ -1,0 +1,52 @@
+{
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0074: typed registry API contract with a strict-parser conformance surface",
+  "arts": [
+    {"path": "command-center/receipts/IMP-0074.json", "role": "primary"},
+    {"path": "tools/marketplace/schema/registry-api.schema.json", "role": "primary"},
+    {"path": "tools/marketplace/api.py", "role": "supporting"},
+    {"path": "tools/marketplace/clients.py", "role": "supporting"},
+    {"path": "tools/marketplace/fixtures/index.json", "role": "fixture"},
+    {"path": "tools/marketplace/tests/test_api_contract.py", "role": "supporting"},
+    {"path": "command-center/p2-wave/probes/IMP-0074/probe1_reference_client.py", "role": "supporting"},
+    {"path": "command-center/p2-wave/probes/IMP-0074/probe2_strict_client.py", "role": "supporting"}
+  ],
+  "p1": {"rel": "command-center/p2-wave/probes/IMP-0074/probe1_reference_client.py", "raw": "probe1-reference-client.raw.txt", "role": "source"},
+  "p2": {"rel": "command-center/p2-wave/probes/IMP-0074/probe2_strict_client.py", "raw": "probe2-strict-client.raw.txt", "role": "verifier"},
+  "tests": [
+    {"id": "test_api_contract.py", "script": "tools/marketplace/tests/test_api_contract.py",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_api_contract.py"}
+  ],
+  "evidence": [
+    {"claim": "The lenient reference client accepts every recorded success and error case in the 18-row matrix (index, plugin list with limit/cursor pagination, get, search, structured 400/404 errors, tolerated unknown query keys).",
+     "anchor": "tools/marketplace/api.py:RegistryApi", "method": "test-run"},
+    {"claim": "A strict third-party client built from the contract FILE ALONE (no api/clients import) accepts every recorded success fixture, rejects a missing required field and an undocumented extra field, and distinguishes truncated pagination from an empty unmatched search - so the contract does not depend on lenient parsing.",
+     "anchor": "tools/marketplace/schema/registry-api.schema.json", "method": "static-analysis"}
+  ],
+  "controls": [
+    {"id": "IMP0074-C1-missing-required-fails-both", "kind": "mutation",
+     "description": "Dropping the required 'description' from a valid plugin_response must fail BOTH the lenient and the strict walker.",
+     "fired_bad": true, "silent_good": true,
+     "bad": "missing required field description (both clients reject)",
+     "good": "untouched plugin_response validates clean for both"},
+    {"id": "IMP0074-C2-extra-field-discriminates", "kind": "mutation",
+     "description": "Adding undocumented_bonus to a plugin must leave the lenient reference client green while the strict client rejects it - the extra field discriminates the two parsers.",
+     "fired_bad": true, "silent_good": true,
+     "bad": "strict rejects undocumented field(s) undocumented_bonus",
+     "good": "lenient accepts the same mutated body"},
+    {"id": "IMP0074-C3-truncated-vs-empty", "kind": "other",
+     "description": "A limit=2 page is truncated (next_cursor present) while an unmatched search is empty with NO cursor - pagination is distinguishable from emptiness.",
+     "fired_bad": true, "silent_good": true,
+     "bad": "bad-cursor requests 400",
+     "good": "page1 next_cursor present; unmatched search empty without cursor"}
+  ],
+  "residuals": [
+    {"claim": "Live .claude-plugin/marketplace.json is not on this worktree; conformance runs against the fixture index. The contract is the API, not a second index file.",
+     "settling_experiment": "Re-run conformance against a real IMP-0067 index once that artifact exists on disk."}
+  ],
+  "reviewer": {
+    "id": "IMP-0074-probe2-strict-third-party-client",
+    "scope": "Built a minimal third-party client from the contract file alone (no api/clients import) and re-ran the whole matrix through it; reports 3 ambiguities a third party cannot resolve from the contract (cursor opacity, unknown-query-key tolerance, search matching semantics).",
+    "notes": "Reviewer obligation (catalog) satisfied: strict client from contract alone + ambiguity report."
+  },
+  "report": "G-1 for IMP-0074: registry API contract built (schema + typed api + reference/strict clients + fixture index + 10-test suite all green); 18-row reference matrix accepted; contract-alone strict client passes successes and discriminates mutations; receipt closed SUCCESS by the probe2 instrument after a BLOCKED/reviewer-absent builder phase."
+}

@@ -1,0 +1,43 @@
+{
+ "id": "BLD-0035",
+ "unit_id": "BLD-0035",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "sentinel": "SUCCESS:BLD-0035",
+ "output_path": "command-center/receipts/BLD-0035.json",
+ "output_schema": "command-center/schema/see-catalog.json",
+ "cloud_ok": false,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/BLD-0035.json",
+   "bytes": 157698,
+   "sha256": "65b06d4d53e3efe3db396733b0259b1e9aa1c122e99bf014ff4b10709c17a88a",
+   "exists": true
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1_salvage_model",
+   "name": "probe1_salvage_model.py",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0035/probe1_salvage_model.py",
+   "exit_code": 0,
+   "raw_output": "{\"probe\": \"probe1-salvage-model\", \"unit_id\": \"BLD-0035\", \"deleted_paths\": 77, \"surfaces\": 109, \"class_sum\": 109, \"trees\": 5, \"nc_absent_both_states\": true, \"recovery_model_preserved_and_lost_proven\": true, \"pass\": true}\nSUCCESS:BLD-0035-probe1 counts re-derived (1+2+91+15=109; 77 paths; 5 trees); recovery model proves PRESERVED+LOST; NC-ABSENT both-states"
+  },
+  {
+   "id": "probe2_live_walk_recheck",
+   "name": "probe2_live_walk_recheck.py",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0035/probe2_live_walk_recheck.py",
+   "exit_code": 0,
+   "raw_output": "{\"probe\": \"probe2-live-walk\", \"unit_id\": \"BLD-0035\", \"deleted_still_absent\": 77, \"preserved_verified_live\": 31, \"preserved_worktree_drift\": 60, \"preserved_drift_paths\": [\"tools/lib/hooks/pre-tool.json\", \"tools/lib/tests/test_salvage.mjs\"], \"lost_rows_no_retained\": 3, \"lost_symbol_scan_clean\": true, \"manifest_sha_match\": true, \"mutation_negative_control\": \"LOST->PRESERVED detected\", \"pass\": true}\nSUCCESS:BLD-0035-probe2 77/77 deleted still absent live; 31/91 PRESERVED verified live (60 production-worktree drift rows surfaced); LOST symbols absent from retained trees; manifest matches"
+  }
+ ],
+ "reviewer": {
+  "verdict": "PASS",
+  "independent": true,
+  "reviewer_id": "schema-resolver",
+  "source": "pre-existing receipt closure (kept; still verifies live via this unit's probes)"
+ },
+ "owner_gate": "none - unit was not owner-gated",
+ "notes": "Resume 2026-10-25: no probe dir survived the dead builder; both probes authored fresh. probe1 rebuilds the recoverable-git salvage model (plant->delete->recover by rev) and re-derives counts (1+2+91+15=109 surfaces; 77 deleted paths; 5 trees; NC-ABSENT both-states). probe2 walks the live worktree: 77/77 deleted paths still absent; 31/91 PRESERVED rows verified live; 60 rows cite production-worktree artifacts absent here (tools/lib/hooks/pre-tool.json, tools/lib/tests/test_salvage.mjs) - surfaced as worktree drift, not folded: the receipt's own answer scopes those retentions to the Linux worktree (worktree_git=False, tools_lib=True) and carries residual_unknowns + recovery_route for exactly this; 3 LOST rows carry no retained_path and their synthetic symbol appears nowhere under live tools//platform trees. Receipt keeps its pre-existing independent closure. No owner gate.",
+ "ts_source": "receipt timestamps kept verbatim; probes add none"
+}

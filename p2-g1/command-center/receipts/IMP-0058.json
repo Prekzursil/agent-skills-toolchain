@@ -1,0 +1,248 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8210,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0058.json",
+   "role": "primary",
+   "sha256": "2d925e1f64ae2a352d35282f11a3cddd8c067694d703d68e58931c283775ceb2"
+  },
+  {
+   "bytes": 15645,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/heartbeat.py",
+   "role": "supporting",
+   "sha256": "e3fca0bdee2d2452b3fe3a8af7a408ecb1c71776ffb977ad090f2ff83ed60971"
+  },
+  {
+   "bytes": 3514,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/longrun.py",
+   "role": "supporting",
+   "sha256": "b333d5f7268b07d47ff89afaf58da7a60714972dab2ae843f45b026990eda915"
+  },
+  {
+   "bytes": 494,
+   "eol": "LF",
+   "exists": true,
+   "path": "scripts/longrun.sh",
+   "role": "supporting",
+   "sha256": "b880e83e9db9e2f1c8b9c113089fe8396db7fb2c0a04a8c6af84146188e95e84"
+  },
+  {
+   "bytes": 1372,
+   "eol": "LF",
+   "exists": true,
+   "path": "scripts/longrun.ps1",
+   "role": "supporting",
+   "sha256": "c53853744f9d637e28a27c27e1577cc3c063b7ad8beb84416cfabda1148d2922"
+  },
+  {
+   "bytes": 6335,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_heartbeat.py",
+   "role": "supporting",
+   "sha256": "fc55ab5fc395e476da741398a00ce03308d9b071287fb1ffd1d7807b685496d2"
+  },
+  {
+   "bytes": 2621,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0058/probe1_token_advances.py",
+   "role": "supporting",
+   "sha256": "ef2e674c9315ba59fbabeb984b77266376a4ba819d2cd1d79e0bc7d01d8878f0"
+  },
+  {
+   "bytes": 2591,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0058/probe2_hung_reuse_mtime.py",
+   "role": "supporting",
+   "sha256": "5aabd7217c2a66774a460e568e8a8579513419fc143e568db45f1ad613769a96"
+  }
+ ],
+ "completion_line": "SUCCESS:IMP-0058",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0058.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/tests/test_heartbeat.py::test_token_advances_during_a_slow_op",
+   "claim": "A slow CPU-bound cooperative op advances a monotonic heartbeat token AND shows an independent process-level signal (CPU ticks or output byte growth) over the same interval.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0058/probe1_token_advances.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"cpu_delta\": 47, \"output_bytes_delta\": 0, \"status\": \"SUCCESS\", \"token_advanced\": true, \"token_end\": 9, \"token_start\": 0, \"via_longrun_script\": true}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/tests/test_heartbeat.py::test_hung_child_reports_failed_not_success",
+   "claim": "A genuinely hung child (SIGSTOP / no ticks) freezes the token AND shows zero CPU delta in the hang window; the runner reports FAILED not SUCCESS. Absence of output is not used as hang evidence; a silent CPU-bound ticker is SUCCESS.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0058/probe2_hung_reuse_mtime.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"classification\": \"HUNG\", \"hang_window\": {\"cpu_delta\": 0, \"token_delta\": 0}, \"hung_status\": \"FAILED\", \"silent_cpu_delta\": 46, \"silent_output_bytes_delta\": 0, \"silent_status\": \"SUCCESS\", \"token_advanced\": false}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0058",
+ "implementation": {
+  "classify_rule": "LIVE iff token advanced AND (cpu_delta>0 OR output_bytes_delta>0); HUNG/FAILED iff token frozen AND cpu_delta==0; else UNVERIFIED",
+  "heartbeat_engine": "tools/plugin/heartbeat.py",
+  "liveness_signals": [
+   "heartbeat progress token (monotonic integer in token JSON)",
+   "process CPU ticks from /proc/<pid>/stat utime+stime, or captured output byte growth"
+  ],
+  "ops_requiring_heartbeat": [
+   "test-suite",
+   "coverage-suite",
+   "tree-lint",
+   "ci-watch",
+   "codex-generation",
+   "multi-agent-dispatch",
+   "sleep-poll",
+   "plugin-lifecycle"
+  ],
+  "plugin_entry_reuses_scripts": "tools/plugin/longrun.py",
+  "posix_script": "scripts/longrun.sh",
+  "rejected_signals": [
+   "file mtime",
+   "absence of stdout/stderr (silence is not a hang)"
+  ],
+  "windows_script": "scripts/longrun.ps1"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0058/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measured": {
+  "hung": {
+   "classification": "HUNG",
+   "hang_window": {
+    "cpu_delta": 0,
+    "token_delta": 0
+   },
+   "status": "FAILED",
+   "token_advanced": false
+  },
+  "silent": {
+   "cpu_delta": 46,
+   "output_bytes_delta": 0,
+   "status": "SUCCESS",
+   "token_advanced": true
+  },
+  "slow": {
+   "cpu_delta": 47,
+   "output_bytes_delta": 0,
+   "status": "SUCCESS",
+   "token_advanced": true,
+   "token_end": 9,
+   "token_start": 0,
+   "via_longrun_script": true
+  }
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"classification\": \"HUNG\", \"status\": \"FAILED\"}",
+   "description": "SIGSTOP child must stop advancing the token AND show zero CPU delta; runner FAILED not SUCCESS.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"status\": \"SUCCESS\", \"token_advanced\": true}",
+   "id": "IMP-0058-NC-HUNG-CHILD",
+   "kind": "hung-child",
+   "silent_on_good_state": true
+  }
+ ],
+ "question_or_target": "Give every operation that can exceed 60 seconds a heartbeat with a monotonically advancing progress token, so a live-but-slow operation is distinguishable from a hung one \u2014 and document that absence of output is never itself evidence of a hang.",
+ "residual_unknowns": [
+  {
+   "claim": "scripts/longrun.ps1 was not executed under pwsh on this Linux worktree; it delegates to the same heartbeat.py as longrun.sh.",
+   "settling_experiment": "Run tools/plugin/longrun.py with windows=True under pwsh7.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "mtime_inference_absent": true,
+  "notes": "Static scan of heartbeat.py classify(), longrun.py, scripts/longrun.sh and scripts/longrun.ps1 found no st_mtime/getmtime hang path. Live hung fixture classified HUNG with hang_window cpu_delta=0 and token_delta<=0.",
+  "reviewer_id": "IMP-0058-probe2-hung-reuse-mtime",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0058",
+ "spec_anchor": "AGENTS.md#4a (longrun: heartbeat, hang timeout); catalog IMP-0058",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_heartbeat.py",
+   "id": "test_token_advances_during_a_slow_op",
+   "result": "PASS",
+   "token_end": 9,
+   "token_start": 0
+  },
+  {
+   "classification": "HUNG",
+   "command": "tools/plugin/tests/test_heartbeat.py::test_hung_child_reports_failed_not_success",
+   "hang_window_cpu_delta": 0,
+   "hang_window_token_delta": 0,
+   "id": "IMP-0058-HUNG-NEGATIVE",
+   "result": "PASS",
+   "status": "FAILED"
+  },
+  {
+   "command": "tools/plugin/tests/test_heartbeat.py::test_silence_is_not_hang",
+   "id": "IMP-0058-SILENCE-NOT-HANG",
+   "result": "PASS"
+  },
+  {
+   "command": "tools/plugin/tests/test_heartbeat.py::test_longrun_scripts_reused",
+   "id": "IMP-0058-LONGRUN-REUSED",
+   "result": "PASS",
+   "scripts": [
+    "scripts/longrun.sh",
+    "scripts/longrun.ps1"
+   ]
+  },
+  {
+   "command": "tools/plugin/tests/test_heartbeat.py::test_mtime_not_consulted_in_classifier",
+   "hits": [],
+   "id": "IMP-0058-NO-MTIME",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:04:40Z",
+  "started_at": "2026-08-25T01:04:40Z"
+ },
+ "title": "Heartbeat and progress surface for long-running lifecycle operations",
+ "unit_id": "IMP-0058"
+}

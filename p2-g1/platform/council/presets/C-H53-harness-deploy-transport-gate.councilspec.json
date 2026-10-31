@@ -1,0 +1,240 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h53-harness-deploy-transport-gate",
+  "preset": "release_readiness_board",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Authorise or deny a deploy transport for the live harness, on proof that the transport was exercised on a control file AND that rollback was executed once for real.",
+    "charter": "MANDATE. Choosing a deploy transport is a critical, hard-to-reverse decision, so the council votes as a logical AND: every seat must consent, and any single seat withholding consent denies. Two proofs are required. (1) The transport must be proven on a CONTROL file - a file whose before and after bytes you know - because a deploy tool that reports exit 0 while copying nothing looks identical to a successful one. An exit-0 with count=0 is fail-open success, not a deploy. (2) Rollback must be EXECUTED once, not merely documented; a rollback path that has never run is a plan, not a capability. Banned transports stay banned: the known-bad path is a --deploy mode that mutates the live tree, and its read-only --check sibling is the only safe form.",
+    "risk_tier": "critical",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "the transport moved a known control file, verified byte-for-byte at the destination",
+      "rollback was executed once and the tree returned to its prior state",
+      "an exit-0 / count-0 result is classified as FAIL, not as success",
+      "every banned transport is named and shown unused"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.95,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "run a deploy mode that mutates the live tree during evaluation",
+        "accept an exit-0 with a zero-file count as a successful deploy",
+        "authorise a transport whose rollback has never been executed"
+      ],
+      "deadline_minutes": 30
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "stakeholder_balanced"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 4, "min": 4, "max": 4 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "sre",
+        "display_name": "SRE - owns the live tree and the rollback",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["deploy transports", "rollback", "live-tree operation"],
+        "role": "custom:sre",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true, "may_call_experiment": true },
+        "source_access": ["repo", "internal_docs"],
+        "context": {
+          "briefing": "Run the control-file proof yourself. The destination bytes are the verdict; the tool's exit code is a hint. Verify the rollback by executing it, then confirm the tree matches its pre-deploy state."
+        }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security - transport trust and blast radius",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["supply chain", "least privilege"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - proposes the transport",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["harness tooling", "sync mechanics"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "conflicts": [{ "kind": "authored_artifact", "detail": "authored the proposed transport", "recused": false }]
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative - carries the owner's standing constraints",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["owner intent", "estate policy"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": false }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack", "risk_list"]
+  },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      {
+        "committee_id": "transport-proof",
+        "mandate": "Exercise the candidate transport on a known control file and verify destination bytes independently of the tool's exit code.",
+        "members": ["sre", "implementer"]
+      },
+      {
+        "committee_id": "rollback-proof",
+        "mandate": "Execute rollback once for real and confirm the tree returns to its pre-deploy state.",
+        "members": ["sre", "security"]
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-assessment", "rounds": 1, "independent": true },
+      { "kind": "custom", "stage_id": "control-file-proof", "custom_name": "deploy a known control file and verify destination bytes", "rounds": 1 },
+      { "kind": "custom", "stage_id": "rollback-execution", "custom_name": "execute rollback once and verify restoration", "rounds": 1 },
+      { "kind": "premortem", "stage_id": "premortem", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "authorise-or-deny", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 4, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 30, "turns": 16, "experiments": 4 },
+  "targets": { "evidence_items": 4, "counterexamples": 1 },
+  "voting": {
+    "method": "unanimity",
+    "quorum": { "min_voters": 4, "min_fraction": 1, "on_failure": "no_decision" },
+    "veto": {
+      "holders": ["sre", "security", "owner-rep"],
+      "scope": "final_decision",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1 },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:transport_proven_on_control_file == true AND custom:rollback_executed_once == true AND NOT custom:fail_open_exit_zero_count_zero == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:transport_proven_on_control_file", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:rollback_executed_once", "op": "==", "value": true, "value_type": "boolean" },
+        { "not": { "metric": "custom:fail_open_exit_zero_count_zero", "op": "==", "value": true, "value_type": "boolean" } }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 30, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the transport is re-proven on a control file in the target environment",
+      "the owner countersigns the authorisation"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "vote_oscillation_rounds": 2 },
+    "resolution": ["run_experiment", "narrow_scope", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "sycophancy",
+      "hidden_conflict_of_interest",
+      "strategic_abstention",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "action_plan"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["authorising the transport", "any write to the live harness tree"]
+    },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h53", "checkpoint_every_round": true },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "Harness deploy-transport gate (binding, critical)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H53", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P18,P51"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1920", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H53 `harness-deploy-transport-gate`, global ordinal 53, tier standard, protocols P18/P51, 4 seats, 2 rounds, default binding BINDING, risk critical, OWNER-DECISION YES. || EDITABLE DIALS: (1) banned_transports -> objective.owner_constraints.forbidden_actions plus the control-file-proof stage; name the specific transport modes that may not be exercised at all. Secondary dials: budgets.time_minutes (30), voting.veto.holders, protocol.experiments.runner (sandbox by default so an evaluation cannot touch the live tree), consensus.threshold (1 = unanimity). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `logical_AND` -> voting.method `unanimity` with quorum.min_fraction 1 and consensus.threshold 1; every seat must consent and one hold-out denies. Additionally three seats hold an explicit veto so a denial is attributable rather than emergent. roles `sre` -> custom:sre, `security` -> security_reviewer (enum), `implementer` -> custom:implementer, `owner_rep` -> custom:owner_rep with kind `human`, vendor `human` and authority `owner`. Outcome names map AUTHORISE -> decision, DENY -> no_decision, CONDITIONAL_DECISION -> conditional_decision; the schema has no AUTHORISE/DENY tokens, so a denial is structurally a `no_decision` (nothing is authorised) and the reason lives in the dissent record. `default binding: binding` has no field: it is encoded as outcomes.allowed containing `decision`, and the owner countersignature is objective.owner_constraints.approval_required true. `evidence standard: executable_receipt` -> anchor_style `command_output` plus outputs.receipt_schema. || CUSTOM METRICS AND THEIR PRODUCERS: custom:transport_proven_on_control_file (boolean; produced by the control-file-proof stage comparing destination bytes, NOT the tool exit code), custom:rollback_executed_once (boolean; produced by the rollback-execution stage - executed, never merely documented), custom:fail_open_exit_zero_count_zero (boolean; produced by parsing the transport's own report for a zero-file count alongside a zero exit status; MUST be false). Producers cannot be written on the leaves: SEM-001 compares parse(source_expression) to the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY THE THIRD CLAUSE IS A NOT: the fail-open shape is the one that passes both other clauses while deploying nothing. Encoding it as a positive requirement would let a silent zero-count run slip through as 'no evidence of failure'. Absence of evidence is not evidence here, so the rule asserts the failure shape is affirmatively absent."
+  }
+}

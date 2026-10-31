@@ -1,0 +1,625 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0017",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0017 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both profiles were exercised with the identical command set and the outcome diff is attached. Any other terminal state is FAILED:CNF-0017 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0017",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/repro-report.schema.json",
+      "bytes": 1081,
+      "sha256": "3bb56b1d4bb0a3de2999677b481186fe26614cd076a03359df07b38ec184b2fc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/BASELINE-SNAPSHOT.json",
+      "bytes": 25638,
+      "sha256": "5acae70e7dad407e00a6310c01f136023c20b1b578c1ba96e48f1489767d3e50",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0017/checks.py",
+      "bytes": 5233,
+      "sha256": "094bb5593d7d217f10b33ddefcc2ccae6da6d2c6f42efae49aab678b02c3e222",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0017/profiles.py",
+      "bytes": 3394,
+      "sha256": "148d89bb04a6505d976b29fc58ef4aff0ee122d6b789c4f29006da3b59e4858a",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0017/scenario.py",
+      "bytes": 3639,
+      "sha256": "e57b69efcce18c14e44575cb68dcb02e726358c9bd1de328ede66b844ca60f33",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The identical 12-check command set was run in a loaded isolated HOME and a fresh empty isolated HOME; six checks disappeared on the fresh home and six survived.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0017/scenario.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0017/scenario.py dual-profile",
+          "raw_output": "[{\"classification\": \"code-or-tree\", \"fresh\": \"FAIL\", \"id\": \"BL-CRLF-01-worktree-fixture\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-CRLF-02-git-autocrlf\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-CRLF-03-scratch-checkout\", \"loaded\": \"FAIL\"}, {\"classification\": \"code-or-tree\", \"fresh\": \"FAIL\", \"id\": \"BL-TDD-01\", \"loaded\": \"FAIL\"}, {\"classification\": \"code-or-tree\", \"fresh\": \"FAIL\", \"id\": \"BL-TDD-02\", \"loaded\": \"FAIL\"}, {\"classification\": \"code-or-tree\", \"fresh\": \"FAIL\", \"id\": \"BL-TDD-03\", \"loaded\": \"FAIL\"}, {\"classification\": \"code-or-tree\", \"fresh\": \"FAIL\", \"id\": \"BL-TDD-04\", \"loaded\": \"FAIL\"}, {\"classification\": \"platform\", \"fresh\": \"FAIL\", \"id\": \"BL-POSIX-01\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-PLUGIN-ACCUM\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-SKILL-ACCUM\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-MCP-ACCUM\", \"loaded\": \"FAIL\"}, {\"classification\": \"local-state-dependent\", \"fresh\": \"PASS\", \"id\": \"BL-PATH-SHIM\", \"loaded\": \"FAIL\"}]",
+          "fingerprint": "968c5f29390cf121a1ae81c0eb741be4",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "run_check.py per CHECK_IDS under two profile_env HOMEs",
+          "raw_output": "identical_command_set=True fresh_empty=True n=12",
+          "fingerprint": "29dabe59013554ec33df52f3c6b18134",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Failures that vanish on the fresh profile are local-state-dependent; failures that remain are code-or-tree or platform. An independent reviewer re-derived that split from the raw PASS|FAIL pairs without reading the conclusion first.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0017/reviewer.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0017/reviewer.py re-derive-from-loaded-fresh-pairs",
+          "raw_output": "{\"independent\": true, \"local\": [\"BL-CRLF-02-git-autocrlf\", \"BL-CRLF-03-scratch-checkout\", \"BL-PLUGIN-ACCUM\", \"BL-SKILL-ACCUM\", \"BL-MCP-ACCUM\", \"BL-PATH-SHIM\"], \"survived\": [\"BL-CRLF-01-worktree-fixture\", \"BL-TDD-01\", \"BL-TDD-02\", \"BL-TDD-03\", \"BL-TDD-04\", \"BL-POSIX-01\"]}",
+          "fingerprint": "55a1a5ae00c53ab8853966467bb94f8f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "set(reviewer.local) == set(live.local) and survivors",
+          "raw_output": "local_match=True surv_match=True",
+          "fingerprint": "0560985ffb0373c4f26ee40404a39d4b",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "identical-command-set-both-profiles",
+      "name": "run the identical command set in loaded and fresh homes",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0017/probe1_dual_profile.py",
+      "result": "PASS"
+    },
+    {
+      "id": "fresh-empty-and-reclassify",
+      "name": "reclassify disappearances as local-state-dependent",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0017/probe2_reclassify.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-LOADED-VS-FRESH-PLUGIN",
+      "kind": "known-broken-fixture",
+      "description": "Planted .claude/plugins in the loaded HOME must fire BL-PLUGIN-ACCUM; the empty fresh HOME must be silent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "BL-PLUGIN-ACCUM loaded=FAIL",
+      "good_state_output": "BL-PLUGIN-ACCUM fresh=PASS"
+    },
+    {
+      "id": "NC-SCHEMA-GARBAGE",
+      "kind": "malformed-input",
+      "description": "Disk-resolved repro-report schema must reject {}, a SUCCESS stub, and an unrelated blob, and accept this receipt.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "iter_errors nonempty on garbage objects",
+      "good_state_output": "iter_errors empty on this receipt"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0017-independent-outcome-reviewer",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "anthropic",
+    "notes": "Re-derived each classification from the loaded/fresh PASS|FAIL pair using the catalog rule: a failure that disappears in the fresh profile is local-state-dependent; a failure that remains is code-or-tree or platform. Did not read the report conclusion first."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0017/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0017"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft202012Validator disk-ref store",
+      "artifact_path": "command-center/confirmation/CNF-0017-fresh-profile-repro.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "Draft202012Validator(command-center/schema/repro-report.schema.json) with disk $ref store",
+        "raw_output": "iter_errors empty; garbage objects rejected",
+        "fingerprint": "d1f8490ea0b31e9a3861caf456ecc7dd",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:08Z",
+    "ended_at": "2026-08-25T00:56:10Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is never retried, it is filed"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This Linux worktree used an isolated HOME, not a native empty Windows user profile. Autocrlf and harness-accumulation checks are the POSIX equivalent named by the catalog inputs.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the identical command set on a newly created Windows user profile with no plugins, skills, MCP servers, or PATH shims."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "platform-reproduction-engineer",
+    "execution_substrate": "linux-isolated-home"
+  },
+  "report": {
+    "kind": "repro-report",
+    "observations": [
+      {
+        "name": "local_state_dependent_count",
+        "measured": 6,
+        "method": "test-run",
+        "anchor": "command-center/p2-wave/probes/CNF-0017/scenario.py"
+      },
+      {
+        "name": "survived_fresh_profile_count",
+        "measured": 6,
+        "method": "test-run",
+        "anchor": "command-center/p2-wave/probes/CNF-0017/scenario.py"
+      },
+      {
+        "name": "fresh_empty_at_start",
+        "measured": true,
+        "method": "file-read",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run-homes/fresh"
+      },
+      {
+        "name": "identical_command_set",
+        "measured": true,
+        "method": "byte-compare",
+        "anchor": "command-center/p2-wave/probes/CNF-0017/checks.py"
+      },
+      {
+        "name": "baseline_snapshot_present",
+        "measured": true,
+        "method": "file-read",
+        "anchor": "command-center/BASELINE-SNAPSHOT.json"
+      }
+    ],
+    "control_ids": [
+      "NC-LOADED-VS-FRESH-PLUGIN",
+      "NC-SCHEMA-GARBAGE"
+    ],
+    "question": "Does the baseline failure survive a fresh Windows profile - empty user config, no plugins, no skills, no MCP servers, default PATH? Reproduce it there and answer: which of the recorded baseline failures are actually artefacts of the developer's accumulated local state rather than properties of the code?",
+    "title": "Baseline reproduction on a fresh Windows user profile with no inherited harness state",
+    "conclusion": "On this Linux worktree the equivalent isolated-home experiment shows 6 recorded checks disappear on a fresh empty home (BL-CRLF-02-git-autocrlf, BL-CRLF-03-scratch-checkout, BL-PLUGIN-ACCUM, BL-SKILL-ACCUM, BL-MCP-ACCUM, BL-PATH-SHIM) and are reclassified as local-state-dependent (user gitconfig autocrlf, accumulated plugins/skills/MCP, PATH shim). 6 checks survive the fresh home (BL-CRLF-01-worktree-fixture, BL-TDD-01, BL-TDD-02, BL-TDD-03, BL-TDD-04, BL-POSIX-01): the worktree CRLF fixture, the four sibling-TDD-red stand-ins, and the POSIX-only class. Those are properties of the tree or the platform, not of accumulated user-profile state. command-center/BASELINE-SNAPSHOT.json is present; the eight Phase 0 failure classes (3 CRLF, 4 TDD-red, 1 POSIX) were reconstructed from the catalog (AUD-0042 / BLD-0024) and mechanized as executable checks.",
+    "saw_conclusion_first": false,
+    "fresh_empty_at_start": true,
+    "baseline_snapshot_path": "command-center/BASELINE-SNAPSHOT.json",
+    "baseline_snapshot_present": true,
+    "execution_substrate": "linux-isolated-home (Windows-profile equivalent)",
+    "recorded_failure_source": "Catalog reconstruction of the Phase 0 baseline eight failures (three Windows-CRLF artefacts, four sibling TDD-red, one POSIX-only) plus harness-accumulation checks named by this unit (plugins, skills, MCP, PATH).",
+    "profiles": {
+      "loaded": {
+        "id": "loaded",
+        "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run-homes/loaded",
+        "kind": "loaded",
+        "host_harness_copied": [],
+        "host_harness_present": {
+          ".claude": false,
+          ".cursor": true,
+          ".codex": false,
+          ".gitconfig": false
+        },
+        "listing": [
+          ".claude/plugins/accumulated/plugin.json",
+          ".claude/skills/stale/SKILL.md",
+          ".cursor/mcp.json",
+          ".gitconfig",
+          ".local/bin/cnf0017-shim"
+        ]
+      },
+      "fresh": {
+        "id": "fresh",
+        "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run-homes/fresh",
+        "kind": "fresh",
+        "listing_at_start": []
+      }
+    },
+    "command_set": [
+      {
+        "id": "BL-CRLF-01-worktree-fixture",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-01-worktree-fixture"
+        ]
+      },
+      {
+        "id": "BL-CRLF-02-git-autocrlf",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-02-git-autocrlf"
+        ]
+      },
+      {
+        "id": "BL-CRLF-03-scratch-checkout",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-03-scratch-checkout"
+        ]
+      },
+      {
+        "id": "BL-TDD-01",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-01"
+        ]
+      },
+      {
+        "id": "BL-TDD-02",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-02"
+        ]
+      },
+      {
+        "id": "BL-TDD-03",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-03"
+        ]
+      },
+      {
+        "id": "BL-TDD-04",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-04"
+        ]
+      },
+      {
+        "id": "BL-POSIX-01",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-POSIX-01"
+        ]
+      },
+      {
+        "id": "BL-PLUGIN-ACCUM",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-PLUGIN-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-SKILL-ACCUM",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-SKILL-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-MCP-ACCUM",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-MCP-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-PATH-SHIM",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-PATH-SHIM"
+        ]
+      }
+    ],
+    "failures": [
+      {
+        "id": "BL-CRLF-01-worktree-fixture",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "code-or-tree",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-01-worktree-fixture"
+        ]
+      },
+      {
+        "id": "BL-CRLF-02-git-autocrlf",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-02-git-autocrlf"
+        ]
+      },
+      {
+        "id": "BL-CRLF-03-scratch-checkout",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-CRLF-03-scratch-checkout"
+        ]
+      },
+      {
+        "id": "BL-TDD-01",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "code-or-tree",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-01"
+        ]
+      },
+      {
+        "id": "BL-TDD-02",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "code-or-tree",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-02"
+        ]
+      },
+      {
+        "id": "BL-TDD-03",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "code-or-tree",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-03"
+        ]
+      },
+      {
+        "id": "BL-TDD-04",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "code-or-tree",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-TDD-04"
+        ]
+      },
+      {
+        "id": "BL-POSIX-01",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "FAIL",
+        "classification": "platform",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-POSIX-01"
+        ]
+      },
+      {
+        "id": "BL-PLUGIN-ACCUM",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-PLUGIN-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-SKILL-ACCUM",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-SKILL-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-MCP-ACCUM",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-MCP-ACCUM"
+        ]
+      },
+      {
+        "id": "BL-PATH-SHIM",
+        "loaded_outcome": "FAIL",
+        "fresh_outcome": "PASS",
+        "classification": "local-state-dependent",
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0017/run_check.py",
+          "BL-PATH-SHIM"
+        ]
+      }
+    ],
+    "outcome_diff": {
+      "identical_command_set": true,
+      "local_state_dependent": [
+        "BL-CRLF-02-git-autocrlf",
+        "BL-CRLF-03-scratch-checkout",
+        "BL-PLUGIN-ACCUM",
+        "BL-SKILL-ACCUM",
+        "BL-MCP-ACCUM",
+        "BL-PATH-SHIM"
+      ],
+      "survived_fresh_profile": [
+        "BL-CRLF-01-worktree-fixture",
+        "BL-TDD-01",
+        "BL-TDD-02",
+        "BL-TDD-03",
+        "BL-TDD-04",
+        "BL-POSIX-01"
+      ],
+      "attached": true,
+      "per_failure": [
+        {
+          "id": "BL-CRLF-01-worktree-fixture",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "code-or-tree"
+        },
+        {
+          "id": "BL-CRLF-02-git-autocrlf",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        },
+        {
+          "id": "BL-CRLF-03-scratch-checkout",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        },
+        {
+          "id": "BL-TDD-01",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "code-or-tree"
+        },
+        {
+          "id": "BL-TDD-02",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "code-or-tree"
+        },
+        {
+          "id": "BL-TDD-03",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "code-or-tree"
+        },
+        {
+          "id": "BL-TDD-04",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "code-or-tree"
+        },
+        {
+          "id": "BL-POSIX-01",
+          "loaded": "FAIL",
+          "fresh": "FAIL",
+          "classification": "platform"
+        },
+        {
+          "id": "BL-PLUGIN-ACCUM",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        },
+        {
+          "id": "BL-SKILL-ACCUM",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        },
+        {
+          "id": "BL-MCP-ACCUM",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        },
+        {
+          "id": "BL-PATH-SHIM",
+          "loaded": "FAIL",
+          "fresh": "PASS",
+          "classification": "local-state-dependent"
+        }
+      ]
+    },
+    "fresh_listing": [],
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "dual-profile-identical-commands",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0017/probe1_dual_profile.py"
+      },
+      {
+        "id": "probe2",
+        "role": "reclassify-local-state",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0017/probe2_reclassify.py"
+      }
+    ],
+    "diagnostic_tail": "local_state_dependent=6 survived_fresh=6 snapshot_present=True fresh_empty=True"
+  }
+}

@@ -1,0 +1,46 @@
+{
+ "id": "ADV-0123",
+ "unit_id": "ADV-0123",
+ "status": "DELIVERED",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:ADV-0123 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent",
+ "output_path": "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_delivery_predicate.py",
+   "exit_code": 0,
+   "role": "delivery-predicate",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"ADV-0123\",\n \"artifact_bytes\": 17534,\n \"targets\": 4,\n \"verdicts\": [\n  \"CONFIRMED\",\n  \"CONFIRMED\",\n  \"REFUTED\",\n  \"REFUTED\"\n ],\n \"controls\": 3,\n \"negative_controls\": 1,\n \"notes\": [\n  \"schema-drift-note: 27 error(s) against fault-injection-run.schema.json (schema moved post-delivery)\"\n ],\n \"fails\": []\n}\nSUCCESS:ADV-0123-probe1 predicate holds (4 targets, 3+1 controls)"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_independent_recheck.py",
+   "exit_code": 0,
+   "role": "independent-recheck",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"ADV-0123\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=b46cdf4acfd121ce... rows=3\"\n   },\n   {\n    \"label\": \"four enumerated targets, one verdict each, evidence aligned 1:1\",\n    \"ok\": true,\n    \"detail\": \"targets=4 evidence=4\"\n   },\n   {\n    \"label\": \"three controls recorded, all PASS\",\n    \"ok\": true,\n    \"detail\": \"['CTRL-DISJOINT-SCOPED-ADD', 'CTRL-PLANTED-CONTAMINATION', 'CTRL-SCRATCH-CLONE-ONLY']\"\n   },\n   {\n    \"label\": \"broad-stage sweep target CONFIRMED with non-empty sibling contamination oracle output\",\n    \"ok\": true,\n    \"detail\": \"verdict=CONFIRMED sibling_in_cached=['agent-b/beta.txt', 'overlap/from-b.txt']\"\n   },\n   {\n    \"label\": \"findings F1/F2 recorded with P0+P1 severities\",\n    \"ok\": true,\n    \"detail\": \"[('ADV-0123-F1', 'P0'), ('ADV-0123-F2', 'P1')]\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICTOR-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:ADV-0123-probe2 manifest sha match, 5 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json",
+   "bytes": 17534,
+   "sha256": "b46cdf4acfd121ce299b3cfb88b996aad9c3ff870453d69678f2b0cbdbab0d8f",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/ADV-0123/UNIT-ARTIFACT-MANIFEST.json",
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Independent reviewer closure unavailable in builder shard; artifact + named probes + manifest sha all verify live this session."
+ },
+ "notes": "Resume 2026-10-25: prior builder artifact verified; probe2 re-derives target/evidence alignment, the broad-stage sibling-contamination oracle output, and F1/F2 P0+P1 findings. No owner gate.",
+ "extensions": {
+  "builder": "shard1 wave-2 (resume) 2026-10-25",
+  "prior_builder": "died mid-flight; artifacts verified against the live contract, not rebuilt"
+ },
+ "ts": "2026-10-24T23:45:52Z"
+}

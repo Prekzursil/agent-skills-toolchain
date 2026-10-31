@@ -1,0 +1,696 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.spec-blind-test-synthesis",
+  "name": "Spec-blind test synthesis against two trees",
+  "description": "Check a patch against the SPEC rather than against itself. A synthesiser that has NEVER SEEN THE DIFF writes tests from the requirement and the public API only; those tests then run against the pre-patch tree (expect FAIL) and the patched tree (expect PASS). A deviation from that pattern is diagnostic: pre-patch PASS means the test does not exercise the requirement, and post-patch FAIL means the patch does not satisfy it. The information barrier is the mechanism - a diff leak invalidates the whole check, so it is a blocking gate rather than an instruction.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "testing",
+    "spec-conformance",
+    "information-barrier",
+    "two-tree",
+    "shadow"
+  ],
+  "flagship": false,
+  "params": {
+    "spec_ref": {
+      "type": "path",
+      "required": true,
+      "description": "The requirement the patch claims to satisfy; vague specs synthesise nonsense"
+    },
+    "public_api_ref": {
+      "type": "path",
+      "required": true,
+      "description": "The public surface the synthesiser may call - and the ONLY code it may read"
+    },
+    "pre_patch_tree": {
+      "type": "path",
+      "required": true,
+      "description": "Worktree at the pre-change ref; the FAIL side of the expectation"
+    },
+    "patched_tree": {
+      "type": "path",
+      "required": true,
+      "description": "Worktree with the patch applied; the PASS side"
+    },
+    "synthesiser_vendor": {
+      "type": "enum",
+      "enum": [
+        "anthropic",
+        "openai",
+        "either"
+      ],
+      "default": "openai",
+      "description": "A cross-vendor synthesiser is independent of the patch author's blind spots"
+    },
+    "sandbox": {
+      "type": "enum",
+      "enum": [
+        "wsl",
+        "container",
+        "modal",
+        "none"
+      ],
+      "default": "container",
+      "description": "Synthesised code EXECUTES; sandbox it wherever the spec involves I/O"
+    }
+  },
+  "roles": {
+    "blind-synthesiser": {
+      "description": "Writes tests from the spec and public API ONLY. Deliberately has no git tool and no read access to the diff - the barrier is enforced by permissions, not by asking nicely",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "two-tree-runner": {
+      "description": "Runs the synthesised suite against both trees and records both outcomes",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:pytest",
+        "Bash:git",
+        "Write(command-center/test/**)"
+      ],
+      "write_paths": [
+        "command-center/test/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "leak-auditor": {
+      "description": "Proves the synthesiser never saw the diff; a leak voids the result",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Bash:pytest",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/test/**)",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/test/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == BLIND_SYNTHESISER",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "independence from the patch author is the point; same-vendor synthesis shares blind spots"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "opus",
+        "vendor": "anthropic"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "diff-blindness": {
+      "predicate": "custom-expression",
+      "expression": "synthesiser_saw_diff == false AND diff_paths_in_synthesiser_inputs == 0 AND synthesiser_had_git_tool == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "two-sided-or-disclosed": {
+      "predicate": "custom-expression",
+      "expression": "pre_patch_tree_built == true OR one_sided_disclosure_emitted == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "shadow-only": {
+      "predicate": "custom-expression",
+      "expression": "blocks_ci == false AND verdict_recorded == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "synthesise-blind",
+      "title": "Write tests from the spec and public API only",
+      "kind": "task",
+      "role": "blind-synthesiser",
+      "checkpoint": true,
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "QLT-5601",
+        "title": "Synthesise executable tests from the requirement and the public API, with the diff withheld",
+        "phase": "2B",
+        "question_or_target": "Write tests that would distinguish a tree satisfying the requirement from one that does not, using ONLY the spec text and the public API signature. The diff, the commit message and the author's own tests are all withheld inputs; if the spec is too vague to synthesise from, say so instead of guessing, because a vague spec synthesises nonsense that then reads as a patch defect.",
+        "inputs": [
+          "params.spec_ref",
+          "params.public_api_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "blind-synthesiser",
+          "basis": "cross-vendor independence from the patch author is the whole value of this stage"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "container-sandbox",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/test/qlt-56-synthesised-tests.json",
+        "output_schema": "command-center/schema/test-registry-entry.schema.json",
+        "evidence_requirement": "each synthesised test names the spec clause it exercises, and the input manifest is recorded so the leak audit can check what was readable",
+        "tests_required": [
+          "a vague spec must yield an explicit INSUFFICIENT-SPEC refusal rather than plausible-looking tests",
+          "both-states control: the recorded input manifest must contain no diff path, and the leak audit must FAIL when one is planted"
+        ],
+        "reviewer_requirement": "the leak-auditor role independently verifies the input manifest before any result is believed",
+        "completion_sentinel": "SUCCESS:QLT-5601 emitted only when the suite is executable, every test cites a spec clause, and the input manifest contains no diff or commit-message path; otherwise FAILED:QLT-5601 <reason>",
+        "retry_policy": "two strikes then pivot to requesting a sharper spec rather than a third synthesis attempt",
+        "failure_classification": [
+          "spec-underspecified",
+          "information-leak",
+          "timeout"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "spec-to-test synthesis under an enforced input barrier"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-56-synthesised-tests.json",
+          "schema_ref": "command-center/schema/test-registry-entry.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5601",
+          "consumers": [
+            "run-pre-patch",
+            "run-patched"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "audit-leak",
+      "title": "Prove the synthesiser never saw the diff",
+      "kind": "task",
+      "depends_on": [
+        "synthesise-blind"
+      ],
+      "role": "leak-auditor",
+      "work_unit_ref": "ADV-0106",
+      "timeout_seconds": 1200
+    },
+    {
+      "id": "diff-blindness",
+      "title": "A leak voids the check outright",
+      "kind": "gate",
+      "depends_on": [
+        "audit-leak"
+      ],
+      "gate_ref": "diff-blindness"
+    },
+    {
+      "id": "run-pre-patch",
+      "title": "Against the pre-patch tree the suite must FAIL",
+      "kind": "task",
+      "depends_on": [
+        "diff-blindness"
+      ],
+      "role": "two-tree-runner",
+      "work_unit_ref": "CNF-0005",
+      "timeout_seconds": 2700
+    },
+    {
+      "id": "two-sided-or-disclosed",
+      "title": "An unbuildable pre-patch tree degrades this to a one-sided assertion",
+      "kind": "gate",
+      "depends_on": [
+        "run-pre-patch"
+      ],
+      "gate_ref": "two-sided-or-disclosed"
+    },
+    {
+      "id": "run-patched",
+      "title": "Against the patched tree the suite must PASS",
+      "kind": "task",
+      "depends_on": [
+        "two-sided-or-disclosed"
+      ],
+      "role": "two-tree-runner",
+      "work_unit_ref": "CNF-0059",
+      "timeout_seconds": 2700
+    },
+    {
+      "id": "classify-deviation",
+      "title": "SATISFIES, SPEC-MISS, or OVERFIT",
+      "kind": "task",
+      "depends_on": [
+        "run-patched"
+      ],
+      "role": "leak-auditor",
+      "work_unit": {
+        "id": "QLT-5602",
+        "title": "Classify the two-tree outcome pattern into SATISFIES, SPEC-MISS or OVERFIT",
+        "phase": "2B",
+        "question_or_target": "Compare the expected pattern (pre FAIL, post PASS) against what happened. pre FAIL + post PASS is SATISFIES. pre FAIL + post FAIL is SPEC-MISS: the patch does not implement the requirement even if its own tests are green. pre PASS is not a patch verdict at all - it means the synthesised test does not exercise the requirement, and must be reported as such rather than as a pass.",
+        "inputs": [
+          "command-center/test/qlt-56-synthesised-tests.json",
+          "command-center/test/qlt-56-pre-result.json",
+          "command-center/test/qlt-56-post-result.json"
+        ],
+        "dependencies": [
+          "QLT-5601"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "leak-auditor",
+          "basis": "the classification is where a naive reading turns a non-result into a green"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/test/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/test/qlt-56-conformance-verdict.json",
+        "output_schema": "command-center/schema/blind-test-report.schema.json",
+        "evidence_requirement": "both runner outputs are stored verbatim and the verdict cites the exact per-test outcome pair",
+        "tests_required": [
+          "a patch that passes its OWN tests but not its spec must be classed SPEC-MISS",
+          "both-states control: a pre-patch PASS must be reported as a non-exercising test, never as SATISFIES"
+        ],
+        "reviewer_requirement": "advisory only; SHADOW mode means the verdict is logged and never blocks CI",
+        "completion_sentinel": "SUCCESS:QLT-5602 emitted only when every synthesised test carries a (pre, post) outcome pair and the verdict is one of SATISFIES, SPEC-MISS or OVERFIT; otherwise FAILED:QLT-5602 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the raw outcome pairs with no aggregate verdict",
+        "failure_classification": [
+          "spec-underspecified",
+          "partial-artifact",
+          "overclaim"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "outcome-pair pattern matching over two tree executions",
+        "not_a_duplicate_because": "the red-proof certifier runs the AUTHOR'S OWN named tests across two refs; this runs tests the author never saw, synthesised from the spec"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-56-conformance-verdict.json",
+          "schema_ref": "command-center/schema/blind-test-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "crv.overclaim-scoping-review",
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shadow-only",
+      "title": "Observe and log; never block CI",
+      "kind": "gate",
+      "depends_on": [
+        "classify-deviation"
+      ],
+      "gate_ref": "shadow-only"
+    },
+    {
+      "id": "record-shadow-verdict",
+      "title": "Record the shadow verdict downstream of the blindness and shadow gates",
+      "kind": "task",
+      "depends_on": [
+        "shadow-only"
+      ],
+      "role": "leak-auditor",
+      "work_unit_ref": "ADV-0109",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/test/qlt-56-shadow-verdict.json",
+          "schema_ref": "command-center/schema/completion-verdict.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "both-runs-complete",
+      "expression": "pre_run_complete == true AND post_run_complete == true",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "synthesiser_saw_diff == false"
+    },
+    {
+      "id": "one-sided-disclosed",
+      "expression": "pre_patch_tree_built == false AND one_sided_disclosure_emitted == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "spec-too-vague",
+      "expression": "insufficient_spec_declared == true",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "classify-deviation"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "spec-underspecified",
+      "information-leak",
+      "timeout",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "classify-deviation",
+    "quarantine_path": "command-center/quarantine/qlt-56"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-56",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260817,
+    "journal_path": "command-center/replay/qlt-56-blind-synth.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "prompt_hash",
+      "model_id"
+    ],
+    "store": "command-center/cache/qlt-56",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-56-plan.json",
+    "forbid_tools": [
+      "Bash:pytest",
+      "mcp__codex__codex",
+      "Write(command-center/test/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "expected": 1.4,
+      "max": 5.0
+    },
+    "wallclock_seconds": {
+      "expected": 2400,
+      "max": 9000
+    },
+    "tokens": {
+      "expected": 280000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "EXECUTES synthesised code - sandboxed by default; writes only under command-center/test/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-56-blind-synth.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/diff-blind-test-synth",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/execution-grounded-bon",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "arXiv:2506.09289 UTBoost",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "UTBoost authors"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/diff-blind-test-synth"
+    ]
+  },
+  "outputs": {
+    "conformance-verdict": {
+      "path": "command-center/test/qlt-56-conformance-verdict.json",
+      "schema_ref": "command-center/schema/blind-test-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "crv.overclaim-scoping-review"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-03",
+    "card_index": 56,
+    "family": "D11-testing",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "patch-vs-spec",
+      "oracle": "synthesised-suite-on-two-trees",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "prepatch-fail-vs-patched-pass",
+      "output_type": "three-way-conformance-verdict",
+      "information_barrier": true
+    },
+    "mechanism": "Generate the oracle from the SPEC behind an enforced information barrier, then read the two-tree outcome PATTERN. The barrier is what makes the tests independent evidence rather than a restatement of the patch.",
+    "contraindications": [
+      "NOT where the spec is vague - synthesis produces nonsense that then reads as a patch defect",
+      "NOT for refactors with no behavioural requirement - use crv.refactor-equivalence-proof",
+      "NOT without a sandbox where the spec involves I/O: this executes generated code",
+      "NOT a blocker: SHADOW mode by construction"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "seeded-spec-miss",
+        "setup": "a patch that passes its own tests but does not implement the requirement",
+        "expected": "SPEC-MISS"
+      },
+      {
+        "name": "correct-patch",
+        "setup": "a patch that does implement the requirement",
+        "expected": "pre FAIL and post PASS both hold - SATISFIES"
+      },
+      {
+        "name": "planted-leak",
+        "setup": "a diff path injected into the synthesiser's input manifest",
+        "expected": "diff-blindness FAILS and the whole result is voided"
+      }
+    ],
+    "why_not_a_duplicate": "BP-TST-06 validates the AUTHOR'S OWN red proof; this synthesises INDEPENDENT tests the author never saw. The two share a two-execution harness, and differ on the axis that matters: test PROVENANCE. Only this one needs an information barrier, and only this one can return SPEC-MISS.",
+    "unverified": "UNVERIFIED (very-likely the mechanism, unmeasured here) on this estate; settling experiment = a seeded spec-miss patch that passes its own tests, run end to end, and check the verdict is SPEC-MISS rather than SATISFIES.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "check an externally contributed patch against its issue text",
+      "params": {
+        "spec_ref": "command-center/specs/issue-412-requirement.md",
+        "public_api_ref": "platform/lib/wfdsl/__init__.py",
+        "pre_patch_tree": "command-center/trees/pre-412",
+        "patched_tree": "command-center/trees/post-412",
+        "synthesiser_vendor": "openai",
+        "sandbox": "container"
+      },
+      "narrative": "Codex synthesised 7 tests from the issue text and the package's public surface, with the diff withheld; the leak audit confirmed the input manifest held only those two paths. Pre-patch: 5 failed, 2 passed - those 2 are reported as non-exercising rather than as evidence. Post-patch: 6 passed, 1 still failed, so the verdict is SPEC-MISS on that clause. SHADOW mode logged it without blocking.",
+      "context": {
+        "synthesiser_saw_diff": false,
+        "diff_paths_in_synthesiser_inputs": 0,
+        "synthesiser_had_git_tool": false,
+        "pre_patch_tree_built": true,
+        "one_sided_disclosure_emitted": false,
+        "blocks_ci": false,
+        "verdict_recorded": true,
+        "pre_run_complete": true,
+        "post_run_complete": true,
+        "insufficient_spec_declared": false,
+        "stage_role": "BLIND_SYNTHESISER"
+      },
+      "expected_gate_pass": [
+        "diff-blindness",
+        "two-sided-or-disclosed",
+        "shadow-only"
+      ],
+      "expected_stop": [
+        "both-runs-complete"
+      ],
+      "negative_control": {
+        "gate": "diff-blindness",
+        "overrides": {
+          "synthesiser_saw_diff": true,
+          "diff_paths_in_synthesiser_inputs": 1
+        },
+        "expected": false,
+        "why": "the information barrier IS the mechanism; a synthesiser that saw the diff produces tests that restate the patch, so the gate must void the run"
+      }
+    }
+  }
+}

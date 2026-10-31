@@ -1,0 +1,784 @@
+{
+ "unit_id": "RES-0096",
+ "schema_version": 1,
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0096 in the receipt AND at least one recorded surviving-or-killed mutant pair from this repo's actual suite",
+ "min_bytes_threshold": 2048,
+ "evidence": [
+  {
+   "claim": "RES-0096 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0096.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0096.json",
+     "raw_output": "bytes=26460 sha256=44d40c19e0f0012470fd7e0a28f73569674a9bbae46694a916e4ee00039fca79",
+     "fingerprint": "d652c0411bead4d8600bcbfcbb029aa6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0096",
+     "raw_output": "schema-check",
+     "fingerprint": "c02dd106965bd06e0fac8774884bdac2",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0096 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0096",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0096",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "2b17a25423c6960a83e4a628d293546a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0096",
+     "raw_output": "schema-valid",
+     "fingerprint": "3afc9b86c6586f1f66dc053ff115cd2a",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0096.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0096.json",
+   "bytes": 26460,
+   "sha256": "44d40c19e0f0012470fd7e0a28f73569674a9bbae46694a916e4ee00039fca79",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "report_kind": "research-claim-record",
+   "title": "Determine how green regression suites stop protecting behaviour over time",
+   "question": "What mechanisms cause a passing test suite to lose its protective power (defaults never exercised, fixtures drifting from production, assertions weakened to fix flakes), and which of them is present in this repo's own suite?",
+   "completion_sentinel": "SUCCESS:RES-0096 in the receipt AND at least one recorded surviving-or-killed mutant pair from this repo's actual suite",
+   "freshness_stamp": "2026-08-25T00:58:19Z",
+   "snapshot_sha256": {
+    "tools/command-center/close.py": {
+     "sha256": "b0402e2df48d76bb3338189be6b92f1db43f640296aa7fc371af6f53d2d6c811",
+     "bytes": 12414
+    },
+    "tools/command-center/tests/test_close.py": {
+     "sha256": "4007fed288efa3decd3b075f28f4adc41312623d05196309683490e908c42212",
+     "bytes": 10721
+    }
+   },
+   "claim_under_test": "A currently-passing close-path suite on this tree already fails to protect unexercised CLI/function defaults; that hole is proven by a live surviving mutant plus a killed control, not by catalog lore.",
+   "executable_suite": {
+    "path": "tools/command-center/tests/test_close.py",
+    "replay": "command-center/p2-wave/probes/RES-0096/suite.py",
+    "why_replay": "pytest is not installed on this Linux worktree (python3 -m pytest -> No module named pytest; pip/ensurepip also absent). The replay keeps the committed assertions, item ids, NOW timestamp, and close.main argv.",
+    "baseline": {
+     "passed": 21,
+     "n": 21,
+     "suite_ok": true,
+     "failed_tests": [],
+     "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}"
+    },
+    "kill_rule": "A mutant is KILLED iff it adds at least one failing test beyond the unmutated baseline failure set. Survives iff extra_failures is empty."
+   },
+   "mechanisms": [
+    {
+     "id": "defaults-never-exercised",
+     "present": true,
+     "verdict": "CONFIRMED",
+     "proof": "M-SURVIVE-DEFER-DAYS and two sibling default mutants SURVIVED",
+     "not_equivalent": "omitting --days on the 99-day mutant yields until=2026-11-16T12:00:00+00:00; the unmutated default-7 until would be 2026-08-16T12:00:00+00:00"
+    },
+    {
+     "id": "fixtures-drifting-from-production",
+     "present": false,
+     "verdict": "NOT-CONFIRMED-ON-THIS-TREE",
+     "proof": "Close-path replay is 21/21 green. REGISTER.md, DEPENDENCY-GRAPH.json, TEST-REGISTRY.json, and CLAIM-REGISTRY.json exist on this worktree. The earlier REACH-6 red on test_closing_every_open_item_leaves_a_valid_catalog is not current and is not re-stated as a live finding.",
+     "mutation_proof": "NOT a surviving mutant. Historical CRLF vs LF REACH-6 is a regression in test_seed.py:test_register_provenance_is_lf_normalised, not a green-suite mutant that survived this campaign."
+    },
+    {
+     "id": "assertions-weakened-to-fix-flakes",
+     "present": true,
+     "verdict": "PARTIAL",
+     "proof": "test_seed.py explicitly scopes derived-field assertions so that post-seed close/defer mutations do not turn the test red, with the comment that asserting those fields 'would make this test red for correct work, which is how a tripwire gets deleted'.",
+     "mutation_proof": "Quoted source, not a surviving mutant. The comment names tripwire deletion rather than flake suppression. REGISTER.md is present; seed tests were not mutation-campaigned here."
+    }
+   ],
+   "catalog_lore_not_reproduced": {
+    "claim": "Catalog units cite reverting DEFAULT_MIN_BYTES from 1024 to 512 keeping a 15/15 suite green because every test passed min_bytes explicitly.",
+    "on_this_tree": "DEFAULT_MIN_BYTES does not appear under tools/command-center/. That mutation was NOT re-run here. The live analogue is DEFAULT_DEFER_DAYS=7 -> 99.",
+    "constant_present": false
+   },
+   "claims": [
+    {
+     "id": "C-DEFAULTS",
+     "claim": "Unexercised defaults are present in this repo's close-path suite: changing DEFAULT_DEFER_DAYS from 7 to 99 adds zero new failing tests, while omitting --days (a supported argparse default) moves defer-until from NOW+7 to NOW+99.",
+     "verdict": "CONFIRMED",
+     "anchor": "tools/command-center/close.py:52",
+     "evidence_tier": "E1"
+    },
+    {
+     "id": "C-FIXTURE-DRIFT",
+     "claim": "Fixture drift is not demonstrated on this tree's close-path suite: the replay is 21/21 green and REGISTER.md is present. A prior REACH-6 red from a missing register is historical, not a live measurement.",
+     "verdict": "NOT-CONFIRMED",
+     "anchor": "command-center/sources/REGISTER.md (present)",
+     "evidence_tier": "E1"
+    },
+    {
+     "id": "C-WEAKENED",
+     "claim": "Assertion weakening is documented in test_seed.py as a deliberate scope-down to avoid red-on-correct-work. Not mutation-proven: the seed module was outside this close-path campaign.",
+     "verdict": "PARTIAL",
+     "anchor": "tools/command-center/tests/test_seed.py:29",
+     "evidence_tier": "E1"
+    },
+    {
+     "id": "C-HARNESS",
+     "claim": "The mutation harness is live: rewriting the close-path DONE-VERIFIED assignment to DONE-CLAIMED adds six failing tests including test_close_sets_a_terminal_disposition_with_evidence.",
+     "verdict": "CONFIRMED",
+     "anchor": "tools/command-center/close.py:183",
+     "evidence_tier": "E1"
+    },
+    {
+     "id": "C-LORE",
+     "claim": "The catalog DEFAULT_MIN_BYTES 1024->512 survivor is restated lore on this worktree, not a live measurement.",
+     "verdict": "CONFIRMED",
+     "anchor": "tools/command-center/ (DEFAULT_MIN_BYTES absent)",
+     "evidence_tier": "E1"
+    }
+   ],
+   "literature": [
+    {
+     "id": "L-PSEUDO",
+     "citation": "Vera-Pérez, Danglot, Monperrus, Baudry. A comprehensive study of pseudo-tested methods. Empirical Software Engineering 24(3), 2019, pp. 1195-1225.",
+     "doi": "10.1007/s10664-018-9653-2",
+     "arxiv": "1807.05030",
+     "section": "abstract + mutation-score comparison of pseudo-tested vs required methods",
+     "what_was_used": "Definition: methods covered by tests whose bodies can be stripped without a test failure. Maps onto unexercised defaults: the defer path is covered, the default value is not specified.",
+     "reported_effect": "Mutation score of pseudo-tested methods is significantly lower than required methods; pdfbox 32% vs 68%; scifio 1% vs 84%.",
+     "reported_baseline": "Mutation score on covered, non-pseudo-tested ('required') methods in the same 21 Java subjects / 28K+ methods.",
+     "evidence_tier": "E2"
+    },
+    {
+     "id": "L-LONGSTANDING",
+     "citation": "Ojdanic et al. Keeping Mutation Test Suites Consistent and Relevant with Long-Standing Mutants. ESEC/FSE 2023 companion.",
+     "doi": "10.1145/3611643.3613089",
+     "arxiv": "2212.11762",
+     "section": "abstract (degradation measurement)",
+     "what_was_used": "Mutant-suite relevance decays as the program evolves: a green historical mutation score is not a standing guarantee.",
+     "reported_effect": "52% of mutants degrade on average",
+     "reported_baseline": "143,500 mutants across 4 non-trivial systems",
+     "evidence_tier": "E2"
+    },
+    {
+     "id": "L-NIEDERMAYR",
+     "citation": "Niedermayr, Jürgens, Wagner. Will my tests tell me if I break this code? CSED 2016. Coined 'pseudo-tested methods'.",
+     "doi": "",
+     "arxiv": "",
+     "section": "cited via Vera-Pérez 2019; PDF not fetched this session",
+     "what_was_used": "Origin of the pseudo-tested method term.",
+     "reported_effect": "not extracted from primary text this session",
+     "reported_baseline": "not extracted from primary text this session",
+     "evidence_tier": "E3"
+    },
+    {
+     "id": "L-SMELLS",
+     "citation": "van Deursen, Moonen, van den Bergh, Kok. Refactoring Test Code. XP 2001. Names assertion roulette, mystery guest, general fixture.",
+     "doi": "",
+     "arxiv": "",
+     "section": "test-smell catalogue (PDF not fetched this session)",
+     "what_was_used": "Fixture/assertion smells as named decay mechanisms. Mystery guest is the named class for a missing external file; on this tree REGISTER.md is present so that mapping is NOT used as a live finding. Assertion scope-down matches test_seed.py's withheld post-seed fields.",
+     "reported_effect": "not a numeric paper; qualitative smell catalogue",
+     "reported_baseline": "n/a (no headline number)",
+     "evidence_tier": "E3"
+    }
+   ],
+   "new_versus_restated": {
+    "new": "Live surviving-or-killed pair on tools/command-center/tests/test_close.py replayed on this Linux worktree: DEFAULT_DEFER_DAYS 7->99 SURVIVED; DONE-VERIFIED->DONE-CLAIMED KILLED; omit --days proves non-equivalence.",
+    "restated": "Pseudo-tested methods / unexercised defaults as a literature mechanism (Vera-Pérez 2019; Niedermayr 2016). Catalog lore about DEFAULT_MIN_BYTES 1024->512 is restated, not re-measured.",
+    "null_result": "None. A null would have been 'N operators applied, 0 survivors and 0 kills after extra-failure classification'. That is not what happened."
+   },
+   "mutant_pairs": [
+    {
+     "id": "M-SURVIVE-DEFER-DAYS",
+     "target": "tools/command-center/close.py",
+     "operator": "'DEFAULT_DEFER_DAYS = 7' -> 'DEFAULT_DEFER_DAYS = 99'",
+     "mechanism": "defaults-never-exercised",
+     "verdict": "SURVIVED",
+     "suite_ok": true,
+     "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-SURVIVE-DEFER-DAYS @@\n-DEFAULT_DEFER_DAYS = 7\n+DEFAULT_DEFER_DAYS = 99\n",
+     "failed_tests": [],
+     "extra_failures": [],
+     "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+     "passed": 21,
+     "n": 21,
+     "semantic_omit_days": "{\"code\": 0, \"until\": \"2026-11-16T12:00:00+00:00\", \"out\": \"SUCCESS:cc-close defer R-M14 open=58 total=103\\n\"}",
+     "expected_until_if_default_7": "2026-08-16T12:00:00+00:00",
+     "expected_until_if_default_99": "2026-11-16T12:00:00+00:00"
+    },
+    {
+     "id": "M-SURVIVE-SECURITY-CLASS",
+     "target": "tools/command-center/close.py",
+     "operator": "'parser.add_argument(\"--security-class\", default=\"none\")' -> 'parser.add_argument(\"--security-class\", default=\"classified\")'",
+     "mechanism": "defaults-never-exercised",
+     "verdict": "SURVIVED",
+     "suite_ok": true,
+     "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-SURVIVE-SECURITY-CLASS @@\n-parser.add_argument(\"--security-class\", default=\"none\")\n+parser.add_argument(\"--security-class\", default=\"classified\")\n",
+     "failed_tests": [],
+     "extra_failures": [],
+     "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+     "passed": 21,
+     "n": 21,
+     "semantic_omit_days": null,
+     "expected_until_if_default_7": null,
+     "expected_until_if_default_99": null
+    },
+    {
+     "id": "M-SURVIVE-REQUIRE-COMPLETE",
+     "target": "tools/command-center/validate.py",
+     "operator": "'require_complete: bool = False,' -> 'require_complete: bool = True,'",
+     "mechanism": "defaults-never-exercised",
+     "verdict": "SURVIVED",
+     "suite_ok": true,
+     "mutated_diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ mutation M-SURVIVE-REQUIRE-COMPLETE @@\n-require_complete: bool = False,\n+require_complete: bool = True,\n",
+     "failed_tests": [],
+     "extra_failures": [],
+     "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+     "passed": 21,
+     "n": 21,
+     "semantic_omit_days": null,
+     "expected_until_if_default_7": null,
+     "expected_until_if_default_99": null
+    },
+    {
+     "id": "M-KILL-DONE-VERIFIED",
+     "target": "tools/command-center/close.py",
+     "operator": "'    item[\"disposition\"] = \"DONE-VERIFIED\"\\n    item[\"status\"] = \"DONE-VERIFIED\"' -> '    item[\"disposition\"] = \"DONE-CLAIMED\"\\n    item[\"status\"] = \"DONE-CLAIMED\"'",
+     "mechanism": "control-harness-liveness",
+     "verdict": "KILLED",
+     "suite_ok": false,
+     "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-KILL-DONE-VERIFIED @@\n-    item[\"disposition\"] = \"DONE-VERIFIED\"\n    item[\"status\"] = \"DONE-VERIFIED\"\n+    item[\"disposition\"] = \"DONE-CLAIMED\"\n    item[\"status\"] = \"DONE-CLAIMED\"\n",
+     "failed_tests": [
+      "test_close_sets_a_terminal_disposition_with_evidence",
+      "test_every_mutation_regenerates_the_graph_and_logs_an_event",
+      "test_the_event_log_is_append_only",
+      "test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+      "test_dry_run_writes_nothing",
+      "test_close_is_one_command_like_open"
+     ],
+     "extra_failures": [
+      "test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+      "test_close_is_one_command_like_open",
+      "test_close_sets_a_terminal_disposition_with_evidence",
+      "test_dry_run_writes_nothing",
+      "test_every_mutation_regenerates_the_graph_and_logs_an_event",
+      "test_the_event_log_is_append_only"
+     ],
+     "verbatim_output": "FAIL test_close_sets_a_terminal_disposition_with_evidence AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nFAIL test_every_mutation_regenerates_the_graph_and_logs_an_event AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_the_event_log_is_append_only FileNotFoundError: [Errno 2] No such file or directory: '/tmp/res0096-suite-5re5uczz/test_the_event_log_is_append_only/events/EVENTS.jsonl'\nPASS test_a_close_that_would_break_reachability_is_refused\nFAIL test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_dry_run_writes_nothing AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_close_is_one_command_like_open AssertionError:   REACH-5 R-H11: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": false, \"passed\": 15, \"n\": 21, \"failed\": [\"test_close_sets_a_terminal_disposition_with_evidence\", \"test_every_mutation_regenerates_the_graph_and_logs_an_event\", \"test_the_event_log_is_append_only\", \"test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\", \"test_dry_run_writes_nothing\", \"test_close_is_one_command_like_open\"]}",
+     "passed": 15,
+     "n": 21,
+     "semantic_omit_days": null,
+     "expected_until_if_default_7": null,
+     "expected_until_if_default_99": null
+    }
+   ],
+   "n_operators_applied": 4,
+   "surviving_or_killed_pair": {
+    "survived": [
+     "M-SURVIVE-DEFER-DAYS",
+     "M-SURVIVE-SECURITY-CLASS",
+     "M-SURVIVE-REQUIRE-COMPLETE"
+    ],
+    "killed": [
+     "M-KILL-DONE-VERIFIED"
+    ],
+    "recorded": true
+   },
+   "fixture_census": {
+    "command-center/DEPENDENCY-GRAPH.json": {
+     "exists": true,
+     "bytes": 25025
+    },
+    "command-center/sources/REGISTER.md": {
+     "exists": true,
+     "bytes": 60771
+    },
+    "command-center/TEST-REGISTRY.json": {
+     "exists": true,
+     "bytes": 8619
+    },
+    "command-center/CLAIM-REGISTRY.json": {
+     "exists": true,
+     "bytes": 11064
+    },
+    "command-center/events/EVENTS.jsonl": {
+     "exists": true,
+     "bytes": 406
+    },
+    "tools/mutation-gate/conftest.py": {
+     "exists": true,
+     "bytes": 516
+    }
+   },
+   "strongest_surviving_counterargument": "The close-test replay is not pytest collection (pytest is absent on this Linux worktree). Kill/survive is extra-failure versus a now-green 21/21 close-path baseline, not a mutation score over every module under tools/command-center/tests. test_seed.py assertion scope-down is quoted source, not a seed-module mutant. Fixture-drift is reported as NOT-CONFIRMED rather than dressed up from a historical REACH-6 red.",
+   "operators_published_before_rate": [
+    {
+     "id": "M-SURVIVE-DEFER-DAYS",
+     "file": "close.py",
+     "old": "DEFAULT_DEFER_DAYS = 7",
+     "new": "DEFAULT_DEFER_DAYS = 99",
+     "expect": "SURVIVED",
+     "mechanism": "defaults-never-exercised",
+     "why": "The only defer test passes --days 14 explicitly, so the argparse default bound to DEFAULT_DEFER_DAYS is never exercised."
+    },
+    {
+     "id": "M-SURVIVE-SECURITY-CLASS",
+     "file": "close.py",
+     "old": "parser.add_argument(\"--security-class\", default=\"none\")",
+     "new": "parser.add_argument(\"--security-class\", default=\"classified\")",
+     "expect": "SURVIVED",
+     "mechanism": "defaults-never-exercised",
+     "why": "test_open allocates an id and checks program/openness, never security_class, so the CLI default can change silently."
+    },
+    {
+     "id": "M-SURVIVE-REQUIRE-COMPLETE",
+     "file": "validate.py",
+     "old": "require_complete: bool = False,",
+     "new": "require_complete: bool = True,",
+     "expect": "SURVIVED",
+     "mechanism": "defaults-never-exercised",
+     "why": "close.main calls validate() with the default flag. The one test that mentions require_complete passes both True and False explicitly. Shipped CI is the store_true CLI flag, also default-off."
+    },
+    {
+     "id": "M-KILL-DONE-VERIFIED",
+     "file": "close.py",
+     "old": "    item[\"disposition\"] = \"DONE-VERIFIED\"\n    item[\"status\"] = \"DONE-VERIFIED\"",
+     "new": "    item[\"disposition\"] = \"DONE-CLAIMED\"\n    item[\"status\"] = \"DONE-CLAIMED\"",
+     "expect": "KILLED",
+     "mechanism": "control-harness-liveness",
+     "why": "test_close_sets_a_terminal_disposition_with_evidence asserts disposition == DONE-VERIFIED. A live harness must turn this red."
+    }
+   ],
+   "schema_binding": {
+    "declared": "command-center/schema/research-claim-record.schema.json",
+    "declared_is_ref_shim": true,
+    "remote_ref_not_fetched": true,
+    "local_contract_rejects_garbage": true
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0096",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0096/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0096"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0096.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0096.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "89d8e48b3565bab2a228676c6da94ab8",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 26460,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0096.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "report_kind": "research-claim-record",
+ "title": "Determine how green regression suites stop protecting behaviour over time",
+ "question": "What mechanisms cause a passing test suite to lose its protective power (defaults never exercised, fixtures drifting from production, assertions weakened to fix flakes), and which of them is present in this repo's own suite?",
+ "completion_sentinel": "SUCCESS:RES-0096 in the receipt AND at least one recorded surviving-or-killed mutant pair from this repo's actual suite",
+ "freshness_stamp": "2026-08-25T00:58:19Z",
+ "snapshot_sha256": {
+  "tools/command-center/close.py": {
+   "sha256": "b0402e2df48d76bb3338189be6b92f1db43f640296aa7fc371af6f53d2d6c811",
+   "bytes": 12414
+  },
+  "tools/command-center/tests/test_close.py": {
+   "sha256": "4007fed288efa3decd3b075f28f4adc41312623d05196309683490e908c42212",
+   "bytes": 10721
+  }
+ },
+ "claim_under_test": "A currently-passing close-path suite on this tree already fails to protect unexercised CLI/function defaults; that hole is proven by a live surviving mutant plus a killed control, not by catalog lore.",
+ "executable_suite": {
+  "path": "tools/command-center/tests/test_close.py",
+  "replay": "command-center/p2-wave/probes/RES-0096/suite.py",
+  "why_replay": "pytest is not installed on this Linux worktree (python3 -m pytest -> No module named pytest; pip/ensurepip also absent). The replay keeps the committed assertions, item ids, NOW timestamp, and close.main argv.",
+  "baseline": {
+   "passed": 21,
+   "n": 21,
+   "suite_ok": true,
+   "failed_tests": [],
+   "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}"
+  },
+  "kill_rule": "A mutant is KILLED iff it adds at least one failing test beyond the unmutated baseline failure set. Survives iff extra_failures is empty."
+ },
+ "mechanisms": [
+  {
+   "id": "defaults-never-exercised",
+   "present": true,
+   "verdict": "CONFIRMED",
+   "proof": "M-SURVIVE-DEFER-DAYS and two sibling default mutants SURVIVED",
+   "not_equivalent": "omitting --days on the 99-day mutant yields until=2026-11-16T12:00:00+00:00; the unmutated default-7 until would be 2026-08-16T12:00:00+00:00"
+  },
+  {
+   "id": "fixtures-drifting-from-production",
+   "present": false,
+   "verdict": "NOT-CONFIRMED-ON-THIS-TREE",
+   "proof": "Close-path replay is 21/21 green. REGISTER.md, DEPENDENCY-GRAPH.json, TEST-REGISTRY.json, and CLAIM-REGISTRY.json exist on this worktree. The earlier REACH-6 red on test_closing_every_open_item_leaves_a_valid_catalog is not current and is not re-stated as a live finding.",
+   "mutation_proof": "NOT a surviving mutant. Historical CRLF vs LF REACH-6 is a regression in test_seed.py:test_register_provenance_is_lf_normalised, not a green-suite mutant that survived this campaign."
+  },
+  {
+   "id": "assertions-weakened-to-fix-flakes",
+   "present": true,
+   "verdict": "PARTIAL",
+   "proof": "test_seed.py explicitly scopes derived-field assertions so that post-seed close/defer mutations do not turn the test red, with the comment that asserting those fields 'would make this test red for correct work, which is how a tripwire gets deleted'.",
+   "mutation_proof": "Quoted source, not a surviving mutant. The comment names tripwire deletion rather than flake suppression. REGISTER.md is present; seed tests were not mutation-campaigned here."
+  }
+ ],
+ "catalog_lore_not_reproduced": {
+  "claim": "Catalog units cite reverting DEFAULT_MIN_BYTES from 1024 to 512 keeping a 15/15 suite green because every test passed min_bytes explicitly.",
+  "on_this_tree": "DEFAULT_MIN_BYTES does not appear under tools/command-center/. That mutation was NOT re-run here. The live analogue is DEFAULT_DEFER_DAYS=7 -> 99.",
+  "constant_present": false
+ },
+ "claims": [
+  {
+   "id": "C-DEFAULTS",
+   "claim": "Unexercised defaults are present in this repo's close-path suite: changing DEFAULT_DEFER_DAYS from 7 to 99 adds zero new failing tests, while omitting --days (a supported argparse default) moves defer-until from NOW+7 to NOW+99.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/command-center/close.py:52",
+   "evidence_tier": "E1"
+  },
+  {
+   "id": "C-FIXTURE-DRIFT",
+   "claim": "Fixture drift is not demonstrated on this tree's close-path suite: the replay is 21/21 green and REGISTER.md is present. A prior REACH-6 red from a missing register is historical, not a live measurement.",
+   "verdict": "NOT-CONFIRMED",
+   "anchor": "command-center/sources/REGISTER.md (present)",
+   "evidence_tier": "E1"
+  },
+  {
+   "id": "C-WEAKENED",
+   "claim": "Assertion weakening is documented in test_seed.py as a deliberate scope-down to avoid red-on-correct-work. Not mutation-proven: the seed module was outside this close-path campaign.",
+   "verdict": "PARTIAL",
+   "anchor": "tools/command-center/tests/test_seed.py:29",
+   "evidence_tier": "E1"
+  },
+  {
+   "id": "C-HARNESS",
+   "claim": "The mutation harness is live: rewriting the close-path DONE-VERIFIED assignment to DONE-CLAIMED adds six failing tests including test_close_sets_a_terminal_disposition_with_evidence.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/command-center/close.py:183",
+   "evidence_tier": "E1"
+  },
+  {
+   "id": "C-LORE",
+   "claim": "The catalog DEFAULT_MIN_BYTES 1024->512 survivor is restated lore on this worktree, not a live measurement.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/command-center/ (DEFAULT_MIN_BYTES absent)",
+   "evidence_tier": "E1"
+  }
+ ],
+ "literature": [
+  {
+   "id": "L-PSEUDO",
+   "citation": "Vera-Pérez, Danglot, Monperrus, Baudry. A comprehensive study of pseudo-tested methods. Empirical Software Engineering 24(3), 2019, pp. 1195-1225.",
+   "doi": "10.1007/s10664-018-9653-2",
+   "arxiv": "1807.05030",
+   "section": "abstract + mutation-score comparison of pseudo-tested vs required methods",
+   "what_was_used": "Definition: methods covered by tests whose bodies can be stripped without a test failure. Maps onto unexercised defaults: the defer path is covered, the default value is not specified.",
+   "reported_effect": "Mutation score of pseudo-tested methods is significantly lower than required methods; pdfbox 32% vs 68%; scifio 1% vs 84%.",
+   "reported_baseline": "Mutation score on covered, non-pseudo-tested ('required') methods in the same 21 Java subjects / 28K+ methods.",
+   "evidence_tier": "E2"
+  },
+  {
+   "id": "L-LONGSTANDING",
+   "citation": "Ojdanic et al. Keeping Mutation Test Suites Consistent and Relevant with Long-Standing Mutants. ESEC/FSE 2023 companion.",
+   "doi": "10.1145/3611643.3613089",
+   "arxiv": "2212.11762",
+   "section": "abstract (degradation measurement)",
+   "what_was_used": "Mutant-suite relevance decays as the program evolves: a green historical mutation score is not a standing guarantee.",
+   "reported_effect": "52% of mutants degrade on average",
+   "reported_baseline": "143,500 mutants across 4 non-trivial systems",
+   "evidence_tier": "E2"
+  },
+  {
+   "id": "L-NIEDERMAYR",
+   "citation": "Niedermayr, Jürgens, Wagner. Will my tests tell me if I break this code? CSED 2016. Coined 'pseudo-tested methods'.",
+   "doi": "",
+   "arxiv": "",
+   "section": "cited via Vera-Pérez 2019; PDF not fetched this session",
+   "what_was_used": "Origin of the pseudo-tested method term.",
+   "reported_effect": "not extracted from primary text this session",
+   "reported_baseline": "not extracted from primary text this session",
+   "evidence_tier": "E3"
+  },
+  {
+   "id": "L-SMELLS",
+   "citation": "van Deursen, Moonen, van den Bergh, Kok. Refactoring Test Code. XP 2001. Names assertion roulette, mystery guest, general fixture.",
+   "doi": "",
+   "arxiv": "",
+   "section": "test-smell catalogue (PDF not fetched this session)",
+   "what_was_used": "Fixture/assertion smells as named decay mechanisms. Mystery guest is the named class for a missing external file; on this tree REGISTER.md is present so that mapping is NOT used as a live finding. Assertion scope-down matches test_seed.py's withheld post-seed fields.",
+   "reported_effect": "not a numeric paper; qualitative smell catalogue",
+   "reported_baseline": "n/a (no headline number)",
+   "evidence_tier": "E3"
+  }
+ ],
+ "new_versus_restated": {
+  "new": "Live surviving-or-killed pair on tools/command-center/tests/test_close.py replayed on this Linux worktree: DEFAULT_DEFER_DAYS 7->99 SURVIVED; DONE-VERIFIED->DONE-CLAIMED KILLED; omit --days proves non-equivalence.",
+  "restated": "Pseudo-tested methods / unexercised defaults as a literature mechanism (Vera-Pérez 2019; Niedermayr 2016). Catalog lore about DEFAULT_MIN_BYTES 1024->512 is restated, not re-measured.",
+  "null_result": "None. A null would have been 'N operators applied, 0 survivors and 0 kills after extra-failure classification'. That is not what happened."
+ },
+ "mutant_pairs": [
+  {
+   "id": "M-SURVIVE-DEFER-DAYS",
+   "target": "tools/command-center/close.py",
+   "operator": "'DEFAULT_DEFER_DAYS = 7' -> 'DEFAULT_DEFER_DAYS = 99'",
+   "mechanism": "defaults-never-exercised",
+   "verdict": "SURVIVED",
+   "suite_ok": true,
+   "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-SURVIVE-DEFER-DAYS @@\n-DEFAULT_DEFER_DAYS = 7\n+DEFAULT_DEFER_DAYS = 99\n",
+   "failed_tests": [],
+   "extra_failures": [],
+   "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+   "passed": 21,
+   "n": 21,
+   "semantic_omit_days": "{\"code\": 0, \"until\": \"2026-11-16T12:00:00+00:00\", \"out\": \"SUCCESS:cc-close defer R-M14 open=58 total=103\\n\"}",
+   "expected_until_if_default_7": "2026-08-16T12:00:00+00:00",
+   "expected_until_if_default_99": "2026-11-16T12:00:00+00:00"
+  },
+  {
+   "id": "M-SURVIVE-SECURITY-CLASS",
+   "target": "tools/command-center/close.py",
+   "operator": "'parser.add_argument(\"--security-class\", default=\"none\")' -> 'parser.add_argument(\"--security-class\", default=\"classified\")'",
+   "mechanism": "defaults-never-exercised",
+   "verdict": "SURVIVED",
+   "suite_ok": true,
+   "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-SURVIVE-SECURITY-CLASS @@\n-parser.add_argument(\"--security-class\", default=\"none\")\n+parser.add_argument(\"--security-class\", default=\"classified\")\n",
+   "failed_tests": [],
+   "extra_failures": [],
+   "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+   "passed": 21,
+   "n": 21,
+   "semantic_omit_days": null,
+   "expected_until_if_default_7": null,
+   "expected_until_if_default_99": null
+  },
+  {
+   "id": "M-SURVIVE-REQUIRE-COMPLETE",
+   "target": "tools/command-center/validate.py",
+   "operator": "'require_complete: bool = False,' -> 'require_complete: bool = True,'",
+   "mechanism": "defaults-never-exercised",
+   "verdict": "SURVIVED",
+   "suite_ok": true,
+   "mutated_diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ mutation M-SURVIVE-REQUIRE-COMPLETE @@\n-require_complete: bool = False,\n+require_complete: bool = True,\n",
+   "failed_tests": [],
+   "extra_failures": [],
+   "verbatim_output": "PASS test_close_sets_a_terminal_disposition_with_evidence\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nPASS test_every_mutation_regenerates_the_graph_and_logs_an_event\nPASS test_the_event_log_is_append_only\nPASS test_a_close_that_would_break_reachability_is_refused\nPASS test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\nPASS test_dry_run_writes_nothing\nPASS test_close_is_one_command_like_open\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": true, \"passed\": 21, \"n\": 21, \"failed\": []}",
+   "passed": 21,
+   "n": 21,
+   "semantic_omit_days": null,
+   "expected_until_if_default_7": null,
+   "expected_until_if_default_99": null
+  },
+  {
+   "id": "M-KILL-DONE-VERIFIED",
+   "target": "tools/command-center/close.py",
+   "operator": "'    item[\"disposition\"] = \"DONE-VERIFIED\"\\n    item[\"status\"] = \"DONE-VERIFIED\"' -> '    item[\"disposition\"] = \"DONE-CLAIMED\"\\n    item[\"status\"] = \"DONE-CLAIMED\"'",
+   "mechanism": "control-harness-liveness",
+   "verdict": "KILLED",
+   "suite_ok": false,
+   "mutated_diff": "--- a/tools/command-center/close.py\n+++ b/tools/command-center/close.py\n@@ mutation M-KILL-DONE-VERIFIED @@\n-    item[\"disposition\"] = \"DONE-VERIFIED\"\n    item[\"status\"] = \"DONE-VERIFIED\"\n+    item[\"disposition\"] = \"DONE-CLAIMED\"\n    item[\"status\"] = \"DONE-CLAIMED\"\n",
+   "failed_tests": [
+    "test_close_sets_a_terminal_disposition_with_evidence",
+    "test_every_mutation_regenerates_the_graph_and_logs_an_event",
+    "test_the_event_log_is_append_only",
+    "test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+    "test_dry_run_writes_nothing",
+    "test_close_is_one_command_like_open"
+   ],
+   "extra_failures": [
+    "test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+    "test_close_is_one_command_like_open",
+    "test_close_sets_a_terminal_disposition_with_evidence",
+    "test_dry_run_writes_nothing",
+    "test_every_mutation_regenerates_the_graph_and_logs_an_event",
+    "test_the_event_log_is_append_only"
+   ],
+   "verbatim_output": "FAIL test_close_sets_a_terminal_disposition_with_evidence AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nPASS test_close_without_evidence_is_refused\nPASS test_defer_keeps_the_item_open_and_never_deletes\nPASS test_supersede_requires_a_real_replacement\nPASS test_drop_records_the_owner_decision\nPASS test_note_records_progress_without_closing\nPASS test_open_allocates_the_next_free_id_in_that_program\nPASS test_open_without_a_program_is_refused\nPASS test_unknown_item_is_refused\nPASS test_no_verb_is_refused\nFAIL test_every_mutation_regenerates_the_graph_and_logs_an_event AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_the_event_log_is_append_only FileNotFoundError: [Errno 2] No such file or directory: '/tmp/res0096-suite-5re5uczz/test_the_event_log_is_append_only/events/EVENTS.jsonl'\nPASS test_a_close_that_would_break_reachability_is_refused\nFAIL test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_dry_run_writes_nothing AssertionError:   REACH-5 R-M08: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nFAIL test_close_is_one_command_like_open AssertionError:   REACH-5 R-H11: disposition 'DONE-CLAIMED' is not terminal\nFAILED:cc-close this change would introduce 1 violation(s); nothing written\n\nPASS test_list_filters_by_program_and_openness\nPASS test_unreadable_catalog_fails_closed\nPASS test_next_id_rejects_an_unknown_program\nPASS test_now_defaults_to_wall_clock_utc\nPASS test_closing_every_open_item_leaves_a_valid_catalog\n{\"ok\": false, \"passed\": 15, \"n\": 21, \"failed\": [\"test_close_sets_a_terminal_disposition_with_evidence\", \"test_every_mutation_regenerates_the_graph_and_logs_an_event\", \"test_the_event_log_is_append_only\", \"test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close\", \"test_dry_run_writes_nothing\", \"test_close_is_one_command_like_open\"]}",
+   "passed": 15,
+   "n": 21,
+   "semantic_omit_days": null,
+   "expected_until_if_default_7": null,
+   "expected_until_if_default_99": null
+  }
+ ],
+ "n_operators_applied": 4,
+ "surviving_or_killed_pair": {
+  "survived": [
+   "M-SURVIVE-DEFER-DAYS",
+   "M-SURVIVE-SECURITY-CLASS",
+   "M-SURVIVE-REQUIRE-COMPLETE"
+  ],
+  "killed": [
+   "M-KILL-DONE-VERIFIED"
+  ],
+  "recorded": true
+ },
+ "fixture_census": {
+  "command-center/DEPENDENCY-GRAPH.json": {
+   "exists": true,
+   "bytes": 25025
+  },
+  "command-center/sources/REGISTER.md": {
+   "exists": true,
+   "bytes": 60771
+  },
+  "command-center/TEST-REGISTRY.json": {
+   "exists": true,
+   "bytes": 8619
+  },
+  "command-center/CLAIM-REGISTRY.json": {
+   "exists": true,
+   "bytes": 11064
+  },
+  "command-center/events/EVENTS.jsonl": {
+   "exists": true,
+   "bytes": 406
+  },
+  "tools/mutation-gate/conftest.py": {
+   "exists": true,
+   "bytes": 516
+  }
+ },
+ "strongest_surviving_counterargument": "The close-test replay is not pytest collection (pytest is absent on this Linux worktree). Kill/survive is extra-failure versus a now-green 21/21 close-path baseline, not a mutation score over every module under tools/command-center/tests. test_seed.py assertion scope-down is quoted source, not a seed-module mutant. Fixture-drift is reported as NOT-CONFIRMED rather than dressed up from a historical REACH-6 red.",
+ "operators_published_before_rate": [
+  {
+   "id": "M-SURVIVE-DEFER-DAYS",
+   "file": "close.py",
+   "old": "DEFAULT_DEFER_DAYS = 7",
+   "new": "DEFAULT_DEFER_DAYS = 99",
+   "expect": "SURVIVED",
+   "mechanism": "defaults-never-exercised",
+   "why": "The only defer test passes --days 14 explicitly, so the argparse default bound to DEFAULT_DEFER_DAYS is never exercised."
+  },
+  {
+   "id": "M-SURVIVE-SECURITY-CLASS",
+   "file": "close.py",
+   "old": "parser.add_argument(\"--security-class\", default=\"none\")",
+   "new": "parser.add_argument(\"--security-class\", default=\"classified\")",
+   "expect": "SURVIVED",
+   "mechanism": "defaults-never-exercised",
+   "why": "test_open allocates an id and checks program/openness, never security_class, so the CLI default can change silently."
+  },
+  {
+   "id": "M-SURVIVE-REQUIRE-COMPLETE",
+   "file": "validate.py",
+   "old": "require_complete: bool = False,",
+   "new": "require_complete: bool = True,",
+   "expect": "SURVIVED",
+   "mechanism": "defaults-never-exercised",
+   "why": "close.main calls validate() with the default flag. The one test that mentions require_complete passes both True and False explicitly. Shipped CI is the store_true CLI flag, also default-off."
+  },
+  {
+   "id": "M-KILL-DONE-VERIFIED",
+   "file": "close.py",
+   "old": "    item[\"disposition\"] = \"DONE-VERIFIED\"\n    item[\"status\"] = \"DONE-VERIFIED\"",
+   "new": "    item[\"disposition\"] = \"DONE-CLAIMED\"\n    item[\"status\"] = \"DONE-CLAIMED\"",
+   "expect": "KILLED",
+   "mechanism": "control-harness-liveness",
+   "why": "test_close_sets_a_terminal_disposition_with_evidence asserts disposition == DONE-VERIFIED. A live harness must turn this red."
+  }
+ ],
+ "schema_binding": {
+  "declared": "command-center/schema/research-claim-record.schema.json",
+  "declared_is_ref_shim": true,
+  "remote_ref_not_fetched": true,
+  "local_contract_rejects_garbage": true
+ }
+}

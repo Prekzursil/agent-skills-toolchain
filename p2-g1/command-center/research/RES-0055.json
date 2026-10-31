@@ -1,0 +1,1059 @@
+{
+ "schema_version": 1,
+ "unit_id": "RES-0055",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0055 in the receipt AND an incident table with primary-source citations and a per-incident applicability verdict",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:RES-0055",
+ "min_bytes_threshold": 8192,
+ "profile": "research-threat-model",
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok",
+  "role": "security-researcher",
+  "execution_substrate": "local-parallel"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0055.json",
+   "bytes": 8192,
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/schema/threat-model.schema.json",
+   "bytes": 1083,
+   "sha256": "52e4acbf6800e2ee0fe3edc46189bd44c40d7445de0fb0c6c68cfcea08f97928",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "event-stream@3.3.6 gained malicious dependency flatmap-stream after maintainer transfer (measured: OSV API + npm blog).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "GHSA-mh6f-8j2x-4483 + npm Security blog 2018-11-27",
+   "probes": [
+    {
+     "role": "source",
+     "method": "http",
+     "command": "captures/r1-osv-query-event-stream.bin + r2-npm-blog-event-stream.bin",
+     "raw_output": "needles flatmap-stream, event-stream@3.3.6, GHSA-mh6f-8j2x-4483 present",
+     "fingerprint": "58ffbb0b8a0518867f9f2215",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0055/probe1_incident_table.py",
+     "raw_output": "{\"pass\": true, \"probe\": \"probe1-incident-table\", \"unit_id\": \"RES-0055\", \"incidents\": 4, \"not_applicable_rows\": 2, \"measured_incidents\": 3, \"mechanism_classes\": [\"dependency-confusion\", \"obfuscated-payload\", \"post-install-script\", \"update-after-approval\"]}\nincidents=4 n/a=2 measured=3 classes=['dependency-confusion', 'obfuscated-payload', 'post-install-script', 'update-after-approval']\nSUCCESS:RES-0055-probe1 incident table two-rail mapping",
+     "fingerprint": "b63bc3201a5c5dec5dd39fca",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ua-parser-js 0.7.29/0.8.0/1.0.0 were malicious (measured: OSV API + CISA alert). Lifecycle-script names are E3.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "GHSA-pjwm-rvh2-c87w + CISA AA21-295A",
+   "probes": [
+    {
+     "role": "source",
+     "method": "http",
+     "command": "captures/r1-osv-ua-parser-js.bin + r2-cisa-ua-parser.bin",
+     "raw_output": "needles 0.7.29, 0.8.0, 1.0.0, malicious, ua-parser-js present",
+     "fingerprint": "1d0d83f36c55d29f7b1ce5e7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0055/probe1_incident_table.py",
+     "raw_output": "{\"pass\": true, \"probe\": \"probe1-incident-table\", \"unit_id\": \"RES-0055\", \"incidents\": 4, \"not_applicable_rows\": 2, \"measured_incidents\": 3, \"mechanism_classes\": [\"dependency-confusion\", \"obfuscated-payload\", \"post-install-script\", \"update-after-approval\"]}\nincidents=4 n/a=2 measured=3 classes=['dependency-confusion', 'obfuscated-payload', 'post-install-script', 'update-after-approval']\nSUCCESS:RES-0055-probe1 incident table two-rail mapping",
+     "fingerprint": "a23c7b4931b5e6629d831cc8",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "torchtriton on PyPI collided with the PyTorch extra index because pip prefers PyPI (measured: PyPI simple + PyTorch blog).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "pypi.org/simple/torchtriton/ + pytorch.org blog",
+   "probes": [
+    {
+     "role": "source",
+     "method": "http",
+     "command": "captures/r1-pypi-simple-torchtriton.bin + r2-pytorch-blog.bin",
+     "raw_output": "needles Links for torchtriton; PyPI index takes precedence",
+     "fingerprint": "5b048bc7cb9fe067ec5e2a15",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "tools/marketplace/fetch.py:_read_source",
+     "raw_output": "fetch rejects non-file sources; no extra-index resolver",
+     "fingerprint": "b5ba2b1c6b95a1643619136c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "post-install-script and dependency-confusion are not applicable to this marketplace install path.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/plugin/installer.py + tools/marketplace/fetch.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0055/probe2_negative_control.py",
+     "raw_output": "{\"pass\": true, \"probe\": \"probe2-negative-control\", \"unit_id\": \"RES-0055\", \"not_applicable\": [\"dependency-confusion\", \"post-install-script\"], \"installer_spawn\": {\"path\": \"tools/plugin/installer.py\", \"imports_subprocess\": false, \"calls_os_system\": false, \"ast_banned_hits\": [], \"extracts_with_data_filter\": true, \"copies_with_copy2\": true}, \"bypasses\": [{\"mitigation\": \"MIT-NO-LIFECYCLE-RUNNER\", \"attempt\": \"tarball with package.json scripts.postinstall plus shell script\", \"outcome\": \"SURVIVED\", \"detail\": \"files copied; SIDE_EFFECT not created; no subprocess in installer\"}, {\"mitigation\": \"MIT-LOCKFILE-DIGEST\", \"attempt\": \"same lockfile digest, mutated blob bytes\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure before installer\"}, {\"mitigation\": \"MIT-SIGNATURE-FAIL-CLOSED\", \"attempt\": \"signature=None\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure unsigned fail closed\"}, {\"mitigation\": \"human-review-of-SKILL.md\", \"attempt\": \"base64 marker in HTML comment inside SKILL.md\", \"outcome\": \"NOT-EFFECTIVE\", \"detail\": \"Not listed as an effective mitigation.\", \"encoded_present\": true}], \"reviewer_id\": \"RES-0055-probe2-mitigation-bypass\"}\nn/a=['dependency-confusion', 'post-install-script'] survived=3\nSUCCESS:RES-0055-probe2 negative-control and mitigation bypass",
+     "fingerprint": "11828bfcff281ca2eb20e2ba",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "tools/plugin/installer.py extractall filter=data; no subprocess",
+     "raw_output": "{\"ast_banned_hits\": [], \"calls_os_system\": false, \"copies_with_copy2\": true, \"extracts_with_data_filter\": true, \"imports_subprocess\": false, \"path\": \"tools/plugin/installer.py\"}",
+     "fingerprint": "f4a24402c16cf248e3d906fd",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "map-mechanisms-onto-payload-type",
+   "name": "Incident table two-rail mapping",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0055/probe1_incident_table.py",
+   "result": "PASS",
+   "output_tail": "{\"pass\": true, \"probe\": \"probe1-incident-table\", \"unit_id\": \"RES-0055\", \"incidents\": 4, \"not_applicable_rows\": 2, \"measured_incidents\": 3, \"mechanism_classes\": [\"dependency-confusion\", \"obfuscated-payload\", \"post-install-script\", \"update-after-approval\"]}\nincidents=4 n/a=2 measured=3 classes=['dependency-confusion', 'obfuscated-payload', 'post-install-script', 'update-after-approval']\nSUCCESS:RES-0055-probe1 incident table two-rail mapping"
+  },
+  {
+   "id": "control-at-least-one-mechanism-not-applicable",
+   "name": "Negative-control and mitigation bypass",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0055/probe2_negative_control.py",
+   "result": "PASS",
+   "output_tail": "{\"pass\": true, \"probe\": \"probe2-negative-control\", \"unit_id\": \"RES-0055\", \"not_applicable\": [\"dependency-confusion\", \"post-install-script\"], \"installer_spawn\": {\"path\": \"tools/plugin/installer.py\", \"imports_subprocess\": false, \"calls_os_system\": false, \"ast_banned_hits\": [], \"extracts_with_data_filter\": true, \"copies_with_copy2\": true}, \"bypasses\": [{\"mitigation\": \"MIT-NO-LIFECYCLE-RUNNER\", \"attempt\": \"tarball with package.json scripts.postinstall plus shell script\", \"outcome\": \"SURVIVED\", \"detail\": \"files copied; SIDE_EFFECT not created; no subprocess in installer\"}, {\"mitigation\": \"MIT-LOCKFILE-DIGEST\", \"attempt\": \"same lockfile digest, mutated blob bytes\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure before installer\"}, {\"mitigation\": \"MIT-SIGNATURE-FAIL-CLOSED\", \"attempt\": \"signature=None\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure unsigned fail closed\"}, {\"mitigation\": \"human-review-of-SKILL.md\", \"attempt\": \"base64 marker in HTML comment inside SKILL.md\", \"outcome\": \"NOT-EFFECTIVE\", \"detail\": \"Not listed as an effective mitigation.\", \"encoded_present\": true}], \"reviewer_id\": \"RES-0055-probe2-mitigation-bypass\"}\nn/a=['dependency-confusion', 'post-install-script'] survived=3\nSUCCESS:RES-0055-probe2 negative-control and mitigation bypass"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-POSTINSTALL-NOT-RUN",
+   "kind": "adversarial-payload",
+   "description": "A tarball with package.json scripts.postinstall plus a shell script must copy files without creating SIDE_EFFECT.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"pass\": true, \"probe\": \"probe2-negative-control\", \"unit_id\": \"RES-0055\", \"not_applicable\": [\"dependency-confusion\", \"post-install-script\"], \"installer_spawn\": {\"path\": \"tools/plugin/installer.py\", \"imports_subprocess\": false, \"calls_os_system\": false, \"ast_banned_hits\": [], \"extracts_with_data_filter\": true, \"copies_with_copy2\": true}, \"bypasses\": [{\"mitigation\": \"MIT-NO-LIFECYCLE-RUNNER\", \"attempt\": \"tarball with package.json scripts.postinstall plus shell script\", \"outcome\": \"SURVIVED\", \"detail\": \"files copied; SIDE_EFFECT not created; no subprocess in installer\"}, {\"mitigation\": \"MIT-LOCKFILE-DIGEST\", \"attempt\": \"same lockfile digest, mutated blob bytes\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure before installer\"}, {\"mitigation\": \"MIT-SIGNATURE-FAIL-CLOSED\", \"attempt\": \"signature=None\", \"outcome\": \"SURVIVED\", \"detail\": \"GateFailure unsigned fail closed\"}, {\"mitigation\": \"human-review-of-SKILL.md\", \"attempt\": \"base64 marker in HTML comment inside SKILL.md\", \"outcome\": \"NOT-EFFECTIVE\", \"detail\": \"Not listed as an effective mitigation.\", \"encoded_present\": true}], \"reviewer_id\": \"RES-0055-probe2-mitigation-bypass\"}\nn/a=['dependency-confusion', 'post-install-script'] survived=3\nSUCCESS:RES-0055-probe2 negative-control and mitigation bypass",
+   "good_state_output": "marketplace_install ok=true for a signed digest-matching blob"
+  },
+  {
+   "id": "NC-SCHEMA-EMPTY-OBJECT",
+   "kind": "malformed-input",
+   "description": "Disk-only threat-model validator must reject {} and accept the live receipt.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "empty object rejected",
+   "good_state_output": "live receipt schema-ok"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "RES-0055-probe2-mitigation-bypass",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "xai",
+  "reviewed_at": "2026-08-25T01:08:05Z",
+  "notes": "Attempt a bypass of every listed mitigation before recording it as effective. Human review of SKILL.md is not listed as effective. Digest mismatch and unsigned packages fail closed; planted postinstall does not spawn."
+ },
+ "defects": [],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0055/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0055",
+  "registered_at": "2026-08-25T01:08:05Z"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "json.loads + schema_local.errors (disk RefResolver)",
+   "artifact_path": "command-center/research/RES-0055.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python3 -c schema_local.reject_empty_accept_live(doc)",
+    "raw_output": "empty_rejected=True live_ok=True no live errors",
+    "fingerprint": "f574cc6b82172e4282230138",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:08:05Z",
+  "ended_at": "2026-08-25T01:08:05Z",
+  "duration_seconds": 0
+ },
+ "retry": {
+  "count": 0,
+  "policy": "on a Codex-rail failure retry ONCE with --ignore-user-config and a prompt FILE; two same-fingerprint structural refutes park BLOCKED with required_fix named; no ADV rebuild circle"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "The AES-encrypted-fixture technique in event-stream and the ua-parser-js preinstall/postinstall script names are E3 (one rail class) and are not cited as measured fact.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Add a structured API rail that names the AES fixture / lifecycle script filenames, then regrade those sub-claims."
+  },
+  {
+   "claim": "INC-GREAT-SUSPENDER-2021 is prose+prose (E3). Update-after-approval applicability is carried by INC-EVENT-STREAM-2018.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Obtain a structured Chrome Web Store / CRX API rail that attests v7.1.8 remote-code loading independently of GitHub issues."
+  }
+ ],
+ "report": {
+  "kind": "threat-model",
+  "observations": [
+   {
+    "name": "incident-rows",
+    "measured": 4,
+    "method": "incident_table length after two-rail needle checks",
+    "anchor": "report.incident_table"
+   },
+   {
+    "name": "measured-incidents-api-plus-prose",
+    "measured": 3,
+    "method": "evidence_grade contains measured",
+    "anchor": "report.incident_table[].evidence_grade"
+   },
+   {
+    "name": "not-applicable-mechanism-classes",
+    "measured": 2,
+    "method": "mechanism_map applicability_verdict",
+    "anchor": "report.mechanism_map"
+   },
+   {
+    "name": "installer-process-spawn",
+    "measured": false,
+    "method": "source scan of tools/plugin/installer.py",
+    "anchor": "tools/plugin/installer.py"
+   }
+  ],
+  "control_ids": [
+   "NC-POSTINSTALL-NOT-RUN",
+   "NC-SCHEMA-EMPTY-OBJECT"
+  ],
+  "title": "Reconstruct the exact bypass used in real malicious-extension and package incidents",
+  "question": "For a set of documented malicious extension and package incidents, what was the EXACT mechanism that got past review (obfuscated payload, post-install script, update-after-approval, dependency confusion) - and which of those mechanisms is possible against a prompt-payload marketplace?",
+  "incident_table": [
+   {
+    "incident_id": "INC-EVENT-STREAM-2018",
+    "title": "npm event-stream 3.3.6 / flatmap-stream after maintainer transfer",
+    "year": 2018,
+    "ecosystem": "npm",
+    "exact_mechanism": "After publishing rights for event-stream moved to a new maintainer, event-stream@3.3.6 added a new dependency flatmap-stream. npm Security's postmortem states the injected code read AES-encrypted data from a file disguised as a test fixture and targeted Copay builds. The malicious dependency was later replaced on the registry by a security-holding package.",
+    "mechanism_class": "update-after-approval",
+    "also_classes": [
+     "obfuscated-payload"
+    ],
+    "evidence_grade": {
+     "maintainer-transfer-plus-malicious-dep": "measured",
+     "aes-encrypted-fixture-obfuscation": "E3"
+    },
+    "evidence_grade_notes": "OSV GHSA-mh6f-8j2x-4483 (API) plus the npm Security blog (prose) independently record that event-stream@3.3.6 gained the malicious flatmap-stream dependency. The AES-encrypted-fixture technique is named by two prose sources (npm blog and LWN) and is therefore E3 under the unit's API+prose rule, not a measured fact.",
+    "primary_sources": [
+     {
+      "rail": "R1-api",
+      "capture_id": "r1-osv-query-event-stream",
+      "permalink": "https://api.osv.dev/v1/query",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 200,
+      "sha256": "67a8d4b83b3c00c81c4e4f29bfc326b61123afd032a481ce70b1c7d183fa813f",
+      "bytes": 1785,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-query-event-stream.bin",
+      "needles": [
+       "flatmap-stream",
+       "event-stream",
+       "3.3.6",
+       "malicious",
+       "GHSA-mh6f-8j2x-4483"
+      ]
+     },
+     {
+      "rail": "R2-prose",
+      "capture_id": "r2-npm-blog-event-stream",
+      "permalink": "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident",
+      "fetch_timestamp": "2026-08-24T19:03:33Z",
+      "http_status": 200,
+      "sha256": "0385796be8013bde14a50175fb4e3aa2b9f1fb0bad6524550a269578b6660f98",
+      "bytes": 8587,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-npm-blog-event-stream.bin",
+      "needles": [
+       "flatmap-stream",
+       "event-stream@3.3.6",
+       "Copay",
+       "AES encrypted data from a file disguised as a test fixture"
+      ]
+     }
+    ],
+    "supporting_sources": [
+     {
+      "capture_id": "r1-npm-flatmap-stream",
+      "permalink": "https://registry.npmjs.org/flatmap-stream",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 200,
+      "sha256": "34571e8a1f62e1694af0d289487192580fcfcf59ef07349d5276d50f0ead8245",
+      "bytes": 3088,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-flatmap-stream.bin"
+     },
+     {
+      "capture_id": "r1-npm-event-stream",
+      "permalink": "https://registry.npmjs.org/event-stream",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 200,
+      "sha256": "70502b28679d954ba51b10a1961e0fdf34d64f9950b6b70e864c49841a764bf1",
+      "bytes": 119714,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-event-stream.bin"
+     },
+     {
+      "capture_id": "r2-lwn-event-stream",
+      "permalink": "https://lwn.net/Articles/773121/",
+      "fetch_timestamp": "2026-08-24T19:03:35Z",
+      "http_status": 200,
+      "sha256": "fa2cbe9bb62345b401ed9ff667e159a4256270a4e731aa7168d311b584835920",
+      "bytes": 46710,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-lwn-event-stream.bin"
+     },
+     {
+      "capture_id": "r1-osv-ghsa-event-stream",
+      "permalink": "https://api.osv.dev/v1/vulns/GHSA-mh6f-8j2x-4483",
+      "fetch_timestamp": "2026-08-24T19:06:24Z",
+      "http_status": 200,
+      "sha256": "43a671f748a1f75b90e83f0708e9bb6a408547fc4ee6c08141e9d8ef461cf23d",
+      "bytes": 1773,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-ghsa-event-stream.bin"
+     }
+    ],
+    "applicability_verdict": "applicable",
+    "applicability_reason": "A later version of an already-trusted package_id is installed when marketplace_install is invoked with a new package_version whose digest and signature pass. tools/marketplace/verify.py has no human-review gate; tools/plugin/installer.py activates a new transaction_id and atomically retargets plugins/<id>. That is the same 'update after the first review' shape as event-stream@3.3.6. Obfuscation of SKILL.md / hook JSON is separately applicable as a review-evasion property of text payloads; the AES-fixture recipe itself is E3.",
+    "local_anchors": [
+     "tools/marketplace/verify.py:run_verification",
+     "tools/plugin/installer.py:_activate",
+     "tools/plugin/payloadutil.py:PAYLOAD_FILES"
+    ]
+   },
+   {
+    "incident_id": "INC-UA-PARSER-JS-2021",
+    "title": "npm ua-parser-js 0.7.29 / 0.8.0 / 1.0.0 after account hijack",
+    "year": 2021,
+    "ecosystem": "npm",
+    "exact_mechanism": "Three versions of ua-parser-js (0.7.29, 0.8.0, 1.0.0) were published with embedded malware after the npm account was hijacked. OSV GHSA-pjwm-rvh2-c87w and CISA name those versions. Sonatype's write-up (E3 for the exact script names) reports identical preinstall and postinstall Bash/Batch scripts. The malicious versions are absent from the live versions object on registry.npmjs.org while their timestamps remain in the time map.",
+    "mechanism_class": "post-install-script",
+    "also_classes": [],
+    "evidence_grade": {
+     "malicious-versions-0.7.29-0.8.0-1.0.0": "measured",
+     "preinstall-postinstall-script-names": "E3"
+    },
+    "evidence_grade_notes": "OSV (API) and CISA (prose) both name versions 0.7.29, 0.8.0, and 1.0.0 as malicious. The preinstall/postinstall script detail is presently one prose rail (Sonatype) so it is E3. Applicability of the post-install-script *class* does not depend on that E3 detail: this tree never runs package scripts.",
+    "primary_sources": [
+     {
+      "rail": "R1-api",
+      "capture_id": "r1-osv-ua-parser-js",
+      "permalink": "https://api.osv.dev/v1/vulns/GHSA-pjwm-rvh2-c87w",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 200,
+      "sha256": "f3b9f71f87fbc664b1addd55d0aecfb9c015ca4172ae25f319b66072c89d8660",
+      "bytes": 2604,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-ua-parser-js.bin",
+      "needles": [
+       "0.7.29",
+       "0.8.0",
+       "1.0.0",
+       "malicious",
+       "ua-parser-js"
+      ]
+     },
+     {
+      "rail": "R2-prose",
+      "capture_id": "r2-cisa-ua-parser",
+      "permalink": "https://www.cisa.gov/news-events/alerts/2021/10/22/malware-discovered-popular-npm-package-ua-parser-js",
+      "fetch_timestamp": "2026-08-24T19:03:33Z",
+      "http_status": 200,
+      "sha256": "07f77d281430fd81fd34a4c4e32d328651d0649939e92b72d9ba6aecd71fcfb4",
+      "bytes": 53063,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-cisa-ua-parser.bin",
+      "needles": [
+       "0.7.29",
+       "0.8.0",
+       "1.0.0",
+       "ua-parser-js",
+       "malicious"
+      ]
+     }
+    ],
+    "supporting_sources": [
+     {
+      "capture_id": "r1-npm-ua-parser-js",
+      "permalink": "https://registry.npmjs.org/ua-parser-js",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 200,
+      "sha256": "0eab3a61365e0e672035bc66e2ad81a03cf6bb9f9f7ec16786e7954285b1bce5",
+      "bytes": 719507,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-ua-parser-js.bin"
+     },
+     {
+      "capture_id": "r2-sonatype-ua-parser",
+      "permalink": "https://www.sonatype.com/blog/npm-project-used-by-millions-hijacked-in-supply-chain-attack",
+      "fetch_timestamp": "2026-08-24T19:06:25Z",
+      "http_status": 200,
+      "sha256": "94c69e0fb0bca312c0d510afa6a4f0cb59983192330c4c8a8dcb5b30dd920ec7",
+      "bytes": 187301,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-sonatype-ua-parser.bin"
+     },
+     {
+      "capture_id": "r2-github-issue-ua-parser-536",
+      "permalink": "https://github.com/faisalman/ua-parser-js/issues/536",
+      "fetch_timestamp": "2026-08-24T19:06:17Z",
+      "http_status": 200,
+      "sha256": "306eff2a5b253c2d0effe679a0d1d86e80d9a122edfd66d7cb558c872745d1c3",
+      "bytes": 319497,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-ua-parser-536.bin"
+     },
+     {
+      "capture_id": "r2-github-advisory-html",
+      "permalink": "https://github.com/advisories/GHSA-pjwm-rvh2-c87w",
+      "fetch_timestamp": "2026-08-24T19:03:33Z",
+      "http_status": 200,
+      "sha256": "998f54daa975e8d92636113578c6797943bc2e1647a512657dccf9893b606e21",
+      "bytes": 183050,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-advisory-html.bin"
+     }
+    ],
+    "applicability_verdict": "not-applicable",
+    "applicability_reason": "npm lifecycle scripts fire because the package manager executes scripts.postinstall during install. tools/plugin/installer.py extracts a tar with filter='data' and shutil.copy2 of the projection map; it does not import subprocess or call os.system. tools/marketplace/install.py never extracts. A planted package.json postinstall in the tarball is at most a copied file.",
+    "local_anchors": [
+     "tools/plugin/installer.py:_safe_extract",
+     "tools/plugin/installer.py:_project_into_stage",
+     "tools/marketplace/install.py:marketplace_install"
+    ]
+   },
+   {
+    "incident_id": "INC-TORCHTRITON-2022",
+    "title": "PyPI torchtriton vs PyTorch extra-index dependency confusion",
+    "year": 2022,
+    "ecosystem": "PyPI/pip",
+    "exact_mechanism": "A package named torchtriton was registered on the public PyPI index with the same name as a dependency normally fetched from the PyTorch nightly extra index. The PyTorch postmortem states that because the PyPI index takes precedence (pip#8606), pip installed the PyPI package instead of the official nightly artifact. The name remains reserved on PyPI simple (HTTP 200, no files).",
+    "mechanism_class": "dependency-confusion",
+    "also_classes": [],
+    "evidence_grade": {
+     "pypi-name-collision-plus-pip-precedence": "measured"
+    },
+    "evidence_grade_notes": "PyPI simple (API) shows the torchtriton project is registered. The PyTorch blog (prose) states the holiday-window compromise and that the PyPI index takes precedence.",
+    "primary_sources": [
+     {
+      "rail": "R1-api",
+      "capture_id": "r1-pypi-simple-torchtriton",
+      "permalink": "https://pypi.org/simple/torchtriton/",
+      "fetch_timestamp": "2026-08-24T19:05:08Z",
+      "http_status": 200,
+      "sha256": "b8c0dac90cc712e8e5fa1755f112cbb724ca1f22bcb6f259b7ead7172feff265",
+      "bytes": 281,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-pypi-simple-torchtriton.bin",
+      "needles": [
+       "Links for torchtriton",
+       "pypi:project-status"
+      ]
+     },
+     {
+      "rail": "R2-prose",
+      "capture_id": "r2-pytorch-blog",
+      "permalink": "https://pytorch.org/blog/compromised-nightly-dependency/",
+      "fetch_timestamp": "2026-08-24T19:03:33Z",
+      "http_status": 200,
+      "sha256": "be019bf4adc98717e60adaecb599fe62611c3f431f820aecdffe73da75008d36",
+      "bytes": 168941,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-pytorch-blog.bin",
+      "needles": [
+       "torchtriton",
+       "PyPI index takes precedence",
+       "December 25, 2022"
+      ]
+     }
+    ],
+    "supporting_sources": [
+     {
+      "capture_id": "r2-pip-issue-8606",
+      "permalink": "https://github.com/pypa/pip/issues/8606",
+      "fetch_timestamp": "2026-08-24T19:06:24Z",
+      "http_status": 200,
+      "sha256": "d4338e00be38ea793a62342abda08c902e2bb3f915f12bd5e98d96248993832a",
+      "bytes": 303409,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-pip-issue-8606.bin"
+     },
+     {
+      "capture_id": "r1-pypi-torchtriton",
+      "permalink": "https://pypi.org/pypi/torchtriton/json",
+      "fetch_timestamp": "2026-08-24T19:03:32Z",
+      "http_status": 404,
+      "sha256": "b82014934f66beeb9e05a37f65357c4b50db0349d25d68d818ed0319dd4feb40",
+      "bytes": 24,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-pypi-torchtriton.bin"
+     }
+    ],
+    "applicability_verdict": "not-applicable",
+    "applicability_reason": "tools/marketplace/fetch.py _read_source accepts only an existing local file or a file: URL and raises FetchError for any other source. There is no package-name resolver and no extra-index-url. verify.check_lockfile_digest pins sha256. Classic name-collision across indexes cannot occur on this install path.",
+    "local_anchors": [
+     "tools/marketplace/fetch.py:_read_source",
+     "tools/marketplace/verify.py:check_lockfile_digest"
+    ]
+   },
+   {
+    "incident_id": "INC-GREAT-SUSPENDER-2021",
+    "title": "Chrome Web Store The Great Suspender ownership transfer then malicious update",
+    "year": 2021,
+    "ecosystem": "Chrome Web Store",
+    "exact_mechanism": "The original maintainer announced a change of administration (GitHub issue 1175). Issue 1263 records that the extension was sold, that v7.1.8 published to the web store (not GitHub) loaded remote obfuscated code, and that a later store update can ship without notifying the user. This row is prose+prose (E3) and is not cited as a measured fact; update-after-approval is measured via INC-EVENT-STREAM-2018.",
+    "mechanism_class": "update-after-approval",
+    "also_classes": [
+     "obfuscated-payload"
+    ],
+    "evidence_grade": {
+     "ownership-transfer-then-store-update": "E3"
+    },
+    "evidence_grade_notes": "GitHub issues 1175 and 1263 are both prose. Wayback CDX is an API rail but does not attest the sale or v7.1.8 payload. Graded E3. Included because it is the closest extension-marketplace analogue; it does not carry any measured claim by itself.",
+    "primary_sources": [
+     {
+      "rail": "R1-api",
+      "capture_id": "r1-wayback-great-suspender",
+      "permalink": "https://web.archive.org/cdx/search/cdx",
+      "fetch_timestamp": "2026-08-24T19:05:08Z",
+      "http_status": 200,
+      "sha256": "f406f219e315153619281d58fdf8f9feea317e9400e6ffb065f2030f2828080a",
+      "bytes": 1534,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-wayback-great-suspender.bin",
+      "needles": [
+       "greatsuspender/thegreatsuspender"
+      ]
+     },
+     {
+      "rail": "R2-prose",
+      "capture_id": "r2-github-issue-great-suspender-1263",
+      "permalink": "https://github.com/greatsuspender/thegreatsuspender/issues/1263",
+      "fetch_timestamp": "2026-08-24T19:06:20Z",
+      "http_status": 200,
+      "sha256": "bc0f45eb7823a1d8cf86a0ad0232dc82e4a293d94141770f12e621ad4d30ee64",
+      "bytes": 346563,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-great-suspender-1263.bin",
+      "needles": [
+       "sold",
+       "malicious intent",
+       "v7.1.8",
+       "arbitrary code was executed from a remote server"
+      ]
+     }
+    ],
+    "supporting_sources": [
+     {
+      "capture_id": "r2-github-issue-great-suspender-1175",
+      "permalink": "https://github.com/greatsuspender/thegreatsuspender/issues/1175",
+      "fetch_timestamp": "2026-08-24T19:06:19Z",
+      "http_status": 200,
+      "sha256": "f4f02fabed8e8fe71b6aee27d2cac97a77861f69ee72bcb13f31760f7f1f64ec",
+      "bytes": 354387,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-great-suspender-1175.bin"
+     },
+     {
+      "capture_id": "r2-great-suspender-readme",
+      "permalink": "https://raw.githubusercontent.com/greatsuspender/thegreatsuspender/master/README.md",
+      "fetch_timestamp": "2026-08-24T19:03:35Z",
+      "http_status": 200,
+      "sha256": "0647fdb3d965babde9913eef6102535029d5fae1d3cc93c3a066aafa1e502acd",
+      "bytes": 4713,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r2-great-suspender-readme.bin"
+     }
+    ],
+    "applicability_verdict": "applicable",
+    "applicability_reason": "Same install-path fact as event-stream: a new signed, digest-matching version of package_id replaces the live symlink with no review gate in run_verification. E3 for the Chrome-store narrative; the local applicability argument does not depend on that E3 row because INC-EVENT-STREAM-2018 already measures the class.",
+    "local_anchors": [
+     "tools/plugin/installer.py:_activate",
+     "tools/marketplace/verify.py:run_verification"
+    ]
+   }
+  ],
+  "mechanism_map": [
+   {
+    "mechanism_class": "obfuscated-payload",
+    "incident_ids": [
+     "INC-EVENT-STREAM-2018",
+     "INC-GREAT-SUSPENDER-2021"
+    ],
+    "applicability_verdict": "applicable",
+    "reason": "SKILL.md and hooks/pre.json are reviewable text. Encoded or comment-hidden instructions can sit in those files after a human review of the 'obvious' markdown. bin/demo is an executable shim whose bits are preserved (0755) but not run at install. The event-stream AES-fixture recipe is E3; the review-evasion property of opaque text in this payload type is still applicable."
+   },
+   {
+    "mechanism_class": "post-install-script",
+    "incident_ids": [
+     "INC-UA-PARSER-JS-2021"
+    ],
+    "applicability_verdict": "not-applicable",
+    "reason": "Installer and marketplace never execute package lifecycle scripts. See INC-UA-PARSER-JS-2021 applicability_reason."
+   },
+   {
+    "mechanism_class": "update-after-approval",
+    "incident_ids": [
+     "INC-EVENT-STREAM-2018",
+     "INC-GREAT-SUSPENDER-2021"
+    ],
+    "applicability_verdict": "applicable",
+    "reason": "New package_version of the same package_id is a new transaction activation. Digest+signature are checked; human review is not."
+   },
+   {
+    "mechanism_class": "dependency-confusion",
+    "incident_ids": [
+     "INC-TORCHTRITON-2022"
+    ],
+    "applicability_verdict": "not-applicable",
+    "reason": "Fetch is explicit file/file: URL plus sha256 lockfile pin. No name-based multi-index resolver exists on this path."
+   }
+  ],
+  "payload_types": [
+   {
+    "path": "plugin.json",
+    "kind": "json-manifest",
+    "anchor": "tools/plugin/payloadutil.py:PAYLOAD_FILES"
+   },
+   {
+    "path": "hooks/pre.json",
+    "kind": "hook-json-with-command",
+    "anchor": "tools/plugin/payloadutil.py:PAYLOAD_FILES"
+   },
+   {
+    "path": "skills/hello/SKILL.md",
+    "kind": "markdown-prompt-skill",
+    "anchor": "tools/plugin/payloadutil.py:PAYLOAD_FILES"
+   },
+   {
+    "path": "bin/demo",
+    "kind": "executable-shim",
+    "anchor": "tools/plugin/payloadutil.py:SHIM_REL",
+    "note": "Mode 0755 is preserved on extract/copy. The installer does not execute the shim."
+   }
+  ],
+  "mitigations": [
+   {
+    "id": "MIT-LOCKFILE-DIGEST",
+    "claim": "A blob whose sha256 does not match lockfile.packages[ref].digest fails closed and never reaches the plugin installer.",
+    "anchor": "tools/marketplace/verify.py:check_lockfile_digest",
+    "effective_if_survives_bypass": true
+   },
+   {
+    "id": "MIT-SIGNATURE-FAIL-CLOSED",
+    "claim": "Missing or non-ed25519 signatures raise GateFailure; unsigned packages are not installed.",
+    "anchor": "tools/marketplace/verify.py:check_signature",
+    "effective_if_survives_bypass": true
+   },
+   {
+    "id": "MIT-NO-LIFECYCLE-RUNNER",
+    "claim": "Plugin install extracts and copies projected files. It does not run npm/pip lifecycle scripts.",
+    "anchor": "tools/plugin/installer.py:_safe_extract",
+    "effective_if_survives_bypass": true
+   }
+  ],
+  "local_install_path": {
+   "fetch": "tools/marketplace/fetch.py:_read_source",
+   "verify": "tools/marketplace/verify.py:run_verification",
+   "install_orchestration": "tools/marketplace/install.py:marketplace_install",
+   "placement": "tools/plugin/installer.py:install_from_handoff",
+   "installer_process_spawn": {
+    "path": "tools/plugin/installer.py",
+    "imports_subprocess": false,
+    "calls_os_system": false,
+    "ast_banned_hits": [],
+    "extracts_with_data_filter": true,
+    "copies_with_copy2": true
+   }
+  }
+ },
+ "extensions": {
+  "notes": "G-1 delivery of RES-0055. Claims graded E3 are labelled and are not cited as measured fact. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No exploit against a third-party system was executed.",
+  "output_schema": "command-center/schema/threat-model.schema.json"
+ },
+ "incident_table": [
+  {
+   "incident_id": "INC-EVENT-STREAM-2018",
+   "title": "npm event-stream 3.3.6 / flatmap-stream after maintainer transfer",
+   "year": 2018,
+   "ecosystem": "npm",
+   "exact_mechanism": "After publishing rights for event-stream moved to a new maintainer, event-stream@3.3.6 added a new dependency flatmap-stream. npm Security's postmortem states the injected code read AES-encrypted data from a file disguised as a test fixture and targeted Copay builds. The malicious dependency was later replaced on the registry by a security-holding package.",
+   "mechanism_class": "update-after-approval",
+   "also_classes": [
+    "obfuscated-payload"
+   ],
+   "evidence_grade": {
+    "maintainer-transfer-plus-malicious-dep": "measured",
+    "aes-encrypted-fixture-obfuscation": "E3"
+   },
+   "evidence_grade_notes": "OSV GHSA-mh6f-8j2x-4483 (API) plus the npm Security blog (prose) independently record that event-stream@3.3.6 gained the malicious flatmap-stream dependency. The AES-encrypted-fixture technique is named by two prose sources (npm blog and LWN) and is therefore E3 under the unit's API+prose rule, not a measured fact.",
+   "primary_sources": [
+    {
+     "rail": "R1-api",
+     "capture_id": "r1-osv-query-event-stream",
+     "permalink": "https://api.osv.dev/v1/query",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 200,
+     "sha256": "67a8d4b83b3c00c81c4e4f29bfc326b61123afd032a481ce70b1c7d183fa813f",
+     "bytes": 1785,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-query-event-stream.bin",
+     "needles": [
+      "flatmap-stream",
+      "event-stream",
+      "3.3.6",
+      "malicious",
+      "GHSA-mh6f-8j2x-4483"
+     ]
+    },
+    {
+     "rail": "R2-prose",
+     "capture_id": "r2-npm-blog-event-stream",
+     "permalink": "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident",
+     "fetch_timestamp": "2026-08-24T19:03:33Z",
+     "http_status": 200,
+     "sha256": "0385796be8013bde14a50175fb4e3aa2b9f1fb0bad6524550a269578b6660f98",
+     "bytes": 8587,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-npm-blog-event-stream.bin",
+     "needles": [
+      "flatmap-stream",
+      "event-stream@3.3.6",
+      "Copay",
+      "AES encrypted data from a file disguised as a test fixture"
+     ]
+    }
+   ],
+   "supporting_sources": [
+    {
+     "capture_id": "r1-npm-flatmap-stream",
+     "permalink": "https://registry.npmjs.org/flatmap-stream",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 200,
+     "sha256": "34571e8a1f62e1694af0d289487192580fcfcf59ef07349d5276d50f0ead8245",
+     "bytes": 3088,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-flatmap-stream.bin"
+    },
+    {
+     "capture_id": "r1-npm-event-stream",
+     "permalink": "https://registry.npmjs.org/event-stream",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 200,
+     "sha256": "70502b28679d954ba51b10a1961e0fdf34d64f9950b6b70e864c49841a764bf1",
+     "bytes": 119714,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-event-stream.bin"
+    },
+    {
+     "capture_id": "r2-lwn-event-stream",
+     "permalink": "https://lwn.net/Articles/773121/",
+     "fetch_timestamp": "2026-08-24T19:03:35Z",
+     "http_status": 200,
+     "sha256": "fa2cbe9bb62345b401ed9ff667e159a4256270a4e731aa7168d311b584835920",
+     "bytes": 46710,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-lwn-event-stream.bin"
+    },
+    {
+     "capture_id": "r1-osv-ghsa-event-stream",
+     "permalink": "https://api.osv.dev/v1/vulns/GHSA-mh6f-8j2x-4483",
+     "fetch_timestamp": "2026-08-24T19:06:24Z",
+     "http_status": 200,
+     "sha256": "43a671f748a1f75b90e83f0708e9bb6a408547fc4ee6c08141e9d8ef461cf23d",
+     "bytes": 1773,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-ghsa-event-stream.bin"
+    }
+   ],
+   "applicability_verdict": "applicable",
+   "applicability_reason": "A later version of an already-trusted package_id is installed when marketplace_install is invoked with a new package_version whose digest and signature pass. tools/marketplace/verify.py has no human-review gate; tools/plugin/installer.py activates a new transaction_id and atomically retargets plugins/<id>. That is the same 'update after the first review' shape as event-stream@3.3.6. Obfuscation of SKILL.md / hook JSON is separately applicable as a review-evasion property of text payloads; the AES-fixture recipe itself is E3.",
+   "local_anchors": [
+    "tools/marketplace/verify.py:run_verification",
+    "tools/plugin/installer.py:_activate",
+    "tools/plugin/payloadutil.py:PAYLOAD_FILES"
+   ]
+  },
+  {
+   "incident_id": "INC-UA-PARSER-JS-2021",
+   "title": "npm ua-parser-js 0.7.29 / 0.8.0 / 1.0.0 after account hijack",
+   "year": 2021,
+   "ecosystem": "npm",
+   "exact_mechanism": "Three versions of ua-parser-js (0.7.29, 0.8.0, 1.0.0) were published with embedded malware after the npm account was hijacked. OSV GHSA-pjwm-rvh2-c87w and CISA name those versions. Sonatype's write-up (E3 for the exact script names) reports identical preinstall and postinstall Bash/Batch scripts. The malicious versions are absent from the live versions object on registry.npmjs.org while their timestamps remain in the time map.",
+   "mechanism_class": "post-install-script",
+   "also_classes": [],
+   "evidence_grade": {
+    "malicious-versions-0.7.29-0.8.0-1.0.0": "measured",
+    "preinstall-postinstall-script-names": "E3"
+   },
+   "evidence_grade_notes": "OSV (API) and CISA (prose) both name versions 0.7.29, 0.8.0, and 1.0.0 as malicious. The preinstall/postinstall script detail is presently one prose rail (Sonatype) so it is E3. Applicability of the post-install-script *class* does not depend on that E3 detail: this tree never runs package scripts.",
+   "primary_sources": [
+    {
+     "rail": "R1-api",
+     "capture_id": "r1-osv-ua-parser-js",
+     "permalink": "https://api.osv.dev/v1/vulns/GHSA-pjwm-rvh2-c87w",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 200,
+     "sha256": "f3b9f71f87fbc664b1addd55d0aecfb9c015ca4172ae25f319b66072c89d8660",
+     "bytes": 2604,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-osv-ua-parser-js.bin",
+     "needles": [
+      "0.7.29",
+      "0.8.0",
+      "1.0.0",
+      "malicious",
+      "ua-parser-js"
+     ]
+    },
+    {
+     "rail": "R2-prose",
+     "capture_id": "r2-cisa-ua-parser",
+     "permalink": "https://www.cisa.gov/news-events/alerts/2021/10/22/malware-discovered-popular-npm-package-ua-parser-js",
+     "fetch_timestamp": "2026-08-24T19:03:33Z",
+     "http_status": 200,
+     "sha256": "07f77d281430fd81fd34a4c4e32d328651d0649939e92b72d9ba6aecd71fcfb4",
+     "bytes": 53063,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-cisa-ua-parser.bin",
+     "needles": [
+      "0.7.29",
+      "0.8.0",
+      "1.0.0",
+      "ua-parser-js",
+      "malicious"
+     ]
+    }
+   ],
+   "supporting_sources": [
+    {
+     "capture_id": "r1-npm-ua-parser-js",
+     "permalink": "https://registry.npmjs.org/ua-parser-js",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 200,
+     "sha256": "0eab3a61365e0e672035bc66e2ad81a03cf6bb9f9f7ec16786e7954285b1bce5",
+     "bytes": 719507,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-ua-parser-js.bin"
+    },
+    {
+     "capture_id": "r2-sonatype-ua-parser",
+     "permalink": "https://www.sonatype.com/blog/npm-project-used-by-millions-hijacked-in-supply-chain-attack",
+     "fetch_timestamp": "2026-08-24T19:06:25Z",
+     "http_status": 200,
+     "sha256": "94c69e0fb0bca312c0d510afa6a4f0cb59983192330c4c8a8dcb5b30dd920ec7",
+     "bytes": 187301,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-sonatype-ua-parser.bin"
+    },
+    {
+     "capture_id": "r2-github-issue-ua-parser-536",
+     "permalink": "https://github.com/faisalman/ua-parser-js/issues/536",
+     "fetch_timestamp": "2026-08-24T19:06:17Z",
+     "http_status": 200,
+     "sha256": "306eff2a5b253c2d0effe679a0d1d86e80d9a122edfd66d7cb558c872745d1c3",
+     "bytes": 319497,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-ua-parser-536.bin"
+    },
+    {
+     "capture_id": "r2-github-advisory-html",
+     "permalink": "https://github.com/advisories/GHSA-pjwm-rvh2-c87w",
+     "fetch_timestamp": "2026-08-24T19:03:33Z",
+     "http_status": 200,
+     "sha256": "998f54daa975e8d92636113578c6797943bc2e1647a512657dccf9893b606e21",
+     "bytes": 183050,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-advisory-html.bin"
+    }
+   ],
+   "applicability_verdict": "not-applicable",
+   "applicability_reason": "npm lifecycle scripts fire because the package manager executes scripts.postinstall during install. tools/plugin/installer.py extracts a tar with filter='data' and shutil.copy2 of the projection map; it does not import subprocess or call os.system. tools/marketplace/install.py never extracts. A planted package.json postinstall in the tarball is at most a copied file.",
+   "local_anchors": [
+    "tools/plugin/installer.py:_safe_extract",
+    "tools/plugin/installer.py:_project_into_stage",
+    "tools/marketplace/install.py:marketplace_install"
+   ]
+  },
+  {
+   "incident_id": "INC-TORCHTRITON-2022",
+   "title": "PyPI torchtriton vs PyTorch extra-index dependency confusion",
+   "year": 2022,
+   "ecosystem": "PyPI/pip",
+   "exact_mechanism": "A package named torchtriton was registered on the public PyPI index with the same name as a dependency normally fetched from the PyTorch nightly extra index. The PyTorch postmortem states that because the PyPI index takes precedence (pip#8606), pip installed the PyPI package instead of the official nightly artifact. The name remains reserved on PyPI simple (HTTP 200, no files).",
+   "mechanism_class": "dependency-confusion",
+   "also_classes": [],
+   "evidence_grade": {
+    "pypi-name-collision-plus-pip-precedence": "measured"
+   },
+   "evidence_grade_notes": "PyPI simple (API) shows the torchtriton project is registered. The PyTorch blog (prose) states the holiday-window compromise and that the PyPI index takes precedence.",
+   "primary_sources": [
+    {
+     "rail": "R1-api",
+     "capture_id": "r1-pypi-simple-torchtriton",
+     "permalink": "https://pypi.org/simple/torchtriton/",
+     "fetch_timestamp": "2026-08-24T19:05:08Z",
+     "http_status": 200,
+     "sha256": "b8c0dac90cc712e8e5fa1755f112cbb724ca1f22bcb6f259b7ead7172feff265",
+     "bytes": 281,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-pypi-simple-torchtriton.bin",
+     "needles": [
+      "Links for torchtriton",
+      "pypi:project-status"
+     ]
+    },
+    {
+     "rail": "R2-prose",
+     "capture_id": "r2-pytorch-blog",
+     "permalink": "https://pytorch.org/blog/compromised-nightly-dependency/",
+     "fetch_timestamp": "2026-08-24T19:03:33Z",
+     "http_status": 200,
+     "sha256": "be019bf4adc98717e60adaecb599fe62611c3f431f820aecdffe73da75008d36",
+     "bytes": 168941,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-pytorch-blog.bin",
+     "needles": [
+      "torchtriton",
+      "PyPI index takes precedence",
+      "December 25, 2022"
+     ]
+    }
+   ],
+   "supporting_sources": [
+    {
+     "capture_id": "r2-pip-issue-8606",
+     "permalink": "https://github.com/pypa/pip/issues/8606",
+     "fetch_timestamp": "2026-08-24T19:06:24Z",
+     "http_status": 200,
+     "sha256": "d4338e00be38ea793a62342abda08c902e2bb3f915f12bd5e98d96248993832a",
+     "bytes": 303409,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-pip-issue-8606.bin"
+    },
+    {
+     "capture_id": "r1-pypi-torchtriton",
+     "permalink": "https://pypi.org/pypi/torchtriton/json",
+     "fetch_timestamp": "2026-08-24T19:03:32Z",
+     "http_status": 404,
+     "sha256": "b82014934f66beeb9e05a37f65357c4b50db0349d25d68d818ed0319dd4feb40",
+     "bytes": 24,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-pypi-torchtriton.bin"
+    }
+   ],
+   "applicability_verdict": "not-applicable",
+   "applicability_reason": "tools/marketplace/fetch.py _read_source accepts only an existing local file or a file: URL and raises FetchError for any other source. There is no package-name resolver and no extra-index-url. verify.check_lockfile_digest pins sha256. Classic name-collision across indexes cannot occur on this install path.",
+   "local_anchors": [
+    "tools/marketplace/fetch.py:_read_source",
+    "tools/marketplace/verify.py:check_lockfile_digest"
+   ]
+  },
+  {
+   "incident_id": "INC-GREAT-SUSPENDER-2021",
+   "title": "Chrome Web Store The Great Suspender ownership transfer then malicious update",
+   "year": 2021,
+   "ecosystem": "Chrome Web Store",
+   "exact_mechanism": "The original maintainer announced a change of administration (GitHub issue 1175). Issue 1263 records that the extension was sold, that v7.1.8 published to the web store (not GitHub) loaded remote obfuscated code, and that a later store update can ship without notifying the user. This row is prose+prose (E3) and is not cited as a measured fact; update-after-approval is measured via INC-EVENT-STREAM-2018.",
+   "mechanism_class": "update-after-approval",
+   "also_classes": [
+    "obfuscated-payload"
+   ],
+   "evidence_grade": {
+    "ownership-transfer-then-store-update": "E3"
+   },
+   "evidence_grade_notes": "GitHub issues 1175 and 1263 are both prose. Wayback CDX is an API rail but does not attest the sale or v7.1.8 payload. Graded E3. Included because it is the closest extension-marketplace analogue; it does not carry any measured claim by itself.",
+   "primary_sources": [
+    {
+     "rail": "R1-api",
+     "capture_id": "r1-wayback-great-suspender",
+     "permalink": "https://web.archive.org/cdx/search/cdx",
+     "fetch_timestamp": "2026-08-24T19:05:08Z",
+     "http_status": 200,
+     "sha256": "f406f219e315153619281d58fdf8f9feea317e9400e6ffb065f2030f2828080a",
+     "bytes": 1534,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r1-wayback-great-suspender.bin",
+     "needles": [
+      "greatsuspender/thegreatsuspender"
+     ]
+    },
+    {
+     "rail": "R2-prose",
+     "capture_id": "r2-github-issue-great-suspender-1263",
+     "permalink": "https://github.com/greatsuspender/thegreatsuspender/issues/1263",
+     "fetch_timestamp": "2026-08-24T19:06:20Z",
+     "http_status": 200,
+     "sha256": "bc0f45eb7823a1d8cf86a0ad0232dc82e4a293d94141770f12e621ad4d30ee64",
+     "bytes": 346563,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-great-suspender-1263.bin",
+     "needles": [
+      "sold",
+      "malicious intent",
+      "v7.1.8",
+      "arbitrary code was executed from a remote server"
+     ]
+    }
+   ],
+   "supporting_sources": [
+    {
+     "capture_id": "r2-github-issue-great-suspender-1175",
+     "permalink": "https://github.com/greatsuspender/thegreatsuspender/issues/1175",
+     "fetch_timestamp": "2026-08-24T19:06:19Z",
+     "http_status": 200,
+     "sha256": "f4f02fabed8e8fe71b6aee27d2cac97a77861f69ee72bcb13f31760f7f1f64ec",
+     "bytes": 354387,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-github-issue-great-suspender-1175.bin"
+    },
+    {
+     "capture_id": "r2-great-suspender-readme",
+     "permalink": "https://raw.githubusercontent.com/greatsuspender/thegreatsuspender/master/README.md",
+     "fetch_timestamp": "2026-08-24T19:03:35Z",
+     "http_status": 200,
+     "sha256": "0647fdb3d965babde9913eef6102535029d5fae1d3cc93c3a066aafa1e502acd",
+     "bytes": 4713,
+     "path": "command-center/p2-wave/probes/RES-0055/captures/r2-great-suspender-readme.bin"
+    }
+   ],
+   "applicability_verdict": "applicable",
+   "applicability_reason": "Same install-path fact as event-stream: a new signed, digest-matching version of package_id replaces the live symlink with no review gate in run_verification. E3 for the Chrome-store narrative; the local applicability argument does not depend on that E3 row because INC-EVENT-STREAM-2018 already measures the class.",
+   "local_anchors": [
+    "tools/plugin/installer.py:_activate",
+    "tools/marketplace/verify.py:run_verification"
+   ]
+  }
+ ],
+ "mechanism_map": [
+  {
+   "mechanism_class": "obfuscated-payload",
+   "incident_ids": [
+    "INC-EVENT-STREAM-2018",
+    "INC-GREAT-SUSPENDER-2021"
+   ],
+   "applicability_verdict": "applicable",
+   "reason": "SKILL.md and hooks/pre.json are reviewable text. Encoded or comment-hidden instructions can sit in those files after a human review of the 'obvious' markdown. bin/demo is an executable shim whose bits are preserved (0755) but not run at install. The event-stream AES-fixture recipe is E3; the review-evasion property of opaque text in this payload type is still applicable."
+  },
+  {
+   "mechanism_class": "post-install-script",
+   "incident_ids": [
+    "INC-UA-PARSER-JS-2021"
+   ],
+   "applicability_verdict": "not-applicable",
+   "reason": "Installer and marketplace never execute package lifecycle scripts. See INC-UA-PARSER-JS-2021 applicability_reason."
+  },
+  {
+   "mechanism_class": "update-after-approval",
+   "incident_ids": [
+    "INC-EVENT-STREAM-2018",
+    "INC-GREAT-SUSPENDER-2021"
+   ],
+   "applicability_verdict": "applicable",
+   "reason": "New package_version of the same package_id is a new transaction activation. Digest+signature are checked; human review is not."
+  },
+  {
+   "mechanism_class": "dependency-confusion",
+   "incident_ids": [
+    "INC-TORCHTRITON-2022"
+   ],
+   "applicability_verdict": "not-applicable",
+   "reason": "Fetch is explicit file/file: URL plus sha256 lockfile pin. No name-based multi-index resolver exists on this path."
+  }
+ ]
+}

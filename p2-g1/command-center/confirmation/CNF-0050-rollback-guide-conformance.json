@@ -1,0 +1,782 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0050",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0050 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every step in the guide has a recorded exit code or an explicit deviation note; no step is unexecuted. Any other terminal state is FAILED:CNF-0050 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0050; command-center/ROLLBACK-MANIFEST.md; command-center/RUNBOOK.md",
+  "min_bytes_threshold": 512,
+  "artifacts": [
+    {
+      "path": "command-center/schema/conformance-report.schema.json",
+      "bytes": 1113,
+      "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/ROLLBACK-MANIFEST.md",
+      "bytes": 3057,
+      "sha256": "ca0281ccb3101f7222b5dc7b2758da397fdeeff998a5eb0616189498fce18923",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/RUNBOOK.md",
+      "bytes": 3781,
+      "sha256": "dc0b4a0050995ed965d80f56b4b4d8c7f5039cd69f46128791cb23208ef0e1db",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "An operator can follow command-center/ROLLBACK-MANIFEST.md and the runbook rollback section literally, top to bottom, with zero improvisation.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/ROLLBACK-MANIFEST.md present=True; command-center/RUNBOOK.md present=True; guide_followable=False",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0050/emit.py",
+          "raw_output": "named_present={'command-center/ROLLBACK-MANIFEST.md': True, 'command-center/RUNBOOK.md': True} followable=False steps=7 defects=6",
+          "fingerprint": "cnf0050:measure-live",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "test -f command-center/ROLLBACK-MANIFEST.md; test -f command-center/RUNBOOK.md",
+          "raw_output": "command-center/ROLLBACK-MANIFEST.md=True command-center/RUNBOOK.md=True; RUNBOOK.md has no heading containing 'rollback'; ROLLBACK-MANIFEST.md has no fenced commands",
+          "fingerprint": "cnf0050:named-input-stat",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Every step in the guide has a recorded exit code or an explicit deviation note; no step is unexecuted.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "steps=7 unexecuted=0 completeness_ok=True",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "measure_live sandbox then completeness(steps)",
+          "raw_output": "completeness_ok=True problems=[] unexecuted=0",
+          "fingerprint": "cnf0050:completeness",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "canonical_steps ids have exit_code int or deviation len>=8",
+          "raw_output": "[{\"exit_code\": 0, \"has_deviation\": false, \"id\": \"exists-command-center-ROLLBACK-MANIFEST-md\", \"status\": \"executed\"}, {\"exit_code\": 0, \"has_deviation\": false, \"id\": \"exists-command-center-RUNBOOK-md\", \"status\": \"executed\"}, {\"exit_code\": null, \"has_deviation\": true, \"id\": \"missing-section-command-center-RUNBOOK.md\", \"status\": \"not-executed-missing\"}, {\"exit_code\": null, \"has_deviation\": true, \"id\": \"missing-fetch-n1\", \"status\": \"not-executed-missing\"}, {\"exit_code\": null, \"has_deviation\": true, \"id\": \"missing-downgrade-canary\", \"status\": \"not-executed-missing\"}, {\"exit_code\": null, \"has_deviation\": true, \"id\": \"missing-acceptance-probe\", \"status\": \"not-executed-missing\"}, {\"exit_code\": null, \"has_deviation\": true, \"id\": \"missing-mttr\", \"status\": \"not-executed-missing\"}]",
+          "fingerprint": "cnf0050:step-table",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Two independent reviewers filed without seeing each other's verdict; disagreement is recorded rather than voted.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "reviewers A-fenced and B-prompt; saw_other_verdict_before_filing=false",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "extract_fenced vs extract_prompt independently",
+          "raw_output": "[{\"command_count\": 0, \"commands\": [], \"independent\": true, \"missing_named_inputs\": [], \"notes\": \"filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away\", \"reviewer_id\": \"A-fenced\", \"saw_other_verdict_before_filing\": false, \"verdict\": \"NOT-FOLLOWABLE\"}, {\"command_count\": 0, \"commands\": [], \"independent\": true, \"missing_named_inputs\": [], \"notes\": \"filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away\", \"reviewer_id\": \"B-prompt\", \"saw_other_verdict_before_filing\": false, \"verdict\": \"NOT-FOLLOWABLE\"}]",
+          "fingerprint": "cnf0050:reviewer-pair",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/CNF-0050/extract.py",
+          "raw_output": "Reviewer A sees fences only; reviewer B sees $ / checkbox / Run: only.",
+          "fingerprint": "cnf0050:extractor-split",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A recipe the live guide prescribes that is measurably wrong on this platform is filed with the corrected recipe.",
+      "verdict": "NOT-CHECKED",
+      "anchor": "live rollback surfaces contain no fenced git-archive prescription; fixtures/wrong-recipe/ fires the detector",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "control_wrong_recipe_filed(fixtures/wrong-recipe)",
+          "raw_output": "{\"defect_ids\": [\"wrong-recipe:ROLLBACK-MANIFEST.md:7\", \"step:run:ROLLBACK-MANIFEST.md:7:git-archive-HEAD-command-center/ROLLBACK\"], \"pass\": true}",
+          "fingerprint": "cnf0050:wrong-recipe-fixture",
+          "exit_code": 0
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "If a fenced git archive lands in the live rollback surfaces, re-run measure_live and expect classification=wrong-recipe with corrected_recipe git cat-file -p <rev>:<path>."
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-literal-rerun",
+      "name": "literal re-run records exit or deviation for every step",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0050/probe1_literal.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-detector-control",
+      "name": "detector controls fire in both states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0050/probe2_detector.py",
+      "result": "PASS"
+    },
+    {
+      "id": "control-known-good",
+      "name": "known-good fixture is complete and followable",
+      "command": "measure_fixture(known-good) completeness and exit 0",
+      "result": "PASS"
+    },
+    {
+      "id": "control-unexecuted-refused",
+      "name": "completeness refuses an unexecuted mutant",
+      "command": "completeness(unexecuted mutant) must fail",
+      "result": "PASS"
+    },
+    {
+      "id": "control-wrong-recipe",
+      "name": "fenced git archive files corrected git cat-file recipe",
+      "command": "fenced git archive must file corrected git cat-file recipe",
+      "result": "PASS"
+    },
+    {
+      "id": "control-use-vs-mention",
+      "name": "prose mentioning git archive is not a wrong-recipe hit",
+      "command": "prose mentioning git archive must not file wrong-recipe",
+      "result": "PASS"
+    },
+    {
+      "id": "control-ambiguous",
+      "name": "placeholder step is not executed with invented values",
+      "command": "placeholder step must not be executed with invented values",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "known-good-records",
+      "kind": "known-broken-fixture",
+      "description": "Known-good fixture must record every step with exit 0 and be followable; this is the silent-on-good half.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "{\"completeness_ok\": true, \"guide_followable\": true}"
+    },
+    {
+      "id": "unexecuted-refused",
+      "kind": "mutation",
+      "description": "Dropping exit_code and deviation from one executed step must fail completeness (unexecuted/unrecorded).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"bad_problems\": [\"unrecorded:run:ROLLBACK-MANIFEST.md:20:cp-payload.bin-restored.bin\", \"unexecuted:run:ROLLBACK-MANIFEST.md:20:cp-payload.bin-restored.bin\"]}"
+    },
+    {
+      "id": "wrong-recipe-filed",
+      "kind": "known-broken-fixture",
+      "description": "Fenced git archive in fixtures/wrong-recipe must file wrong-recipe with corrected git cat-file recipe.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"defect_ids\": [\"wrong-recipe:ROLLBACK-MANIFEST.md:7\", \"step:run:ROLLBACK-MANIFEST.md:7:git-archive-HEAD-command-center/ROLLBACK\"]}"
+    },
+    {
+      "id": "use-vs-mention",
+      "kind": "known-broken-fixture",
+      "description": "Prose that mentions git archive without a fenced command must not file wrong-recipe.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "{\"wrong_defects\": []}"
+    },
+    {
+      "id": "ambiguous-not-improvised",
+      "kind": "malformed-input",
+      "description": "A <VERSION>/$TARGET placeholder must be classified ambiguous-step and must not be executed.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"ambiguous_ids\": [\"run:ROLLBACK-MANIFEST.md:7:deploy-<VERSION>---to-$TARGET\"]}"
+    },
+    {
+      "id": "schema-garbage",
+      "kind": "malformed-input",
+      "description": "Empty/unrelated documents must be rejected by the conformance-report schema with disk-resolved $ref.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "empty object rejected by required receipt_core fields"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0050-probe2-detector",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "local",
+    "notes": "Probe 2 re-runs detector controls on fixtures without reading emit.py's live step table."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0050/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0050"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/CNF-0050/schema_validate.py",
+      "artifact_path": "command-center/confirmation/CNF-0050-rollback-guide-conformance.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "schema_validate.validate_doc(receipt)",
+        "raw_output": "in-memory receipt compiles against disk-resolved $ref",
+        "fingerprint": "cnf0050:schema-validate",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:28Z",
+    "ended_at": "2026-08-25T00:58:28Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "ROLLBACK-MANIFEST.md table-cell undo lines are not extracted by fenced/prompt extractors, so they were not executed as steps.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Add a table-cell extractor, re-run measure_live, and file each extracted command's exit or an explicit deviation."
+    },
+    {
+      "claim": "EXPECTED_COVERAGE needle 'sha256' matches RUNBOOK.md REACH-6 prose, so the N-1 pin hole was not filed as missing-sha256-pin.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Already measured: RUNBOOK.md contains 'sha256 mismatch'; coverage uses whole-file text, not the rollback section."
+    }
+  ],
+  "produced_by": {
+    "vendor": "grok",
+    "model": "grok-4.6",
+    "role": "runbook-conformance-engineer",
+    "execution_substrate": "local-serialized"
+  },
+  "report": {
+    "kind": "conformance-report",
+    "observations": [
+      {
+        "name": "named-input-ROLLBACK-MANIFEST",
+        "measured": true,
+        "method": "test -f command-center/ROLLBACK-MANIFEST.md",
+        "anchor": "command-center/ROLLBACK-MANIFEST.md"
+      },
+      {
+        "name": "named-input-RUNBOOK",
+        "measured": true,
+        "method": "test -f command-center/RUNBOOK.md",
+        "anchor": "command-center/RUNBOOK.md"
+      },
+      {
+        "name": "guide_followable",
+        "measured": false,
+        "method": "measure_live classification union + reviewer verdicts",
+        "anchor": "report.guide_followable"
+      },
+      {
+        "name": "unexecuted_count",
+        "measured": 0,
+        "method": "completeness over recorded steps",
+        "anchor": "report.unexecuted_count"
+      },
+      {
+        "name": "step_count",
+        "measured": 7,
+        "method": "literal extraction plus catalog coverage holes",
+        "anchor": "report.steps"
+      }
+    ],
+    "control_ids": [
+      "known-good-records",
+      "unexecuted-refused",
+      "wrong-recipe-filed",
+      "use-vs-mention",
+      "ambiguous-not-improvised"
+    ],
+    "title": "Execute the rollback guide as written and confirm every documented step runs",
+    "question": "Can an operator actually follow the rollback guide? Execute it literally, top to bottom, with no improvisation, and answer: which steps fail, which are ambiguous enough that two operators would diverge, and which are missing entirely?",
+    "guide_followable": false,
+    "unexecuted_count": 0,
+    "named_inputs": {
+      "command-center/ROLLBACK-MANIFEST.md": true,
+      "command-center/RUNBOOK.md": true
+    },
+    "steps": [
+      {
+        "id": "exists-command-center-ROLLBACK-MANIFEST-md",
+        "source": "command-center/ROLLBACK-MANIFEST.md",
+        "line": 1,
+        "command": "test -f command-center/ROLLBACK-MANIFEST.md",
+        "exit_code": 0,
+        "status": "executed",
+        "improvised": false,
+        "stdout": "",
+        "stderr": "",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ],
+        "classification": "ok"
+      },
+      {
+        "id": "exists-command-center-RUNBOOK-md",
+        "source": "command-center/RUNBOOK.md",
+        "line": 1,
+        "command": "test -f command-center/RUNBOOK.md",
+        "exit_code": 0,
+        "status": "executed",
+        "improvised": false,
+        "stdout": "",
+        "stderr": "",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ],
+        "classification": "ok"
+      },
+      {
+        "id": "missing-section-command-center-RUNBOOK.md",
+        "source": "command-center/RUNBOOK.md",
+        "line": 1,
+        "command": "(missing) RUNBOOK.md rollback section heading",
+        "classification": "missing-step",
+        "status": "not-executed-missing",
+        "improvised": false,
+        "deviation": "no rollback heading; section not invented; commands outside a rollback section were not executed as if they were the guide",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ]
+      },
+      {
+        "id": "missing-fetch-n1",
+        "source": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "command": "fetch the N-1 artifact from the release store",
+        "classification": "missing-step",
+        "status": "not-executed-missing",
+        "improvised": false,
+        "deviation": "REL-0006 names fetchability of the N-1 artifact as the blocking precondition; the live rollback guide does not prescribe it; not invented or executed",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ]
+      },
+      {
+        "id": "missing-downgrade-canary",
+        "source": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "command": "downgrade the canary to the N-1 artifact",
+        "classification": "missing-step",
+        "status": "not-executed-missing",
+        "improvised": false,
+        "deviation": "no downgrade step is present in the live rollback surfaces; not invented or executed",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ]
+      },
+      {
+        "id": "missing-acceptance-probe",
+        "source": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "command": "prove restoration by re-running the N-1 acceptance probe, not by reading a version string",
+        "classification": "missing-step",
+        "status": "not-executed-missing",
+        "improvised": false,
+        "deviation": "the live guide does not name an acceptance probe; not invented or executed",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ]
+      },
+      {
+        "id": "missing-mttr",
+        "source": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "command": "record wall-clock time from decision to restored behaviour as MTTR",
+        "classification": "missing-step",
+        "status": "not-executed-missing",
+        "improvised": false,
+        "deviation": "no MTTR measurement step is present in the live guide; not invented or executed",
+        "reviewer_ids": [
+          "A-fenced",
+          "B-prompt"
+        ]
+      }
+    ],
+    "defects": [
+      {
+        "id": "missing-rollback-section:command-center/RUNBOOK.md",
+        "classification": "missing-step",
+        "path": "command-center/RUNBOOK.md",
+        "line": null,
+        "detail": "command-center/RUNBOOK.md has no heading containing 'rollback'; two operators would not agree where the guide starts"
+      },
+      {
+        "id": "missing-fetch-n1",
+        "classification": "missing-step",
+        "path": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "detail": "REL-0006 names fetchability of the N-1 artifact as the blocking precondition; the live rollback guide does not prescribe it"
+      },
+      {
+        "id": "missing-downgrade-canary",
+        "classification": "missing-step",
+        "path": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "detail": "no downgrade step is present in the live rollback surfaces"
+      },
+      {
+        "id": "missing-acceptance-probe",
+        "classification": "missing-step",
+        "path": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "detail": "the live guide does not name an acceptance probe"
+      },
+      {
+        "id": "missing-mttr",
+        "classification": "missing-step",
+        "path": "catalog:REL-0006/question_or_target",
+        "line": null,
+        "detail": "no MTTR measurement step is present in the live guide"
+      },
+      {
+        "id": "render-skips-rollback-guide",
+        "classification": "documentation-defect",
+        "path": "tools/command-center/render.py",
+        "line": 47,
+        "detail": "CONTRACTED_ARTIFACTS lists ROLLBACK-MANIFEST.md and RUNBOOK.md but outputs() only writes STATUS.md and OWNER-DECISIONS.md; the documented generator cannot produce the rollback guide"
+      }
+    ],
+    "failed_or_defective_step_ids": [
+      "missing-section-command-center-RUNBOOK.md",
+      "missing-fetch-n1",
+      "missing-downgrade-canary",
+      "missing-acceptance-probe",
+      "missing-mttr"
+    ],
+    "classifications_observed": [
+      "missing-step",
+      "ok"
+    ],
+    "reviewers": [
+      {
+        "reviewer_id": "A-fenced",
+        "verdict": "NOT-FOLLOWABLE",
+        "independent": true,
+        "saw_other_verdict_before_filing": false,
+        "command_count": 0,
+        "commands": [],
+        "missing_named_inputs": [],
+        "notes": "filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away"
+      },
+      {
+        "reviewer_id": "B-prompt",
+        "verdict": "NOT-FOLLOWABLE",
+        "independent": true,
+        "saw_other_verdict_before_filing": false,
+        "command_count": 0,
+        "commands": [],
+        "missing_named_inputs": [],
+        "notes": "filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away"
+      }
+    ],
+    "reviewer_disagreement": false,
+    "canonical_steps": [
+      [
+        "exists-command-center-ROLLBACK-MANIFEST-md",
+        "command-center/ROLLBACK-MANIFEST.md",
+        "test -f command-center/ROLLBACK-MANIFEST.md",
+        "ok",
+        0,
+        false,
+        "executed"
+      ],
+      [
+        "exists-command-center-RUNBOOK-md",
+        "command-center/RUNBOOK.md",
+        "test -f command-center/RUNBOOK.md",
+        "ok",
+        0,
+        false,
+        "executed"
+      ],
+      [
+        "missing-section-command-center-RUNBOOK.md",
+        "command-center/RUNBOOK.md",
+        "(missing) RUNBOOK.md rollback section heading",
+        "missing-step",
+        null,
+        true,
+        "not-executed-missing"
+      ],
+      [
+        "missing-fetch-n1",
+        "catalog:REL-0006/question_or_target",
+        "fetch the N-1 artifact from the release store",
+        "missing-step",
+        null,
+        true,
+        "not-executed-missing"
+      ],
+      [
+        "missing-downgrade-canary",
+        "catalog:REL-0006/question_or_target",
+        "downgrade the canary to the N-1 artifact",
+        "missing-step",
+        null,
+        true,
+        "not-executed-missing"
+      ],
+      [
+        "missing-acceptance-probe",
+        "catalog:REL-0006/question_or_target",
+        "prove restoration by re-running the N-1 acceptance probe, not by reading a version string",
+        "missing-step",
+        null,
+        true,
+        "not-executed-missing"
+      ],
+      [
+        "missing-mttr",
+        "catalog:REL-0006/question_or_target",
+        "record wall-clock time from decision to restored behaviour as MTTR",
+        "missing-step",
+        null,
+        true,
+        "not-executed-missing"
+      ]
+    ],
+    "detector_controls": [
+      {
+        "id": "known-good-records",
+        "pass": true,
+        "fired_on_bad": true,
+        "silent_on_good": true,
+        "completeness_ok": true,
+        "problems": [],
+        "guide_followable": true,
+        "extracted_count": 4,
+        "nonzero": [],
+        "unexecuted_count": 0
+      },
+      {
+        "id": "unexecuted-refused",
+        "pass": true,
+        "fired_on_bad": true,
+        "silent_on_good": true,
+        "bad_problems": [
+          "unrecorded:run:ROLLBACK-MANIFEST.md:20:cp-payload.bin-restored.bin",
+          "unexecuted:run:ROLLBACK-MANIFEST.md:20:cp-payload.bin-restored.bin"
+        ],
+        "mutated_id": "run:ROLLBACK-MANIFEST.md:20:cp-payload.bin-restored.bin"
+      },
+      {
+        "id": "wrong-recipe-filed",
+        "pass": true,
+        "fired_on_bad": true,
+        "silent_on_good": true,
+        "defect_ids": [
+          "wrong-recipe:ROLLBACK-MANIFEST.md:7",
+          "step:run:ROLLBACK-MANIFEST.md:7:git-archive-HEAD-command-center/ROLLBACK"
+        ],
+        "step_ids": [
+          "run:ROLLBACK-MANIFEST.md:7:git-archive-HEAD-command-center/ROLLBACK"
+        ]
+      },
+      {
+        "id": "use-vs-mention",
+        "pass": true,
+        "fired_on_bad": true,
+        "silent_on_good": true,
+        "wrong_defects": [],
+        "extracted_count": 1
+      },
+      {
+        "id": "ambiguous-not-improvised",
+        "pass": true,
+        "fired_on_bad": true,
+        "silent_on_good": true,
+        "ambiguous_ids": [
+          "run:ROLLBACK-MANIFEST.md:7:deploy-<VERSION>---to-$TARGET"
+        ],
+        "improvised": false
+      }
+    ],
+    "answer": "No. An operator cannot follow the rollback guide on this tree. command-center/ROLLBACK-MANIFEST.md present=True command-center/RUNBOOK.md present=True. 7 steps recorded, unexecuted=0, defects=6. RUNBOOK.md has no rollback heading so its fenced close.py/render.py/seed.py commands were not executed as the guide. ROLLBACK-MANIFEST.md is tables without fenced commands. Zero improvisation: missing procedures were filed as missing-step with deviation notes, not invented.",
+    "notes": "Confirmation SUCCESS means the guide was executed/recorded, not that an operator can follow it. guide_followable=false on this tree."
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "literal-rerun",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0050/probe1_literal.py"
+      },
+      {
+        "id": "probe2",
+        "role": "detector-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0050/probe2_detector.py"
+      }
+    ],
+    "output_path": "command-center/confirmation/CNF-0050-rollback-guide-conformance.json",
+    "output_schema": "command-center/schema/conformance-report.schema.json",
+    "produced_by_path": "command-center/p2-wave/probes/CNF-0050/emit.py"
+  },
+  "unexecuted_count": 0,
+  "guide_followable": false,
+  "steps": [
+    {
+      "id": "exists-command-center-ROLLBACK-MANIFEST-md",
+      "source": "command-center/ROLLBACK-MANIFEST.md",
+      "line": 1,
+      "command": "test -f command-center/ROLLBACK-MANIFEST.md",
+      "exit_code": 0,
+      "status": "executed",
+      "improvised": false,
+      "stdout": "",
+      "stderr": "",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ],
+      "classification": "ok"
+    },
+    {
+      "id": "exists-command-center-RUNBOOK-md",
+      "source": "command-center/RUNBOOK.md",
+      "line": 1,
+      "command": "test -f command-center/RUNBOOK.md",
+      "exit_code": 0,
+      "status": "executed",
+      "improvised": false,
+      "stdout": "",
+      "stderr": "",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ],
+      "classification": "ok"
+    },
+    {
+      "id": "missing-section-command-center-RUNBOOK.md",
+      "source": "command-center/RUNBOOK.md",
+      "line": 1,
+      "command": "(missing) RUNBOOK.md rollback section heading",
+      "classification": "missing-step",
+      "status": "not-executed-missing",
+      "improvised": false,
+      "deviation": "no rollback heading; section not invented; commands outside a rollback section were not executed as if they were the guide",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ]
+    },
+    {
+      "id": "missing-fetch-n1",
+      "source": "catalog:REL-0006/question_or_target",
+      "line": null,
+      "command": "fetch the N-1 artifact from the release store",
+      "classification": "missing-step",
+      "status": "not-executed-missing",
+      "improvised": false,
+      "deviation": "REL-0006 names fetchability of the N-1 artifact as the blocking precondition; the live rollback guide does not prescribe it; not invented or executed",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ]
+    },
+    {
+      "id": "missing-downgrade-canary",
+      "source": "catalog:REL-0006/question_or_target",
+      "line": null,
+      "command": "downgrade the canary to the N-1 artifact",
+      "classification": "missing-step",
+      "status": "not-executed-missing",
+      "improvised": false,
+      "deviation": "no downgrade step is present in the live rollback surfaces; not invented or executed",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ]
+    },
+    {
+      "id": "missing-acceptance-probe",
+      "source": "catalog:REL-0006/question_or_target",
+      "line": null,
+      "command": "prove restoration by re-running the N-1 acceptance probe, not by reading a version string",
+      "classification": "missing-step",
+      "status": "not-executed-missing",
+      "improvised": false,
+      "deviation": "the live guide does not name an acceptance probe; not invented or executed",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ]
+    },
+    {
+      "id": "missing-mttr",
+      "source": "catalog:REL-0006/question_or_target",
+      "line": null,
+      "command": "record wall-clock time from decision to restored behaviour as MTTR",
+      "classification": "missing-step",
+      "status": "not-executed-missing",
+      "improvised": false,
+      "deviation": "no MTTR measurement step is present in the live guide; not invented or executed",
+      "reviewer_ids": [
+        "A-fenced",
+        "B-prompt"
+      ]
+    }
+  ],
+  "reviewers": [
+    {
+      "reviewer_id": "A-fenced",
+      "verdict": "NOT-FOLLOWABLE",
+      "independent": true,
+      "saw_other_verdict_before_filing": false,
+      "command_count": 0,
+      "commands": [],
+      "missing_named_inputs": [],
+      "notes": "filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away"
+    },
+    {
+      "reviewer_id": "B-prompt",
+      "verdict": "NOT-FOLLOWABLE",
+      "independent": true,
+      "saw_other_verdict_before_filing": false,
+      "command_count": 0,
+      "commands": [],
+      "missing_named_inputs": [],
+      "notes": "filed before the other reviewer's verdict was visible; disagreement is recorded, not voted away"
+    }
+  ],
+  "named_inputs": {
+    "command-center/ROLLBACK-MANIFEST.md": true,
+    "command-center/RUNBOOK.md": true
+  }
+}

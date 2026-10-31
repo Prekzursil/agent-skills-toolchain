@@ -1,0 +1,312 @@
+{
+ "evidence": [
+  {
+   "claim": "TST-0008 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0008.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0008.json",
+     "raw_output": "bytes=5470 sha256=00d7402345074d61250e7aa114ff75278e27a556b2a1aed5ad5251f070d4c55f",
+     "fingerprint": "fa90d5a576af115a6112690adebc94de",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0008",
+     "raw_output": "schema-check",
+     "fingerprint": "bba39fd8794b9c5123a7bda7331246c3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0008 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0008",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0008",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "2ea2d6d3c3667d04901e6fbe4d78c419",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0008",
+     "raw_output": "schema-valid",
+     "fingerprint": "274e509f40c1f69465ddcf708be3aad8",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0008",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0008.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0008",
+ "extensions": {
+  "legacy_root": {
+   "SUCCESS:TST-0008": true,
+   "checker": {
+    "bytes": 6667,
+    "entry_points": [
+     "check_sentinel_role",
+     "status_terminal_line",
+     "check_sentinel_substring"
+    ],
+    "known_broken_cousin": "check_sentinel_substring",
+    "module": "command-center/p2-wave/probes/TST-0008/sentinel_check.py",
+    "policy": [
+     "read the typed status field, never dump or scan the payload",
+     "the semantic ROLE is the terminal line of status",
+     "equality against the expected sentinel, not substring membership",
+     "empty status with a quoted body token is FAILED",
+     "a different unit's status terminal line is FAILED and named"
+    ],
+    "sha256": "81832bc051e75a4ff20cb21b94d1818b3b1fa920f17b056c259939afe87897e8"
+   },
+   "checks": [
+    {
+     "id": "test_sentinel_in_body_does_not_satisfy",
+     "verdict": "PASS"
+    },
+    {
+     "id": "test_sentinel_in_status_field_satisfies",
+     "verdict": "PASS"
+    },
+    {
+     "id": "test_sentinel_of_a_DIFFERENT_unit_id_does_not_satisfy",
+     "verdict": "PASS"
+    }
+   ],
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0008",
+   "fixtures": {
+    "body_mention": "command-center/p2-wave/probes/TST-0008/fixtures/body_mention.json",
+    "status_use": "command-center/p2-wave/probes/TST-0008/fixtures/status_use.json",
+    "wrong_unit": "command-center/p2-wave/probes/TST-0008/fixtures/wrong_unit.json"
+   },
+   "id": "TST-0008",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0008/probe1_role_not_substring.py",
+     "exit_code": 0,
+     "id": "probe1",
+     "role": "role-vs-substring-required-tests"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0008/probe2_typed_field_ast.py",
+     "exit_code": 0,
+     "id": "probe2",
+     "role": "typed-field-ast-and-substring-mutant"
+    }
+   ],
+   "output_schema_declared": "command-center/schema/test-receipt.schema.json",
+   "output_schema_on_disk": true,
+   "parser": {
+    "name": "json.loads",
+    "version": "stdlib"
+   },
+   "question": "Predicate condition 5 requires the sentinel present (:10636). The use-vs-mention class has hit this estate ~8 times, including inside the verification probes themselves. Target: the sentinel check keys on the semantic ROLE (a terminal line in the receipt's status field), not on a substring match anywhere in the payload. Does a document that merely DESCRIBES 'SUCCESS:TST-0008' satisfy the check?",
+   "question_answer": "No. A document that merely DESCRIBES 'SUCCESS:TST-0008' in body or notes does not satisfy the check. The checker reads the typed status field's terminal line and demands equality with the expected sentinel; it does not scan free text. The body_mention fixture quotes a valid sentinel while status is empty and is asserted FAILED (reason=status-field-empty). A different unit id in status is also FAILED and names the mismatch (observed=SUCCESS:TST-0017 expected=SUCCESS:TST-0008).",
+   "report_kind": "test-receipt",
+   "scope": {
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global unit_manifest.py --write was run",
+     "platform/lib/completion_predicate.py was patched (absent on this worktree)",
+     "TST-0001 / TST-0017 receipts were present"
+    ],
+    "proof_surface": "role checker + three committed fixtures + AST of the checker + substring-cousin both-states control"
+   },
+   "status": "DELIVERED\nSUCCESS:TST-0008",
+   "title": "Sentinel detection must distinguish a real sentinel from a sentinel quoted inside a payload",
+   "ts": "2026-08-25T00:58:10Z"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0008",
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0008.json",
+   "bytes": 5470,
+   "sha256": "00d7402345074d61250e7aa114ff75278e27a556b2a1aed5ad5251f070d4c55f",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0008/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0008"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0008.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0008.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "29179c6472f7a0de9f700d9a887905c9",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "test-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 5470,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0008.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "SUCCESS:TST-0008": true,
+ "checker": {
+  "bytes": 6667,
+  "entry_points": [
+   "check_sentinel_role",
+   "status_terminal_line",
+   "check_sentinel_substring"
+  ],
+  "known_broken_cousin": "check_sentinel_substring",
+  "module": "command-center/p2-wave/probes/TST-0008/sentinel_check.py",
+  "policy": [
+   "read the typed status field, never dump or scan the payload",
+   "the semantic ROLE is the terminal line of status",
+   "equality against the expected sentinel, not substring membership",
+   "empty status with a quoted body token is FAILED",
+   "a different unit's status terminal line is FAILED and named"
+  ],
+  "sha256": "81832bc051e75a4ff20cb21b94d1818b3b1fa920f17b056c259939afe87897e8"
+ },
+ "checks": [
+  {
+   "id": "test_sentinel_in_body_does_not_satisfy",
+   "verdict": "PASS"
+  },
+  {
+   "id": "test_sentinel_in_status_field_satisfies",
+   "verdict": "PASS"
+  },
+  {
+   "id": "test_sentinel_of_a_DIFFERENT_unit_id_does_not_satisfy",
+   "verdict": "PASS"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0008",
+ "fixtures": {
+  "body_mention": "command-center/p2-wave/probes/TST-0008/fixtures/body_mention.json",
+  "status_use": "command-center/p2-wave/probes/TST-0008/fixtures/status_use.json",
+  "wrong_unit": "command-center/p2-wave/probes/TST-0008/fixtures/wrong_unit.json"
+ },
+ "id": "TST-0008",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0008/probe1_role_not_substring.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "role": "role-vs-substring-required-tests"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0008/probe2_typed_field_ast.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "role": "typed-field-ast-and-substring-mutant"
+  }
+ ],
+ "output_schema_declared": "command-center/schema/test-receipt.schema.json",
+ "output_schema_on_disk": true,
+ "parser": {
+  "name": "json.loads",
+  "version": "stdlib"
+ },
+ "question": "Predicate condition 5 requires the sentinel present (:10636). The use-vs-mention class has hit this estate ~8 times, including inside the verification probes themselves. Target: the sentinel check keys on the semantic ROLE (a terminal line in the receipt's status field), not on a substring match anywhere in the payload. Does a document that merely DESCRIBES 'SUCCESS:TST-0008' satisfy the check?",
+ "question_answer": "No. A document that merely DESCRIBES 'SUCCESS:TST-0008' in body or notes does not satisfy the check. The checker reads the typed status field's terminal line and demands equality with the expected sentinel; it does not scan free text. The body_mention fixture quotes a valid sentinel while status is empty and is asserted FAILED (reason=status-field-empty). A different unit id in status is also FAILED and names the mismatch (observed=SUCCESS:TST-0017 expected=SUCCESS:TST-0008).",
+ "report_kind": "test-receipt",
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "platform/lib/completion_predicate.py was patched (absent on this worktree)",
+   "TST-0001 / TST-0017 receipts were present"
+  ],
+  "proof_surface": "role checker + three committed fixtures + AST of the checker + substring-cousin both-states control"
+ },
+ "status": "DELIVERED\nSUCCESS:TST-0008",
+ "title": "Sentinel detection must distinguish a real sentinel from a sentinel quoted inside a payload",
+ "ts": "2026-08-25T00:58:10Z"
+}

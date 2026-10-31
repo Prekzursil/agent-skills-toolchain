@@ -1,0 +1,353 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s29-two-key-authorization",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Authorize one irreversible action only if two independent authorities, briefed separately, both authorize the IDENTICAL action hash.",
+    "charter": "Two-key dual control. There is NO tie-break: a single AUTHORISE must not open the gate. The two authorities get no shared brief, so their provenance differs; if they authorize different hashes, that is a DENY, not a disagreement to resolve.",
+    "risk_tier": "critical",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "both authorities authorized, and both named the SAME action hash",
+      "neither authority saw the other's brief before authorizing",
+      "the deny path was proven too: one AUTHORISE alone left the gate shut"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 15,
+      "forbidden_actions": [
+        "proceeding on a single authorization",
+        "re-briefing an authority to change its vote"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": false
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 2,
+      "min": 2,
+      "max": 2
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "max_share_per_vendor": 0.5
+    },
+    "roster": [
+      {
+        "participant_id": "authority-a",
+        "display_name": "Authority A (Claude side)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:authorizer",
+        "authority": "voter",
+        "effort": "xhigh",
+        "expertise": [
+          "the action under authorization"
+        ],
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        },
+        "context": {
+          "partition_id": "brief-a"
+        }
+      },
+      {
+        "participant_id": "authority-b",
+        "display_name": "Authority B (Codex side)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "custom:authorizer",
+        "authority": "voter",
+        "effort": "xhigh",
+        "expertise": [
+          "the action under authorization"
+        ],
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        },
+        "context": {
+          "partition_id": "brief-b"
+        }
+      }
+    ],
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        {
+          "partition_id": "brief-a",
+          "visible_to": [
+            "authority-a"
+          ],
+          "sources": [
+            "the change itself",
+            "its rollback path"
+          ]
+        },
+        {
+          "partition_id": "brief-b",
+          "visible_to": [
+            "authority-b"
+          ],
+          "sources": [
+            "the change itself",
+            "its blast radius"
+          ]
+        }
+      ]
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "exclude"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "prompt"
+      ],
+      "max_similarity": 0.5
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "independent-authorization",
+        "independent": true,
+        "anonymous": false,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "participants_active",
+              "op": "==",
+              "value": 2,
+              "note": "both authorities must have answered; a missing answer is not a DENY, it is a stall"
+            },
+            {
+              "metric": "quorum_met",
+              "op": "==",
+              "value": true,
+              "note": "quorum here is literally both keys"
+            }
+          ]
+        }
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 1,
+      "max": 1
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 2,
+      "required_before_decision": true,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "xhigh",
+    "time_minutes": 15,
+    "turns": 4,
+    "tool_calls": 40,
+    "experiments": 2
+  },
+  "targets": {
+    "evidence_items": 4
+  },
+  "voting": {
+    "method": "unanimity",
+    "quorum": {
+      "min_voters": 2,
+      "min_fraction": 1.0,
+      "on_failure": "no_decision"
+    },
+    "abstention": {
+      "allowed": false,
+      "counts_toward_quorum": false
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "forbidden",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "unanimity == true AND quorum_met == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unanimity",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "quorum_met",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 2,
+      "every_participant_spoke": true,
+      "min_evidence_items": 2
+    },
+    "hard_caps": {
+      "max_rounds": 1,
+      "max_minutes": 15,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "no_decision"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1
+    },
+    "resolution": [
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "collusion",
+      "strategic_voting",
+      "evidence_free_majority",
+      "hidden_conflict_of_interest",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "votes_by_round",
+      "experiments",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 365
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Two-key authorization for an irreversible action",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S29 two-key-authorization",
+      "P18 two-key-dual-control"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1558-1572"
+    ],
+    "notes": "DESIGN LINEAGE: C-S29 two-key-authorization in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 2; roles: authority_a@claude,authority_b@codex).\nPRESET LABEL: custom - authorize_irreversible is not one of the 24 required archetypes.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): AUTHORISE->decision, DENY->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.participants.roster : authorities dial - WHO holds the two keys. Keep the two vendors distinct: same-vendor keys share failure modes and the control degenerates\n  - $.participants.information_partition.partitions : action_hash / brief dial - the card's 'no shared brief' rule is enforced HERE, not by prose\n  - $.voting.method + $.voting.tie_break : logical AND. DO NOT set a tie_break other than no_decision: a tie-break IS the single-key bypass the card forbids\nMAPPING NOTE: the card's voting rule is logical_AND. The schema enum has no such method; unanimity with quorum.min_fraction 1.0, abstention forbidden and tie_break=no_decision is the same predicate over exactly two voters. The card also demands the DENY path be both-states tested - that belongs to the engine's test suite, not to this instance, and is recorded in objective.success_criteria so a receipt cannot claim done without it.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

@@ -1,0 +1,450 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "scanner-detector-integrity-probe",
+  "name": "Both-states detector-integrity probe for a scanner set",
+  "description": "A SPLIT out of BP-SEC-01 (card 61), delivered as its own blueprint because it is a different mechanism with a different failure mode: BP-SEC-01 repairs findings, this one certifies that the instrument producing findings can produce them at all. Defining mechanism: for each scanner, run it against a KNOWN-BROKEN state and require it to FIRE, then against the restored CLEAN state and require it to be SILENT. A probe that is silent in both states measures nothing, so a scanner that fails either half contributes zero evidence and its silence may never be reported as clean. Consumed as a subworkflow by security-review-scanner-fix-loop.json.",
+  "version": "1.0.0",
+  "kind": "subworkflow",
+  "categories": ["security-governance-and-risk", "engineering-and-reliability"],
+  "tags": ["bp-sec-01", "split", "both-states", "detector-control"],
+  "flagship": true,
+
+  "params": {
+    "scanner_set": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 12,
+      "default": ["semgrep", "bandit", "gitleaks", "trivy"],
+      "description": "One probe per scanner; each needs its own planted defect"
+    },
+    "planted_defect_corpus": {
+      "type": "path",
+      "required": true,
+      "description": "Directory holding one known-bad fixture per scanner, plus its clean twin"
+    },
+    "fail_closed": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, a scanner whose probe cannot be run is UNPROVEN, never assumed working"
+    },
+    "sandbox_substrate": {
+      "type": "enum",
+      "enum": ["worktree-isolated", "container", "modal-sandbox"],
+      "default": "worktree-isolated",
+      "description": "Where the planted defect is materialised - never the live tree"
+    }
+  },
+
+  "roles": {
+    "probe-driver": {
+      "description": "Materialises the planted defect, runs the scanner, and records exit code plus finding count for both states",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Bash:semgrep",
+        "Bash:bandit",
+        "Bash:gitleaks",
+        "Bash:trivy",
+        "Write(command-center/security/detector-probe/**)"
+      ],
+      "write_paths": ["command-center/security/detector-probe/**"],
+      "speaking_rights": "always"
+    },
+    "verdict-writer": {
+      "description": "Reduces the per-scanner both-states table to one GREEN/FAILED/UNPROVEN verdict per scanner",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Write(command-center/security/detector-probe/**)"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Bash:python",
+      "Bash:semgrep",
+      "Bash:bandit",
+      "Bash:gitleaks",
+      "Bash:trivy",
+      "Write(command-center/security/detector-probe/**)"
+    ],
+    "deny": ["Bash", "WebFetch"],
+    "network": "none",
+    "write_paths": ["command-center/security/detector-probe/**"],
+    "forbid_write_paths": ["platform/**", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "fired-on-broken-state": {
+      "predicate": "custom-expression",
+      "expression": "scanner_findings_on_broken_state >= 1 AND scanner_exit_class == FINDINGS",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "silent-on-clean-state": {
+      "predicate": "custom-expression",
+      "expression": "scanner_findings_on_clean_state == 0 AND scanner_exit_class == CLEAN",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-scanner-unproven": {
+      "predicate": "custom-expression",
+      "expression": "scanners_unproven == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "probe-each-scanner",
+      "title": "Both-states probe, one scanner at a time, in a throwaway sandbox",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "scanner_set",
+        "item_var": "scanner",
+        "key_field": "scanner"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 150,
+      "max_items": 12,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "materialise-broken-state",
+          "title": "Copy this scanner's planted defect into the sandbox",
+          "kind": "task",
+          "role": "probe-driver",
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "SEC-6111",
+            "title": "Materialise one scanner's known-broken fixture in an isolated sandbox",
+            "phase": "7",
+            "question_or_target": "Copy the planted-defect fixture for the fan-out scanner into a throwaway sandbox and record its sha256, so the state the scanner is probed against is identified by content rather than by description.",
+            "inputs": ["params.planted_defect_corpus", "fanout.item.scanner", "params.sandbox_substrate"],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "probe-driver",
+              "basis": "substantive subagents default to Opus"
+            },
+            "tool_permissions": ["Read", "Bash:python", "Write(command-center/security/detector-probe/**)"],
+            "execution_substrate": "worktree-isolated",
+            "timeout_seconds": 600,
+            "output_path": "command-center/security/detector-probe/broken-state",
+            "output_schema": "command-center/schema/detector-control.schema.json",
+            "evidence_requirement": "the sha256 of the materialised fixture plus the sandbox path, so a later run can prove it probed the same bytes",
+            "tests_required": [
+              "materialising into the live tree instead of the sandbox must be rejected by the write-path policy"
+            ],
+            "reviewer_requirement": "the verdict writer re-reads the recorded sha256 rather than trusting the driver's claim",
+            "completion_sentinel": "SUCCESS:SEC-6111 when the fixture exists in the sandbox and its sha256 is recorded; otherwise FAILED:SEC-6111 <reason>",
+            "retry_policy": "two strikes then pivot to a different sandbox substrate",
+            "failure_classification": ["fixture-missing", "sandbox-unavailable"],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "run-on-broken-state",
+          "title": "Run the pinned scanner against the KNOWN-BROKEN state",
+          "kind": "task",
+          "depends_on": ["materialise-broken-state"],
+          "role": "probe-driver",
+          "timeout_seconds": 1200,
+          "work_unit_ref": "TST-0002"
+        },
+        {
+          "id": "must-have-fired",
+          "title": "A scanner that stays quiet on a planted defect is not a detector",
+          "kind": "gate",
+          "depends_on": ["run-on-broken-state"],
+          "gate_ref": "fired-on-broken-state"
+        },
+        {
+          "id": "restore-clean-state",
+          "title": "Remove the planted defect and confirm byte-identity with the clean twin",
+          "kind": "task",
+          "depends_on": ["must-have-fired"],
+          "role": "probe-driver",
+          "timeout_seconds": 600,
+          "work_unit_ref": "IMP-0002"
+        },
+        {
+          "id": "run-on-clean-state",
+          "title": "Run the same pinned scanner against the restored CLEAN state",
+          "kind": "task",
+          "depends_on": ["restore-clean-state"],
+          "role": "probe-driver",
+          "timeout_seconds": 1200,
+          "work_unit_ref": "TST-0003"
+        },
+        {
+          "id": "must-be-silent",
+          "title": "A scanner that fires on a clean state cannot distinguish the two states either",
+          "kind": "gate",
+          "depends_on": ["run-on-clean-state"],
+          "gate_ref": "silent-on-clean-state"
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": ["started in the background", "Check /codex:status"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "reduce-to-verdicts",
+      "title": "One verdict per scanner: GREEN, FAILED or UNPROVEN",
+      "kind": "task",
+      "depends_on": ["probe-each-scanner"],
+      "role": "verdict-writer",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "SEC-6112",
+        "title": "Reduce the both-states table to a per-scanner detector verdict",
+        "phase": "7",
+        "question_or_target": "For each scanner emit exactly one of GREEN (fired on broken AND silent on clean), FAILED (wrong on either half) or UNPROVEN (the probe could not be run); under fail_closed an UNPROVEN scanner is treated as contributing no evidence rather than as working.",
+        "inputs": ["command-center/security/detector-probe/broken-state", "params.fail_closed"],
+        "dependencies": ["SEC-6111"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "verdict-writer",
+          "basis": "a reduction that decides whether evidence counts is substantive"
+        },
+        "tool_permissions": ["Read", "Write(command-center/security/detector-probe/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/security/detector-probe/verdicts.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "both halves recorded per scanner - findings_on_broken and findings_on_clean - because a single half cannot separate a working detector from a broken one",
+        "tests_required": [
+          "a scanner stubbed to always return zero findings must be classified FAILED, not GREEN",
+          "a scanner stubbed to always return one finding must be classified FAILED (it fires on the clean state too)"
+        ],
+        "reviewer_requirement": "an independent reviewer re-derives one scanner's verdict from the raw two-state record",
+        "completion_sentinel": "SUCCESS:SEC-6112 when every scanner in scanner_set has exactly one verdict and both halves are recorded; otherwise FAILED:SEC-6112 <reason>",
+        "retry_policy": "no retry - a missing half is a real gap in the probe, not a transient",
+        "failure_classification": ["detector-failure", "probe-incomplete", "always-green-stub"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/security/detector-probe/verdicts.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6112",
+          "consumers": ["security-review-scanner-fix-loop", "unproven-gate"]
+        }
+      ]
+    },
+    {
+      "id": "unproven-gate",
+      "title": "Fail closed: an unproven scanner is not a working scanner",
+      "kind": "gate",
+      "depends_on": ["reduce-to-verdicts"],
+      "when": "fail_closed == true",
+      "gate_ref": "no-scanner-unproven"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "all-scanners-have-a-two-sided-verdict",
+      "expression": "scanners_with_both_halves_recorded == scanners_requested",
+      "applies_to": "workflow",
+      "minimum_conditions": "scanners_requested >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "any-scanner-failed-its-control",
+      "expression": "scanners_failed >= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": ["sandbox-unavailable"],
+    "no_retry_on": ["fixture-missing", "always-green-stub"]
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["detector-failure", "probe-incomplete"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/security/detector-probe/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/detector-probe",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 3600,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 1,
+    "journal_path": "command-center/replay/detector-probe.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["stage_id", "item_key", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/detector-probe",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": ["tool-version-change", "fixture-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report"],
+    "plan_artifact": "command-center/dry-run/detector-probe-plan.json",
+    "forbid_tools": ["Bash:semgrep", "Bash:bandit", "Bash:gitleaks", "Bash:trivy", "Write(command-center/security/detector-probe/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": { "currency": "USD", "expected": 0.3, "max": 1.2 },
+    "wallclock_seconds": { "min": 60, "expected": 420, "max": 1800 },
+    "tokens": { "expected": 60000, "max": 200000 },
+    "tool_calls": { "expected": 40, "max": 140 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "a throwaway sandbox plus command-center/security/detector-probe/**",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests", "examples"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/scanner-detector-integrity-probe.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-01",
+        "relation": "SPECIALIZE",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md#3b-the-both-states-test",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-01"]
+  },
+
+  "outputs": {
+    "detector-verdicts": {
+      "path": "command-center/security/detector-probe/verdicts.json",
+      "schema_ref": "command-center/schema/detector-control.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["security-review-scanner-fix-loop"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "paired-known-broken-and-known-clean-runs-per-instrument",
+      "distinguishing_stage": "run-on-clean-state",
+      "distinguishing_gate": "silent-on-clean-state",
+      "not_a_duplicate_because": "BP-SEC-01 acts on findings; this decides whether an instrument's OUTPUT counts as evidence at all, and it is the only blueprint here that runs the same tool twice against two deliberately different states."
+    },
+    "split_disclosure": {
+      "split_out_of": "BP-SEC-01",
+      "reason": "the card fuses two mechanisms with different failure modes - repairing findings, and certifying the instrument. A workflow that does both cannot fail one without failing the other, so the detector control could never be run on its own before a scan.",
+      "consumed_by": "platform/workflows/security-review-scanner-fix-loop.json#/stages/0"
+    },
+    "worked_example": {
+      "name": "certify gitleaks and semgrep before a security review trusts their silence",
+      "params": {
+        "scanner_set": ["gitleaks", "semgrep"],
+        "planted_defect_corpus": "platform/corpus/detector-fixtures",
+        "fail_closed": true,
+        "sandbox_substrate": "worktree-isolated"
+      },
+      "expected_stage_path": [
+        "probe-each-scanner",
+        "materialise-broken-state",
+        "run-on-broken-state",
+        "must-have-fired",
+        "restore-clean-state",
+        "run-on-clean-state",
+        "must-be-silent",
+        "reduce-to-verdicts",
+        "unproven-gate"
+      ],
+      "expected_artifacts": [
+        "command-center/security/detector-probe/verdicts.json"
+      ],
+      "expected_terminal": "SUCCESS:SEC-6112",
+      "narrative": "gitleaks fires on the fixture holding a canary AWS-shaped key (1 finding) and is silent after the key is removed and the tree is byte-compared to the clean twin -> GREEN. semgrep is invoked with a config path that no longer exists; it exits 2 with zero findings, which the exit classifier maps to TOOL-ERROR rather than CLEAN, so semgrep is UNPROVEN and the fail_closed gate blocks - the measured failure this blueprint exists to prevent, where a broken config produced a confident local green."
+    }
+  }
+}

@@ -1,0 +1,571 @@
+{
+ "CNF-0164": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "evidence-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0164",
+  "dependencies": [
+   "CNF-0163"
+  ],
+  "evidence_requirement": "Publish counts by class and the full list of paraphrase and absent cases. A quote whose source is an external URL must be checked against the archived copy captured at citation time, or reported NOT-CHECKED if no archive exists.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "stale-evidence",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "CNF-0164",
+  "inputs": [
+   "all claim and research artifacts containing quoted source or documentation text",
+   "the cited sources at their cited revisions",
+   "CNF-0163 anchor resolution results"
+  ],
+  "output_path": "command-center/receipts/CNF-0164.json",
+  "output_schema": "command-center/schema/evidence-integrity-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: is every quoted snippet in the corpus a real quote, or a paraphrase presented as one? Compare each quoted span against the source at the cited revision after EOL normalisation, and classify as exact, whitespace-different, paraphrase, or absent. A paraphrase presented as a quote is an evidence defect even when its meaning is correct.",
+  "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+  "reviewer_requirement": "One reviewer who re-checks every case classified absent.",
+  "tests_required": [
+   "Known-present control: a copy-pasted quote must classify exact.",
+   "Known-broken control: a one-word-altered quote must classify paraphrase, not exact.",
+   "Whitespace control: a quote differing only in indentation must classify whitespace-different, not paraphrase.",
+   "Detector control on itself: prove the matcher can find a known-present quote before trusting any 'absent' verdict."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Quote-fidelity check: quoted source text must byte-match the source at that revision",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0167": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "evidence-auditor",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0167",
+  "dependencies": [
+   "B09",
+   "B01"
+  ],
+  "evidence_requirement": "Report every inversion with all three timestamps and a proposed cause. Timezone and clock-skew handling must be stated explicitly; a naive local-time comparison manufactures inversions on this estate.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "partial-artifact"
+  ],
+  "id": "CNF-0167",
+  "inputs": [
+   "command-center/events/EVENTS.jsonl",
+   "artifact filesystem timestamps",
+   "git commit timestamps for the cited revisions",
+   "command-center/WORK-UNIT-CATALOG.json dependency edges"
+  ],
+  "output_path": "command-center/receipts/CNF-0167.json",
+  "output_schema": "command-center/schema/evidence-integrity-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: is any receipt causally impossible - written before the artifact it cites existed, before its dependency completed, or out of order relative to the append-only event log? Join EVENTS.jsonl against artifact mtimes and git commit times and flag every inversion. A back-dated receipt is either a clock artifact or a fabrication, and the two must be distinguished, not assumed.",
+  "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+  "reviewer_requirement": "One reviewer who re-derives the ordering from the event log alone.",
+  "tests_required": [
+   "Known-broken control: a planted back-dated receipt must be caught.",
+   "Timezone control: two events in different timezone representations of the same instant must NOT be flagged.",
+   "Dependency ordering: a receipt completing before its declared dependency must be flagged.",
+   "Both-states: a healthy ordered set must produce zero inversions."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Temporal integrity audit: detect back-dated or causally impossible receipts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0169": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "evidence-auditor",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0169",
+  "dependencies": [
+   "B01",
+   "B09"
+  ],
+  "evidence_requirement": "Emit all ten pairwise set differences with counts and sample ids. Set membership is exactly the kind of question that must be answered by an algorithm rather than by reading - write the differ.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "CNF-0169",
+  "inputs": [
+   "command-center/CLAIM-REGISTRY.json",
+   "command-center/TEST-REGISTRY.json",
+   "command-center/ARTIFACT-MANIFEST.json",
+   "command-center/WORK-UNIT-CATALOG.json",
+   "command-center/receipts/"
+  ],
+  "output_path": "command-center/receipts/CNF-0169.json",
+  "output_schema": "command-center/schema/evidence-integrity-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: do CLAIM-REGISTRY.json, TEST-REGISTRY.json, ARTIFACT-MANIFEST.json, WORK-UNIT-CATALOG.json and the receipts on disk agree about which ids exist? Compute the five-way set difference. A claim citing a test id absent from TEST-REGISTRY, or a manifest entry with no artifact, is a defect that no single-registry check can see.",
+  "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+  "reviewer_requirement": "One reviewer who recomputes two of the ten differences independently.",
+  "tests_required": [
+   "Known-present control: an id present in all five must not appear in any difference.",
+   "Known-broken control: delete one manifest entry and confirm exactly one difference grows by one.",
+   "Duplicate-id control: a colliding id across two registries must be reported (the duplicate-catalog failure class).",
+   "Empty-input control: run against an empty registry and confirm it reports total divergence rather than agreement."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Cross-registry consistency: claims, tests, artifacts, receipts and the catalog must agree",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0171": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "independent-confirmer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0171",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Emit the resolved import path and object identity per call site. A behavioural equivalence test is acceptable only as a SECOND signal; structural identity is the primary one.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "single-signal"
+  ],
+  "id": "CNF-0171",
+  "inputs": [
+   "the six declared call sites",
+   "the reducer module",
+   "_USER-PROMPTS.md:10648"
+  ],
+  "output_path": "command-center/receipts/CNF-0171.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: is the SAME reducer actually used in local runners, cloud dispatchers, monitors, harvesters, workflow fan-in and cross-vendor adapters (spec:10648), or are there six lookalikes that agree today? Resolve it structurally by import-graph and AST identity, not by behavioural sampling - two copies that agree on today's corpus will diverge on tomorrow's.",
+  "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+  "reviewer_requirement": "One reviewer who greps for a seventh call site not in the declared list.",
+  "tests_required": [
+   "Known-broken control: vendor a copy of the reducer into one call site and confirm the check fires.",
+   "Both-states: the unmutated tree must resolve to a single object at all six sites.",
+   "Dynamic-import control: a site that imports by string name must still be resolved, or reported NOT-CHECKED rather than assumed.",
+   "Behavioural cross-check: all six sites must return identical verdicts on a shared receipt corpus."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Prove the shared reducer is one code object at all six declared call sites",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0172": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "independent-confirmer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0172",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Diff decision, vote history, confidence trajectory and dissent set separately. A replay that matches the decision but loses the minority report is a FAILURE, because dissent loss is a named council failure class (spec:11238).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "nondeterminism",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "CNF-0172",
+  "inputs": [
+   "a recorded council run with its transcript, seed and CouncilSpec",
+   "the council runtime built under B07",
+   "_USER-PROMPTS.md:10767, 11194"
+  ],
+  "output_path": "command-center/receipts/CNF-0172.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: can a recorded council run be replayed to the identical decision, identical vote history and identical dissent set? Spec:11194 requires resume, replay and deterministic audit where possible. Replay a recorded run and diff all four outputs; classify each nondeterminism source and state plainly which parts are NOT deterministically replayable.",
+  "retry_policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run and may never be re-run in the hope of a CONFIRMED. Retry is permitted ONLY for an infrastructure fault (severed stream, quota, crashed runner) and the retry must be recorded in the confirmation record with its cause. Two strikes on the same error-fingerprint then pivot per AGENTS.md 4b.",
+  "reviewer_requirement": "One reviewer who replays a second recorded run and compares nondeterminism classes.",
+  "tests_required": [
+   "Both-states: perturbing the seed must change the transcript, proving the replay is actually seeded.",
+   "Dissent preservation: a run with a known minority report must replay with that report intact.",
+   "Known-broken control: drop a participant from the replay and confirm the diff fires.",
+   "Honest scoping: any non-replayable component must be enumerated, not omitted."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Deterministic council replay: same transcript and seed must yield the same decision and the same dissent",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0177": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "independent-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0177",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Report recall and precision with the task list attached, plus the token volume injected per task. Prove the held-out set is genuinely held out by showing it was authored after the router index was frozen and never committed to the tuning corpus.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "false-pass"
+  ],
+  "id": "CNF-0177",
+  "inputs": [
+   "the capability router and its index",
+   "the installed skill/plugin/workflow inventory",
+   "_USER-PROMPTS.md:10948-10963, 11330-11331",
+   "a held-out task set authored for this unit"
+  ],
+  "output_path": "command-center/receipts/CNF-0177.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: does the router select the right capability on tasks it was not tuned against, and does it flood context when it is unsure? Author a held-out task set as the confirmer, measure selection recall, precision, and injected-token volume, and specifically probe spec:11330 - the router failing to select an INSTALLED skill.",
+  "retry_policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run and may never be re-run in the hope of a CONFIRMED. Retry is permitted ONLY for an infrastructure fault (severed stream, quota, crashed runner) and the retry must be recorded in the confirmation record with its cause. Two strikes on the same error-fingerprint then pivot per AGENTS.md 4b.",
+  "reviewer_requirement": "One reviewer who authors ten adversarial tasks designed to make the router over-select.",
+  "tests_required": [
+   "Known-present control: a task with an exactly matching installed skill must select it.",
+   "Known-absent control: a task with no matching capability must produce the declared fallback, not a confident wrong pick.",
+   "Flooding: assert top-k injection stays within the declared budget on ambiguous tasks.",
+   "Both-states: uninstalling a skill must change the router's selection for its task."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Evaluate the capability router on a held-out task set the implementer never saw",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0184": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reproduction-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0184",
+  "dependencies": [
+   "B09"
+  ],
+  "evidence_requirement": "Publish the varying-region catalogue with an example diff hunk per class and the normalizer that handles it. A reproduction declared deterministic must have been run at least twice - cite both run ids.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "nondeterminism",
+   "detector-failure",
+   "false-pass"
+  ],
+  "id": "CNF-0184",
+  "inputs": [
+   "the reproduction set from families 3 and 6",
+   "CNF-0165 command-replay outputs",
+   "the existing normalizer inventory if any"
+  ],
+  "output_path": "command-center/receipts/CNF-0184.json",
+  "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: which reproductions are byte-deterministic, and for those that are not, what exactly varies? Run each reproduction twice, byte-diff the outputs, classify each varying region (timestamps, temp paths, ordering, seeds, host identifiers), and require a named normalizer for each class. An unclassified nondeterminism is a place where a future diff will be ignored as noise.",
+  "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+  "reviewer_requirement": "One reviewer who attempts to hide a real change behind each normalizer.",
+  "tests_required": [
+   "Known-nondeterministic control: a reproduction with an embedded timestamp must be detected and normalized.",
+   "Over-normalization control: a real content change must NOT be absorbed by any normalizer - test each normalizer against a planted content change.",
+   "Both-states: a genuinely deterministic reproduction must diff clean without normalization.",
+   "Triple-run: for any borderline case, a third run must be added before classification."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Determinism audit: double-run every reproduction and require a normalizer per nondeterminism source",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0188": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "program-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0188",
+  "dependencies": [
+   "B09"
+  ],
+  "evidence_requirement": "Publish both counts per floor with the extraction rule for each, and the reconciliation for any disagreement. Guard each pair of regexes by proving each is SILENT on the other's item type, and cross-check that disjoint categories sum to the file's total heading count.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "single-signal"
+  ],
+  "id": "CNF-0188",
+  "inputs": [
+   "command-center/PROMPT-ONE-FLOOR-AUDIT.json (the prior count - to be independently re-derived)",
+   "the option universe, workflow catalog, blueprint set, protocol and preset registries",
+   "_USER-PROMPTS.md:11393-11396 (the floors)"
+  ],
+  "output_path": "command-center/receipts/CNF-0188.json",
+  "output_schema": "command-center/schema/program-gate-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: do the program's numeric floors hold under an INDEPENDENT counter - at least 160 workflow candidates, 96 blueprints, 48 council protocols, 64 presets, and the option and architecture counts? Re-implement each counter with a different extraction path (JSON side versus Markdown side, different anchors) and require agreement; where the two disagree, resolve from raw source rather than picking the larger number. A prior pass got the council floor wrong by taking the max of two lists that should have been summed as two separate fields.",
+  "retry_policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame, and record that the frame was frozen at a stated commit.",
+  "reviewer_requirement": "One reviewer who writes a third extractor for the floor with the largest disagreement.",
+  "tests_required": [
+   "Disjointness: protocol ids and preset ids must intersect to the empty set (computed, not assumed).",
+   "Sum check: category counts must equal the independently measured total, so nothing is double-counted or unaccounted.",
+   "Known-present control: a hand-picked item must be found by both extractors.",
+   "Known-absent control: a sentinel string that exists nowhere must return zero from both."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Recount every numeric floor with a mechanically different extractor and escalate disagreement",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0191": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "independent-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0191",
+  "dependencies": [
+   "B07",
+   "CNF-0146"
+  ],
+  "evidence_requirement": "Per command: source doc path:line, the command as written, the exit code, and the output diff. A command that cannot be run (destructive, requires owner credentials, requires a paid resource) is NOT-CHECKED with the reason - never assumed correct because it looks plausible.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "stale-evidence",
+   "green-not-live",
+   "blocked-external"
+  ],
+  "id": "CNF-0191",
+  "inputs": [
+   "command-center/RUNBOOK.md",
+   "command-center/RELEASE-CHECKLIST.md",
+   "the plugin and marketplace user documentation",
+   "_USER-PROMPTS.md:11024, 11389"
+  ],
+  "output_path": "command-center/receipts/CNF-0191.json",
+  "output_schema": "command-center/schema/program-gate-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: does every command printed in the documentation actually run and produce the documented result? Stopping condition 12 requires docs and code to agree, and spec:11024 requires documentation command tests. Extract every command from README, RUNBOOK, quick-start, install, upgrade, rollback and workflow docs, execute each in a clean environment, and diff against the documented output.",
+  "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+  "reviewer_requirement": "One reviewer who hand-counts commands in two documents and compares against the extractor.",
+  "tests_required": [
+   "Extraction control: the extractor must find a hand-counted set of commands in one doc before its zero-findings verdict is trusted anywhere.",
+   "Known-broken control: plant a command with a typo and confirm execution catches it.",
+   "Both-states: correct documented commands must run clean.",
+   "Destructive filter: assert the refusal list is applied before execution and is itself reviewed."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Docs-versus-code parity by EXECUTING every documented command",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNL-0078": {
+  "_source_slice_file": "CNL-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "feedback_opus_not_sonnet_subagents - Opus for substantive design units",
+   "model": "opus",
+   "role": "council-systems-designer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNL-0078",
+  "dependencies": [
+   "CNL-0051",
+   "CNL-0054",
+   "CNL-0076"
+  ],
+  "evidence_requirement": "the expression is quoted verbatim from C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10937-10942; cite the line and the two fixture runs verbatim.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "gameable-metric",
+   "overclaim"
+  ],
+  "id": "CNL-0078",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json"
+  ],
+  "output_path": "command-center/design/council/CNL-0078-executable-stopping-example-unique-ideas-100-and-completen.schema.json",
+  "output_schema": "command-center/schema/councilspec.v2.schema.json",
+  "owner_approval_required": false,
+  "phase": "2C",
+  "question_or_target": "What makes this expression executable end to end - specifically, which component of completeness_score is not yet defined anywhere, and does the conjunction ever become satisfiable if the idea counter and the completeness scorer disagree about what an idea is?",
+  "retry_policy": "two strikes then pivot, PLUS a mandatory detector-control retry: if the both-states control does not fire on the planted-bad fixture, the attempt does not count as a failure of the mechanism - fix the fixture first, once. Max 3 mechanism attempts (AGENTS.md 4b).",
+  "reviewer_requirement": "one reviewer who re-derives the result mechanically from the fixtures (independent recount / re-tabulation), not by reading the author's argument; a disagreement in the number blocks the unit.",
+  "tests_required": [
+   "the expression must FIRE on a fixture where it is true and stay SILENT on a fixture where it is false - a detector silent in both states measures nothing",
+   "a parse test proving the expression is accepted by the A10 grammar unchanged",
+   "negative control recorded verbatim: state what the check does on the state it is meant to reject"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Executable stopping example: unique_ideas >= 100 AND completeness_score >= 0.90",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0005": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Deterministic accounting over two archive listings.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0005",
+  "dependencies": [
+   "IMP-0002",
+   "IMP-0003"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the budget checker's computed totals; (2) the OS-reported artifact size and an independent entry count from a different archive library. A mismatch between the two counts is a detector failure and blocks the unit.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "packaging-bloat",
+   "overclaim"
+  ],
+  "id": "IMP-0005",
+  "inputs": [
+   "_USER-PROMPTS.md:10842 (gigabytes of unrelated content)",
+   "release/manifests/README.md",
+   "IMP-0002 artifact"
+  ],
+  "output_path": "command-center/receipts/IMP-0005.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/payload-inventory.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Enforce a declared max-bytes and max-file-count budget on the emitted artifact, and emit an inventory diff (added/removed/grown paths) against the previously released artifact so an unintended multi-hundred-megabyte regression is visible as a reviewable diff rather than a size number.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Independent reviewer confirms the budget numbers were derived from a measurement, not copied from the current artifact size (which would make the gate tautological).",
+  "tests_required": [
+   "tools/plugin/tests/test_size_budget.py::test_over_budget_fails",
+   "tools/plugin/tests/test_inventory_diff.py::test_added_removed_grown_classification",
+   "NEGATIVE CONTROL: raise the ceiling above the fixture size and assert the over-budget test goes red"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Package size and file-count budget with an inventory diff against the previous release",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0008": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Needs live knowledge of which client surfaces exist on this estate.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0008",
+  "dependencies": [
+   "IMP-0006",
+   "B06"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the negotiation function's verdict for a synthetic below-floor client version; (2) the REAL installed client version read from its own CLI (`claude --version`) and fed through the same function, proving the parser handles the real string format and not only the fixture.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "overclaim",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0008",
+  "inputs": [
+   "_USER-PROMPTS.md:10818 (compatibility matrix)",
+   "_USER-PROMPTS.md:10839 (compatibility diagnostics)",
+   ".claude-plugin/plugin.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0008.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/compatibility.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Add `min_client_version` / `supported_clients` to the manifest and implement the negotiation that refuses installation on an unsupported client with a message naming the exact required version, instead of installing and failing later at hook-load time.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must run the negotiation against a second client runtime (Codex CLI) and report whether the abstraction leaks.",
+  "tests_required": [
+   "tools/plugin/tests/test_client_negotiation.py (below floor, at floor, above floor, prerelease, unparsable)",
+   "NEGATIVE CONTROL: an unparsable version string must FAIL CLOSED (refuse), never default to compatible"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Client and version compatibility fields with minimum-client negotiation",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ }
+}

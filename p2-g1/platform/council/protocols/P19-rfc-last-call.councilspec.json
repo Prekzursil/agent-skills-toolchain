@@ -1,0 +1,426 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p19-rfc-last-call",
+  "preset": "custom",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Publish a frozen draft for a bounded comment window and close only when EVERY comment has been individually dispositioned.",
+    "charter": "JUDICIAL family, IETF last call. Completeness of disposition is the stopping rule: accepted, rejected-with-a-distinct-reason, or deferred-with-a-named-owner. An unaddressed comment blocks close even after the window expires.",
+    "risk_tier": "moderate",
+    "desired_output": "specification",
+    "success_criteria": [
+      "comment count equals disposition count",
+      "every rejection carries a distinct reason string, not a boilerplate",
+      "every deferral names an owner"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 240
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": [
+        "exact",
+        "stakeholder_balanced",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "range",
+      "min": 3,
+      "max": 12
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "rfc-editor",
+        "display_name": "Editor (freezes the draft, dispositions every comment)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "specification editing",
+          "disposition discipline"
+        ],
+        "role": "chair",
+        "authority": "chair",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_recruit": true
+        }
+      },
+      {
+        "participant_id": "reviewer-impl",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "implementability",
+          "edge cases"
+        ],
+        "role": "critic",
+        "authority": "contributor"
+      },
+      {
+        "participant_id": "reviewer-security",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "threat modeling",
+          "abuse cases"
+        ],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        }
+      },
+      {
+        "participant_id": "owner",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": [
+          "owner intent"
+        ],
+        "role": "stakeholder",
+        "authority": "owner",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "recruitment": {
+      "dynamic": true,
+      "triggers": [
+        "missing_expertise",
+        "owner_request",
+        "low_novelty"
+      ],
+      "max_recruits": 8
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 1,
+    "prep_time_minutes": 30,
+    "required_artifacts": [
+      "prior_art_scan",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "rfc-editor"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "freeze_draft_and_publish_hash",
+        "stage_id": "freeze",
+        "rounds": 1,
+        "participants": [
+          "rfc-editor"
+        ],
+        "exit_when": {
+          "metric": "custom:draft_frozen_hash_published",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "draft_freezer",
+          "note": "the window opens against a frozen, hashed draft so late edits cannot orphan a comment"
+        }
+      },
+      {
+        "kind": "round_robin",
+        "stage_id": "comment-window",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 4
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "disposition_every_comment",
+        "stage_id": "disposition",
+        "rounds": 2,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0,
+              "note": "no comment is left undispositioned"
+            },
+            {
+              "metric": "custom:distinct_rejection_reasons_ratio",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number",
+              "producer": "disposition_reason_uniqueness_check",
+              "note": "one distinct reason per rejected comment; bulk boilerplate rejection is inadmissible"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "close-or-reopen",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 2,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 240,
+    "tool_calls": 120,
+    "sources": 20,
+    "turns": 40,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 3,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "objections": 8,
+    "evidence_items": 12,
+    "coverage_score": 0.95,
+    "novelty_ratio": 0.4,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.9,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "extend_rounds"
+    },
+    "veto": {
+      "holders": [
+        "reviewer-security"
+      ],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": true,
+      "must_justify": false,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.9,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "every_objection_addressed == true AND objections_open == 0 AND (time_minutes >= 60 OR consent_reached == true)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "objections_open",
+          "op": "==",
+          "value": 0
+        },
+        {
+          "any_of": [
+            {
+              "metric": "time_minutes",
+              "op": ">=",
+              "value": 60
+            },
+            {
+              "metric": "consent_reached",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_minutes": 60,
+      "min_independent_positions": 3,
+      "every_participant_spoke": false,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 240,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every deferred comment names its owner and a revisit trigger",
+      "the closing note lists each rejected comment with its distinct reason"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 3,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "narrow_scope",
+      "split_question",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "weak_synthesis",
+      "lost_dissent",
+      "moderator_capture",
+      "silence",
+      "premature_convergence",
+      "minority_suppression",
+      "idea_count_gaming"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "argument_ledger",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P19 RFC last call",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:404-419"
+    ],
+    "notes": "The window (time_minutes >= 60) sits in the OR branch while objections_open == 0 sits in the AND spine, so window expiry alone can never close the call - the negative snapshot with an expired window and two open comments proves it evaluates FALSE. Bulk-boilerplate rejection is caught by custom:distinct_rejection_reasons_ratio (producer disposition_reason_uniqueness_check), which this unit specifies but does not implement."
+  }
+}

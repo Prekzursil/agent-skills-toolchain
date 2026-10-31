@@ -1,0 +1,1 @@
+Replaying a fan-out from a cached receipt list is fiction, not replay. The replay log must be regenerated from live reads; citing yesterday's drift counts as today's is the misleading move this unit exists to stop.

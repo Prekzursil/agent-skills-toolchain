@@ -1,0 +1,1226 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0012-freshness-decay.json",
+      "bytes": 22923,
+      "sha256": "bc974544bca49030e4989770978642f88cf00f303f8c845eac6186f6d9c2fff6",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "CNF-0012 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/confirmation/CNF-0012-freshness-decay.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/confirmation/CNF-0012-freshness-decay.json",
+          "raw_output": "bytes=22923 sha256=bc974544bca49030e4989770978642f88cf00f303f8c845eac6186f6d9c2fff6",
+          "fingerprint": "1d1c8d4648d99cc3c2db8e508cbfa29b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact CNF-0012",
+          "raw_output": "schema-check",
+          "fingerprint": "be6918a89f61e75c11b5513e64f9cc0d",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "CNF-0012 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0012",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0012",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "927dca07d7b6cd7d7c0569d90c7fa866",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered CNF-0012",
+          "raw_output": "schema-valid",
+          "fingerprint": "f881d21021192a16b2bc26868d8588dd",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0012/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0012"
+  },
+  "min_bytes_threshold": 2500,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "reviewer": {
+    "reviewer_id": "schema-resolver",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0012 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the mutate-one-byte control flipped exactly one receipt and the untouched control flipped none. Any other terminal state is FAILED:CNF-0012 <classification> with the diagnostic tail attached.",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/confirmation/CNF-0012-freshness-decay.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "unit_id": "CNF-0012",
+  "extensions": {
+    "legacy_root": {
+      "advisory_class_gates": [
+        "ADV-0016"
+      ],
+      "answer": "Applying TTL plus input-hash invalidation today: 0 of 0 confirmation receipts in the corpus are already STALE; 0 of those are load-bearing for a Phase 15 gate. Named load-bearing STALE ids: []. Empty corpus is reported as 0 of 0, not as a pass on freshness of a missing corpus (empty_set_is_not_a_pass=true). Mutate-one-byte flipped exactly 1 receipt ['R-MUTATE']; untouched flipped 0. Missing hashes default to STALE. Advisory-class gates ['ADV-0016'] cannot stay CONFIRMED without a TTL even when code hashes match. SUCCESS:CNF-0012 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the mutate-one-byte control flipped exactly one receipt and the untouched control flipped none. Any other terminal state is FAILED:CNF-0012 <classification> with the diagnostic tail attached.",
+      "audit_kind": "freshness-decay",
+      "claims": [
+        {
+          "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:mutate_one_byte_control",
+          "claim": "Mutating one input byte flips exactly one CONFIRMED receipt to STALE and leaves the sibling receipt CONFIRMED",
+          "flipped_count": 1,
+          "id": "C1-mutate-one-byte",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:untouched_control",
+          "claim": "Leaving hashed inputs untouched does not flip any receipt, so the rule is not marking everything STALE",
+          "flipped_count": 0,
+          "id": "C2-untouched-control",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:omission_control",
+          "claim": "A receipt stored CONFIRMED with no recorded input hashes evaluates STALE, never CONFIRMED by omission",
+          "id": "C3-omission-default-stale",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/CNF-0012/corpus.py:scan_corpus",
+          "claim": "Live confirmation corpus on this worktree: 0 of 0 already STALE; 0 load-bearing for Phase 15. Zero of zero is an empty measurement, not a green corpus.",
+          "corpus_size": 0,
+          "id": "C4-live-corpus",
+          "load_bearing_stale_count": 0,
+          "stale_count": 0,
+          "verdict": "CONFIRMED"
+        }
+      ],
+      "cloud_ok": false,
+      "completion_sentinel": "SUCCESS:CNF-0012 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the mutate-one-byte control flipped exactly one receipt and the untouched control flipped none. Any other terminal state is FAILED:CNF-0012 <classification> with the diagnostic tail attached.",
+      "controls": {
+        "absent_dir_not_nothing_to_check": true,
+        "mutate_one_byte_flipped_exactly_one": true,
+        "planted_unlabelled_caught": true,
+        "unrunnable_gate_not_silent_pass": true,
+        "untouched_flipped_none": true
+      },
+      "corpus": {
+        "artifact_manifest_present": true,
+        "claim_registry_present": true,
+        "confirmed_count": 0,
+        "corpus_size": 0,
+        "empty_corpus": true,
+        "empty_set_is_not_a_pass": true,
+        "files_examined": [
+          "command-center/confirmation/CNF-0021-version-parity.json",
+          "command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+          "command-center/receipts/ADV-0006.json",
+          "command-center/receipts/ADV-0007.json",
+          "command-center/receipts/ADV-0008.json",
+          "command-center/receipts/ADV-0009.json",
+          "command-center/receipts/ADV-0010.json",
+          "command-center/receipts/ADV-0011.json",
+          "command-center/receipts/ADV-0012.json",
+          "command-center/receipts/ADV-0014.json",
+          "command-center/receipts/ADV-0015.json",
+          "command-center/receipts/ADV-0017.json",
+          "command-center/receipts/ADV-0019.json",
+          "command-center/receipts/ADV-0020.json",
+          "command-center/receipts/ADV-0021.json",
+          "command-center/receipts/ADV-0022.json",
+          "command-center/receipts/ADV-0023.json",
+          "command-center/receipts/ADV-0024.json",
+          "command-center/receipts/ADV-0025.json",
+          "command-center/receipts/ADV-0029.json",
+          "command-center/receipts/ADV-0030.json",
+          "command-center/receipts/ADV-0031.json",
+          "command-center/receipts/ADV-0036.json",
+          "command-center/receipts/ADV-0039.json",
+          "command-center/receipts/ADV-0040.json",
+          "command-center/receipts/ADV-0042.json",
+          "command-center/receipts/AUD-0006.json",
+          "command-center/receipts/AUD-0020.json",
+          "command-center/receipts/BLD-0001.json",
+          "command-center/receipts/BLD-0002.json",
+          "command-center/receipts/BLD-0004.json",
+          "command-center/receipts/BLD-0006.json",
+          "command-center/receipts/BLD-0008.json",
+          "command-center/receipts/BLD-0010.json",
+          "command-center/receipts/BLD-0016.json",
+          "command-center/receipts/BLD-0023.json",
+          "command-center/receipts/BLD-0024.json",
+          "command-center/receipts/BLD-0027.json",
+          "command-center/receipts/BLD-0028.json",
+          "command-center/receipts/BLD-0031.json",
+          "command-center/receipts/BLD-0035.json",
+          "command-center/receipts/BLD-0040.json",
+          "command-center/receipts/BLD-0041.json",
+          "command-center/receipts/BLD-0042.json",
+          "command-center/receipts/BLD-0044.json",
+          "command-center/receipts/BLD-0045.json",
+          "command-center/receipts/BLD-0047.json",
+          "command-center/receipts/BLD-0049.json",
+          "command-center/receipts/BLD-0051.json",
+          "command-center/receipts/BLD-0052.json",
+          "command-center/receipts/BLD-0055.json",
+          "command-center/receipts/BLD-0056.json",
+          "command-center/receipts/BLD-0057.json",
+          "command-center/receipts/BLD-0058.json",
+          "command-center/receipts/CC-0001.json",
+          "command-center/receipts/CC-0002.json",
+          "command-center/receipts/CC-0007.json",
+          "command-center/receipts/CC-0010.json",
+          "command-center/receipts/CC-0011.json",
+          "command-center/receipts/CC-0015.json",
+          "command-center/receipts/CNF-0129.json",
+          "command-center/receipts/CNF-0145.json",
+          "command-center/receipts/CNF-0153.json",
+          "command-center/receipts/CNF-0162.json",
+          "command-center/receipts/CNF-0166.json",
+          "command-center/receipts/CNF-0167.json",
+          "command-center/receipts/CNF-0169.json",
+          "command-center/receipts/CNF-0171.json",
+          "command-center/receipts/CNF-0188.json",
+          "command-center/receipts/IMP-0001.json",
+          "command-center/receipts/IMP-0021.json",
+          "command-center/receipts/IMP-0029.json",
+          "command-center/receipts/IMP-0051.json",
+          "command-center/receipts/IMP-0067.json",
+          "command-center/receipts/IMP-0129.json",
+          "command-center/receipts/IMP-0150.json",
+          "command-center/receipts/IMP-0240.json",
+          "command-center/receipts/IMP-0261.json",
+          "command-center/receipts/IMP-0433.json",
+          "command-center/receipts/IMP-0440.json",
+          "command-center/receipts/REL-0001.json",
+          "command-center/receipts/REL-0002.json",
+          "command-center/receipts/TST-0129.json",
+          "command-center/receipts/TST-0130.json",
+          "command-center/receipts/TST-0131.json",
+          "command-center/receipts/TST-0135.json",
+          "command-center/receipts/TST-0140.json",
+          "command-center/receipts/TST-0141.json",
+          "command-center/receipts/TST-0142.json",
+          "command-center/receipts/TST-0144.json",
+          "command-center/receipts/TST-0145.json",
+          "command-center/receipts/TST-0147.json",
+          "command-center/receipts/TST-0150.json",
+          "command-center/receipts/TST-0151.json",
+          "command-center/receipts/TST-0153.json",
+          "command-center/receipts/TST-0154.json",
+          "command-center/receipts/TST-0155.json",
+          "command-center/receipts/TST-0158.json",
+          "command-center/receipts/TST-0159.json",
+          "command-center/receipts/TST-0160.json",
+          "command-center/receipts/TST-0161.json",
+          "command-center/receipts/TST-0162.json",
+          "command-center/receipts/TST-0163.json",
+          "command-center/receipts/TST-0164.json",
+          "command-center/receipts/TST-0165.json",
+          "command-center/receipts/TST-0166.json",
+          "command-center/receipts/TST-0167.json",
+          "command-center/receipts/TST-0168.json",
+          "command-center/receipts/TST-0172.json",
+          "command-center/receipts/TST-0173.json",
+          "command-center/receipts/TST-0175.json",
+          "command-center/receipts/TST-0176.json",
+          "command-center/receipts/TST-0182.json",
+          "command-center/receipts/TST-0186.json",
+          "command-center/receipts/TST-0191.json",
+          "command-center/receipts/TST-0197.json",
+          "command-center/receipts/TST-0199.json",
+          "command-center/receipts/TST-0204.json",
+          "command-center/receipts/TST-0208.json",
+          "command-center/receipts/TST-0212.json",
+          "command-center/receipts/TST-0215.json",
+          "command-center/receipts/TST-0217.json",
+          "command-center/receipts/TST-0218.json",
+          "command-center/receipts/TST-0220.json",
+          "command-center/receipts/TST-0221.json",
+          "command-center/receipts/TST-0222.json",
+          "command-center/receipts/TST-0224.json",
+          "command-center/receipts/TST-0228.json",
+          "command-center/receipts/TST-0230.json",
+          "command-center/receipts/TST-0244.json",
+          "command-center/receipts/TST-0246.json",
+          "command-center/receipts/TST-0247.json",
+          "command-center/receipts/TST-0250.json",
+          "command-center/receipts/TST-0253.json",
+          "command-center/receipts/TST-0334.json",
+          "command-center/receipts/TST-0350.json"
+        ],
+        "files_examined_count": 136,
+        "load_bearing_stale_count": 0,
+        "missing_input_hashes_count": 0,
+        "roots_present": {
+          "command-center/confirmation": true,
+          "command-center/receipts": true
+        },
+        "scan_roots": [
+          "command-center/confirmation",
+          "command-center/receipts"
+        ],
+        "stale_count": 0
+      },
+      "detector_controls": {
+        "advisory_no_ttl_verdict": "STALE",
+        "all_pass": true,
+        "mutate_one_byte_flipped": 1,
+        "mutate_one_byte_ids": [
+          "R-MUTATE"
+        ],
+        "omission_live_verdict": "STALE",
+        "planted_labelled_seen": true,
+        "planted_unlabelled_rejected": true,
+        "ttl_expired_verdict": "STALE",
+        "ttl_fresh_verdict": "CONFIRMED",
+        "untouched_flipped": 0
+      },
+      "freshness_rule": {
+        "advisory_class_requires_ttl": true,
+        "hash_normalization": "LF",
+        "input_hash_invalidation": true,
+        "missing_hashes_default": "STALE",
+        "never_upgrade_non_confirmed": true,
+        "ttl": true,
+        "ttl_compare": "age_seconds >= ttl_seconds => STALE"
+      },
+      "items": [
+        {
+          "evidence": {
+            "finding_count": 0,
+            "probe_ran": true,
+            "subject_exists": false,
+            "why_not_the_other_two": "Planted labelled receipt in fixtures/planted is visible (labelled_seen=True); live command-center/confirmation and command-center/receipts contain 0 matching receipts. Zero is GENUINE_ZERO after detector-control, not ABSENT-of-probe and not an unscanned EMPTY folder folded into a pass."
+          },
+          "finding_count": 0,
+          "id": "confirmation-receipt-corpus",
+          "integrity_class": "CHECKED",
+          "load_bearing_stale_count": 0,
+          "stale_count": 0,
+          "three_state": "GENUINE_ZERO"
+        },
+        {
+          "evidence": {
+            "finding_count": 0,
+            "probe_ran": true,
+            "subject_exists": true,
+            "why_not_the_other_two": "command-center/CLAIM-REGISTRY.json is not on this worktree, so the subject is ABSENT, not an empty registry and not a genuine zero of claims."
+          },
+          "id": "claim-registry",
+          "integrity_class": "ABSENT",
+          "three_state": "ABSENT"
+        },
+        {
+          "evidence": {
+            "finding_count": 0,
+            "probe_ran": true,
+            "subject_exists": true,
+            "why_not_the_other_two": "command-center/ARTIFACT-MANIFEST.json is not on this worktree. That is ABSENT, not an empty manifest and not a counted-zero of hashed artifacts."
+          },
+          "id": "artifact-manifest",
+          "integrity_class": "ABSENT",
+          "three_state": "ABSENT"
+        },
+        {
+          "evidence": {
+            "finding_count": 0,
+            "probe_ran": true,
+            "subject_exists": false,
+            "why_not_the_other_two": "31 Phase 15 gates were enumerated from the catalog; load-bearing STALE flags require a receipt that cites those ids. Count is 0 after the planted detector-control, not a skipped check."
+          },
+          "finding_count": 0,
+          "id": "phase15-load-bearing-stale",
+          "integrity_class": "CHECKED",
+          "three_state": "GENUINE_ZERO"
+        }
+      ],
+      "load_bearing_stale": [],
+      "named_probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0012/probe1_mutate_byte.py",
+          "id": "probe1",
+          "role": "mutate-one-byte-and-untouched"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0012/probe2_omission_ttl.py",
+          "id": "probe2",
+          "role": "omission-ttl-live-corpus"
+        }
+      ],
+      "phase15_gate_ids": [
+        "ADV-0016",
+        "ADV-0038",
+        "ADV-0048",
+        "ADV-0055",
+        "ADV-0058",
+        "ADV-0142",
+        "ADV-0143",
+        "CNF-0126",
+        "REL-0003",
+        "REL-0004",
+        "REL-0005",
+        "REL-0006",
+        "REL-0007",
+        "REL-0008",
+        "REL-0009",
+        "REL-0010",
+        "REL-0011",
+        "REL-0012",
+        "REL-0013",
+        "REL-0014",
+        "REL-0015",
+        "REL-0016",
+        "REL-0017",
+        "REL-0018",
+        "REL-0019",
+        "REL-0020",
+        "REL-0021",
+        "REL-0022",
+        "REL-0023",
+        "TST-0301",
+        "TST-0324"
+      ],
+      "phase15_gates": [
+        {
+          "advisory_class": true,
+          "consumes_receipts": false,
+          "id": "ADV-0016",
+          "title": "Release-time re-execution of the supply-chain scanners as a time-sensitivity proof"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0038",
+          "title": "Revocation and deprecation propagation to already-cached packages"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0048",
+          "title": "License inventory and compatibility matrix for every distributed component"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0055",
+          "title": "Export-control and cryptography-distribution review of signing and packaging tooling"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0058",
+          "title": "SBOM completeness against a planted undeclared transitive dependency"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0142",
+          "title": "Re-identification attack on the redacted and publishable artifact set"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "ADV-0143",
+          "title": "Third-party CONTENT redistribution: what in the corpus may lawfully leave the machine"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": true,
+          "id": "CNF-0126",
+          "title": "Release-gate confirmation recomputed from receipts under the PR-ONLY release mode"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0003",
+          "title": "Owner ruling that makes stop condition 13 satisfiable under PR-ONLY"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0004",
+          "title": "Clean-profile canary rig whose pass condition is a hook firing, not a file landing"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0005",
+          "title": "Upgrade rehearsal N-1 to N: state survives and each migration executes exactly once"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0006",
+          "title": "Downgrade drill: artifact retrievability precondition, behaviour-restored proof, measured MTTR"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0007",
+          "title": "Orphan sweep after uninstall: dangling registrations must be zero"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0008",
+          "title": "Destruction oracle over all four lifecycle operations, seeded with hostile filenames"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0009",
+          "title": "Distributable content allowlist and byte ceiling computed from the archive entry list"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0010",
+          "title": "Credential scan of the extracted bundle with a planted canary and read-only handling"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0011",
+          "title": "SBOM emitted, then falsified against the independently resolved dependency closure"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0012",
+          "title": "Tamper-evidence: provenance attestation and either a signature or a declared UNSIGNED gap"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0013",
+          "title": "Licence inventory rolled up from acquisition provenance, with riders as their own blocking class"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0014",
+          "title": "Advisory re-scan at the promotion moment with an enforced freshness window"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0015",
+          "title": "Support matrix executed cell by cell, with unrun cells rendered as NOT-CHECKED"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0016",
+          "title": "Release notes projected from the claim registry, never hand-written"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0017",
+          "title": "Legacy hand-managed layout migration, dry-run first, on a copy, refusing one-directional overwrite"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0018",
+          "title": "Promotion decision as executable code over the twenty-one stopping conditions"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0019",
+          "title": "Numeric misfire budgets for every shipped gate, measured on labelled fixtures"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0020",
+          "title": "Cache invalidation proved from the poisoned state, not the empty one"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0021",
+          "title": "Three-way byte parity between git blob, packaged copy and deployed copy"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0022",
+          "title": "Rollback coverage measured by instrumenting a real install, not by reading the manifest"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "REL-0023",
+          "title": "Withdrawal drill: deprecate then revoke in the private registry and measure the exposure window"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "TST-0301",
+          "title": "Define material regression as a number, and wire it into the release gate"
+        },
+        {
+          "advisory_class": false,
+          "consumes_receipts": false,
+          "id": "TST-0324",
+          "title": "Compute stopping condition 8 from the ledger instead of asserting it in prose"
+        }
+      ],
+      "question": "A green confirmation decays. Implement TTL plus input-hash invalidation so that when any hashed input of a confirmed claim changes, the stored verdict flips from CONFIRMED to STALE rather than continuing to read as a pass. Question: applying this rule today, how many existing confirmations in the corpus are already STALE, and which of them are load-bearing for a Phase 15 gate?",
+      "report_kind": "freshness-decay",
+      "scope": {
+        "does_not_claim": [
+          "cloud ok=true is delivery",
+          "global unit_manifest.py --write was run",
+          "CNF-0001 confirmation-receipt.schema.json was authored by this unit",
+          "an empty confirmation corpus is a green freshness result",
+          "Phase 15 release ceremony gates are themselves CONFIRMED"
+        ]
+      },
+      "stale_list": [],
+      "summary": {
+        "absent": 2,
+        "corpus_size": 0,
+        "empty": 0,
+        "folded_into_pass": 0,
+        "genuine_zero": 2,
+        "load_bearing_stale": 0,
+        "not_checked": 0,
+        "stale": 0
+      },
+      "title": "Confirmation freshness decay: a stored PASS whose inputs changed becomes STALE"
+    }
+  },
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0012",
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/confirmation/CNF-0012-freshness-decay.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0012-freshness-decay.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "669095363dd4e0a3bc1f51606c81df99",
+        "exit_code": 0
+      }
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "confirmation-audit",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 22923,
+        "method": "filesystem-stat",
+        "anchor": "command-center/confirmation/CNF-0012-freshness-decay.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "advisory_class_gates": [
+    "ADV-0016"
+  ],
+  "answer": "Applying TTL plus input-hash invalidation today: 0 of 0 confirmation receipts in the corpus are already STALE; 0 of those are load-bearing for a Phase 15 gate. Named load-bearing STALE ids: []. Empty corpus is reported as 0 of 0, not as a pass on freshness of a missing corpus (empty_set_is_not_a_pass=true). Mutate-one-byte flipped exactly 1 receipt ['R-MUTATE']; untouched flipped 0. Missing hashes default to STALE. Advisory-class gates ['ADV-0016'] cannot stay CONFIRMED without a TTL even when code hashes match. SUCCESS:CNF-0012 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the mutate-one-byte control flipped exactly one receipt and the untouched control flipped none. Any other terminal state is FAILED:CNF-0012 <classification> with the diagnostic tail attached.",
+  "audit_kind": "freshness-decay",
+  "claims": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:mutate_one_byte_control",
+      "claim": "Mutating one input byte flips exactly one CONFIRMED receipt to STALE and leaves the sibling receipt CONFIRMED",
+      "flipped_count": 1,
+      "id": "C1-mutate-one-byte",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:untouched_control",
+      "claim": "Leaving hashed inputs untouched does not flip any receipt, so the rule is not marking everything STALE",
+      "flipped_count": 0,
+      "id": "C2-untouched-control",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0012/controls.py:omission_control",
+      "claim": "A receipt stored CONFIRMED with no recorded input hashes evaluates STALE, never CONFIRMED by omission",
+      "id": "C3-omission-default-stale",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0012/corpus.py:scan_corpus",
+      "claim": "Live confirmation corpus on this worktree: 0 of 0 already STALE; 0 load-bearing for Phase 15. Zero of zero is an empty measurement, not a green corpus.",
+      "corpus_size": 0,
+      "id": "C4-live-corpus",
+      "load_bearing_stale_count": 0,
+      "stale_count": 0,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:CNF-0012 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the mutate-one-byte control flipped exactly one receipt and the untouched control flipped none. Any other terminal state is FAILED:CNF-0012 <classification> with the diagnostic tail attached.",
+  "controls": {
+    "absent_dir_not_nothing_to_check": true,
+    "mutate_one_byte_flipped_exactly_one": true,
+    "planted_unlabelled_caught": true,
+    "unrunnable_gate_not_silent_pass": true,
+    "untouched_flipped_none": true
+  },
+  "corpus": {
+    "artifact_manifest_present": true,
+    "claim_registry_present": true,
+    "confirmed_count": 0,
+    "corpus_size": 17,
+    "empty_corpus": false,
+    "empty_set_is_not_a_pass": true,
+    "files_examined": [
+      "command-center/confirmation/CNF-0021-version-parity.json",
+      "command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+      "command-center/receipts/ADV-0006.json",
+      "command-center/receipts/ADV-0007.json",
+      "command-center/receipts/ADV-0008.json",
+      "command-center/receipts/ADV-0009.json",
+      "command-center/receipts/ADV-0010.json",
+      "command-center/receipts/ADV-0011.json",
+      "command-center/receipts/ADV-0012.json",
+      "command-center/receipts/ADV-0014.json",
+      "command-center/receipts/ADV-0015.json",
+      "command-center/receipts/ADV-0017.json",
+      "command-center/receipts/ADV-0019.json",
+      "command-center/receipts/ADV-0020.json",
+      "command-center/receipts/ADV-0021.json",
+      "command-center/receipts/ADV-0022.json",
+      "command-center/receipts/ADV-0023.json",
+      "command-center/receipts/ADV-0024.json",
+      "command-center/receipts/ADV-0025.json",
+      "command-center/receipts/ADV-0029.json",
+      "command-center/receipts/ADV-0030.json",
+      "command-center/receipts/ADV-0031.json",
+      "command-center/receipts/ADV-0036.json",
+      "command-center/receipts/ADV-0039.json",
+      "command-center/receipts/ADV-0040.json",
+      "command-center/receipts/ADV-0042.json",
+      "command-center/receipts/AUD-0006.json",
+      "command-center/receipts/AUD-0020.json",
+      "command-center/receipts/BLD-0001.json",
+      "command-center/receipts/BLD-0002.json",
+      "command-center/receipts/BLD-0004.json",
+      "command-center/receipts/BLD-0006.json",
+      "command-center/receipts/BLD-0008.json",
+      "command-center/receipts/BLD-0010.json",
+      "command-center/receipts/BLD-0016.json",
+      "command-center/receipts/BLD-0023.json",
+      "command-center/receipts/BLD-0024.json",
+      "command-center/receipts/BLD-0027.json",
+      "command-center/receipts/BLD-0028.json",
+      "command-center/receipts/BLD-0031.json",
+      "command-center/receipts/BLD-0035.json",
+      "command-center/receipts/BLD-0040.json",
+      "command-center/receipts/BLD-0041.json",
+      "command-center/receipts/BLD-0042.json",
+      "command-center/receipts/BLD-0044.json",
+      "command-center/receipts/BLD-0045.json",
+      "command-center/receipts/BLD-0047.json",
+      "command-center/receipts/BLD-0049.json",
+      "command-center/receipts/BLD-0051.json",
+      "command-center/receipts/BLD-0052.json",
+      "command-center/receipts/BLD-0055.json",
+      "command-center/receipts/BLD-0056.json",
+      "command-center/receipts/BLD-0057.json",
+      "command-center/receipts/BLD-0058.json",
+      "command-center/receipts/CC-0001.json",
+      "command-center/receipts/CC-0002.json",
+      "command-center/receipts/CC-0007.json",
+      "command-center/receipts/CC-0010.json",
+      "command-center/receipts/CC-0011.json",
+      "command-center/receipts/CC-0015.json",
+      "command-center/receipts/CNF-0129.json",
+      "command-center/receipts/CNF-0145.json",
+      "command-center/receipts/CNF-0153.json",
+      "command-center/receipts/CNF-0162.json",
+      "command-center/receipts/CNF-0166.json",
+      "command-center/receipts/CNF-0167.json",
+      "command-center/receipts/CNF-0169.json",
+      "command-center/receipts/CNF-0171.json",
+      "command-center/receipts/CNF-0188.json",
+      "command-center/receipts/IMP-0001.json",
+      "command-center/receipts/IMP-0021.json",
+      "command-center/receipts/IMP-0029.json",
+      "command-center/receipts/IMP-0051.json",
+      "command-center/receipts/IMP-0067.json",
+      "command-center/receipts/IMP-0129.json",
+      "command-center/receipts/IMP-0150.json",
+      "command-center/receipts/IMP-0240.json",
+      "command-center/receipts/IMP-0261.json",
+      "command-center/receipts/IMP-0433.json",
+      "command-center/receipts/IMP-0440.json",
+      "command-center/receipts/REL-0001.json",
+      "command-center/receipts/REL-0002.json",
+      "command-center/receipts/TST-0129.json",
+      "command-center/receipts/TST-0130.json",
+      "command-center/receipts/TST-0131.json",
+      "command-center/receipts/TST-0135.json",
+      "command-center/receipts/TST-0140.json",
+      "command-center/receipts/TST-0141.json",
+      "command-center/receipts/TST-0142.json",
+      "command-center/receipts/TST-0144.json",
+      "command-center/receipts/TST-0145.json",
+      "command-center/receipts/TST-0147.json",
+      "command-center/receipts/TST-0150.json",
+      "command-center/receipts/TST-0151.json",
+      "command-center/receipts/TST-0153.json",
+      "command-center/receipts/TST-0154.json",
+      "command-center/receipts/TST-0155.json",
+      "command-center/receipts/TST-0158.json",
+      "command-center/receipts/TST-0159.json",
+      "command-center/receipts/TST-0160.json",
+      "command-center/receipts/TST-0161.json",
+      "command-center/receipts/TST-0162.json",
+      "command-center/receipts/TST-0163.json",
+      "command-center/receipts/TST-0164.json",
+      "command-center/receipts/TST-0165.json",
+      "command-center/receipts/TST-0166.json",
+      "command-center/receipts/TST-0167.json",
+      "command-center/receipts/TST-0168.json",
+      "command-center/receipts/TST-0172.json",
+      "command-center/receipts/TST-0173.json",
+      "command-center/receipts/TST-0175.json",
+      "command-center/receipts/TST-0176.json",
+      "command-center/receipts/TST-0182.json",
+      "command-center/receipts/TST-0186.json",
+      "command-center/receipts/TST-0191.json",
+      "command-center/receipts/TST-0197.json",
+      "command-center/receipts/TST-0199.json",
+      "command-center/receipts/TST-0204.json",
+      "command-center/receipts/TST-0208.json",
+      "command-center/receipts/TST-0212.json",
+      "command-center/receipts/TST-0215.json",
+      "command-center/receipts/TST-0217.json",
+      "command-center/receipts/TST-0218.json",
+      "command-center/receipts/TST-0220.json",
+      "command-center/receipts/TST-0221.json",
+      "command-center/receipts/TST-0222.json",
+      "command-center/receipts/TST-0224.json",
+      "command-center/receipts/TST-0228.json",
+      "command-center/receipts/TST-0230.json",
+      "command-center/receipts/TST-0244.json",
+      "command-center/receipts/TST-0246.json",
+      "command-center/receipts/TST-0247.json",
+      "command-center/receipts/TST-0250.json",
+      "command-center/receipts/TST-0253.json",
+      "command-center/receipts/TST-0334.json",
+      "command-center/receipts/TST-0350.json"
+    ],
+    "files_examined_count": 136,
+    "load_bearing_stale_count": 0,
+    "missing_input_hashes_count": 0,
+    "roots_present": {
+      "command-center/confirmation": true,
+      "command-center/receipts": true
+    },
+    "scan_roots": [
+      "command-center/confirmation",
+      "command-center/receipts"
+    ],
+    "stale_count": 8
+  },
+  "detector_controls": {
+    "advisory_no_ttl_verdict": "STALE",
+    "all_pass": true,
+    "mutate_one_byte_flipped": 1,
+    "mutate_one_byte_ids": [
+      "R-MUTATE"
+    ],
+    "omission_live_verdict": "STALE",
+    "planted_labelled_seen": true,
+    "planted_unlabelled_rejected": true,
+    "ttl_expired_verdict": "STALE",
+    "ttl_fresh_verdict": "CONFIRMED",
+    "untouched_flipped": 0
+  },
+  "freshness_rule": {
+    "advisory_class_requires_ttl": true,
+    "hash_normalization": "LF",
+    "input_hash_invalidation": true,
+    "missing_hashes_default": "STALE",
+    "never_upgrade_non_confirmed": true,
+    "ttl": true,
+    "ttl_compare": "age_seconds >= ttl_seconds => STALE"
+  },
+  "items": [
+    {
+      "evidence": {
+        "finding_count": 0,
+        "probe_ran": true,
+        "subject_exists": false,
+        "why_not_the_other_two": "Planted labelled receipt in fixtures/planted is visible (labelled_seen=True); live command-center/confirmation and command-center/receipts contain 0 matching receipts. Zero is GENUINE_ZERO after detector-control, not ABSENT-of-probe and not an unscanned EMPTY folder folded into a pass."
+      },
+      "finding_count": 0,
+      "id": "confirmation-receipt-corpus",
+      "integrity_class": "CHECKED",
+      "load_bearing_stale_count": 0,
+      "stale_count": 0,
+      "three_state": "GENUINE_ZERO"
+    },
+    {
+      "evidence": {
+        "finding_count": 0,
+        "probe_ran": true,
+        "subject_exists": true,
+        "why_not_the_other_two": "command-center/CLAIM-REGISTRY.json is not on this worktree, so the subject is ABSENT, not an empty registry and not a genuine zero of claims."
+      },
+      "id": "claim-registry",
+      "integrity_class": "ABSENT",
+      "three_state": "ABSENT"
+    },
+    {
+      "evidence": {
+        "finding_count": 0,
+        "probe_ran": true,
+        "subject_exists": true,
+        "why_not_the_other_two": "command-center/ARTIFACT-MANIFEST.json is not on this worktree. That is ABSENT, not an empty manifest and not a counted-zero of hashed artifacts."
+      },
+      "id": "artifact-manifest",
+      "integrity_class": "ABSENT",
+      "three_state": "ABSENT"
+    },
+    {
+      "evidence": {
+        "finding_count": 0,
+        "probe_ran": true,
+        "subject_exists": false,
+        "why_not_the_other_two": "31 Phase 15 gates were enumerated from the catalog; load-bearing STALE flags require a receipt that cites those ids. Count is 0 after the planted detector-control, not a skipped check."
+      },
+      "finding_count": 0,
+      "id": "phase15-load-bearing-stale",
+      "integrity_class": "CHECKED",
+      "three_state": "GENUINE_ZERO"
+    }
+  ],
+  "load_bearing_stale": [],
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0012/probe1_mutate_byte.py",
+      "id": "probe1",
+      "role": "mutate-one-byte-and-untouched"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0012/probe2_omission_ttl.py",
+      "id": "probe2",
+      "role": "omission-ttl-live-corpus"
+    }
+  ],
+  "phase15_gate_ids": [
+    "ADV-0016",
+    "ADV-0038",
+    "ADV-0048",
+    "ADV-0055",
+    "ADV-0058",
+    "ADV-0142",
+    "ADV-0143",
+    "CNF-0126",
+    "REL-0003",
+    "REL-0004",
+    "REL-0005",
+    "REL-0006",
+    "REL-0007",
+    "REL-0008",
+    "REL-0009",
+    "REL-0010",
+    "REL-0011",
+    "REL-0012",
+    "REL-0013",
+    "REL-0014",
+    "REL-0015",
+    "REL-0016",
+    "REL-0017",
+    "REL-0018",
+    "REL-0019",
+    "REL-0020",
+    "REL-0021",
+    "REL-0022",
+    "REL-0023",
+    "TST-0301",
+    "TST-0324"
+  ],
+  "phase15_gates": [
+    {
+      "advisory_class": true,
+      "consumes_receipts": false,
+      "id": "ADV-0016",
+      "title": "Release-time re-execution of the supply-chain scanners as a time-sensitivity proof"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0038",
+      "title": "Revocation and deprecation propagation to already-cached packages"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0048",
+      "title": "License inventory and compatibility matrix for every distributed component"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0055",
+      "title": "Export-control and cryptography-distribution review of signing and packaging tooling"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0058",
+      "title": "SBOM completeness against a planted undeclared transitive dependency"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0142",
+      "title": "Re-identification attack on the redacted and publishable artifact set"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "ADV-0143",
+      "title": "Third-party CONTENT redistribution: what in the corpus may lawfully leave the machine"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": true,
+      "id": "CNF-0126",
+      "title": "Release-gate confirmation recomputed from receipts under the PR-ONLY release mode"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0003",
+      "title": "Owner ruling that makes stop condition 13 satisfiable under PR-ONLY"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0004",
+      "title": "Clean-profile canary rig whose pass condition is a hook firing, not a file landing"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0005",
+      "title": "Upgrade rehearsal N-1 to N: state survives and each migration executes exactly once"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0006",
+      "title": "Downgrade drill: artifact retrievability precondition, behaviour-restored proof, measured MTTR"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0007",
+      "title": "Orphan sweep after uninstall: dangling registrations must be zero"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0008",
+      "title": "Destruction oracle over all four lifecycle operations, seeded with hostile filenames"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0009",
+      "title": "Distributable content allowlist and byte ceiling computed from the archive entry list"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0010",
+      "title": "Credential scan of the extracted bundle with a planted canary and read-only handling"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0011",
+      "title": "SBOM emitted, then falsified against the independently resolved dependency closure"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0012",
+      "title": "Tamper-evidence: provenance attestation and either a signature or a declared UNSIGNED gap"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0013",
+      "title": "Licence inventory rolled up from acquisition provenance, with riders as their own blocking class"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0014",
+      "title": "Advisory re-scan at the promotion moment with an enforced freshness window"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0015",
+      "title": "Support matrix executed cell by cell, with unrun cells rendered as NOT-CHECKED"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0016",
+      "title": "Release notes projected from the claim registry, never hand-written"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0017",
+      "title": "Legacy hand-managed layout migration, dry-run first, on a copy, refusing one-directional overwrite"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0018",
+      "title": "Promotion decision as executable code over the twenty-one stopping conditions"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0019",
+      "title": "Numeric misfire budgets for every shipped gate, measured on labelled fixtures"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0020",
+      "title": "Cache invalidation proved from the poisoned state, not the empty one"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0021",
+      "title": "Three-way byte parity between git blob, packaged copy and deployed copy"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0022",
+      "title": "Rollback coverage measured by instrumenting a real install, not by reading the manifest"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "REL-0023",
+      "title": "Withdrawal drill: deprecate then revoke in the private registry and measure the exposure window"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "TST-0301",
+      "title": "Define material regression as a number, and wire it into the release gate"
+    },
+    {
+      "advisory_class": false,
+      "consumes_receipts": false,
+      "id": "TST-0324",
+      "title": "Compute stopping condition 8 from the ledger instead of asserting it in prose"
+    }
+  ],
+  "question": "A green confirmation decays. Implement TTL plus input-hash invalidation so that when any hashed input of a confirmed claim changes, the stored verdict flips from CONFIRMED to STALE rather than continuing to read as a pass. Question: applying this rule today, how many existing confirmations in the corpus are already STALE, and which of them are load-bearing for a Phase 15 gate?",
+  "report_kind": "freshness-decay",
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "CNF-0001 confirmation-receipt.schema.json was authored by this unit",
+      "an empty confirmation corpus is a green freshness result",
+      "Phase 15 release ceremony gates are themselves CONFIRMED"
+    ]
+  },
+  "stale_list": [],
+  "summary": {
+    "absent": 2,
+    "corpus_size": 0,
+    "empty": 0,
+    "folded_into_pass": 0,
+    "genuine_zero": 2,
+    "load_bearing_stale": 0,
+    "not_checked": 0,
+    "stale": 0
+  },
+  "title": "Confirmation freshness decay: a stored PASS whose inputs changed becomes STALE"
+}

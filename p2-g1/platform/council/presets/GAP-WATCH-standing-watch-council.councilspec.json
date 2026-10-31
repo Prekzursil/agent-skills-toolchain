@@ -1,0 +1,226 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "gap-watch-standing-watch-council",
+  "preset": "standing_watch_council",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Run a standing, low-intensity watch over a declared set of invariants, closing each cycle either CLEAN or with an escalated trigger - never with a silent pass.",
+    "charter": "MANDATE. This council does not convene to decide something; it stays convened to notice something. Each cycle it re-checks a declared invariant set and closes in exactly one of two states: CLEAN, meaning every invariant was actually probed and held, or ESCALATED, meaning a trigger fired and was handed to the owner. There is no third state, because 'nothing to report' from a watch that did not run is indistinguishable from 'all well' and is the failure mode a standing watch exists to prevent - a stalled monitor and a healthy one look identical from the outside. Two disciplines are therefore mandatory. First, every CLEAN verdict must name the probe that produced it, and any probe reporting absence must first be shown capable of detecting a known-present item. Second, the watch is cheap by construction: low effort, tight turn budget, small seat count, because a watch that costs too much gets skipped and a skipped watch is worse than none - it is a green light nobody lit.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "every declared invariant is probed each cycle, with the probe named",
+      "a CLEAN cycle is distinguishable from a cycle that did not run",
+      "any absence claim is backed by a detector proven able to find a known-present item",
+      "a fired trigger is escalated to the owner, never resolved silently by the watch"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "close a cycle CLEAN without naming the probe for each invariant",
+        "infer liveness or staleness from file modification times alone",
+        "resolve a fired trigger inside the watch instead of escalating it"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["automatic", "expertise_ranked", "model_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "elastic",
+      "min": 2,
+      "max": 5,
+      "elastic": {
+        "scale_on": ["missing_expertise", "risk_tier", "workload"],
+        "step": 1,
+        "cooldown_rounds": 1
+      }
+    },
+    "diversity": { "min_distinct_expertise": 2 },
+    "role_templates": ["observer", "verifier", "custom:sre", "scribe"],
+    "roster": [
+      {
+        "participant_id": "watch-observer",
+        "display_name": "Watch observer - probes each invariant every cycle",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["invariant monitoring", "detector design"],
+        "role": "observer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "source_access": ["repo", "internal_docs", "transcripts"],
+        "effort": "low",
+        "context": {
+          "briefing": "Name the probe for every invariant, every cycle. Before reporting any absence, confirm your detector finds a known-present item - a zero result is usually a broken matcher, a wrong path or a stale cache rather than an empty world. Never claim a process is stalled from file timestamps alone: a stalled job and a long-finished one both simply stop writing, so mtimes support exactly one honest statement, which is how many things were active recently."
+        }
+      },
+      {
+        "participant_id": "watch-verifier",
+        "display_name": "Watch verifier - corroborates before a trigger escalates",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["independent corroboration", "false-positive triage"],
+        "role": "verifier",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false },
+        "effort": "low",
+        "context": {
+          "briefing": "Corroborate with a MECHANICALLY DIFFERENT probe - a different shell, field or measurement - before a trigger escalates. Re-running the observer's own command is not a second signal, and an escalation on a single reading is how a watch trains its owner to ignore it."
+        }
+      }
+    ],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "owner_request"], "max_recruits": 3 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": false, "on_conflict": "disclose_only" }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": ["risk_list"]
+  },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "probe-invariants",
+        "custom_name": "probe every declared invariant and name the probe used",
+        "rounds": 1
+      },
+      {
+        "kind": "custom",
+        "stage_id": "corroborate-triggers",
+        "custom_name": "corroborate any fired trigger with a mechanically different probe",
+        "rounds": 1,
+        "participants": ["watch-verifier"]
+      },
+      { "kind": "synthesis", "stage_id": "cycle-verdict", "rounds": 1 }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 3 },
+    "turn": { "max_words": 250 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 6, "runner": "local" }
+  },
+  "budgets": {
+    "effort": "low",
+    "time_minutes": 1440,
+    "turns": 12,
+    "tool_calls": 60,
+    "max_inactivity_rounds": 3
+  },
+  "targets": { "evidence_items": 2 },
+  "voting": {
+    "method": "consent_no_objection",
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": false },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "(custom:every_invariant_probed_this_cycle == true AND custom:cycle_verdict_clean == true) OR (custom:trigger_corroborated_and_escalated == true AND owner_approved == true)",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            { "metric": "custom:every_invariant_probed_this_cycle", "op": "==", "value": true, "value_type": "boolean" },
+            { "metric": "custom:cycle_verdict_clean", "op": "==", "value": true, "value_type": "boolean" }
+          ]
+        },
+        {
+          "all_of": [
+            { "metric": "custom:trigger_corroborated_and_escalated", "op": "==", "value": true, "value_type": "boolean" },
+            { "metric": "owner_approved", "op": "==", "value": true }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_evidence_items": 2 },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 1440, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "an invariant the watch could not probe this cycle is named and carried to the next cycle rather than assumed healthy"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.95 },
+    "resolution": ["run_experiment", "recruit_independent_critic", "narrow_scope", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "silence",
+      "premature_convergence",
+      "echo_chamber",
+      "endless_debate",
+      "evidence_free_majority",
+      "weak_synthesis",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "evidence_map",
+      "experiments",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 365 },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["acting on any escalated trigger"]
+    },
+    "persistence": { "store": "both", "path": "platform/council/runs/gap-watch", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Standing watch council (advisory, continuous) - GAP-CLOSER for standing_watch_council",
+    "owner": "Prekzursil",
+    "lineage": [
+      "GAP-WATCH",
+      "NOT DERIVED FROM 12-COUNCIL-PROTOCOLS-AND-PRESETS.md - no design entry exists",
+      "spec-required preset name standing_watch_council"
+    ],
+    "spec_citations": ["_USER-PROMPTS.md:11200-11225", "_USER-PROMPTS.md:10931"],
+    "notes": "SOURCE DESIGN: NONE - and that is the finding, the second of two in this lane. `standing_watch_council` is a REQUIRED preset name (it is in the schema's preset_name enum and in the lane brief) but a case-insensitive grep of all 72 designs in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md for standing.watch / standing_watch / watch.council / vigil / sentinel returns ZERO hits, so no lane's doc-derived slice would have produced it. A measured scan of the shared preset directory confirmed it was covered by zero files across all four lanes (platform/council/_probe_union_preset_coverage.py; snapshot at platform/council/LANE-4-UNION-COVERAGE.json). Authored here as an explicit gap-closer; if a sibling lane also built one after that snapshot, the orchestrator should dedupe. || EDITABLE DIALS: (1) the INVARIANT SET is the primary dial and lives in the probe-invariants stage plus custom:every_invariant_probed_this_cycle - a watch is defined by what it watches. (2) the CYCLE LENGTH is budgets.time_minutes (1440 = one 24-hour cycle) together with stopping.hard_caps.max_minutes; shorten it for a hot system, lengthen it for a stable one. (3) participants.count (elastic 2..5) and budgets.effort (`low`) are the cost dials, and they are deliberately the cheapest in the lane: a watch that costs too much gets skipped, and a skipped watch reports green without looking. Secondary dials: protocol.rounds.max (3), consensus.threshold (0.6), audit.privacy.retain_days (365). || VOCABULARY MAP: there is no design row to map, so the mapping is spec-to-schema. The continuous nature of a standing watch has no field - CouncilSpec models a council RUN, not a schedule - so a cycle is modelled as one run with audit.resume true, outputs.resumable_state and persistence.checkpoint_every_round true, and the cadence is carried by budgets.time_minutes plus this note. That is a genuine expressiveness gap worth knowing: nothing in the schema says `every 24 hours`, and an operator reading only the JSON cannot tell this council is meant to recur. selection.mode `mixed` pins two seats and lets the rest auto-fill; count.mode `elastic` lets the watch grow when an invariant needs expertise it lacks. || CUSTOM METRICS AND THEIR PRODUCERS: custom:every_invariant_probed_this_cycle (boolean; produced by the observer, true only when each declared invariant has a NAMED probe this cycle - this is the clause that distinguishes a CLEAN cycle from a cycle that never ran), custom:cycle_verdict_clean (boolean; produced by the cycle-verdict synthesis), custom:trigger_corroborated_and_escalated (boolean; produced by the verifier, true only after a mechanically different second probe agrees). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with stopping.expression by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. Three SEM-012 WARNs are expected and non-blocking. || WHY THE STOPPING RULE IS A DISJUNCTION: a watch cycle has exactly two honest endings. The CLEAN branch requires BOTH that every invariant was probed and that the verdict is clean, so an unprobed invariant cannot be laundered into a green cycle. The ESCALATED branch requires owner acknowledgement, so a fired trigger cannot be closed by the watch itself. Neither branch permits a silent pass, which is the whole design."
+  }
+}

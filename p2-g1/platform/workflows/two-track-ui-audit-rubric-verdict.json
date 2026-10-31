@@ -1,0 +1,867 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "two-track-ui-audit-rubric-verdict",
+  "name": "Two-track UI audit: deterministic metrics, then a capped rubric verdict",
+  "description": "Separate deterministic UI MEASUREMENT from design JUDGEMENT, and make the judgement answerable to the measurement. Track A fans out independent collectors - contrast, tap targets, focus-visible, dead controls, motion, Lighthouse - and each is allowed to be UNAVAILABLE, in which case its dimension scores UNKNOWN with the exclusion stated rather than silently averaged away. Track B then makes exactly ONE scoring call per rubric dimension, so no single call can trade one dimension off against another. A measured critical error CAPS the composite instead of being averaged into it, and a cross-vendor critic is reconciled by taking the MORE CONSERVATIVE of the two verdicts.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "bp-ux-02",
+    "ui-audit",
+    "rubric",
+    "critical-error-cap",
+    "read-only",
+    "cross-vendor"
+  ],
+  "flagship": true,
+  "params": {
+    "app_target": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The LOCAL running app to audit. This workflow never edits app source."
+    },
+    "rubric_version": {
+      "type": "enum",
+      "enum": [
+        "DESIGN-EVAL-v1"
+      ],
+      "default": "DESIGN-EVAL-v1",
+      "description": "Pinned rubric. An unpinned rubric makes two audits incomparable."
+    },
+    "rubric_dimensions": {
+      "type": "array",
+      "default": [
+        "colour-contrast",
+        "spacing-rhythm",
+        "typography",
+        "hierarchy",
+        "affordance",
+        "consistency",
+        "motion",
+        "density",
+        "accessibility-semantics"
+      ],
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "One scoring CALL per entry. The one-call-per-dimension protocol is the stabiliser."
+    },
+    "optional_engines": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Opt-in extras (second a11y engine, real NVDA, Storybook a11y, UIClip prior). An unavailable engine excludes its dimension explicitly."
+    },
+    "enable_codex_critic": {
+      "type": "boolean",
+      "default": true,
+      "description": "Run the cross-vendor critic and reconcile conservatively."
+    }
+  },
+  "roles": {
+    "collector": {
+      "description": "Track A: runs one deterministic collector and reports numbers only - never a score.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/design/**)",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot",
+        "mcp__chrome-devtools__lighthouse_audit"
+      ]
+    },
+    "scorer": {
+      "description": "Track B: scores exactly ONE rubric dimension per call, reading Track A's numbers.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "override-auditor": {
+      "description": "Applies the critical-error override: a measured critical failure CAPS the composite.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "codex-critic": {
+      "description": "The fifth persona: an independent cross-vendor critic scoring the same dimensions from the same numbers.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Read",
+      "Write(command-center/design/**)",
+      "mcp__chrome-devtools__lighthouse_audit",
+      "mcp__codex__codex",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Bash:git",
+      "Edit",
+      "WebFetch",
+      "Write(app/**)",
+      "Write(src/**)"
+    ],
+    "write_paths": [
+      "command-center/design/two-track-audit/**"
+    ],
+    "forbid_write_paths": [
+      "app/**",
+      "src/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == collector",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "low"
+        },
+        "reason": "a deterministic collector reports numbers; effort buys nothing there"
+      },
+      {
+        "when": "stage_role == codex-critic",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the fifth persona is only worth having if it fails differently"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "high"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "track-b-answerable-to-track-a": {
+      "predicate": "custom-expression",
+      "expression": "dimension_score_contradicting_measurement == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "one-call-per-dimension": {
+      "predicate": "custom-expression",
+      "expression": "scoring_calls == scored_dimensions AND multi_dimension_calls == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "critical-error-caps": {
+      "predicate": "custom-expression",
+      "expression": "composite <= critical_error_cap",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "exclusions-stated": {
+      "predicate": "custom-expression",
+      "expression": "unknown_dimensions_have_stated_exclusion == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "collect-track-a",
+      "title": "S0 - fan out the deterministic collectors; numbers only, no scores",
+      "kind": "fanout",
+      "over": {
+        "source": "literal",
+        "items": [
+          "contrast",
+          "tap-targets",
+          "focus-visible",
+          "dead-controls",
+          "motion-duration",
+          "spacing-grid",
+          "visual-regression",
+          "lighthouse-cwv",
+          "dual-theme-reflow"
+        ],
+        "item_var": "collector_name",
+        "key_field": "collector_name"
+      },
+      "max_concurrency": 5,
+      "arrival_stagger_ms": 200,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "run-collector",
+          "title": "One deterministic collector",
+          "kind": "task",
+          "role": "collector",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/design/**)",
+            "mcp__playwright__browser_snapshot",
+            "mcp__playwright__browser_take_screenshot",
+            "mcp__chrome-devtools__lighthouse_audit"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/design/two-track-audit/cache/track-a",
+            "ttl_seconds": 3600,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "UX-7801",
+            "title": "Run one deterministic UI collector and emit measurements without judgement",
+            "phase": "2B",
+            "question_or_target": "Measure one property across every surface and emit raw numbers with their measurement parameters - and when the engine is unavailable, emit UNAVAILABLE with the reason instead of an empty pass.",
+            "inputs": [
+              "item.collector_name",
+              "params.app_target",
+              "params.optional_engines"
+            ],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "collector",
+              "basis": "the measurement is mechanical, but deciding a collector is genuinely unavailable rather than merely slow is judgement"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/design/**)",
+              "mcp__playwright__browser_snapshot",
+              "mcp__playwright__browser_take_screenshot",
+              "mcp__chrome-devtools__lighthouse_audit"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/design/two-track-audit/track-a/measurements.jsonl",
+            "output_schema": "command-center/schema/audit-metric-baseline.schema.json",
+            "evidence_requirement": "per-surface numeric values with the measurement parameters (viewport, theme, engine and version), so a re-run is comparable",
+            "tests_required": [
+              "an unavailable engine emits UNAVAILABLE with a reason and NOT an empty measurement set",
+              "no collector output contains a score - a collector that scores has crossed into Track B"
+            ],
+            "reviewer_requirement": "the override-auditor, which needs the raw numbers to compute the cap",
+            "completion_sentinel": "SUCCESS:UX-7801 emitted only when every surface has a value or an explicit UNAVAILABLE with a reason; otherwise FAILED:UX-7801 <reason>",
+            "retry_policy": "fixed, two attempts: a browser engine can fail to attach transiently",
+            "failure_classification": [
+              "engine-unavailable",
+              "surface-unreachable",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "single-property deterministic measurement with explicit UNAVAILABLE accounting"
+          },
+          "produces": [
+            {
+              "path": "command-center/design/two-track-audit/track-a/measurements.jsonl",
+              "schema_ref": "command-center/schema/audit-metric-baseline.schema.json",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:UX-7801",
+              "consumers": [
+                "track-a-join",
+                "score-track-b",
+                "apply-critical-override"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "deadline",
+        "deadline_seconds": 3600,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "track-a-join",
+      "title": "Collect what landed; a missing collector becomes a stated exclusion",
+      "kind": "barrier",
+      "depends_on": [
+        "collect-track-a"
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.6,
+        "on_partial": "proceed-degraded",
+        "require_stages": [
+          "collect-track-a"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "collect-track-a"
+      ]
+    },
+    {
+      "id": "exclusion-gate",
+      "title": "An excluded dimension must SAY it was excluded",
+      "kind": "gate",
+      "depends_on": [
+        "track-a-join"
+      ],
+      "gate_ref": "exclusions-stated"
+    },
+    {
+      "id": "score-track-b",
+      "title": "S1 - exactly ONE scoring call per rubric dimension",
+      "kind": "fanout",
+      "depends_on": [
+        "exclusion-gate"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "rubric_dimensions",
+        "item_var": "dimension",
+        "key_field": "dimension"
+      },
+      "max_concurrency": 3,
+      "arrival_stagger_ms": 300,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "score-dimension",
+          "title": "Score exactly one dimension, reading Track A's numbers",
+          "kind": "task",
+          "role": "scorer",
+          "timeout_seconds": 1200,
+          "tool_permissions": [
+            "Read",
+            "Write(command-center/design/**)"
+          ],
+          "work_unit": {
+            "id": "UX-7802",
+            "title": "Score one rubric dimension 0-4 against the measured numbers",
+            "phase": "2B",
+            "question_or_target": "Score ONE dimension on the pinned rubric, citing the Track A measurement that justifies the score, and never referencing another dimension - so the call cannot trade dimensions off against each other.",
+            "inputs": [
+              "item.dimension",
+              "command-center/design/two-track-audit/track-a/measurements.jsonl",
+              "params.rubric_version"
+            ],
+            "dependencies": [
+              "UX-7801"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "scorer",
+              "basis": "scoring is the judgement half of the two-track split and needs full reasoning effort"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/design/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/design/two-track-audit/track-b/dimension-scores.jsonl",
+            "output_schema": "platform/schema/artifact-class-profiles.schema.json#/$defs/ux_report",
+            "evidence_requirement": "the 0-4 score, the rubric anchor text for that band, and the specific Track A measurement cited",
+            "tests_required": [
+              "a score that contradicts a measured failure on the same dimension is REJECTED, not averaged",
+              "each call scores exactly one dimension; a call emitting two scores fails the one-call-per-dimension gate",
+              "a dimension whose collector was UNAVAILABLE scores UNKNOWN, never a default mid-band"
+            ],
+            "reviewer_requirement": "the codex-critic, scoring the same dimension independently from the same numbers",
+            "completion_sentinel": "SUCCESS:UX-7802 emitted only when one dimension carries one score with a cited measurement, or UNKNOWN with the exclusion; otherwise FAILED:UX-7802 <reason>",
+            "retry_policy": "fixed, two attempts: a scoring call is cheap and a transient truncation is recoverable",
+            "failure_classification": [
+              "score-contradicts-measurement",
+              "multi-dimension-call",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "one-call-per-dimension scoring bound to a cited measurement"
+          },
+          "produces": [
+            {
+              "path": "command-center/design/two-track-audit/track-b/dimension-scores.jsonl",
+              "schema_ref": "platform/schema/artifact-class-profiles.schema.json#/$defs/ux_report",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:UX-7802",
+              "consumers": [
+                "consistency-gate",
+                "apply-critical-override",
+                "reconcile-with-critic"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "protocol-gate",
+      "title": "One call, one dimension - or the stabiliser is not in force",
+      "kind": "gate",
+      "depends_on": [
+        "score-track-b"
+      ],
+      "gate_ref": "one-call-per-dimension"
+    },
+    {
+      "id": "consistency-gate",
+      "title": "Track B may not contradict Track A's measurements",
+      "kind": "gate",
+      "depends_on": [
+        "protocol-gate"
+      ],
+      "gate_ref": "track-b-answerable-to-track-a"
+    },
+    {
+      "id": "apply-critical-override",
+      "title": "S2 - a measured critical error CAPS the composite, it is not averaged",
+      "kind": "task",
+      "depends_on": [
+        "consistency-gate"
+      ],
+      "role": "override-auditor",
+      "timeout_seconds": 1200,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-7803",
+        "title": "Compute the weighted composite and apply the critical-error cap",
+        "phase": "2B",
+        "question_or_target": "Compute the weighted composite with colour-contrast weighted highest, then CAP it at the ceiling implied by any measured critical error, so a single hard failure cannot be diluted by eight good dimensions.",
+        "inputs": [
+          "command-center/design/two-track-audit/track-a/measurements.jsonl",
+          "command-center/design/two-track-audit/track-b/dimension-scores.jsonl"
+        ],
+        "dependencies": [
+          "UX-7801",
+          "UX-7802"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "override-auditor",
+          "basis": "the cap is the veto and belongs to the role that holds it"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/design/two-track-audit/composite-verdict.json",
+        "output_schema": "command-center/schema/adjudication-record.schema.json",
+        "evidence_requirement": "the per-dimension weights, the raw weighted mean, every critical error with its measurement, and the capped result - all four so the cap is auditable arithmetic and not an assertion",
+        "tests_required": [
+          "a page with a measured contrast failure has its composite CAPPED, not averaged - the raw mean and the capped value are both recorded and differ",
+          "with zero critical errors the cap is inactive and the composite equals the weighted mean, proving the cap is not a constant discount",
+          "UNKNOWN dimensions are excluded from the denominator and named, so an unavailable engine cannot inflate or deflate the mean"
+        ],
+        "reviewer_requirement": "the codex-critic, recomputing the composite from the same inputs",
+        "completion_sentinel": "SUCCESS:UX-7803 emitted only when raw mean, cap, capped composite and the critical-error list are all present; otherwise FAILED:UX-7803 <reason>",
+        "retry_policy": "none: the composite is arithmetic over recorded inputs, so a retry cannot change it",
+        "failure_classification": [
+          "cap-not-applied",
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "weighted composite with a hard critical-error ceiling and UNKNOWN exclusion from the denominator"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/two-track-audit/composite-verdict.json",
+          "schema_ref": "command-center/schema/adjudication-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7803",
+          "consumers": [
+            "cap-gate",
+            "reconcile-with-critic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cap-gate",
+      "title": "The composite must actually respect the cap",
+      "kind": "gate",
+      "depends_on": [
+        "apply-critical-override"
+      ],
+      "gate_ref": "critical-error-caps"
+    },
+    {
+      "id": "reconcile-with-critic",
+      "title": "S3 - reconcile with the cross-vendor critic, taking the MORE CONSERVATIVE verdict",
+      "kind": "council",
+      "depends_on": [
+        "cap-gate"
+      ],
+      "when": "enable_codex_critic == true",
+      "timeout_seconds": 3600,
+      "council_spec_ref": "command-center/schema/councilspec.v2.schema.json",
+      "participants_min": 2,
+      "participants_max": 2,
+      "stopping_rules": [
+        {
+          "id": "conservative-reconciliation-recorded",
+          "expression": "all_participants_spoke == true AND minority_report_present == true",
+          "applies_to": "council",
+          "minimum_conditions": "participants_active >= 2",
+          "on_stop": "complete"
+        },
+        {
+          "id": "critic-unavailable-degrades-loudly",
+          "expression": "participants_active < 2",
+          "applies_to": "council",
+          "on_stop": "emit-partial"
+        }
+      ],
+      "produces": [
+        {
+          "path": "command-center/design/two-track-audit/reconciled-verdict.json",
+          "schema_ref": "command-center/schema/severity-reconciliation.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/MANIFEST.json",
+            "design-studio-eight-gate-loop"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-dimensions-scored",
+      "expression": "dimensions_pending == 0 AND scored_dimensions >= 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "collectors_completed >= 6",
+      "on_stop": "complete"
+    },
+    {
+      "id": "engine-unavailable-excludes-not-fails",
+      "expression": "unknown_dimensions > 0 AND unknown_dimensions_have_stated_exclusion == true",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "measurement-contradiction-halts",
+      "expression": "dimension_score_contradicting_measurement > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "engine-unavailable",
+      "surface-unreachable"
+    ],
+    "no_retry_on": [
+      "score-contradicts-measurement",
+      "cap-not-applied"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "engine-unavailable",
+      "score-contradicts-measurement",
+      "cap-not-applied"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "reconcile-with-critic",
+    "quarantine_path": "command-center/design/two-track-audit/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/design/two-track-audit/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/design/two-track-audit/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy",
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "process-id"
+    ]
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "prompt_hash",
+      "model_id",
+      "tool_versions"
+    ],
+    "store": "command-center/design/two-track-audit/cache",
+    "ttl_seconds": 3600,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/design/two-track-audit/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__chrome-devtools__lighthouse_audit",
+      "mcp__codex__codex",
+      "Write(command-center/design/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 4.5,
+      "max": 16.0
+    },
+    "wallclock_seconds": {
+      "expected": 3600,
+      "max": 14400
+    },
+    "tokens": {
+      "expected": 600000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "READ-ONLY by construction: Edit and every app-source write path are denied, so the audit cannot change what it measures",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/design/two-track-audit/export/two-track-ui-audit-rubric-verdict.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-UX-02",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/ui-audit",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/design-system",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/ui-ux-pro-max",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/ui-audit@current"
+    ]
+  },
+  "outputs": {
+    "composite": {
+      "path": "command-center/design/two-track-audit/composite-verdict.json",
+      "schema_ref": "command-center/schema/adjudication-record.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "design-studio-eight-gate-loop"
+      ]
+    },
+    "reconciled": {
+      "path": "command-center/design/two-track-audit/reconciled-verdict.json",
+      "schema_ref": "command-center/schema/severity-reconciliation.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-UX-02",
+      "card_index_in_library": 78,
+      "family": "D15-ux",
+      "primary_category": "product-design-and-strategy",
+      "mechanism_signature": [
+        "parallel-deterministic-collectors-numbers-only",
+        "one-scoring-call-per-rubric-dimension",
+        "critical-error-override-caps-composite",
+        "unknown-dimension-explicit-exclusion",
+        "conservative-cross-vendor-reconciliation"
+      ],
+      "why_not_deterministic": "Track A is deterministic and cached; Track B is model judgement stabilised by the one-call-per-dimension protocol rather than by a seed, so the workflow declares deterministic:false and verifies semantically.",
+      "worked_example": {
+        "scenario": "Audit momentstudio's settings page. One label measures 3.1:1 contrast - a WCAG AA failure - while the other eight dimensions are strong.",
+        "params": {
+          "app_target": "momentstudio@localhost:3000",
+          "rubric_version": "DESIGN-EVAL-v1",
+          "optional_engines": [
+            "second-a11y-engine"
+          ],
+          "enable_codex_critic": true
+        },
+        "expected_trace": [
+          "collect-track-a -> 8 of 9 collectors land; lighthouse-cwv times out at the deadline barrier and proceeds degraded",
+          "track-a-join -> quorum 0.89 >= 0.6 PASS; exclusion-gate -> the 'motion' dimension is marked UNKNOWN with 'lighthouse-cwv UNAVAILABLE: deadline' stated",
+          "score-track-b -> 8 dimensions scored in 8 separate calls (3 concurrent); motion scores UNKNOWN",
+          "protocol-gate PASS (8 calls, 8 dimensions, 0 multi-dimension calls)",
+          "consistency-gate PASS - no score contradicts a measurement",
+          "apply-critical-override -> raw weighted mean 3.4/4; the 3.1:1 contrast measurement is a critical error with a cap of 2.0; capped composite = 2.0. BOTH numbers are recorded",
+          "cap-gate PASS (2.0 <= 2.0)",
+          "reconcile-with-critic -> Codex scores hierarchy 2 where Claude scored 3; the conservative rule takes 2"
+        ],
+        "expected_terminal_state": "SUCCESS:UX-7803 with composite 2.0 (capped from 3.4) and 1 dimension UNKNOWN"
+      },
+      "unverified": "UNVERIFIED whether the cross-vendor reconciliation changes outcomes often enough to pay for itself; settling experiment = compare solo and reconciled verdicts on ten screens and count how many times the conservative rule changed the verdict band, not merely a score.",
+      "council_expression_encoding_note": "The council stopping rule must parse under BOTH the DSL grammar and councilspec's metric registry (DSL-SEM-014). Measured 2026-08-10: the DSL tokenizer rejects ':' at offset 6, so councilspec's `custom:<name>` escape hatch is NOT usable inside a DSL council stage, and the rule text is restricted to the 51 registry metrics. `minority_report_present == true` is therefore the registry encoding of 'both verdicts were recorded' - the less-conservative verdict is preserved as the minority report rather than being overwritten by the conservative one. `all_participants_spoke == true` encodes 'the critic actually scored'. This is an encoding constraint, not a weaker guarantee, but the mapping is stated here so a reader does not take the metric name literally.",
+      "distinct_from": {
+        "BP-CNC-06": "that is the GENERAL rubric engine distilled from this; this is the UI-specific instrument with its own deterministic Track A",
+        "bp-ux-01": "that is the pipeline that calls this as G3; this never edits source and has no revert gate because it has nothing to revert",
+        "bp-ux-03": "that audits SOURCE and cannot see a computed contrast value; this measures the running app"
+      },
+      "flagship_test": "platform/lib/workflows/test_two_track_ui_audit.py"
+    }
+  }
+}

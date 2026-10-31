@@ -1,0 +1,66 @@
+docs(rule-audit): round 2 -- fix the confirmed overclaim by making the number a tool output
+
+The VERIFY lane and the adversarial round agreed: zero real defects, one CONFIRMED
+overclaim, two anchor slips, one disclosed weakness in VERIFY's own probe. Round 2
+fixes each, and makes the overclaim class mechanically unrepeatable rather than
+correcting three sentences and leaving the hole open.
+
+R2-1/R2-2  the "20 detector controls" overclaim (RULE-AUDIT.md :26, :401, :502) and a
+  quoted tool line the tool never printed. The code was right; the sentences were wider.
+  - rule_audit.py --self-test now ends with numbers IT computed:
+        CONTROL-GROUPS: classifier=6 drift=4 crlf=2 encoder=3 failclosed=4 TOTAL=19
+        SUCCESS:rule_audit-self-test all controls passed (19)
+  - NEW r2_control_count_gate.py fails if any control-count claim in docs/rule-audit/*.md
+    disagrees with that output, if the per-group counts do not sum to the total, if the
+    AST count disagrees, or if RULE-AUDIT.md stops quoting the tool line verbatim.
+    Run against the KNOWN-BROKEN prose first: it reported the three sites the adversarial
+    round named plus two VERIFY had not enumerated (7 mismatches, exit 1).
+  - USE-VS-MENTION handled as a FIELD, not a guess: a line carrying <!--count-historical-->
+    is skipped, so a doc REPORTING the refuted number is not flagged for saying it.
+    RULE-AUDIT-VERIFY.md is not rewritten -- dated SUPERSEDED-IN-PART note, tags on the
+    three historical figures, verdict left intact.
+  - Hole found in my own gate: **17** did not match because bold sits between the digits
+    and the noun. Emphasis is now stripped; that hit appeared only after the fix.
+
+R2-3  a fail-closed control asserted in prose but never executed by --self-test. Folded in
+  (failclosed 2 -> 4 checks), then PROVEN to fire: r2_failclosed_mutation.py deletes the
+  four-line branch from main() and the new control goes red naming itself, while the
+  pristine module stays green. A mutation the suite survives is a hole, not a pass.
+
+R2-4/R2-5  re-measured, not accepted: bootstrap.ps1:45 is the Copy-Item (:44 is its comment
+  header); multi-ai-mingle is present in 4 of 5 skill roots, not 3. The verdict that
+  control supports -- context-budget absent from 5/5 -- is unaffected and reproduced.
+
+R2-6/R2-7  NEW r2_pathrefs.py supersedes _verify_pathrefs.py, whose REPO.rglob(basename)
+  fallback let a wrong PATH with a real FILENAME resolve as satisfied while its known-bad
+  control could never reach that state. Three-way verdict (EXACT / BASENAME-ONLY /
+  MISSING) with the hidden middle state under a control, 176 files across BOTH trees
+  instead of 8, links checked as well as backticks:
+        scanned=176 unwaived_path_claims=0 waived=2 name_mentions=48
+  48 bare filenames assert no location and are excluded as mentions -- the split is a
+  field (does the token carry a directory), not a reading of prose. The 2 survivors were
+  read at source and waived WITH REASONS, and a waiver that stops matching fails the
+  sweep. --self-test drives main() through clean/broken/stale-waiver: 0/1/1.
+  Answer: no tenth contradiction ON THE PATH AXIS. Other axes remain unmeasured and §3
+  stays scoped as a floor.
+
+Two detector bugs I shipped and caught, recorded in RULE-AUDIT-R2.md §5 rather than
+quietly patched: lstrip("./") strips a character SET, so .agents/... became agents/... and
+a real always-on rule was one write-up away from a fabricated tenth contradiction; and the
+sweep initially re-raised codex-rescue.md as MISSING, a finding VERIFY had already refuted.
+Both now have permanent regression controls.
+
+Fifth instance of the ruff-format trap, this time caught by a gate: _r2_blobcheck.py
+extracts the STAGED blobs (0 CRLF), copies ruff.toml in beside them, and runs both ruff
+steps as CI sees them. It went red on a file written after the last format pass. Formatted,
+then proven semantics-preserving -- stdout byte-identical before and after, 4/4.
+
+Gates on the committed state: ruff check clean, ruff format --check 18/18, self-test 19/19,
+count gate SUCCESS, mutation SUCCESS, pathrefs SUCCESS + 3/3 gate-level controls,
+lazy_predict 16/16 + 1/1, 167 passed on the 8 rule CI modules. Regenerating rule-audit.json
+and RULE-AUDIT-TABLES.md produced byte-identical files: the measurement is unchanged
+(88/78/88 files, always-on 8/4/8, 15,141 tok, floor 23,050, drift 29 / 9+10+3).
+
+Not done, deliberately: no rule file was edited this round (nothing measured warranted one);
+nothing was deployed to ~/.claude; the agent-self AGENTS.md §9 credential inversion remains
+propose-only; the new gates are re-runnable scripts, not wired into CI (ci/ is out of scope).

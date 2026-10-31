@@ -1,0 +1,1064 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-res-02-multilingual-native-index-fusion",
+  "name": "Multilingual Native-Index Fusion Research",
+  "description": "Reach sources that exist only behind a non-English native index, then fuse the per-engine rankings with deterministic Reciprocal Rank Fusion so a Yandex / Naver / Seznam hit competes fairly with a Google hit. Routing axis is LANGUAGE AND INDEX, not source class, and the fusion step is arithmetic in a script - given the archived per-engine rankings the fused order is recomputable exactly. An engine that returns zero for a known-present control term is DETECTOR-FAILED and dropped from the fusion, never read as evidence of absence.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence"
+  ],
+  "tags": [
+    "multilingual",
+    "rank-fusion",
+    "detector-control"
+  ],
+  "flagship": false,
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The question, stated in English"
+    },
+    "target_languages": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 8,
+      "items": {
+        "type": "string",
+        "min_length": 2,
+        "max_length": 12
+      },
+      "description": "BCP-47-ish language tags to translate the query into"
+    },
+    "engines": {
+      "type": "array",
+      "default": [
+        "yandex",
+        "naver",
+        "seznam",
+        "searx-brave"
+      ],
+      "min_items": 2,
+      "max_items": 12,
+      "items": {
+        "type": "string",
+        "min_length": 3
+      },
+      "description": "One lens per engine; at least two, because a single engine cannot be fused"
+    },
+    "k_per_engine": {
+      "type": "integer",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 200,
+      "description": "Results taken from each engine before fusion"
+    },
+    "control_term": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "A term KNOWN to be present in each engine's index. An engine that returns zero for it is a broken detector, not evidence of absence."
+    },
+    "include_forum_lens": {
+      "type": "boolean",
+      "default": false,
+      "description": "Optional S1b community/forum lens"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/research/bp-res-02",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "query-translator": {
+      "description": "Rewrites the question using the NATIVE technical term in each target language, never a transliteration",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "engine-lens": {
+      "description": "Queries exactly one engine and returns its RAW ranking, unreordered, so the fusion has honest inputs",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__searxng__searxng_web_search",
+        "mcp__brightdata__search_engine",
+        "mcp__search-hub__firecrawl_search",
+        "Write(command-center/research/**)"
+      ],
+      "min_participants": 2,
+      "max_participants": 12,
+      "speaking_rights": "always"
+    },
+    "forum-lens": {
+      "description": "Mines community and forum surfaces, whose retrieval shape differs from web search, and marks every lead as reputation-soft",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__brightdata__scrape_as_markdown",
+        "WebFetch",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "on-request"
+    },
+    "rank-fuser": {
+      "description": "Runs Reciprocal Rank Fusion as arithmetic in a script; makes no judgement and may not reorder a fused row",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "in-language-verifier": {
+      "description": "Fetches and reads the top-k IN THE SOURCE LANGUAGE and attaches the original-language quote beside every translated claim",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "WebFetch",
+        "mcp__search-hub__firecrawl_scrape",
+        "Read",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "rebuttal-only"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Bash:python",
+      "WebFetch",
+      "Write(command-center/research/**)",
+      "mcp__searxng__searxng_web_search",
+      "mcp__searxng__searxng_instance_info",
+      "mcp__brightdata__search_engine",
+      "mcp__brightdata__scrape_as_markdown",
+      "mcp__search-hub__firecrawl_search",
+      "mcp__search-hub__firecrawl_scrape"
+    ],
+    "deny": [
+      "Bash",
+      "WebSearch",
+      "mcp__search-hub__web_search_exa",
+      "Write(command-center/WORK-UNIT-CATALOG.json)"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/research/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "deny_domains": [
+        "example-content-farm.invalid"
+      ],
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'rank-fuser'",
+        "target": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "effort": "low"
+        },
+        "reason": "rank fusion is arithmetic; routing it to a model would make a deterministic step non-deterministic"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "fusion-integrity": {
+      "predicate": "custom-expression",
+      "expression": "rows_without_origin_engine == 0 AND detector_failed_engines_excluded == true AND engines_contributing >= 2",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "translation-fidelity": {
+      "predicate": "custom-expression",
+      "expression": "translated_claims_without_original_quote == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "translate-query",
+      "title": "Rewrite the question with the native technical term per language",
+      "kind": "task",
+      "role": "query-translator",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0201",
+        "title": "Emit one native-language query per target language plus the engine assignment",
+        "phase": "2B",
+        "question_or_target": "For each target language, write the query a native practitioner would type - the domain's own term, not a transliteration - and assign the engines whose index actually covers that language.",
+        "inputs": [
+          "params.question",
+          "params.target_languages",
+          "params.engines"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "query-translator",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/research/bp-res-02/query-plan.json",
+        "output_schema": "command-center/schema/sampling-plan.schema.json",
+        "evidence_requirement": "each row carries the source English phrase, the native query, and the reason the native term differs from a literal translation",
+        "tests_required": [
+          "a term with an established native form must NOT be transliterated; the row must show both forms so the difference is visible"
+        ],
+        "reviewer_requirement": "the in-language verifier confirms each native query is idiomatic for the domain before the fan-out spends quota",
+        "completion_sentinel": "SUCCESS:BPR-0201 emitted only when the plan exists, parses, and covers every declared target language with at least one engine assigned; otherwise FAILED:BPR-0201 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two rejected translations, enumerate at least two alternative term choices",
+        "failure_classification": [
+          "translation-fidelity",
+          "spec-underspecified"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "native-term-query-translation"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/query-plan.json",
+          "schema_ref": "command-center/schema/sampling-plan.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0201",
+          "consumers": [
+            "engine-control",
+            "engine-fanout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "engine-control",
+      "title": "Detector control: every engine must return the known-present control term",
+      "kind": "task",
+      "depends_on": [
+        "translate-query"
+      ],
+      "role": "engine-lens",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0202",
+        "title": "Probe each engine with the control term and mark a zero-return engine DETECTOR-FAILED",
+        "phase": "2B",
+        "question_or_target": "Query every declared engine for the control term. An engine returning zero results is DETECTOR-FAILED and is excluded from the fusion with that reason recorded; its silence is never read as absence of evidence.",
+        "inputs": [
+          "params.engines",
+          "params.control_term",
+          "command-center/research/bp-res-02/query-plan.json"
+        ],
+        "dependencies": [
+          "BPR-0201"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "engine-lens",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__searxng__searxng_web_search",
+          "mcp__brightdata__search_engine",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 900,
+        "output_path": "command-center/research/bp-res-02/engine-control.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "per engine: the exact control query, the returned count, and the PASS/DETECTOR-FAILED verdict",
+        "tests_required": [
+          "both-states: point one engine at a deliberately wrong endpoint - it must be DETECTOR-FAILED - and the same engine at its real endpoint must PASS in the same run"
+        ],
+        "reviewer_requirement": "the rank fuser refuses to fuse any engine this probe marked DETECTOR-FAILED",
+        "completion_sentinel": "SUCCESS:BPR-0202 emitted only when every declared engine has a verdict row carrying its control-query output; otherwise FAILED:BPR-0202 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a 429 is recorded as rate-limited-retry-later, never as DETECTOR-FAILED",
+        "failure_classification": [
+          "engine-unreachable",
+          "rate-limited",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "per-engine-detector-control"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/engine-control.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0202",
+          "consumers": [
+            "engine-fanout",
+            "rrf-fuse",
+            "fusion-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "engine-fanout",
+      "title": "One lens per engine, staggered against rate limits",
+      "kind": "fanout",
+      "depends_on": [
+        "engine-control"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "engines",
+        "item_var": "engine",
+        "key_field": "engine"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 750,
+      "max_items": 12,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "engine-query",
+          "title": "Return one engine's RAW ranking, unreordered",
+          "kind": "task",
+          "role": "engine-lens",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "BPR-0203",
+            "title": "Capture the top-k raw ranking from one engine for every native query",
+            "phase": "2B",
+            "question_or_target": "For the assigned engine, run each native query and archive the top-k ranking EXACTLY as returned, with position preserved, so the fusion can be recomputed from the archive alone.",
+            "inputs": [
+              "command-center/research/bp-res-02/query-plan.json",
+              "command-center/research/bp-res-02/engine-control.json",
+              "params.k_per_engine"
+            ],
+            "dependencies": [
+              "BPR-0202"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "engine-lens",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "mcp__searxng__searxng_web_search",
+              "mcp__brightdata__search_engine",
+              "mcp__search-hub__firecrawl_search",
+              "Write(command-center/research/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/research/bp-res-02/engines/raw-ranking.json",
+            "output_schema": "command-center/schema/router-corpus.schema.json",
+            "evidence_requirement": "every row carries engine id, query text, integer position, url and source_language; positions are contiguous from 1",
+            "tests_required": [
+              "a rate-limited engine must emit a partial ranking plus a rate-limited marker, never an empty file that reads as zero results"
+            ],
+            "reviewer_requirement": "the rank fuser validates position contiguity before fusing and rejects a re-sorted ranking",
+            "completion_sentinel": "SUCCESS:BPR-0203 emitted only when the raw ranking exists, parses, and positions are contiguous with no re-sorting applied; otherwise FAILED:BPR-0203 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: after two 429s, defer this engine to a later staggered wave rather than hammering it",
+            "failure_classification": [
+              "rate-limited",
+              "engine-unreachable",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "raw-ranking-capture"
+          },
+          "produces": [
+            {
+              "path": "command-center/research/bp-res-02/engines/raw-ranking.json",
+              "schema_ref": "command-center/schema/router-corpus.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0203",
+              "consumers": [
+                "rrf-fuse"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.5,
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "rrf-fuse",
+      "title": "Deterministic Reciprocal Rank Fusion over the archived rankings",
+      "kind": "task",
+      "depends_on": [
+        "engine-fanout"
+      ],
+      "role": "rank-fuser",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/research/**)"
+      ],
+      "cache": {
+        "enabled": true,
+        "scope": "stage",
+        "key_from": [
+          "stage_id",
+          "inputs_hash",
+          "tool_versions"
+        ],
+        "store": "command-center/research/bp-res-02/cache/fusion",
+        "ttl_seconds": 2592000,
+        "verify_integrity": true,
+        "invalidate_on": [
+          "schema-version-change",
+          "tool-version-change"
+        ],
+        "read_only": false
+      },
+      "work_unit": {
+        "id": "BPR-0204",
+        "title": "Compute the RRF score per url and emit the fused ranking with origin engines",
+        "phase": "2B",
+        "question_or_target": "Fuse the archived per-engine rankings with RRF in a script: score(url) = sum over engines of 1/(k + position). Every fused row names every engine that returned it; a row returned by exactly one engine is flagged single-engine-weak.",
+        "inputs": [
+          "command-center/research/bp-res-02/engines/raw-ranking.json",
+          "command-center/research/bp-res-02/engine-control.json"
+        ],
+        "dependencies": [
+          "BPR-0203"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "rank-fuser",
+          "basis": "arithmetic, not judgement: a model here would destroy the determinism this step exists for"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/research/bp-res-02/fused-ranking.json",
+        "output_schema": "command-center/schema/tournament-score.schema.json",
+        "evidence_requirement": "the fused file records the RRF constant k, every contributing engine per row, and a checksum of the input rankings so the fusion is recomputable",
+        "tests_required": [
+          "recompute the fusion twice from the same archive: the output must be byte-identical",
+          "both-states: drop one engine from the archive and the fused ORDER must change; restore it and the original order must return"
+        ],
+        "reviewer_requirement": "no reviewer may reorder a fused row; a disagreement is recorded as a dispute against the RRF constant, not as a manual reorder",
+        "completion_sentinel": "SUCCESS:BPR-0204 emitted only when the fused ranking exists, parses, names >=2 contributing engines, and records the RRF constant plus the input checksum; otherwise FAILED:BPR-0204 <failure-class> <reason>",
+        "retry_policy": "none: a deterministic script that failed will fail identically, so a retry is meaningless - fix the input instead",
+        "failure_classification": [
+          "schema-invalid",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "reciprocal-rank-fusion"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/fused-ranking.json",
+          "schema_ref": "command-center/schema/tournament-score.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0204",
+          "consumers": [
+            "verify-top-k",
+            "fusion-gate",
+            "report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "forum-lens-pass",
+      "title": "Optional S1b: community and forum surface",
+      "kind": "task",
+      "depends_on": [
+        "rrf-fuse"
+      ],
+      "when": "include_forum_lens == true",
+      "role": "forum-lens",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0205",
+        "title": "Mine community surfaces whose retrieval shape differs from web search",
+        "phase": "2B",
+        "question_or_target": "Mine forum and community surfaces for the native queries and emit leads marked reputation-soft; a community lead is never promoted above a fused row on reputation alone.",
+        "inputs": [
+          "command-center/research/bp-res-02/query-plan.json",
+          "command-center/research/bp-res-02/fused-ranking.json"
+        ],
+        "dependencies": [
+          "BPR-0204"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "forum-lens",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__brightdata__scrape_as_markdown",
+          "WebFetch",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-02/forum-leads.json",
+        "output_schema": "command-center/schema/research-claim-record.schema.json",
+        "evidence_requirement": "each lead carries the community URL, the quoted post span, and an explicit reputation-soft marker",
+        "tests_required": [
+          "a scraped post containing an instruction-shaped string must be recorded as DATA with the instruction neutralised, never executed"
+        ],
+        "reviewer_requirement": "the in-language verifier treats every community lead as unverified until it is confirmed outside the community that produced it",
+        "completion_sentinel": "SUCCESS:BPR-0205 emitted only when the leads file exists, parses, and every row carries the reputation-soft marker; otherwise FAILED:BPR-0205 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "rate-limited",
+          "injection-attempt",
+          "engine-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "community-surface-mining"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/forum-leads.json",
+          "schema_ref": "command-center/schema/research-claim-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0205",
+          "consumers": [
+            "verify-top-k"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verify-top-k",
+      "title": "Read the top-k in the source language and attach the original quote",
+      "kind": "task",
+      "depends_on": [
+        "rrf-fuse",
+        "forum-lens-pass"
+      ],
+      "role": "in-language-verifier",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "BPR-0206",
+        "title": "Fetch and read the fused top-k in-language and pair every translated claim with its original quote",
+        "phase": "2B",
+        "question_or_target": "For the fused top-k, fetch the page and read it in the source language. Every claim carried into English must sit beside the original-language span it came from, so a numeric or precise claim can be re-checked.",
+        "inputs": [
+          "command-center/research/bp-res-02/fused-ranking.json",
+          "command-center/research/bp-res-02/forum-leads.json"
+        ],
+        "dependencies": [
+          "BPR-0204"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "in-language-verifier",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "WebFetch",
+          "mcp__search-hub__firecrawl_scrape",
+          "Read",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/research/bp-res-02/in-language-verification.json",
+        "output_schema": "command-center/schema/confirmation-record.schema.json",
+        "evidence_requirement": "per claim: the original-language quote, its URL, and the English rendering; a numeric claim without an original-language quote is UNRESOLVED",
+        "tests_required": [
+          "seed a numeric claim whose source states a different number - the pass must return REFUTED and quote the original"
+        ],
+        "reviewer_requirement": "one independent reviewer who did not translate the query re-reads two quotes and records any rendering disagreement",
+        "completion_sentinel": "SUCCESS:BPR-0206 emitted only when every top-k row has a verdict and every translated claim carries its original-language quote; otherwise FAILED:BPR-0206 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two fetch failures on one row, mark it UNRESOLVED with the fetch error rather than a third attempt",
+        "failure_classification": [
+          "translation-fidelity",
+          "engine-unreachable",
+          "paywalled"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "in-language-quote-pairing"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/in-language-verification.json",
+          "schema_ref": "command-center/schema/confirmation-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0206",
+          "consumers": [
+            "fidelity-gate",
+            "report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fusion-gate",
+      "title": "No fused row without its origin engine; no DETECTOR-FAILED engine in the fusion",
+      "kind": "gate",
+      "depends_on": [
+        "verify-top-k"
+      ],
+      "gate_ref": "fusion-integrity"
+    },
+    {
+      "id": "fidelity-gate",
+      "title": "No translated claim without its original-language quote",
+      "kind": "gate",
+      "depends_on": [
+        "fusion-gate"
+      ],
+      "gate_ref": "translation-fidelity"
+    },
+    {
+      "id": "report",
+      "title": "Report the fused ranking with source_language on every row",
+      "kind": "task",
+      "depends_on": [
+        "fidelity-gate"
+      ],
+      "role": "rank-fuser",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0207",
+        "title": "Emit the fused report, the excluded-engine list, and the unique-value verdict",
+        "phase": "2B",
+        "question_or_target": "Write the report: fused rows with source_language and origin engines, the engines excluded and why, and an explicit statement of how many unique non-English domains the run added over an English-only baseline - including when that number is zero.",
+        "inputs": [
+          "command-center/research/bp-res-02/fused-ranking.json",
+          "command-center/research/bp-res-02/in-language-verification.json",
+          "command-center/research/bp-res-02/engine-control.json"
+        ],
+        "dependencies": [
+          "BPR-0204",
+          "BPR-0206"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "rank-fuser",
+          "basis": "the report is a projection of the deterministic fusion plus the verification record"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/research/bp-res-02/report.json",
+        "output_schema": "command-center/schema/research-registry.schema.json",
+        "evidence_requirement": "the unique-non-English-domain count is computed from the fused rows, not asserted; the excluded-engine list carries each exclusion reason",
+        "tests_required": [
+          "an English-native question must produce a near-zero unique-value verdict - the correct NEGATIVE result, reported rather than hidden"
+        ],
+        "reviewer_requirement": "one adversarial reviewer checks that a single-engine-weak row is not presented as corroborated",
+        "completion_sentinel": "SUCCESS:BPR-0207 emitted only when the report exists, parses, states the unique-non-English-domain count numerically, and lists every excluded engine with a reason; otherwise FAILED:BPR-0207 <failure-class> <reason>",
+        "retry_policy": "none: recomputing a projection of unchanged inputs cannot change the result",
+        "failure_classification": [
+          "schema-invalid",
+          "overclaim"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "fused-report-with-negative-result"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-02/report.json",
+          "schema_ref": "command-center/schema/research-registry.schema.json",
+          "min_bytes": 1024,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0207",
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "fusion-stable",
+      "expression": "fused_top_k_changed_by_last_engine == false",
+      "applies_to": "workflow",
+      "minimum_conditions": "engines_contributing >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "engine-roster-exhausted",
+      "expression": "engines_remaining == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-unique-value",
+      "expression": "unique_non_english_domains == 0 AND engines_contributing >= 2",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "rate-limited",
+      "engine-unreachable"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "report"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "rate-limited",
+      "engine-unreachable",
+      "translation-fidelity",
+      "detector-failure",
+      "injection-attempt"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "report",
+    "quarantine_path": "command-center/research/bp-res-02/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/research/bp-res-02/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/research/bp-res-02/replay/engine-rankings.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "item_key"
+    ],
+    "store": "command-center/research/bp-res-02/cache",
+    "ttl_seconds": 259200,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/research/bp-res-02/dry-run-plan.json",
+    "forbid_tools": [
+      "WebFetch",
+      "mcp__searxng__searxng_web_search",
+      "mcp__brightdata__search_engine",
+      "mcp__brightdata__scrape_as_markdown",
+      "Write(command-center/research/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "min": 2.0,
+      "expected": 6.0,
+      "max": 18.0
+    },
+    "wallclock_seconds": {
+      "min": 900,
+      "expected": 3000,
+      "max": 9000
+    },
+    "tokens": {
+      "min": 150000,
+      "expected": 600000,
+      "max": 1800000
+    },
+    "tool_calls": {
+      "expected": 180,
+      "max": 700
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/research/bp-res-02/**; regional engines are a higher injection-risk surface",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-02.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "07f465f3:.agents/skills/multilingual-search",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner (undeployed skill)"
+      },
+      {
+        "source": "exec-phenibut-bromantane-deep-probe-w2",
+        "relation": "MERGE",
+        "credit": "executed workflow corpus"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-RES-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "07f465f3:.agents/skills/multilingual-search"
+    ]
+  },
+  "outputs": {
+    "fused-report": {
+      "path": "command-center/research/bp-res-02/report.json",
+      "schema_ref": "command-center/schema/research-registry.schema.json",
+      "min_bytes": 1024,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    },
+    "raw-rankings": {
+      "path": "command-center/research/bp-res-02/engines/raw-ranking.json",
+      "schema_ref": "command-center/schema/router-corpus.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "rrf-fuse"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-02",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 247
+    },
+    "acquisition_route_from_card": "REPAIR",
+    "mechanism_signature": [
+      "native-term-query-translation",
+      "per-engine-detector-control",
+      "raw-ranking-archive",
+      "deterministic-reciprocal-rank-fusion",
+      "in-language-original-quote-pairing",
+      "single-engine-weak-flagging"
+    ],
+    "contraindications": [
+      "NOT when the corpus is English-native: pure overhead, and the blueprint is designed to SAY so",
+      "NOT for legal or medical guidance in a language you cannot read - the translation layer is a fidelity risk on precise claims"
+    ],
+    "replay_note": "deterministic is FALSE because engine indexes drift between runs, but the per-engine rankings are journalled, so the FUSION step alone is exactly recomputable - verify is semantic-equal rather than hash-equal for that reason.",
+    "owner_decision": "Deploy the nine dark .agents/skills as one batch, or one at a time behind individual proof?",
+    "unverified": [
+      "UNVERIFIED that translation + RRF beats either arm alone; settling experiment = one question, three arms (skill alone / channel-mining alone / fused), counting unique VERIFIED sources per arm."
+    ],
+    "worked_example": {
+      "name": "find Russian-language documentation for a niche industrial controller",
+      "params": {
+        "question": "Which firmware revisions of the OWEN PLC110 family fixed the Modbus RTU timeout defect?",
+        "target_languages": [
+          "ru",
+          "cs"
+        ],
+        "engines": [
+          "yandex",
+          "seznam",
+          "searx-brave"
+        ],
+        "k_per_engine": 20,
+        "control_term": "modbus",
+        "include_forum_lens": true
+      },
+      "expected_stage_order": [
+        "translate-query",
+        "engine-control",
+        "engine-fanout",
+        "rrf-fuse",
+        "forum-lens-pass",
+        "verify-top-k",
+        "fusion-gate",
+        "fidelity-gate",
+        "report"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 4,
+      "expected_gate_ids": [
+        "fusion-gate",
+        "fidelity-gate"
+      ],
+      "acceptance": [
+        ">=3 unique non-English domains in the fused top 10",
+        "every fused row names its origin engines",
+        "any engine returning 0 for `modbus` is excluded as DETECTOR-FAILED"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "fusion-stable",
+          "why": "fusion may only be called stable once at least two engines contributed",
+          "fires_on": {
+            "fused_top_k_changed_by_last_engine": false,
+            "engines_contributing": 3,
+            "engines_remaining": 0,
+            "unique_non_english_domains": 4
+          },
+          "does_not_fire_on": {
+            "fused_top_k_changed_by_last_engine": false,
+            "engines_contributing": 1,
+            "engines_remaining": 0,
+            "unique_non_english_domains": 4
+          }
+        },
+        {
+          "rule": "no-unique-value",
+          "why": "the correct NEGATIVE result on an English-native topic must be reachable and reported",
+          "fires_on": {
+            "fused_top_k_changed_by_last_engine": true,
+            "engines_contributing": 3,
+            "engines_remaining": 1,
+            "unique_non_english_domains": 0
+          },
+          "does_not_fire_on": {
+            "fused_top_k_changed_by_last_engine": true,
+            "engines_contributing": 3,
+            "engines_remaining": 1,
+            "unique_non_english_domains": 2
+          }
+        }
+      ]
+    }
+  }
+}

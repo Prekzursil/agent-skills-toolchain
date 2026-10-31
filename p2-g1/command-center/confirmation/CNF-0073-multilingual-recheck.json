@@ -1,0 +1,1006 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1091,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/citation-audit.schema.json",
+   "role": "supporting",
+   "sha256": "9da7af62eacf2028937221609752aa6ade7057ef2dfffb9057b88fa8dc2bcb69"
+  },
+  {
+   "bytes": 2863,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0073/fixtures/citation-inventory.json",
+   "role": "fixture",
+   "sha256": "c27ab3445adb71bbba3e5a5bb6093df69ff523c76f9363b7d8de14e5001625dc"
+  },
+  {
+   "bytes": 820,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0073/fixtures/hedges.json",
+   "role": "fixture",
+   "sha256": "00ec4cf944edfc82a00f4c5edba4c1aee5d877d8bf89ff470f162015c490bee7"
+  },
+  {
+   "bytes": 1367,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0073/fixtures/glossary.json",
+   "role": "fixture",
+   "sha256": "8993318c3ace46433ee916bf1646e96d645c4c7f5672f9c800a55de2bea1910d"
+  },
+  {
+   "bytes": 3800,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0073/translate.py",
+   "role": "supporting",
+   "sha256": "cdf55f835668c37d91bf6fdcbaa1ced8d358452c5cf29cd5de291aa568376cfc"
+  },
+  {
+   "bytes": 3951,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0073/qualifiers.py",
+   "role": "supporting",
+   "sha256": "33852f61fed3a5ddfe172bd79d8786f3d1e98e9109a5f6b93f0e9e739b6e2857"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0073-multilingual-recheck.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0073/schema_check.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0073/schema_check.py",
+    "exit_code": 0,
+    "fingerprint": "schema-check:citation-audit",
+    "method": "schema-validate",
+    "raw_output": "offline Draft202012Validator vs citation-audit",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0073/fixtures/citation-inventory.json:10",
+   "claim": "Each cited span carries the original-language text and the recorded translation; the second path is a named live algorithm.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c \"import json; print(json.load(open('command-center/p2-wave/probes/CNF-0073/fixtures/citation-inventory.json'))['citations'][0]['original_span'])\"",
+     "exit_code": 0,
+     "fingerprint": "inventory:original-span",
+     "method": "file-read",
+     "raw_output": "CIT-ZH-001 original span present in inventory",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c \"import pathlib,sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0073'); import translate as t; print(t.PATH_RECORDED, t.PATH_INDEPENDENT)\"",
+     "exit_code": 0,
+     "fingerprint": "translate:path-names",
+     "method": "command",
+     "raw_output": "recorded-inventory-gloss hedge-tag-transfer-v1",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:28639",
+   "claim": "A dropped hedge or qualifier is a material change even when the headline claim survives.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "rg -n 'a dropped hedge or qualifier is a material change' command-center/WORK-UNIT-CATALOG.json",
+     "exit_code": 0,
+     "fingerprint": "catalog:dropped-hedge-rule",
+     "method": "file-read",
+     "raw_output": "catalog tests_required names dropped hedge as material",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0073/probe2_qualifier_control.py",
+     "exit_code": 0,
+     "fingerprint": "probe2:qualifier-control",
+     "method": "command",
+     "raw_output": "planted dropped-hedge rows file PARTIAL",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0073/translate.py:20",
+   "claim": "Path hedge-tag-transfer-v1 is a live tagged-transfer translator, not the stored inventory gloss re-run.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "rg -n 'PATH_INDEPENDENT' command-center/p2-wave/probes/CNF-0073/translate.py",
+     "exit_code": 0,
+     "fingerprint": "translate:independent-const",
+     "method": "file-read",
+     "raw_output": "PATH_INDEPENDENT=hedge-tag-transfer-v1",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0073/probe1_second_path.py",
+     "exit_code": 0,
+     "fingerprint": "probe1:live-recompute",
+     "method": "command",
+     "raw_output": "live second path matches artifact independent text",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "CNF-0073",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0073/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"fired\": true, \"planted\": [\"CIT-ZH-001\", \"CIT-JA-001\", \"CIT-DE-001\", \"CIT-RU-001\"]}",
+   "description": "Planted recorded translations drop epistemic hedges; detector must file material_change even when the headline survives. The unplanted UTF-8 row stays material_change=false.",
+   "fired_on_bad_state": true,
+   "good_state_output": "CIT-DE-002 material_change=false CONFIRMED",
+   "id": "dropped-hedge",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "second path 'recorded-inventory-gloss' is the first path re-run",
+   "description": "Calling the second path with the first path's name must raise SamePathRerun; distinct names must not.",
+   "fired_on_bad_state": true,
+   "good_state_output": "recorded-inventory-gloss -> hedge-tag-transfer-v1",
+   "id": "same-path-rerun",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "multilingual-auditor",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": "Live B03/CNF-0062 cited-span inventory is absent (scanned_files=235, non_english_cited_spans_with_recorded_translation=0). On the pinned inventory of 5 spans, second path hedge-tag-transfer-v1 is named and distinct from recorded-inventory-gloss. Verdicts CONFIRMED=1 PARTIAL=4 REFUTED=0. Material qualifier drift on ['CIT-ZH-001', 'CIT-JA-001', 'CIT-DE-001', 'CIT-RU-001']. A dropped hedge is filed even when the headline claim survives. SUCCESS:CNF-0073 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both translations are attached and the second path is named and demonstrably different from the first. Any other terminal state is FAILED:CNF-0073 <classification> with the diagnostic tail attached.",
+  "citations": [
+   {
+    "claim_survives": true,
+    "id": "CIT-ZH-001",
+    "language": "zh",
+    "original_span": "\u8be5\u5de5\u4f5c\u6d41\u53ef\u80fd\u4e0d\u4f1a\u5728\u8d85\u65f6\u540e\u81ea\u52a8\u91cd\u8bd5\u3002",
+    "paths_named_and_different": true,
+    "planted_control": "dropped-hedge",
+    "qualifier_diff": {
+     "dropped_by_recorded": [
+      "possibly"
+     ],
+     "independent_hedges": [
+      "possibly"
+     ],
+     "independent_restored": [
+      "possibly"
+     ],
+     "introduced_by_recorded": [],
+     "material_change": true,
+     "original_hedges": [
+      "possibly"
+     ],
+     "recorded_hedges": []
+    },
+    "source": {
+     "claimed_url": "https://example.invalid/zh/orchestration-timeout",
+     "kind": "inventory-pinned"
+    },
+    "translations": [
+     {
+      "path_name": "recorded-inventory-gloss",
+      "role": "recorded",
+      "text": "The workflow will not automatically retry after timeout."
+     },
+     {
+      "path_name": "hedge-tag-transfer-v1",
+      "role": "independent",
+      "text": "possibly the workflow will not at timeout after automatically retry"
+     }
+    ],
+    "verdict": "PARTIAL"
+   },
+   {
+    "claim_survives": true,
+    "id": "CIT-JA-001",
+    "language": "ja",
+    "original_span": "\u3053\u306e\u624b\u6cd5\u306f\u307b\u307c\u3059\u3079\u3066\u306e\u30b1\u30fc\u30b9\u3067\u6709\u52b9\u3067\u3042\u308b\u3002",
+    "paths_named_and_different": true,
+    "planted_control": "dropped-hedge",
+    "qualifier_diff": {
+     "dropped_by_recorded": [
+      "almost"
+     ],
+     "independent_hedges": [
+      "almost"
+     ],
+     "independent_restored": [
+      "almost"
+     ],
+     "introduced_by_recorded": [],
+     "material_change": true,
+     "original_hedges": [
+      "almost"
+     ],
+     "recorded_hedges": []
+    },
+    "source": {
+     "claimed_url": "https://example.invalid/ja/method-coverage",
+     "kind": "inventory-pinned"
+    },
+    "translations": [
+     {
+      "path_name": "recorded-inventory-gloss",
+      "role": "recorded",
+      "text": "This method is effective in all cases."
+     },
+     {
+      "path_name": "hedge-tag-transfer-v1",
+      "role": "independent",
+      "text": "almost this method all cases in is effective"
+     }
+    ],
+    "verdict": "PARTIAL"
+   },
+   {
+    "claim_survives": true,
+    "id": "CIT-DE-001",
+    "language": "de",
+    "original_span": "Ein Agent sollte die Aufgabe m\u00f6glicherweise nicht ohne Best\u00e4tigung ausf\u00fchren.",
+    "paths_named_and_different": true,
+    "planted_control": "dropped-hedge",
+    "qualifier_diff": {
+     "dropped_by_recorded": [
+      "possibly",
+      "should"
+     ],
+     "independent_hedges": [
+      "possibly",
+      "should"
+     ],
+     "independent_restored": [
+      "possibly",
+      "should"
+     ],
+     "introduced_by_recorded": [],
+     "material_change": true,
+     "original_hedges": [
+      "possibly",
+      "should"
+     ],
+     "recorded_hedges": []
+    },
+    "source": {
+     "claimed_url": "https://example.invalid/de/agent-confirmation",
+     "kind": "inventory-pinned"
+    },
+    "translations": [
+     {
+      "path_name": "recorded-inventory-gloss",
+      "role": "recorded",
+      "text": "An agent must not execute the task without confirmation."
+     },
+     {
+      "path_name": "hedge-tag-transfer-v1",
+      "role": "independent",
+      "text": "should possibly a agent the task not without confirmation execute"
+     }
+    ],
+    "verdict": "PARTIAL"
+   },
+   {
+    "claim_survives": true,
+    "id": "CIT-DE-002",
+    "language": "de",
+    "original_span": "Die Datei muss UTF-8 sein.",
+    "paths_named_and_different": true,
+    "planted_control": null,
+    "qualifier_diff": {
+     "dropped_by_recorded": [],
+     "independent_hedges": [],
+     "independent_restored": [],
+     "introduced_by_recorded": [],
+     "material_change": false,
+     "original_hedges": [],
+     "recorded_hedges": []
+    },
+    "source": {
+     "claimed_url": "https://example.invalid/de/utf8-file",
+     "kind": "inventory-pinned"
+    },
+    "translations": [
+     {
+      "path_name": "recorded-inventory-gloss",
+      "role": "recorded",
+      "text": "The file must be UTF-8."
+     },
+     {
+      "path_name": "hedge-tag-transfer-v1",
+      "role": "independent",
+      "text": "the file must UTF-8 be"
+     }
+    ],
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim_survives": true,
+    "id": "CIT-RU-001",
+    "language": "ru",
+    "original_span": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u043f\u043e\u0447\u0442\u0438 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0434\u043e\u043b\u0436\u043d\u0430 \u043c\u043e\u043b\u0447\u0430 \u043f\u0440\u043e\u0433\u043b\u0430\u0442\u044b\u0432\u0430\u0442\u044c \u043e\u0448\u0438\u0431\u043a\u0443.",
+    "paths_named_and_different": true,
+    "planted_control": "dropped-hedge",
+    "qualifier_diff": {
+     "dropped_by_recorded": [
+      "almost",
+      "should"
+     ],
+     "independent_hedges": [
+      "almost",
+      "should"
+     ],
+     "independent_restored": [
+      "almost",
+      "should"
+     ],
+     "introduced_by_recorded": [],
+     "material_change": true,
+     "original_hedges": [
+      "almost",
+      "should"
+     ],
+     "recorded_hedges": []
+    },
+    "source": {
+     "claimed_url": "https://example.invalid/ru/silent-error",
+     "kind": "inventory-pinned"
+    },
+    "translations": [
+     {
+      "path_name": "recorded-inventory-gloss",
+      "role": "recorded",
+      "text": "The system must never silently swallow an error."
+     },
+     {
+      "path_name": "hedge-tag-transfer-v1",
+      "role": "independent",
+      "text": "almost should system never not silently swallow error"
+     }
+    ],
+    "verdict": "PARTIAL"
+   }
+  ],
+  "claim_under_test": "Do the multilingual source claims survive a second translation? Re-translate each non-English cited span through a different translation path than the original and answer: does the claim survive, or did the first translation introduce or drop a qualifier that changes its meaning?",
+  "completion_sentinel": "SUCCESS:CNF-0073 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both translations are attached and the second path is named and demonstrably different from the first. Any other terminal state is FAILED:CNF-0073 <classification> with the diagnostic tail attached.",
+  "control_ids": [
+   "dropped-hedge",
+   "same-path-rerun"
+  ],
+  "controls": [
+   {
+    "classification": "qualifier-dropped",
+    "detail": "dropped hedge is material even when headline claim_survives",
+    "fired": true,
+    "id": "dropped-hedge",
+    "planted": [
+     "CIT-ZH-001",
+     "CIT-JA-001",
+     "CIT-DE-001",
+     "CIT-RU-001"
+    ]
+   },
+   {
+    "classification": "same-path-rerun",
+    "detail": "second path 'recorded-inventory-gloss' is the first path re-run",
+    "fired": true,
+    "id": "same-path-rerun"
+   }
+  ],
+  "kind": "citation-audit",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0073/fixtures/citation-inventory.json",
+    "measured": 5,
+    "method": "recorded-inventory-gloss stored gloss vs live hedge-tag-transfer-v1",
+    "name": "citations-retranslated"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0073/qualifiers.py",
+    "measured": 4,
+    "method": "hedge-id set difference original vs recorded",
+    "name": "material-qualifier-ids"
+   }
+  ],
+  "question": "Do the multilingual source claims survive a second translation? Re-translate each non-English cited span through a different translation path than the original and answer: does the claim survive, or did the first translation introduce or drop a qualifier that changes its meaning?",
+  "reviewer_protocol": {
+   "independent": true,
+   "reviewer_id": "CNF-0073-probe2-qualifier-control",
+   "scope": "Re-derives qualifier_diff and verdicts from original_span + recorded_translation + live hedge-tag-transfer-v1 before comparing to the artifact conclusion.",
+   "shown_conclusion_first": false
+  },
+  "second_path_named_and_different": true,
+  "summary": {
+   "confirmed": 1,
+   "material_qualifier_ids": [
+    "CIT-ZH-001",
+    "CIT-JA-001",
+    "CIT-DE-001",
+    "CIT-RU-001"
+   ],
+   "n": 5,
+   "partial": 4,
+   "refuted": 0
+  },
+  "tests_required": [
+   "the second path must differ mechanically from the first, not be the same service re-run",
+   "a dropped hedge or qualifier is a material change and is filed even when the headline claim survives"
+  ],
+  "title": "Confirm a non-English source claim through an independent translation path",
+  "translation_paths": [
+   {
+    "kind": "stored-inventory",
+    "mechanism": "The first translation is the fluent gloss recorded with each claim in the inventory. It is not regenerated by calling hedge-tag-transfer-v1.",
+    "name": "recorded-inventory-gloss"
+   },
+   {
+    "kind": "live-algorithm",
+    "mechanism": "Longest-match glossary plus hedge-tag transfer: qualifier tokens are stripped, tagged, translated independently, and reattached. Different tokenizer, IR, and code path from the stored inventory gloss.",
+    "name": "hedge-tag-transfer-v1"
+   }
+  ],
+  "upstream": {
+   "CLAIM-REGISTRY.json": {
+    "path": "command-center/CLAIM-REGISTRY.json",
+    "present": true
+   },
+   "CNF-0062": {
+    "path": "command-center/confirmation/CNF-0062-citation-liveness.json",
+    "present": false
+   },
+   "inventory_used": "command-center/p2-wave/probes/CNF-0073/fixtures/citation-inventory.json",
+   "live_scan": {
+    "files_with_non_latin_quotes": [
+     {
+      "bytes": 135793,
+      "path": "command-center/receipts/TST-0218.json",
+      "scripts": [
+       "Cyrillic"
+      ]
+     }
+    ],
+    "live_roots": [
+     "command-center/research",
+     "command-center/confirmation",
+     "command-center/sources",
+     "command-center/CLAIM-REGISTRY.json",
+     "command-center/receipts"
+    ],
+    "missing_roots": [],
+    "non_english_cited_spans_with_recorded_translation": 0,
+    "note": "No B03 claim corpus or CNF-0062 liveness artifact is on this worktree. Files that contain non-Latin characters without a recorded translation pair are not counted as cited spans.",
+    "scanned_files": [
+     "command-center/research/RES-0072.json",
+     "command-center/research/RES-0063.json",
+     "command-center/research/RES-0081.json",
+     "command-center/research/RES-0036.json",
+     "command-center/research/RES-0117.json",
+     "command-center/research/.gitkeep",
+     "command-center/research/RES-0002.json",
+     "command-center/research/RES-0045.json",
+     "command-center/research/RES-0108.json",
+     "command-center/research/RES-0001.json",
+     "command-center/research/RES-0009.json",
+     "command-center/research/sources-frontier/RES-0141-breaking-change-phrase-detection.json",
+     "command-center/research/sources-frontier/RES-0182-expert-elicitation-as-a-source-class.json",
+     "command-center/research/sources-frontier/.gitkeep",
+     "command-center/research/sources-frontier/RES-0180-watchlist-standing-recheck.json",
+     "command-center/research/sources-frontier/RES-0143-anecdote-to-falsifiable-claim-protocol.json",
+     "command-center/research/sources-frontier/RES-0183-owner-decision-log-as-a-source-class.json",
+     "command-center/research/sources-frontier/RES-0137-cross-domain-niche-community-scan.json",
+     "command-center/research/sources-frontier/RES-0142-issue-tracker-blocker-signal-model.json",
+     "command-center/research/sources-frontier/RES-0140-transcript-source-class-yield-measurement.json",
+     "command-center/research/teardown/RES-0176-teardown-graph-vs-role-frameworks.json",
+     "command-center/research/teardown/.gitkeep",
+     "command-center/research/teardown/RES-0177-teardown-installed-local-plugins.json",
+     "command-center/research/teardown/RES-0178-teardown-skill-and-mcp-distribution-hubs.json",
+     "command-center/research/gem-hunt/RES-0160-gem-adoption-gate-with-measured-improvement.json",
+     "command-center/research/gem-hunt/RES-0157-transfer-durability-transaction-models.json",
+     "command-center/research/gem-hunt/RES-0158-transfer-structured-analytic-techniques.json",
+     "command-center/research/gem-hunt/RES-0156-grounded-vs-ideation-evidence-split.json",
+     "command-center/research/gem-hunt/RES-0159-novelty-net-of-declared-structure.json",
+     "command-center/research/gem-hunt/.gitkeep",
+     "command-center/research/gem-hunt/RES-0155-lens-taxonomy-non-redundancy.json",
+     "command-center/research/supply-chain/RES-0133-secret-scanner-coverage-on-prose-artifacts.json",
+     "command-center/research/supply-chain/RES-0134-reproducible-build-for-asset-packages.json",
+     "command-center/research/supply-chain/.gitkeep",
+     "command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json",
+     "command-center/research/supply-chain/RES-0135-licence-compatibility-matrix-for-aggregation.json",
+     "command-center/research/evidence-quality/RES-0145-circular-citation-detection.json",
+     "command-center/research/evidence-quality/RES-0152-confidence-band-calibration-set.json",
+     "command-center/research/evidence-quality/RES-0144-two-axis-source-quality-rubric.json",
+     "command-center/research/evidence-quality/RES-0147-disconfirming-query-generation.json",
+     "command-center/research/evidence-quality/RES-0185-evidence-map-coverage-holes.json",
+     "command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json",
+     "command-center/research/evidence-quality/RES-0188-stale-premise-detection-in-briefing-packs.json",
+     "command-center/research/evidence-quality/RES-0187-counterevidence-coverage-audit.json",
+     "command-center/research/evidence-quality/.gitkeep",
+     "command-center/research/evidence-quality/RES-0150-unfavorable-evidence-quota-mechanism.json",
+     "command-center/research/evidence-quality/RES-0184-evidence-threshold-by-claim-severity.json",
+     "command-center/research/evidence-quality/RES-0146-ai-slop-source-detectability.json",
+     "command-center/research/evidence-quality/RES-0186-citation-audit-of-an-existing-report.json",
+     "command-center/research/evidence-quality/RES-0153-settling-experiment-generator.json",
+     "command-center/research/evidence-quality/RES-0154-refuter-incentive-and-yield-design.json",
+     "command-center/research/deep-research-design/RES-0166-suborchestrator-topology-comparison.json",
+     "command-center/research/deep-research-design/RES-0191-mid-run-backend-outage-resume.json",
+     "command-center/research/deep-research-design/RES-0193-tokens-per-verified-claim-efficiency.json",
+     "command-center/research/deep-research-design/RES-0165-researcher-count-diminishing-returns.json",
+     "command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json",
+     "command-center/research/deep-research-design/RES-0169-backend-filter-capability-matrix.json",
+     "command-center/research/deep-research-design/RES-0189-source-diversity-enforcement.json",
+     "command-center/research/deep-research-design/RES-0175-fetched-content-injection-filter.json",
+     "command-center/research/deep-research-design/RES-0170-computable-research-quality-target.json",
+     "command-center/research/deep-research-design/.gitkeep",
+     "command-center/research/deep-research-design/RES-0167-fix-review-repair-loop-limits.json",
+     "command-center/research/deep-research-design/RES-0168-source-class-backend-routing-preflight.json",
+     "command-center/research/deep-research-design/RES-0192-rapid-versus-systematic-review-protocol.json",
+     "command-center/research/deep-research-design/RES-0173-mechanism-level-claim-dedup.json",
+     "command-center/research/deep-research-design/RES-0172-human-checkpoint-evpi-placement.json",
+     "command-center/research/marketplace-ecosystem/RES-0131-locally-computable-package-quality-score.json",
+     "command-center/research/marketplace-ecosystem/.gitkeep",
+     "command-center/research/marketplace-ecosystem/RES-0129-cross-client-manifest-compat-matrix.json",
+     "command-center/research/prior-art/RES-0164-event-log-schema-prior-art.json",
+     "command-center/research/prior-art/.gitkeep",
+     "command-center/research/prior-art/RES-0161-workflow-dsl-feature-matrix.json",
+     "command-center/research/prior-art/RES-0163-session-claim-lease-prior-art.json",
+     "command-center/research/prior-art/RES-0162-cross-vendor-invocation-surface-leaks.json",
+     "command-center/confirmation/CNF-0055-router-selection-diff.json",
+     "command-center/confirmation/CNF-0091-sycophancy-probe.json",
+     "command-center/confirmation/CNF-0109-sbom-completeness.json",
+     "command-center/confirmation/CNF-0046-locked-file-rollback.json",
+     "command-center/confirmation/CNF-0019-byte-route-audit.json",
+     "command-center/confirmation/.gitkeep",
+     "command-center/confirmation/CNF-0082-scout-rediscovery.json",
+     "command-center/confirmation/CNF-0028-clean-venv-install.json",
+     "command-center/confirmation/cnf0136/scheduler.py",
+     "command-center/confirmation/cnf0136/induced-records.json",
+     "command-center/confirmation/cnf0136/confirmation-record.schema.json",
+     "command-center/confirmation/cnf0136/record.py",
+     "command-center/confirmation/cnf0136/queue.py",
+     "command-center/confirmation/cnf0136/__init__.py",
+     "command-center/confirmation/cnf0136/taxonomy.py",
+     "command-center/confirmation/cnf0136/tooling-receipt.local.schema.json",
+     "command-center/sources/REGISTER.md",
+     "command-center/sources/overlay.json",
+     "command-center/CLAIM-REGISTRY.json",
+     "command-center/receipts/BLD-0016.json",
+     "command-center/receipts/ADV-0009.json",
+     "command-center/receipts/TST-0161.json",
+     "command-center/receipts/CC-0015.json",
+     "command-center/receipts/ADV-0012.json",
+     "command-center/receipts/BLD-0042.json",
+     "command-center/receipts/ADV-0017.json",
+     "command-center/receipts/TST-0163.json",
+     "command-center/receipts/ADV-0019.json",
+     "command-center/receipts/TST-0147.json",
+     "command-center/receipts/TST-0167.json",
+     "command-center/receipts/TST-0145.json",
+     "command-center/receipts/TST-0197.json",
+     "command-center/receipts/CC-0002.json",
+     "command-center/receipts/REL-0002.json",
+     "command-center/receipts/BLD-0004.json",
+     "command-center/receipts/ADV-0031.json",
+     "command-center/receipts/IMP-0001.json",
+     "command-center/receipts/BLD-0006.json",
+     "command-center/receipts/TST-0215.json",
+     "command-center/receipts/BLD-0008.json",
+     "command-center/receipts/TST-0150.json",
+     "command-center/receipts/CNF-0136.json",
+     "command-center/receipts/TST-0224.json",
+     "command-center/receipts/TST-0350.json",
+     "command-center/receipts/TST-0154.json",
+     "command-center/receipts/ADV-0006.json",
+     "command-center/receipts/TST-0164.json",
+     "command-center/receipts/TST-0334.json",
+     "command-center/receipts/IMP-0166.json",
+     "command-center/receipts/BLD-0040.json",
+     "command-center/receipts/AUD-0006.json",
+     "command-center/receipts/IMP-0261.json",
+     "command-center/receipts/TST-0155.json",
+     "command-center/receipts/TST-0199.json",
+     "command-center/receipts/CNF-0181.json",
+     "command-center/receipts/TST-0250.json",
+     "command-center/receipts/TST-0176.json",
+     "command-center/receipts/ADV-0008.json",
+     "command-center/receipts/IMP-0433.json",
+     "command-center/receipts/TST-0253.json",
+     "command-center/receipts/TST-0141.json",
+     "command-center/receipts/TST-0131.json",
+     "command-center/receipts/TST-0159.json",
+     "command-center/receipts/BLD-0056.json",
+     "command-center/receipts/AUD-0020.json",
+     "command-center/receipts/BLD-0051.json",
+     "command-center/receipts/TST-0204.json",
+     "command-center/receipts/ADV-0020.json",
+     "command-center/receipts/TST-0162.json",
+     "command-center/receipts/IMP-0051.json",
+     "command-center/receipts/CNF-0172.json",
+     "command-center/receipts/CNF-0188.json",
+     "command-center/receipts/TST-0165.json",
+     "command-center/receipts/BLD-0010.json",
+     "command-center/receipts/BLD-0031.json",
+     "command-center/receipts/TST-0244.json",
+     "command-center/receipts/CNF-0171.json",
+     "command-center/receipts/CNF-0154.json",
+     "command-center/receipts/TST-0186.json",
+     "command-center/receipts/CC-0010.json",
+     "command-center/receipts/TST-0135.json",
+     "command-center/receipts/TST-0172.json",
+     "command-center/receipts/IMP-0067.json",
+     "command-center/receipts/TST-0151.json",
+     "command-center/receipts/.gitkeep",
+     "command-center/receipts/BLD-0047.json",
+     "command-center/receipts/IMP-0184.json",
+     "command-center/receipts/CC-0001.json",
+     "command-center/receipts/TST-0230.json",
+     "command-center/receipts/TST-0222.json",
+     "command-center/receipts/TST-0247.json",
+     "command-center/receipts/IMP-0150.json",
+     "command-center/receipts/TST-0160.json",
+     "command-center/receipts/ADV-0029.json",
+     "command-center/receipts/TST-0142.json",
+     "command-center/receipts/BLD-0027.json",
+     "command-center/receipts/IMP-0129.json",
+     "command-center/receipts/BLD-0041.json",
+     "command-center/receipts/TST-0191.json",
+     "command-center/receipts/TST-0153.json",
+     "command-center/receipts/CNF-0169.json",
+     "command-center/receipts/ADV-0039.json",
+     "command-center/receipts/BLD-0045.json",
+     "command-center/receipts/BLD-0044.json",
+     "command-center/receipts/BLD-0057.json",
+     "command-center/receipts/ADV-0040.json",
+     "command-center/receipts/TST-0175.json",
+     "command-center/receipts/IMP-0440.json",
+     "command-center/receipts/TST-0246.json",
+     "command-center/receipts/TST-0130.json",
+     "command-center/receipts/TST-0129.json",
+     "command-center/receipts/CNF-0145.json",
+     "command-center/receipts/CC-0011.json",
+     "command-center/receipts/TST-0182.json",
+     "command-center/receipts/ADV-0022.json",
+     "command-center/receipts/CNF-0163.json",
+     "command-center/receipts/BLD-0024.json",
+     "command-center/receipts/TST-0208.json",
+     "command-center/receipts/TST-0221.json",
+     "command-center/receipts/CNF-0166.json",
+     "command-center/receipts/BLD-0055.json",
+     "command-center/receipts/IMP-0021.json",
+     "command-center/receipts/BLD-0049.json",
+     "command-center/receipts/TST-0220.json",
+     "command-center/receipts/TST-0168.json",
+     "command-center/receipts/BLD-0002.json",
+     "command-center/receipts/CNF-0162.json",
+     "command-center/receipts/TST-0212.json",
+     "command-center/receipts/BLD-0052.json",
+     "command-center/receipts/CC-0007.json",
+     "command-center/receipts/TST-0158.json",
+     "command-center/receipts/CNF-0153.json",
+     "command-center/receipts/ADV-0036.json",
+     "command-center/receipts/TST-0228.json",
+     "command-center/receipts/BLD-0058.json",
+     "command-center/receipts/BLD-0023.json",
+     "command-center/receipts/ADV-0042.json",
+     "command-center/receipts/ADV-0011.json",
+     "command-center/receipts/ADV-0023.json",
+     "command-center/receipts/ADV-0030.json",
+     "command-center/receipts/ADV-0015.json",
+     "command-center/receipts/TST-0140.json",
+     "command-center/receipts/TST-0173.json",
+     "command-center/receipts/TST-0166.json",
+     "command-center/receipts/ADV-0010.json",
+     "command-center/receipts/CNF-0190.json",
+     "command-center/receipts/TST-0218.json",
+     "command-center/receipts/IMP-0247.json",
+     "command-center/receipts/ADV-0024.json",
+     "command-center/receipts/ADV-0007.json",
+     "command-center/receipts/ADV-0025.json",
+     "command-center/receipts/IMP-0029.json",
+     "command-center/receipts/ADV-0021.json",
+     "command-center/receipts/CNF-0167.json",
+     "command-center/receipts/TST-0144.json",
+     "command-center/receipts/BLD-0028.json",
+     "command-center/receipts/REL-0001.json",
+     "command-center/receipts/BLD-0001.json",
+     "command-center/receipts/ADV-0014.json",
+     "command-center/receipts/TST-0217.json",
+     "command-center/receipts/CNF-0129.json"
+    ]
+   }
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Live B03 claim corpus and CNF-0062 citation-liveness artifact are absent on this worktree; the pinned inventory is the claim set under test.",
+   "settling_experiment": "Re-run after command-center/confirmation/CNF-0062-citation-liveness.json exists and re-score live non-English cited spans with recorded translations.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is never retried, it is filed"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Re-derives qualifier_diff and verdicts from original_span + recorded_translation + live hedge-tag-transfer-v1 before comparing to the artifact conclusion. shown_conclusion_first=false.",
+  "reviewer_id": "CNF-0073-probe2-qualifier-control",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0073 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both translations are attached and the second path is named and demonstrably different from the first. Any other terminal state is FAILED:CNF-0073 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0073",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0073/probe1_second_path.py",
+   "id": "second-path-distinct",
+   "name": "Second path named, different, live-recomputed",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0073/probe2_qualifier_control.py",
+   "id": "dropped-hedge-and-same-path",
+   "name": "Dropped-hedge control and same-path-rerun refusal",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T00:57:56Z",
+  "started_at": "2026-08-25T00:57:56Z"
+ },
+ "unit_id": "CNF-0073",
+ "translation_paths": [
+  {
+   "kind": "stored-inventory",
+   "mechanism": "The first translation is the fluent gloss recorded with each claim in the inventory. It is not regenerated by calling hedge-tag-transfer-v1.",
+   "name": "recorded-inventory-gloss"
+  },
+  {
+   "kind": "live-algorithm",
+   "mechanism": "Longest-match glossary plus hedge-tag transfer: qualifier tokens are stripped, tagged, translated independently, and reattached. Different tokenizer, IR, and code path from the stored inventory gloss.",
+   "name": "hedge-tag-transfer-v1"
+  }
+ ],
+ "citations": [
+  {
+   "claim_survives": true,
+   "id": "CIT-ZH-001",
+   "language": "zh",
+   "original_span": "\u8be5\u5de5\u4f5c\u6d41\u53ef\u80fd\u4e0d\u4f1a\u5728\u8d85\u65f6\u540e\u81ea\u52a8\u91cd\u8bd5\u3002",
+   "paths_named_and_different": true,
+   "planted_control": "dropped-hedge",
+   "qualifier_diff": {
+    "dropped_by_recorded": [
+     "possibly"
+    ],
+    "independent_hedges": [
+     "possibly"
+    ],
+    "independent_restored": [
+     "possibly"
+    ],
+    "introduced_by_recorded": [],
+    "material_change": true,
+    "original_hedges": [
+     "possibly"
+    ],
+    "recorded_hedges": []
+   },
+   "source": {
+    "claimed_url": "https://example.invalid/zh/orchestration-timeout",
+    "kind": "inventory-pinned"
+   },
+   "translations": [
+    {
+     "path_name": "recorded-inventory-gloss",
+     "role": "recorded",
+     "text": "The workflow will not automatically retry after timeout."
+    },
+    {
+     "path_name": "hedge-tag-transfer-v1",
+     "role": "independent",
+     "text": "possibly the workflow will not at timeout after automatically retry"
+    }
+   ],
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim_survives": true,
+   "id": "CIT-JA-001",
+   "language": "ja",
+   "original_span": "\u3053\u306e\u624b\u6cd5\u306f\u307b\u307c\u3059\u3079\u3066\u306e\u30b1\u30fc\u30b9\u3067\u6709\u52b9\u3067\u3042\u308b\u3002",
+   "paths_named_and_different": true,
+   "planted_control": "dropped-hedge",
+   "qualifier_diff": {
+    "dropped_by_recorded": [
+     "almost"
+    ],
+    "independent_hedges": [
+     "almost"
+    ],
+    "independent_restored": [
+     "almost"
+    ],
+    "introduced_by_recorded": [],
+    "material_change": true,
+    "original_hedges": [
+     "almost"
+    ],
+    "recorded_hedges": []
+   },
+   "source": {
+    "claimed_url": "https://example.invalid/ja/method-coverage",
+    "kind": "inventory-pinned"
+   },
+   "translations": [
+    {
+     "path_name": "recorded-inventory-gloss",
+     "role": "recorded",
+     "text": "This method is effective in all cases."
+    },
+    {
+     "path_name": "hedge-tag-transfer-v1",
+     "role": "independent",
+     "text": "almost this method all cases in is effective"
+    }
+   ],
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim_survives": true,
+   "id": "CIT-DE-001",
+   "language": "de",
+   "original_span": "Ein Agent sollte die Aufgabe m\u00f6glicherweise nicht ohne Best\u00e4tigung ausf\u00fchren.",
+   "paths_named_and_different": true,
+   "planted_control": "dropped-hedge",
+   "qualifier_diff": {
+    "dropped_by_recorded": [
+     "possibly",
+     "should"
+    ],
+    "independent_hedges": [
+     "possibly",
+     "should"
+    ],
+    "independent_restored": [
+     "possibly",
+     "should"
+    ],
+    "introduced_by_recorded": [],
+    "material_change": true,
+    "original_hedges": [
+     "possibly",
+     "should"
+    ],
+    "recorded_hedges": []
+   },
+   "source": {
+    "claimed_url": "https://example.invalid/de/agent-confirmation",
+    "kind": "inventory-pinned"
+   },
+   "translations": [
+    {
+     "path_name": "recorded-inventory-gloss",
+     "role": "recorded",
+     "text": "An agent must not execute the task without confirmation."
+    },
+    {
+     "path_name": "hedge-tag-transfer-v1",
+     "role": "independent",
+     "text": "should possibly a agent the task not without confirmation execute"
+    }
+   ],
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim_survives": true,
+   "id": "CIT-DE-002",
+   "language": "de",
+   "original_span": "Die Datei muss UTF-8 sein.",
+   "paths_named_and_different": true,
+   "planted_control": null,
+   "qualifier_diff": {
+    "dropped_by_recorded": [],
+    "independent_hedges": [],
+    "independent_restored": [],
+    "introduced_by_recorded": [],
+    "material_change": false,
+    "original_hedges": [],
+    "recorded_hedges": []
+   },
+   "source": {
+    "claimed_url": "https://example.invalid/de/utf8-file",
+    "kind": "inventory-pinned"
+   },
+   "translations": [
+    {
+     "path_name": "recorded-inventory-gloss",
+     "role": "recorded",
+     "text": "The file must be UTF-8."
+    },
+    {
+     "path_name": "hedge-tag-transfer-v1",
+     "role": "independent",
+     "text": "the file must UTF-8 be"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim_survives": true,
+   "id": "CIT-RU-001",
+   "language": "ru",
+   "original_span": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u043f\u043e\u0447\u0442\u0438 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0434\u043e\u043b\u0436\u043d\u0430 \u043c\u043e\u043b\u0447\u0430 \u043f\u0440\u043e\u0433\u043b\u0430\u0442\u044b\u0432\u0430\u0442\u044c \u043e\u0448\u0438\u0431\u043a\u0443.",
+   "paths_named_and_different": true,
+   "planted_control": "dropped-hedge",
+   "qualifier_diff": {
+    "dropped_by_recorded": [
+     "almost",
+     "should"
+    ],
+    "independent_hedges": [
+     "almost",
+     "should"
+    ],
+    "independent_restored": [
+     "almost",
+     "should"
+    ],
+    "introduced_by_recorded": [],
+    "material_change": true,
+    "original_hedges": [
+     "almost",
+     "should"
+    ],
+    "recorded_hedges": []
+   },
+   "source": {
+    "claimed_url": "https://example.invalid/ru/silent-error",
+    "kind": "inventory-pinned"
+   },
+   "translations": [
+    {
+     "path_name": "recorded-inventory-gloss",
+     "role": "recorded",
+     "text": "The system must never silently swallow an error."
+    },
+    {
+     "path_name": "hedge-tag-transfer-v1",
+     "role": "independent",
+     "text": "almost should system never not silently swallow error"
+    }
+   ],
+   "verdict": "PARTIAL"
+  }
+ ],
+ "second_path_named_and_different": true
+}

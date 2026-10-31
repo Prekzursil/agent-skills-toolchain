@@ -1,0 +1,1436 @@
+{
+ "totals": {
+  "conditional_jobs": 2,
+  "conditional_steps": 4,
+  "expanded_legs": 14,
+  "jobs": 14,
+  "steps": 143,
+  "workflow_files": 7
+ },
+ "workflows": [
+  {
+   "file": ".github/workflows/autofix-models.yml",
+   "jobs": [
+    {
+     "job_id": "draft-fix",
+     "job_if": "${{ github.event.workflow_run.conclusion == 'failure' &&\n    github.event.workflow_run.event == 'push' &&\n    github.event.workflow_run.head_branch == 'main' }}",
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": null,
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 4,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@v7 with[ref=main,fetch-depth=0]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "gh run view \"$RUN_ID\" --repo \"$GITHUB_REPOSITORY\" --log-failed > failing.log 2>&1 || true # Keep the prompt small + cheap; the tail holds the actual errors. tail -c 12000 failing.log > prompt.txt || true echo \"----\" >> prompt.txt echo \"Output ONLY a unified git diff (git apply compatible) that fixes the failures above. No prose, no code fences.\" >> prompt.txt",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": "Collect failing-run log (bounded)",
+       "shell": null
+      },
+      {
+       "command": "uses:actions/ai-inference@v3 with[model=openai/gpt-4o-mini,system-prompt=You are a CI repair assistant. You recei,prompt-file=prompt.txt,max-completion-tokens=2000]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "Draft fix with GitHub Models",
+       "shell": null
+      },
+      {
+       "command": "printf '%s\\n' \"$AI_RESPONSE\" > fix.patch if [ ! -s fix.patch ]; then echo \"Model returned no patch; nothing to do.\" exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo \"Model patch did not apply cleanly; skipping PR.\" cat apply.err || true exit 0 fi if git diff --quiet; then echo \"Patch applied but produced no changes; skipping.\" exit 0 fi BR=\"autofix/models-${RUN_ID}\" git config user.name \"github-actions[bot]\" git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\" git checkout -b \"$BR\" git commit -am \"autofix(models): draft fix for failed main ",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "Apply patch and open PR",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "autofix-models",
+   "triggers": [
+    "workflow_run"
+   ]
+  },
+  {
+   "file": ".github/workflows/codex-runner.yml",
+   "jobs": [
+    {
+     "job_id": "run",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": null,
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 15,
+     "steps": [
+      {
+       "command": "uses:step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 with[egress-policy=audit]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": "Harden runner (egress audit \u2014 monitors outbound; does not block research)",
+       "shell": null
+      },
+      {
+       "command": "[ -n \"$CODEX_AUTH_JSON\" ] || { echo \"::error::Set the CODEX_AUTH_JSON secret (contents of ~/.codex/auth.json).\"; exit 1; } [ -n \"$CODEX_RUNNER_PAT\" ] || { echo \"::error::Set the CODEX_RUNNER_PAT secret (fine-grained PAT, contents+PR write on target repos).\"; exit 1; }",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": "Preflight \u2014 required secrets present",
+       "shell": null
+      },
+      {
+       "command": "case \"$EFFORT\" in minimal|low|medium|high|xhigh|max|ultra) ;; *) echo \"::error::invalid effort '$EFFORT'\"; exit 1 ;; esac printf '%s' \"$MODEL\" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$' || { echo \"::error::invalid model slug\"; exit 1; } printf '%s' \"$MAX_FILES\" | grep -qE '^[0-9]+$' || { echo \"::error::max_changed_files must be an integer\"; exit 1; }",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "Validate inputs (effort allowlist + model shape)",
+       "shell": null
+      },
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 with[path=runner,persist-credentials=False]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "Checkout this runner repo (for the ci/ parity payload)",
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 with[node-version=22]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "Set up Node + Python",
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "npm install -g @openai/codex@0.144.1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "Install Codex CLI (pinned)",
+       "shell": null
+      },
+      {
+       "command": "CODEX_HOME=\"$RUNNER_TEMP/codex-home\" mkdir -p \"$CODEX_HOME\"; chmod 700 \"$CODEX_HOME\" printf '%s' \"$CODEX_AUTH_JSON\" > \"$CODEX_HOME/auth.json\" chmod 600 \"$CODEX_HOME/auth.json\" { echo 'cli_auth_credentials_store = \"file\"' printf 'model = \"%s\"\\n' \"$MODEL\" printf 'model_reasoning_effort = \"%s\"\\n' \"$EFFORT\" echo 'model_verbosity = \"high\"' echo 'approval_policy = \"never\"' echo 'sandbox_mode = \"danger-full-access\"' echo 'web_search = \"live\"' echo '' echo '[shell_environment_policy]' echo 'inherit = \"all\"' } > \"$CODEX_HOME/config.toml\" # Curated MCP set: no-secret servers always on; secret-bearing we",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 7,
+       "name": "Reconstruct auth + write the PARITY config (max effort + curated MCPs)",
+       "shell": null
+      },
+      {
+       "command": "cp \"$GITHUB_WORKSPACE/runner/ci/AGENTS.ci.md\" \"$CODEX_HOME/AGENTS.md\" mkdir -p \"$HOME/.agents/skills\" cp -r \"$GITHUB_WORKSPACE\"/runner/ci/skills-allowlist/* \"$HOME/.agents/skills/\" python \"$GITHUB_WORKSPACE/runner/ci/skill_surface_census.py\" \\ --expected \"$GITHUB_WORKSPACE/runner/ci/skills-allowlist\" \\ --actual \"$HOME/.agents/skills\" \\ --require-skill acceptance-review # M20: the census above proves the RIGHT skills arrived with the right content. # This proves the resulting description surface FITS - the loader silently drops skills # past ~8,000 description characters, so an over-budget tier",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 8,
+       "name": "Install the parity payload (AGENTS.md + curated skills + harness hooks)",
+       "shell": null
+      },
+      {
+       "command": "git config --global user.name \"codex-runner[bot]\" git config --global user.email \"codex-runner@users.noreply.github.com\" git clone --depth 1 ${BASE_BRANCH:+--branch \"$BASE_BRANCH\"} \\ \"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET_REPO}.git\" work # Remove the embedded PAT so the danger-full-access Codex step can never read it. git -C work remote set-url origin \"https://github.com/${TARGET_REPO}.git\" # Defuse the CVE-2026-47751 class: a target-shipped .codex/ (config/hooks/MCP) # must not be auto-trusted by --dangerously-bypass-hook-trust. rm -rf work/.codex 2>/dev/null || true echo \"",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 9,
+       "name": "Checkout target repo (via PAT) + scrub token + strip repo-local agent config",
+       "shell": null
+      },
+      {
+       "command": "# TASK is an argv element, never spliced into the shell line. -o captures the # final message so we can log the outcome (a non-zero exit fails the run). set +e codex exec --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust \\ -o \"$RUNNER_TEMP/codex-last.txt\" \"$TASK\" rc=$? set -e echo \"codex exit code: $rc\" if [ \"$rc\" -ne 0 ]; then echo \"::error::codex exec failed (exit $rc).\"; exit \"$rc\"; fi # Normalize: if Codex committed its own work, un-commit it back to the working # tree so the single guard/PR path below handles committed + uncommitted alike. git reset --soft \"$ORIG_",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 10,
+       "name": "Run Codex on the target repo (parity)",
+       "shell": null
+      },
+      {
+       "command": "git add -A CHANGED=\"$(git diff --cached --name-only)\" # git-tracked, unquoted paths if [ -z \"$CHANGED\" ]; then echo \"no_changes=1\" >> \"$GITHUB_OUTPUT\" echo \"Codex made no changes \u2014 nothing to PR.\"; exit 0 fi N=\"$(printf '%s\\n' \"$CHANGED\" | grep -c . || true)\" echo \"changed files: $N (cap: $MAX_FILES)\" if [ \"$N\" -gt \"$MAX_FILES\" ]; then echo \"::error::Codex changed $N files (> cap $MAX_FILES). Aborting without a PR.\" git --no-pager diff --cached --stat | tail -40 exit 1 fi if printf '%s\\n' \"$CHANGED\" | grep -qiE '(^|/)\\.github/workflows/|\\.pem($|/)|(^|/)\\.env|(^|/)id_(rsa|ed25519|ecdsa|dsa)|(^|",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 11,
+       "name": "Guardrails \u2014 diff-cap + forbidden-paths (abort without a PR if tripped)",
+       "shell": null
+      },
+      {
+       "command": "V=8.21.2 curl -fsSL --proto '=https' -o \"/tmp/gitleaks_${V}_linux_x64.tar.gz\" \\ \"https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz\" curl -fsSL --proto '=https' -o /tmp/gl-checksums.txt \\ \"https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_checksums.txt\" ( cd /tmp && grep \"gitleaks_${V}_linux_x64.tar.gz\" gl-checksums.txt | sha256sum -c - ) \\ || { echo \"::error::gitleaks tarball checksum mismatch \u2014 aborting.\"; exit 1; } tar -xzf \"/tmp/gitleaks_${V}_linux_x64.tar.gz\" -C /tmp gitleaks if ! /tmp/gitleaks protect --staged --redact --n",
+       "conditional_on": "steps.guard.outputs.no_changes == '0'",
+       "continue_on_error": null,
+       "index": 12,
+       "name": "Secret-scan the diff (gitleaks, checksum-pinned) before opening a PR",
+       "shell": null
+      },
+      {
+       "command": "BRANCH=\"codex/$(date -u +%Y%m%d-%H%M%S)\" git checkout -b \"$BRANCH\" git add -A # self-contained: stage regardless of prior steps git commit -m \"codex: automated change\" -m \"Task: $TASK\" # Re-supply the token inline only for the push (it is NOT in .git/config). git push \"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET_REPO}.git\" \"$BRANCH\" { echo \"Opened by the **codex-runner** (agent-skills-toolchain) \u2014 autonomous, propose-only.\" echo \"\" echo \"**Task:** $TASK\" echo \"\" echo \"Review carefully before merging. Never auto-merge to payment/auth or protected branches.\" echo \"Parity note: harne",
+       "conditional_on": "steps.guard.outputs.no_changes == '0'",
+       "continue_on_error": null,
+       "index": 13,
+       "name": "Open a DRAFT PR",
+       "shell": null
+      },
+      {
+       "command": "rm -rf \"$CODEX_HOME\" \"$HOME/.agents/skills\" \"$RUNNER_TEMP/codex-last.txt\" 2>/dev/null || true",
+       "conditional_on": "always()",
+       "continue_on_error": null,
+       "index": 14,
+       "name": "Cleanup (always)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "Codex Runner",
+   "triggers": [
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "file": ".github/workflows/dependabot-auto-merge.yml",
+   "jobs": [
+    {
+     "job_id": "auto-merge",
+     "job_if": "${{ github.actor == 'dependabot[bot]' }}",
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": null,
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 2,
+     "steps": [
+      {
+       "command": "uses:dependabot/fetch-metadata@v3 with[github-token=${{ secrets.GITHUB_TOKEN }}]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": "Fetch Dependabot metadata",
+       "shell": null
+      },
+      {
+       "command": "gh pr merge --auto --squash \"$PR_URL\"",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": "Enable auto-merge (squash)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "dependabot-auto-merge",
+   "triggers": [
+    "pull_request_target"
+   ]
+  },
+  {
+   "file": ".github/workflows/no-runtime-junk.yml",
+   "jobs": [
+    {
+     "job_id": "no-runtime-junk",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-no-runtime-junk",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 4,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "import subprocess, sys # Directory segments that must never be tracked (matched as a full path segment, # so \"prevent/venv-notes.md\" does NOT trip on \"venv\"). BAD_DIR_SEGMENTS = { \".venv\", \"venv\", \"node_modules\", \"__pycache__\", \".pytest_cache\", \".ruff_cache\", } # Basenames that must never be tracked. BAD_BASENAMES = {\"installed.json\"} def tracked_files(): out = subprocess.check_output([\"git\", \"ls-files\", \"-z\"]) return [p for p in out.decode(\"utf-8\", \"replace\").split(\"\\0\") if p] def gitlinks(): # `git ls-files -s`: mode objecthash stage\\tpath ; gitlink mode == 160000. out = subprocess.check_out",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "fail if runtime junk is tracked",
+       "shell": "python"
+      },
+      {
+       "command": "import subprocess, sys # tools/crcp/reports/ holds live auth / session / health dumps (one of them has # carried a value-shaped `sk-\u2026` string). Its .gitignore must DENY the whole tree # and re-admit only the human-written .md narratives, so a merely-renamed dump # cannot be committed by accident. A name-by-name allowlist fails OPEN. # # Both-states gate: MUST_IGNORE catches removal/weakening of the deny patterns; # MUST_SEE catches an over-broad rewrite that also swallows the .md narratives. # Every probe path is synthetic and untracked, so the check is index-independent. MUST_IGNORE = [ \"tool",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "crcp reports must stay deny-by-default",
+       "shell": "python"
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "no-runtime-junk",
+   "triggers": [
+    "pull_request",
+    "push",
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "file": ".github/workflows/quality.yml",
+   "jobs": [
+    {
+     "job_id": "lint",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-lint-format (ruff)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 8,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "python -m pip install --upgrade pip pip install ruff==0.15.17",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "gate-lint-format ruff (install)",
+       "shell": null
+      },
+      {
+       "command": "ruff check --output-format=github .",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "gate-lint-format ruff check",
+       "shell": null
+      },
+      {
+       "command": "ruff format --check .",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-lint-format ruff format --check",
+       "shell": null
+      },
+      {
+       "command": "bash .quality/charter_check.sh",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": "charter consistency check",
+       "shell": null
+      },
+      {
+       "command": "diff -r --exclude=__pycache__ \\ tools/monitorcore/monitorcore \\ skills/workflow-monitor/monitorcore",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "monitorcore vendor-drift (tools == vendored)",
+       "shell": null
+      },
+      {
+       "command": "diff \\ .agents/skills/acceptance-review/scripts/acceptance_review.py \\ ci/skills-allowlist/acceptance-review/scripts/acceptance_review.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 7,
+       "name": "acceptance-review helper drift (canonical == CI projection)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "types",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-types (basedpyright)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 12,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install basedpyright==1.39.8",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" basedpyright core ui app.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "gate-types mcp-manager (source)",
+       "shell": null
+      },
+      {
+       "command": "pip install -e . basedpyright scholarly_access",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-types scholarly-access-mcp (source)",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" basedpyright core probes cli mcp_server hooks ui",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": "gate-types taskwatch_monitor (source)",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" basedpyright monitorcore",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "gate-types monitorcore (source)",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" basedpyright agentspec",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 7,
+       "name": "gate-types agentspec (source)",
+       "shell": null
+      },
+      {
+       "command": "basedpyright mcpctl",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 8,
+       "name": "gate-types mcpctl (source)",
+       "shell": null
+      },
+      {
+       "command": "basedpyright agentrail",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 9,
+       "name": "gate-types agentrail (source)",
+       "shell": null
+      },
+      {
+       "command": "basedpyright mcpapply",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 10,
+       "name": "gate-types mcpapply (source)",
+       "shell": null
+      },
+      {
+       "command": "printf '%s\\n' '{\"typeCheckingMode\":\"standard\",\"pythonVersion\":\"3.11\",\"include\":[\"harness\"],\"exclude\":[\"harness/tests\",\"**/__pycache__\",\"**/backups\"]}' > pyrightconfig.json basedpyright",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 11,
+       "name": "gate-types harness (source)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "test-node",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-tests-coverage (node workspaces)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 7,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 with[node-version=22]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "npm ci",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "npm test",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "npm ci npm test",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-tests-coverage hacktricks-mcp-server",
+       "shell": null
+      },
+      {
+       "command": "npm test",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": "gate-tests-coverage agentspec-js (100% line+branch, census-guarded)",
+       "shell": null
+      },
+      {
+       "command": "npm run parity",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "gate-tests-coverage agentspec parity oracle (python <-> js, byte-identical)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "test-python",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-tests-coverage (python packages)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 63,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" pytest --cov=. --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "gate-tests-coverage mcp-manager",
+       "shell": null
+      },
+      {
+       "command": "pip install -e . pytest pytest-cov pytest --cov=scholarly_access --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "gate-tests-coverage scholarly-access-mcp",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" pytest --cov=. --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-tests-coverage taskwatch_monitor",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": "gate-tests-coverage monitorcore",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest tests/test_source.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "gate-tests-coverage wfmon adapter contract (skills/workflow-monitor)",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" pytest --cov=mcpctl --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 7,
+       "name": "gate-tests-coverage mcpctl",
+       "shell": null
+      },
+      {
+       "command": "pip install -e ../mcpctl pip install -e \".[dev]\" pytest -m \"not live\" --cov=mcpapply --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 8,
+       "name": "gate-tests-coverage mcpapply",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 9,
+       "name": "gate-tests-coverage stdin-server",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pytest --cov=harness_drift --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 10,
+       "name": "gate-tests-coverage harness-drift",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest python -m pytest tools/command-center/tests -q python tools/command-center/validate.py python tools/command-center/render.py --check",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 11,
+       "name": "gate-tests-coverage command-center",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest python -m pytest tools/measure-guard/tests -q python tools/measure-guard/suitefloor.py --suite command-center python tools/measure-guard/refcheck.py python tools/measure-guard/wudeps.py python tools/measure-guard/jsonparse.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 12,
+       "name": "gate-tests-coverage measure-guard",
+       "shell": null
+      },
+      {
+       "command": "pip install -e \".[dev]\" pytest -m \"not live\" --cov=agentspec --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 13,
+       "name": "gate-tests-coverage agentspec",
+       "shell": null
+      },
+      {
+       "command": "pip install -e ../agentspec pip install -e \".[dev]\" pytest -m \"not live\" --cov=agentrail --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 14,
+       "name": "gate-tests-coverage agentrail",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest PYTHONPATH=\"$PWD:$PWD/crcp\" pytest tests -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 15,
+       "name": "gate-tests-coverage crcp (credential egress; measured, not 100%-gated)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pyyaml python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 16,
+       "name": "gate-tests-coverage harness (enshrined runtime; measured, not 100%-gated)",
+       "shell": null
+      },
+      {
+       "command": "python test_triage_router.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 17,
+       "name": "triage-router standalone regression",
+       "shell": null
+      },
+      {
+       "command": "python test_msys_pathconv.py python test_hooks.py # pytest-style, so it needs the runner: the broad `pytest hooks/` step # --ignores this whole directory, which would leave this suite dead weight. pytest test_updated_input_preservation.py -q --import-mode=importlib",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 18,
+       "name": "gate-tests-coverage cmd-rewrite hooks (msys-pathconv + no-pager)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pyyaml pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \\ --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 19,
+       "name": "gate-tests-coverage search-expansion (rrf + searxng config + query plan)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_deploy_doc_consistency.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 20,
+       "name": "gate-tests-coverage deployable-doc/code path consistency",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_program_b_register.py -q python docs/program-b/mutation_probe.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 21,
+       "name": "gate-tests-coverage program-b register (suite + mutation probe)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pytest --cov=reap --cov-branch --cov-report=term-missing --cov-fail-under=100 python test_reap_mutations.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 22,
+       "name": "gate-tests-coverage plugin-cache-reaper (suite + mutation probe)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_emit_hook_manifest.py -q python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 23,
+       "name": "gate-tests-coverage strict-target hook manifests",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_integrity.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 24,
+       "name": "gate-tests-coverage rules tree integrity",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_coverage_authority_consistency.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 25,
+       "name": "gate-tests-coverage coverage-authority consistency",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_scope.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 26,
+       "name": "gate-tests-coverage rules scope (globally-worded rules stay reachable)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_selector_inheritance.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 27,
+       "name": "gate-tests-coverage rules selector inheritance",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \\ --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 28,
+       "name": "gate-tests-coverage plan-lint stage-0 + resume manifest",
+       "shell": null
+      },
+      {
+       "command": "pytest ci/tests/test_rules_common_contracts.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 29,
+       "name": "gate-tests-coverage rules/common rule-vs-code contracts",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_doc_contracts.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 30,
+       "name": "gate-tests-coverage rules/commands doc contracts",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_doc_coherence.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 31,
+       "name": "gate-tests-coverage rules doc coherence (review boundary + perl examples)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest \\ ci/tests/test_harness_corpus_wiring.py \\ tools/harness-corpus/test_hook_telemetry.py \\ hooks/git-hygiene/test_docs_hygiene.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 32,
+       "name": "gate-tests-coverage adversarial harness corpus",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_rules_hook_examples.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 33,
+       "name": "gate-tests-coverage rules hook-example shape",
+       "shell": null
+      },
+      {
+       "command": "python agent-self/config/hooks/event-ledger/test_prune_oats.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 34,
+       "name": "gate-tests-coverage event-ledger prune-report + oats",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_review_severity_coherence.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 35,
+       "name": "gate-tests-coverage review-severity coherence",
+       "shell": null
+      },
+      {
+       "command": "python hooks/_shared/test_manifest_provenance.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 36,
+       "name": "gate-tests-coverage hook-manifest provenance",
+       "shell": null
+      },
+      {
+       "command": "python hooks/_shared/test_hookrun.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 37,
+       "name": "gate-tests-coverage bounded hook launcher",
+       "shell": null
+      },
+      {
+       "command": "python hooks/event-ledger/test_ledger.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 38,
+       "name": "gate-tests-coverage event-ledger recovery keystone",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest tools/mcp/closed-batch/tests -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 39,
+       "name": "gate-tests-coverage closed-batch config editor",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest tests -q \\ --ignore=tests/test_envelope_v11.py \\ --ignore=tests/test_event_key_idempotent.py \\ --ignore=tests/test_redact.py \\ --ignore=tests/test_sse_classify.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 40,
+       "name": "gate-tests-coverage crcp control plane",
+       "shell": null
+      },
+      {
+       "command": "python tools/repomap/test_repo_map.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 41,
+       "name": "gate-tests-coverage repomap grounding pack",
+       "shell": null
+      },
+      {
+       "command": "python .agents/skills/claim-verify-gate/scripts/claim_gate.py --self-test python .agents/skills/claim-verify-gate/scripts/test_claim_gate.py python .agents/skills/claim-verify-gate/scripts/test_claim_gate_mutations.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 42,
+       "name": "gate-tests-coverage claim-verify-gate (suite + mutation probe)",
+       "shell": null
+      },
+      {
+       "command": "npm test npm run lint -- ../../workflows",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 43,
+       "name": "gate-tests-coverage fanout-schema (module + production lint)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest hooks/_dispatch/test_wiring.py -q -k hook_manifest_conformance",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 44,
+       "name": "gate-tests-coverage hook manifest conformance",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest skills/browser-rail/scripts/test_browser_rail.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 45,
+       "name": "browser-rail helper tests (pure logic, no browser)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest skills/codex-databricks-fanout/scripts/tests -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 46,
+       "name": "gate-tests-coverage codex-databricks-fanout",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest tests -q --cov=backends --cov=engine --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 47,
+       "name": "gate-tests-coverage codex-databricks-fanout (backends+engine 100%)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest pytest-cov pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 48,
+       "name": "gate-tests-coverage workflow-authoring lint",
+       "shell": null
+      },
+      {
+       "command": "python -m venv \"$RUNNER_TEMP/venv-omniaudit\" \"$RUNNER_TEMP/venv-omniaudit/bin/python\" -m pip install -e \".[test]\" \"$RUNNER_TEMP/venv-omniaudit/bin/python\" -m pytest \\ --cov=packages/omniaudit --cov=apps --cov=services --cov-branch \\ --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 49,
+       "name": "gate-tests-coverage omniaudit-mcp (vendored; isolated venv)",
+       "shell": null
+      },
+      {
+       "command": "import importlib.util import sys GENERIC = (\"index\", \"engines\", \"evaluation\") leaked = [] for name in GENERIC: spec = importlib.util.find_spec(name) if spec is not None: leaked.append(f\"{name} -> {spec.origin}\") if leaked: print(\"Vendored generic top-level modules leaked into the SHARED interpreter:\") for entry in leaked: print(f\" {entry}\") print(\"Install that tree into its own venv (see the steps above), not this env.\") sys.exit(1) print(f\"OK: shared interpreter is clean of {GENERIC}.\")",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 50,
+       "name": "vendored-tree import isolation (shared interpreter stays clean)",
+       "shell": "python"
+      },
+      {
+       "command": "python -m pytest -q \\ hooks/tool-result-sentinel/test_sentinel_use_vs_mention.py \\ hooks/_shared/test_use_vs_mention.py python hooks/tool-result-sentinel/test_sentinel.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 51,
+       "name": "gate-tests-coverage tool-result-sentinel",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest -q hooks/git-hygiene/test_git_hygiene.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 52,
+       "name": "gate-tests-coverage git-hygiene message budget",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest -q --import-mode=importlib \\ hooks/deny-credential-reads/test_denylist_coverage.py \\ hooks/deny-credential-reads/test_deny.py \\ hooks/deny-credential-reads/test_guard_scope.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 53,
+       "name": "gate-tests-coverage deny-credential-reads denylist coverage",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest hooks/ -q --import-mode=importlib \\ --ignore=hooks/memory-guard/test_scan.py \\ --ignore=hooks/cmd-rewrite",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 54,
+       "name": "gate-tests-coverage hooks regression harness",
+       "shell": null
+      },
+      {
+       "command": "python hooks/memory-guard/test_scan.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 55,
+       "name": "gate-tests-coverage hooks standalone (memory-guard)",
+       "shell": null
+      },
+      {
+       "command": "pytest -q --import-mode=importlib -o addopts=\"\" \\ agent-self/config/hooks/claim-guard/test_claim_guard_turn_scope.py \\ agent-self/config/hooks/cmd-rewrite/test_updated_input_preservation.py \\ agent-self/config/hooks/edit-validate/test_edit_validate_roundtrip.py \\ agent-self/config/hooks/event-ledger/test_replay_goal_isolation.py \\ agent-self/config/hooks/memory-guard/test_scan_route_normalization.py \\ agent-self/config/hooks/test-tamper-guard/test_guard_comment_collision.py \\ agent-self/config/hooks/wearables/security/test_egress.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 56,
+       "name": "gate-tests-coverage agent-self deployed-config hooks",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest python -m pytest -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 57,
+       "name": "gate-tests-coverage harness-corpus (hook-telemetry miner + detector control)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest set -e for p in search-hub social-hub mcp-host-supervisor \\ mcp-http-host proxy-mcp reverse-engineering-mcp-bundle; do echo \"::group::tools/mcp/$p\" ( cd \"tools/mcp/$p\" && python -m pytest -q ) echo \"::endgroup::\" done",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 58,
+       "name": "gate-tests-coverage mcp servers (stdlib-only; per-package rootdir)",
+       "shell": null
+      },
+      {
+       "command": "pip install pytest python -m pytest -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 59,
+       "name": "gate-tests-coverage cloud-hub (full suite)",
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.12]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 60,
+       "name": "setup python 3.12 for the py312-only trees",
+       "shell": null
+      },
+      {
+       "command": "\"${{ steps.py312.outputs.python-path }}\" -m venv \"$RUNNER_TEMP/venv-wearables\" \"$RUNNER_TEMP/venv-wearables/bin/python\" -m pip install pytest pytest-cov rdkit \"$RUNNER_TEMP/venv-wearables/bin/python\" -m pytest \\ --cov=wearables --cov-branch --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 61,
+       "name": "gate-tests-coverage wearables (py3.12; isolated venv)",
+       "shell": null
+      },
+      {
+       "command": "\"${{ steps.py312.outputs.python-path }}\" -m venv \"$RUNNER_TEMP/venv-abbyy\" \"$RUNNER_TEMP/venv-abbyy/bin/python\" -m pip install -e \".[test]\" \"$RUNNER_TEMP/venv-abbyy/bin/python\" -m pytest \\ --cov=index --cov=engines --cov=evaluation --cov-branch \\ --cov-report=term-missing --cov-fail-under=100",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 62,
+       "name": "gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "test-platform",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-tests-coverage (platform)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 5,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.12]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install pytest==8.3.3 jsonschema==4.25.1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "gate-tests-coverage platform (pinned deps)",
+       "shell": null
+      },
+      {
+       "command": "python tools/measure-guard/suitefloor.py --suite platform",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "gate-tests-coverage platform (collection floor)",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest platform -q -p no:cacheprovider",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-tests-coverage platform (suite)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "sast",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-sast (opengrep)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 2,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "curl -fsSL -o /usr/local/bin/opengrep \\ https://github.com/opengrep/opengrep/releases/download/v1.23.0/opengrep_manylinux_x86 chmod +x /usr/local/bin/opengrep opengrep scan --config .quality/opengrep --error \\ --exclude node_modules --exclude .venv --exclude vendor \\ --exclude dist --exclude out --exclude build .",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": "gate-sast opengrep (curated in-repo ruleset)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "secrets",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-secrets (gitleaks)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 3,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 with[fetch-depth=0]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "curl -fsSL -o \"$RUNNER_TEMP/gitleaks.tar.gz\" \\ \"https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\" echo \"${GITLEAKS_SHA256} $RUNNER_TEMP/gitleaks.tar.gz\" | sha256sum -c - tar -xzf \"$RUNNER_TEMP/gitleaks.tar.gz\" -C \"$RUNNER_TEMP\" gitleaks \"$RUNNER_TEMP/gitleaks\" version \"$RUNNER_TEMP/gitleaks\" git --config .gitleaks.toml --redact --exit-code 1 .",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": "gate-secrets full-history scan (range-independent)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    },
+    {
+     "job_id": "deps",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-deps (osv-scanner)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 2,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 with[scan-args=--config=osv-scanner.toml\n--lockfile=pac]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "quality",
+   "triggers": [
+    "pull_request",
+    "push",
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "file": ".github/workflows/routing-benchmark.yml",
+   "jobs": [
+    {
+     "job_id": "routing-benchmark",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "routing-benchmark (shadow)",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 7,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install pytest==8.4.2",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "python -m pytest hooks/harness-bench/test_bench.py hooks/harness-bench/test_gate.py hooks/semantic-router/test_eval.py ci/tests/test_routing_benchmark_wiring.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "routing benchmark self-test",
+       "shell": null
+      },
+      {
+       "command": "# ollama pulls by TAG. The `name@sha256:` form is rejected with # `400 Bad Request: invalid model name` (measured in CI on this workflow's first run). docker exec \"${{ job.services.ollama.id }}\" ollama pull \"$SEMROUTER_EMBED_MODEL\" python hooks/semantic-router/embed.py",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "pull pinned embedding model and verify health",
+       "shell": null
+      },
+      {
+       "command": "BAR=\"$RUNNER_TEMP/bench-base-baseline.json\" echo \"BENCH_BASELINE=$BAR\" >> \"$GITHUB_ENV\" git fetch --no-tags --depth=1 origin \"$BASE_SHA\" || true if git show \"$BASE_SHA:hooks/harness-bench/baseline.json\" > \"$BAR\"; then echo \"pinned the regression bar to base $BASE_SHA:\" cat \"$BAR\" else rm -f \"$BAR\" echo \"base baseline unavailable; the probe will report INDETERMINATE (never PASS)\" fi",
+       "conditional_on": "github.event_name == 'pull_request'",
+       "continue_on_error": null,
+       "index": 5,
+       "name": "pin the regression bar to the base branch (pull_request only)",
+       "shell": null
+      },
+      {
+       "command": "python hooks/harness-bench/gate.py --runs 5",
+       "conditional_on": null,
+       "continue_on_error": true,
+       "index": 6,
+       "name": "routing regression probe (5-run; shadow)",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "routing-benchmark",
+   "triggers": [
+    "pull_request",
+    "push",
+    "schedule",
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "file": ".github/workflows/skill-dual-write.yml",
+   "jobs": [
+    {
+     "job_id": "skill-dual-write",
+     "job_if": null,
+     "leg_count": 1,
+     "matrix_legs": [
+      {}
+     ],
+     "name": "gate-skill-dual-write",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "step_count": 9,
+     "steps": [
+      {
+       "command": "uses:actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 with[fetch-depth=0]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 0,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "uses:actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 with[python-version=3.11]",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 1,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "pip install pytest==8.4.2",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 2,
+       "name": null,
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests tools/d001-dual-write/tests -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 3,
+       "name": "gate-skill-dual-write self-test",
+       "shell": null
+      },
+      {
+       "command": "python -m pytest ci/tests/test_check_skill_deploy_drift.py -q",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 4,
+       "name": "gate-skill-deploy-drift self-test",
+       "shell": null
+      },
+      {
+       "command": "python ci/gen_skill_index.py --check --fail-on-drift",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 5,
+       "name": "gate-skill-surface-manifest",
+       "shell": null
+      },
+      {
+       "command": "python ci/gen_skills_manifest.py --check",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 6,
+       "name": "gate-skills-manifest-inventory",
+       "shell": null
+      },
+      {
+       "command": "git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 7,
+       "name": "gate-skill-dual-write fetch base",
+       "shell": null
+      },
+      {
+       "command": "python ci/check_skill_dual_write.py --base origin/main --head HEAD --strict-parity",
+       "conditional_on": null,
+       "continue_on_error": null,
+       "index": 8,
+       "name": "gate-skill-dual-write D-001 gate",
+       "shell": null
+      }
+     ],
+     "uses_reusable": null
+    }
+   ],
+   "name": "skill-dual-write",
+   "triggers": [
+    "pull_request"
+   ]
+  }
+ ]
+}

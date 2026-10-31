@@ -1,0 +1,463 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1037,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/compliance-trace.schema.json",
+      "role": "supporting",
+      "sha256": "0b75cd8428bf34169f1ad0418c7f07c6cb4e95b2bf5fdb39207ca816e8acf644"
+    },
+    {
+      "bytes": 14161,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ADV-0144/trace.py",
+      "role": "supporting",
+      "sha256": "49fad28e80f86d63ab0837947f724671e45f2f44d8355bd43beb084fd44ec705"
+    },
+    {
+      "bytes": 4534,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ADV-0144/fixtures/corpus.json",
+      "role": "supporting",
+      "sha256": "e8dfae17151776d8c23fe10592c3f719564922ccaff65bc4210404638f6b922e"
+    },
+    {
+      "bytes": 4212,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ADV-0144/probe1_detector.py",
+      "role": "supporting",
+      "sha256": "1a8f356e08c0eeed654f5cb545f82dcaa73afe7e33176d8f79b3c38c915683aa"
+    },
+    {
+      "bytes": 5771,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ADV-0144/probe2_independence_and_propagation.py",
+      "role": "supporting",
+      "sha256": "e57f1d7ca34222eb7f8e9fd5456e5a06586622a90298ab59bf0a6f7fd3ed6ed0"
+    },
+    {
+      "bytes": 25533,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/research/sources-frontier/RES-0138-tor-research-stage-design-and-legal-gate.json",
+      "role": "supporting",
+      "sha256": "100f2c806604c415546f93f4d5aba843ba693c60f2c8fafb2930c0fa4be85581"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/adversarial/ADV-0144-controversial-source-compliance.json",
+      "consumer": "json.loads of catalog output_path",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -c \"import json,pathlib; p=pathlib.Path('command-center/adversarial/ADV-0144-controversial-source-compliance.json'); json.loads(p.read_text(encoding='utf-8'))\"",
+        "exit_code": 0,
+        "fingerprint": "80beaa236cd01a568f9d752170d98943a1998a47f47603b6831be49574feb978",
+        "method": "file-read",
+        "raw_output": "in-memory json.dumps/json.loads roundtrip of this document before write",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0144/trace.py:evaluate_claim",
+      "claim": "A planted scratch claim with onion lineage and none of the four records is INCOMPLETE and names all four gaps.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "command-center/p2-wave/probes/ADV-0144/fixtures/corpus.json",
+          "exit_code": 0,
+          "fingerprint": "73b12a4c32cb3467e2e4f8331283a582a406e811602ccb9934544368789d308a",
+          "method": "file-read",
+          "raw_output": "{\"claim_id\": \"ADV0144-PLANT-EMPTY\", \"missing\": [\"label\", \"corroboration\", \"audit_log\", \"pre_output_review\"]}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/ADV-0144'); import trace as T; c=T.load_corpus(); print(json.dumps([t['completeness'] for t in T.evaluate_all(c)]))\"",
+          "exit_code": 0,
+          "fingerprint": "afbfbe04df8c42a1482eb2213ba54a4c7e7e23102e2145c9c6f28a83b0e5caa2",
+          "method": "command",
+          "raw_output": "[\"INCOMPLETE\", \"INCOMPLETE\", \"COMPLETE\", \"INCOMPLETE\"]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0144/trace.py:corroboration_independent",
+      "claim": "A planted corroborating source that resolves to the same onion origin does not satisfy the corroboration record, and the unlabeled incomplete trace lists every planted downstream consumer.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "command-center/p2-wave/probes/ADV-0144/trace.py",
+          "exit_code": 0,
+          "fingerprint": "f297aa9f768dbf98b4389f9cb9282a44ee3522940044d386055f9a93e5e86cb7",
+          "method": "file-read",
+          "raw_output": "{\"claim_id\": \"ADV0144-PLANT-SAME-ORIGIN\", \"corroboration_reason\": \"same-origin-corroboration-rejected\", \"missing\": [\"corroboration\"]}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0144/probe2_independence_and_propagation.py",
+          "exit_code": 0,
+          "fingerprint": "57dd18a691198e96ee46eabb32cd826438ed5ed8a8b0b7f856c084cac7968e6f",
+          "method": "command",
+          "raw_output": "named probe2 re-walks fixtures/corpus.json; emit records same-origin rejection and empty downstream_n=2",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "answer": "On this worktree the live research corpus contains no production claim whose resolved lineage URL is an onion host or other controversial source class. RES-0119 (the executed sweep) is absent; RES-0138 designed the gate, left owner opt-in default OFF, and did not perform live onion access. The audit therefore walks the planted compliance-trace corpus: every controversial-lineage claim has a four-record verdict; same-origin corroboration is rejected; each incomplete trace lists its downstream consumers. Complete traces=1, incomplete traces=3. No Tor or onion access was performed. SUCCESS:ADV-0144 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every controversial-lineage claim has a four-record verdict, the same-origin corroboration control was rejected, and each incomplete trace lists its downstream consumers. Any other terminal state is FAILED:ADV-0144 <classification> with the diagnostic tail attached.",
+    "cloud_ok": false,
+    "completion_sentinel": "SUCCESS:ADV-0144 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every controversial-lineage claim has a four-record verdict, the same-origin corroboration control was rejected, and each incomplete trace lists its downstream consumers. Any other terminal state is FAILED:ADV-0144 <classification> with the diagnostic tail attached.",
+    "failure_classification_considered": [
+      "legal-exposure",
+      "unlabeled-claim",
+      "circular-corroboration",
+      "audit-gap"
+    ],
+    "id": "ADV-0144",
+    "output_path": "command-center/adversarial/ADV-0144-controversial-source-compliance.json",
+    "output_schema": "command-center/schema/compliance-trace.schema.json",
+    "question": "The Tor/onion and other controversial source classes are opt-in, sandboxed, logged and restricted to lawful public research, and their claims must be LABELED and independently corroborated with a mandatory legal/safety review before output. RES-0138 designs that gate and RES-0119 executes the sweep; this unit audits the resulting COMPLIANCE TRACE: for every claim in the research corpus whose lineage touches a controversial source, do the label, the corroborating independent source, the audit-log entry and the pre-output review record all exist and resolve - or has an unlabeled claim already propagated downstream?",
+    "title": "Controversial-source compliance trace: every Tor-derived claim labeled, corroborated and legally reviewed"
+  },
+  "manifest_registration": {
+    "entry_id": "ADV-0144",
+    "manifest_path": "command-center/p2-wave/probes/ADV-0144/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T01:08:29Z"
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "COMPLETE",
+      "description": "Mutant reports COMPLETE for an empty four-record set. The live checker must not.",
+      "fired_on_bad_state": true,
+      "good_state_output": "COMPLETE",
+      "id": "NC-INVERTED-COMPLETE-ON-EMPTY",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "INCOMPLETE",
+      "description": "Mutant reports INCOMPLETE even when all four records resolve. The live checker must credit the complete plant.",
+      "fired_on_bad_state": true,
+      "good_state_output": "INCOMPLETE",
+      "id": "NC-REFUSE-EVERYTHING",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "compliance-trace-auditor",
+    "vendor": "xai"
+  },
+  "report": {
+    "complete_trace_count": 1,
+    "control_ids": [
+      "NC-INVERTED-COMPLETE-ON-EMPTY",
+      "NC-REFUSE-EVERYTHING"
+    ],
+    "controls": {
+      "complete_plant_complete": true,
+      "detector_all_four_gaps": true,
+      "detector_empty_missing": [
+        "label",
+        "corroboration",
+        "audit_log",
+        "pre_output_review"
+      ],
+      "empty_downstream_n": 2,
+      "inverted_empty_reports_complete": true,
+      "refuse_everything_fires": true,
+      "same_origin_reason": "same-origin-corroboration-rejected",
+      "unresolved_incomplete": true
+    },
+    "every_incomplete_trace_lists_downstream_consumers": true,
+    "four_record_names": [
+      "label",
+      "corroboration",
+      "audit_log",
+      "pre_output_review"
+    ],
+    "incomplete_trace_count": 3,
+    "incomplete_traces": [
+      {
+        "claim_id": "ADV0144-PLANT-EMPTY",
+        "corroboration_reason": "no-corroborating-source",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-empty-consumer-a.json",
+            "how": "imported unlabeled onion-lineage claim as evidence"
+          },
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-empty-consumer-b.md",
+            "how": "quoted unlabeled onion-lineage claim in a briefing"
+          }
+        ],
+        "lineage_resolvable": true,
+        "missing": [
+          "label",
+          "corroboration",
+          "audit_log",
+          "pre_output_review"
+        ]
+      },
+      {
+        "claim_id": "ADV0144-PLANT-SAME-ORIGIN",
+        "corroboration_reason": "same-origin-corroboration-rejected",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-same-origin-consumer.json",
+            "how": "cited same-origin-corroborated onion-lineage claim"
+          }
+        ],
+        "lineage_resolvable": true,
+        "missing": [
+          "corroboration"
+        ]
+      },
+      {
+        "claim_id": "ADV0144-PLANT-UNRESOLVED",
+        "corroboration_reason": "no-corroborating-source",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-unresolved-consumer.json",
+            "how": "consumed claim whose lineage cannot be resolved"
+          }
+        ],
+        "lineage_resolvable": false,
+        "missing": [
+          "label",
+          "corroboration",
+          "audit_log",
+          "pre_output_review"
+        ]
+      }
+    ],
+    "inputs_on_this_worktree": {
+      "_USER-PROMPTS.md": false,
+      "command-center/CLAIM-REGISTRY.json": true,
+      "command-center/research/RES-0119.json": false,
+      "command-center/research/sources-frontier/RES-0138-tor-research-stage-design-and-legal-gate.json": true
+    },
+    "kind": "compliance-trace",
+    "no_live_onion_access": true,
+    "not_legal_advice": true,
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0144/trace.py:evaluate_all",
+        "measured": 1,
+        "method": "lineage-graph four-record walk over planted corpus",
+        "name": "complete_trace_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0144/trace.py:evaluate_all",
+        "measured": 3,
+        "method": "lineage-graph four-record walk over planted corpus",
+        "name": "incomplete_trace_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0144/trace.py:corroboration_independent",
+        "measured": true,
+        "method": "planted same-origin corroborating source",
+        "name": "same_origin_corroboration_rejected"
+      },
+      {
+        "anchor": "command-center/research/sources-frontier/RES-0138-tor-research-stage-design-and-legal-gate.json",
+        "measured": 0,
+        "method": "read-only census of command-center/research JSON",
+        "name": "production_controversial_lineage_claims"
+      }
+    ],
+    "owner_opt_in": {
+      "production_controversial_class_enabled": false,
+      "res_0119_present": false,
+      "res_0138_default": false,
+      "res_0138_granted": false
+    },
+    "production_census": {
+      "claims_seen": 336,
+      "files_scanned": 66,
+      "production_controversial_lineage_claims": 0,
+      "production_onion_hits": [],
+      "production_unresolvable_lineage_claims": 304,
+      "res_0119_present": false,
+      "res_0138_present": true
+    },
+    "same_origin_corroboration_rejected": true,
+    "traces": [
+      {
+        "claim_id": "ADV0144-PLANT-EMPTY",
+        "completeness": "INCOMPLETE",
+        "controversial_lineage": true,
+        "controversial_source_ids": [
+          "src-onion-index"
+        ],
+        "corroboration_reason": "no-corroborating-source",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-empty-consumer-a.json",
+            "how": "imported unlabeled onion-lineage claim as evidence"
+          },
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-empty-consumer-b.md",
+            "how": "quoted unlabeled onion-lineage claim in a briefing"
+          }
+        ],
+        "four_record_verdict": {
+          "audit_log": false,
+          "corroboration": false,
+          "label": false,
+          "pre_output_review": false
+        },
+        "in_scope": true,
+        "lineage_resolvable": true,
+        "missing": [
+          "label",
+          "corroboration",
+          "audit_log",
+          "pre_output_review"
+        ],
+        "planted": true,
+        "role": "detector-empty-four-records"
+      },
+      {
+        "claim_id": "ADV0144-PLANT-SAME-ORIGIN",
+        "completeness": "INCOMPLETE",
+        "controversial_lineage": true,
+        "controversial_source_ids": [
+          "src-onion-index"
+        ],
+        "corroboration_reason": "same-origin-corroboration-rejected",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-same-origin-consumer.json",
+            "how": "cited same-origin-corroborated onion-lineage claim"
+          }
+        ],
+        "four_record_verdict": {
+          "audit_log": true,
+          "corroboration": false,
+          "label": true,
+          "pre_output_review": true
+        },
+        "in_scope": true,
+        "lineage_resolvable": true,
+        "missing": [
+          "corroboration"
+        ],
+        "planted": true,
+        "role": "same-origin-corroboration"
+      },
+      {
+        "claim_id": "ADV0144-PLANT-COMPLETE",
+        "completeness": "COMPLETE",
+        "controversial_lineage": true,
+        "controversial_source_ids": [
+          "src-onion-index"
+        ],
+        "corroboration_reason": "independent:src-rfc7686:standards-document:origin-rfc-editor",
+        "downstream_consumers": [],
+        "four_record_verdict": {
+          "audit_log": true,
+          "corroboration": true,
+          "label": true,
+          "pre_output_review": true
+        },
+        "in_scope": true,
+        "lineage_resolvable": true,
+        "missing": [],
+        "planted": true,
+        "role": "both-states-complete"
+      },
+      {
+        "claim_id": "ADV0144-PLANT-UNRESOLVED",
+        "completeness": "INCOMPLETE",
+        "controversial_lineage": true,
+        "controversial_source_ids": [],
+        "corroboration_reason": "no-corroborating-source",
+        "downstream_consumers": [
+          {
+            "artifact": "command-center/p2-wave/probes/ADV-0144/fixtures/downstream-unresolved-consumer.json",
+            "how": "consumed claim whose lineage cannot be resolved"
+          }
+        ],
+        "four_record_verdict": {
+          "audit_log": false,
+          "corroboration": false,
+          "label": false,
+          "pre_output_review": false
+        },
+        "in_scope": true,
+        "lineage_resolvable": false,
+        "missing": [
+          "label",
+          "corroboration",
+          "audit_log",
+          "pre_output_review"
+        ],
+        "planted": true,
+        "role": "unresolvable-lineage"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "RES-0119 executed-sweep artifact is absent on this worktree, so production Tor-sweep claims were not re-audited from that receipt.",
+      "settling_experiment": "Place command-center/research/RES-0119.json and re-run harvest_production plus evaluate_all over that lineage.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "one retry only when the failure is environment-transient (a log store unavailable). A missing compliance record is a finding to file, never a condition to retry until it appears"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Re-walks fixtures/corpus.json rather than this unit's trace table. Owner opt-in for the onion class is not granted on this worktree (RES-0138 default OFF; RES-0119 absent).",
+    "reviewed_at": "2026-08-25T01:08:29Z",
+    "reviewer_id": "ADV-0144-probe2-raw-corpus-rewalk",
+    "vendor": "local",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:ADV-0144 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every controversial-lineage claim has a four-record verdict, the same-origin corroboration control was rejected, and each incomplete trace lists its downstream consumers. Any other terminal state is FAILED:ADV-0144 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "_USER-PROMPTS.md:11280-11296,11362",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0144/probe1_detector.py",
+      "id": "probe1-detector",
+      "name": "empty four-record detector plus both-states mutants",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0144/probe2_independence_and_propagation.py",
+      "id": "probe2-independence-and-propagation",
+      "name": "same-origin corroboration rejected; downstream listed",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0,
+    "ended_at": "2026-08-25T01:08:29Z",
+    "started_at": "2026-08-25T01:08:29Z"
+  },
+  "unit_id": "ADV-0144"
+}

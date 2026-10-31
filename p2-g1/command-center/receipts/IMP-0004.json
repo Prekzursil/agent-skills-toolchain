@@ -1,0 +1,258 @@
+{
+ "artifacts": [
+  {
+   "bytes": 2720,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/secret_gate.py",
+   "role": "supporting",
+   "sha256": "cc6ea1309c2e2d9ff90537ba1ec8fd5896aca4364352b999cf545f17af048e18"
+  },
+  {
+   "bytes": 4701,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/gitleaks_engine.py",
+   "role": "supporting",
+   "sha256": "e52fe8d7a658bdbce31fbc659ac3ff0cacdbac258d51bc3e0ce911dc02436c6c"
+  },
+  {
+   "bytes": 3157,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/entropy_scan.py",
+   "role": "supporting",
+   "sha256": "5bf698e03bc44baf76cb5edb4465c97ca7f7170bd6a870e477b47740b8d633d6"
+  },
+  {
+   "bytes": 1609,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/gitleaks.toml",
+   "role": "supporting",
+   "sha256": "88ceeb64b026747c2bd148a8146345b9c77ce60d5ae0f2f300ca741333b1bf73"
+  },
+  {
+   "bytes": 966,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/redact.py",
+   "role": "supporting",
+   "sha256": "3dfb1ce9a31c5137b4ac30a1978795f2249e1b3280746f98ce4caead10912310"
+  },
+  {
+   "bytes": 931,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/canary.py",
+   "role": "supporting",
+   "sha256": "4524fb97a77bfb2cc5e6c001f62f26773c6cc1f0d4b72edd58c30fbcccea797e"
+  },
+  {
+   "bytes": 3189,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/scan_fs.py",
+   "role": "supporting",
+   "sha256": "1365c60742448e0138a7b53602e4bc01719354c33ce3206615eb6c5dc729ccaf"
+  },
+  {
+   "bytes": 1557,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/schema/secret-finding.schema.json",
+   "role": "supporting",
+   "sha256": "3f6b5111efa18c845a16c9359e7b571b16dad83e47c4df72ce5785a4da313788"
+  },
+  {
+   "bytes": 4630,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_secret_gate.py",
+   "role": "supporting",
+   "sha256": "abc24437f2964ef2fff8843ac20d4d901600442cd6576c85263d5e512cab9742"
+  },
+  {
+   "bytes": 3438,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0004/probe1_two_signals.py",
+   "role": "supporting",
+   "sha256": "7cf0791aa04ffd09861f63ce3920611db33706a43c8c9ab34d0cb79ff3d595c1"
+  },
+  {
+   "bytes": 4001,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0004/probe2_negative_and_evasion.py",
+   "role": "supporting",
+   "sha256": "5b84a8187b8c5044a810409a11f6b53ca8d47ffba40c26abfb2075b936ebb443"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0004.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0004",
+    "exit_code": 0,
+    "fingerprint": "460de09bdcc5e2689b2097af9aa69b8a",
+    "method": "command",
+    "raw_output": "deferred-to-post-write measure",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/gitleaks.toml:8",
+   "claim": "Gitleaks-rules engine exit code is 1 and findings_count >= 1 on a fixture bundle carrying a synthetic GitHub PAT (prefix ghp_ only in reports).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0004/probe1_two_signals.py",
+     "exit_code": 0,
+     "fingerprint": "2f64a18020e5000ae7bf30e26e48bfcd",
+     "method": "command",
+     "raw_output": "gitleaks_exit=1 gitleaks_n=2 entropy_n=1 body_hits=0 prefix=ghp_\nSUCCESS:IMP-0004-probe1 two-signal synthetic token + redaction",
+     "role": "source"
+    },
+    {
+     "command": "read tools/plugin/gitleaks_engine.py (does not import entropy_scan)",
+     "exit_code": 0,
+     "fingerprint": "b7d767d8a6fedee68bd2e84d723ca0c0",
+     "method": "file-read",
+     "raw_output": "gitleaks_engine is a separate module from entropy_scan",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/entropy_scan.py:1",
+   "claim": "Independent Shannon-entropy scan flags the same synthetic token (prefix ghp_) on the same planted path.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0004/probe1_two_signals.py",
+     "exit_code": 0,
+     "fingerprint": "2f64a18020e5000ae7bf30e26e48bfcd",
+     "method": "command",
+     "raw_output": "gitleaks_exit=1 gitleaks_n=2 entropy_n=1 body_hits=0 prefix=ghp_\nSUCCESS:IMP-0004-probe1 two-signal synthetic token + redaction",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_secret_gate.py",
+     "exit_code": 0,
+     "fingerprint": "1e4b18b63d5039401d433147a6333a1a",
+     "method": "command",
+     "raw_output": "PASS test_synthetic_token_blocks_emit\nPASS test_report_never_contains_secret_body\nPASS test_negative_control_clean_passes_planted_fails\nPASS test_engines_are_independent_modules\nSUCCESS:IMP-0004-tests",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/secret_gate.py:47",
+   "claim": "Serialized report bytes contain ZERO copies of the synthetic secret body past the zero-entropy prefix ghp_.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0004/probe1_two_signals.py",
+     "exit_code": 0,
+     "fingerprint": "2f64a18020e5000ae7bf30e26e48bfcd",
+     "method": "command",
+     "raw_output": "body_hits=0 prefix=ghp_",
+     "role": "source"
+    },
+    {
+     "command": "tools/plugin/tests/test_secret_gate.py::test_report_never_contains_secret_body",
+     "exit_code": 0,
+     "fingerprint": "fd4dbb82a071ef169c51fb55f6c7889d",
+     "method": "command",
+     "raw_output": "PASS test_report_never_contains_secret_body",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "gate": {
+   "block_on_findings": true,
+   "cli": "python3 tools/plugin/secret_gate.py --root <staging> --report <out.json>",
+   "detectors": [
+    "gitleaks-rules",
+    "shannon-entropy"
+   ],
+   "engine_note": "This worktree has no gitleaks binary. Signal 1 is a Python engine that loads tools/plugin/gitleaks.toml (gitleaks v8 [[rules]] schema) and uses gitleaks exit convention 0=clean 1=findings 2=error.",
+   "redaction": "variable_name + path + byte_offset + zero-entropy prefix only"
+  },
+  "global_catalog_write": false,
+  "question_or_target": "Wire a secret scanner (gitleaks rules + a Shannon-entropy pass over string literals) as a blocking pre-emit gate so no token, cookie, private key, or decrypted secret can enter a distributable bundle.",
+  "title": "Credential-exposure gate on the payload before artifact emission"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0004/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "negative_control planted_fail=True clean_pass=True\nevasion base64_blocked=True split_literal_blocked=True env_sample_blocked=True\nSUCCESS:IMP-0004-probe2 negative-control + reviewer evasions blocked",
+   "description": "Same-run negative control: planted synthetic token blocks emit; clean bundle with GITHUB_TOKEN/ghp_ mentions and no body passes.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean_pass=True",
+   "id": "nc-clean-vs-planted",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "A real gitleaks binary was not present on PATH; the Python toml engine is the shipped signal-1 implementation. Installing pinned gitleaks would be a second independent executable, not required for this unit's gate.",
+   "settling_experiment": "Run official gitleaks detect --redact --config tools/plugin/gitleaks.toml on the same planted fixture and compare findings_count.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot; never weaken a rule to make the gate pass"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent evasion reviewer (scope, not agreement). Attempted base64 wrap, split literal (ghp_ + body), and .env.sample. All three blocked. Did not print secret bodies.",
+  "reviewer_id": "IMP-0004-probe2-evasion-reviewer",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0004",
+ "spec_anchor": "_USER-PROMPTS.md:11345 + AGENTS.md#9",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "python3 tools/plugin/tests/test_secret_gate.py",
+   "id": "test_synthetic_token_blocks_emit",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 tools/plugin/tests/test_secret_gate.py",
+   "id": "test_report_never_contains_secret_body",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 tools/plugin/tests/test_secret_gate.py",
+   "id": "test_negative_control_clean_passes_planted_fails",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:50:14Z",
+  "started_at": "2026-08-25T00:50:14Z"
+ },
+ "unit_id": "IMP-0004"
+}

@@ -1,0 +1,570 @@
+{
+ "IMP-0023": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Touches the owner's live tree; atomicity errors here are data loss.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0023",
+  "dependencies": [
+   "IMP-0010",
+   "IMP-0029"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a full install into a throwaway HOME, with the resulting file set diffed against the IMP-0010 projection; (2) an interrupted install (process killed mid-activate) followed by an independent inspection proving the tree matches exactly one of the two valid states. Idempotency is a third check: a second install produces zero file mutations, verified by mtime+hash census.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "data-loss",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "IMP-0023",
+  "inputs": [
+   "_USER-PROMPTS.md:10832 (install, update, repair, rollback, uninstall)",
+   "IMP-0010 projection map",
+   "IMP-0028 transaction journal"
+  ],
+  "output_path": "command-center/receipts/IMP-0023.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement `install` as a three-phase transaction: stage the payload to a side directory, verify it in place (schema, digests, permissions), then activate by an atomic swap — so an interruption at any point leaves either the old state or the new state, never a half-installed tree. Re-running install on an already-current install must be a no-op that reports so.",
+  "retry_policy": "two-strikes-then-pivot; never retry an interrupted install without first running the journal recovery (IMP-0028)",
+  "reviewer_requirement": "Independent Phase-11-style confirmer who runs the install from a fresh clone and fresh profile, not from the implementer's tree.",
+  "tests_required": [
+   "tools/plugin/tests/test_install_transaction.py::test_clean_install_matches_projection",
+   "tools/plugin/tests/test_install_transaction.py::test_kill_mid_activate_leaves_valid_state",
+   "NEGATIVE CONTROL: corrupt a staged file and assert activation refuses"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Transactional `install` command (stage, verify, activate)",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "PowerShell",
+   "Bash"
+  ]
+ },
+ "IMP-0031": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Merge algorithms have exact expected outputs; a fixture matrix is the oracle.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0031",
+  "dependencies": [
+   "IMP-0033"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the merge result equals a hand-authored expected file for each fixture triple; (2) a property check over randomly generated triples asserting the invariant 'every line unique to ours survives or is reported as a conflict' — never silently dropped.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "data-loss",
+   "overclaim"
+  ],
+  "id": "IMP-0031",
+  "inputs": [
+   "_USER-PROMPTS.md:10994",
+   "ground/baseline finding F6 (two-directional live/repo divergence)",
+   "IMP-0033 provenance record supplying the base version"
+  ],
+  "output_path": "command-center/receipts/IMP-0031.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a three-way merge (base = shipped vN, ours = live user-edited, theirs = shipped vN+1) with format-aware strategies: structural merge for JSON/TOML settings, line merge for markdown/scripts, and refuse-with-report for binary. This is the mechanism IMP-0024 calls; it does not itself run the update.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must supply one adversarial triple (key reordering plus a comment) and confirm the invariant holds.",
+  "tests_required": [
+   "tools/plugin/tests/test_three_way_merge.py (JSON structural, line-based, binary refusal)",
+   "PROPERTY TEST: no unique 'ours' line disappears without a conflict record",
+   "NEGATIVE CONTROL: a two-way overwrite implementation must fail the property test"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Three-way merge strategy for user-edited deployed files",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0035": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "A small, exactly-specifiable primitive with a byte-level oracle.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0035",
+  "dependencies": [
+   "B06"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) for a CRLF/LF pair of the same logical file, raw sha256 differs while normalised sha256 matches; (2) the byte-length delta equals the line count exactly, computed separately — this arithmetic identity is the control proving the difference really is EOL and nothing else.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "crlf-phantom-drift",
+   "detector-failure"
+  ],
+  "id": "IMP-0035",
+  "inputs": [
+   "ground/baseline finding F6 (55 EOL-only differences)",
+   "ground/cc-reality finding: every byte delta equalled the file's line count exactly",
+   "rules/common/windows-shell.md#8b"
+  ],
+  "output_path": "command-center/receipts/IMP-0035.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement the comparison primitive used by every drift and integrity check: hash content after normalising line endings, and report EOL-only differences as a distinct class rather than as content drift. On this box 55 of 88 rules files differ by EOL alone; treating them as drift produces a 55-file false-positive wall that hides the 28 real ones.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm binary detection precedes normalisation, or normalisation corrupts binary comparisons.",
+  "tests_required": [
+   "tools/plugin/tests/test_eol_normalised_hash.py (CRLF/LF pair, CR-only pair, mixed-EOL file, binary passthrough)",
+   "NEGATIVE CONTROL: a one-character content change must still differ after normalisation",
+   "binary files must NOT be normalised (assert a PNG hashes identically raw and normalised)"
+  ],
+  "timeout_seconds": 1800,
+  "title": "EOL-normalised content hashing to eliminate phantom drift",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0036": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "The packet's content determines whether a human can decide correctly; that is a judgement about what evidence matters.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0036",
+  "dependencies": [
+   "IMP-0034"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a packet generated for each of the 28 measured content-differing rules files, each containing non-empty unique-line sets for at least one side; (2) an independent re-extraction of those unique lines by a different differ, requiring set equality. A packet claiming a side has unique content when it does not is a detector failure.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "data-loss",
+   "overclaim",
+   "owner-blocked"
+  ],
+  "id": "IMP-0036",
+  "inputs": [
+   "ground/baseline residual: 'which side is authoritative' was explicitly unsettled for 28 files",
+   "IMP-0034 classifications",
+   "git log -1 --format=%cI -- <path> per file"
+  ],
+  "output_path": "command-center/receipts/IMP-0036.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/divergence-decision.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "For every file classified DIVERGED, emit a reviewable decision packet containing both unique-line sets, the last repo commit touching the path, the live mtime, and a recommended action — and make the tooling refuse to act on a DIVERGED file until a recorded decision exists. Provenance, not size, decides authorship.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm mtime is never used as the authorship signal (a documented wrong heuristic on this estate).",
+  "tests_required": [
+   "tools/plugin/tests/test_divergence_packet.py::test_packet_contains_both_unique_sets",
+   "NEGATIVE CONTROL: acting on a DIVERGED file without a recorded decision must be refused",
+   "assert the recommendation field is advisory and machine-distinguishable from a decision"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Diverged-file decision packet (never auto-resolve)",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0037": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Hook-surface integration on the owner's live harness.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0037",
+  "dependencies": [
+   "IMP-0033"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) an edit attempt on a known deployed path produces the advisory naming the correct repo path; (2) an edit on a live-only path (no provenance record) produces NO advisory in the same run — proving the detector discriminates rather than warning on everything.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure",
+   "uncontrolled-silence"
+  ],
+  "id": "IMP-0037",
+  "inputs": [
+   "rules/common/harness-vcs-hygiene.md (a PreToolUse hook warns on a deployed-copy edit)",
+   "IMP-0033 provenance records",
+   "hooks/_dispatch/manifest.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0037.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Detect when an edit targets a deployed copy (a live path that has a provenance record pointing at a repo blob) and surface the canonical repo path instead, because a deployed-copy edit is invisible to git and is overwritten by the next deploy.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm the hook fails open on any internal error.",
+  "tests_required": [
+   "hooks tests: deployed path warns; live-only path silent; repo path silent",
+   "NEGATIVE CONTROL: remove the provenance record and assert the warning disappears (the record, not the path prefix, is the trigger)",
+   "the hook must inject, never block (AGENTS.md 6)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Deployed-copy edit interception routing changes back to repo source",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0038": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Set membership over two inventories; exact algorithm.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0038",
+  "dependencies": [
+   "IMP-0033"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the reconciler's repo-only and live-only sets; (2) an independent enumeration of both trees by a different method (filesystem walk vs manifest parse) that must reproduce the same two sets. A manifest-only census cannot see a file the manifest forgot.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "uncontrolled-silence"
+  ],
+  "id": "IMP-0038",
+  "inputs": [
+   "_USER-PROMPTS.md:11329 (skill exists in repo but not in live skill directory)",
+   "skills/DEPLOYED-MANIFEST.json",
+   "hooks/_dispatch/manifest.json",
+   "ci/gen_skills_manifest.py"
+  ],
+  "output_path": "command-center/receipts/IMP-0038.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a reconciler that lists every skill, hook, rule and command present in the repo, compares it against the live registration surface, and reports the set difference in both directions — closing the seeded failure class 'skill exists in repo but not in live skill directory'.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer confirms the live-only direction is measured, not assumed empty.",
+  "tests_required": [
+   "tools/plugin/tests/test_registration_reconciler.py::test_both_direction_sets",
+   "DETECTOR CONTROL: plant a known repo-only skill and a known live-only skill and assert both are found before any 'in sync' verdict is accepted",
+   "assert the reconciler reports, and does not auto-deploy"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Registration reconciler for repo-present but live-absent capabilities",
+  "tool_permissions": [
+   "Read",
+   "Glob",
+   "Grep",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0039": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Requires designing an observable side effect that cannot be faked by file presence.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0039",
+  "dependencies": [
+   "IMP-0033",
+   "IMP-0044"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the hook's own emitted sentinel observed after a real trigger; (2) the client's hook-inventory surface reporting the hook as loaded. Both must agree; file existence is explicitly not one of the two signals. BOTH-STATES: the probe must also be run against a deliberately broken hooks config and must report NOT-FIRED there.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "hook-unloaded",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "IMP-0039",
+  "inputs": [
+   "_USER-PROMPTS.md:11303 (plugin appears installed but hooks are unloaded)",
+   "MEMORY: hooks.json $schema key made Codex load ZERO hooks",
+   "hooks/_dispatch/manifest.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0039.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a probe that proves a registered hook ACTUALLY FIRED — by triggering it and observing its own side effect — rather than asserting the hook file exists. The seeded failure class is 'plugin appears installed but hooks are unloaded', and on this estate a malformed hooks config once caused a client to load zero hooks while every file was present.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must run the probe in the known-broken state first and confirm it fires there; a probe silent in both states measures nothing.",
+  "tests_required": [
+   "tools/plugin/tests/test_hook_fire_probe.py::test_probe_reports_fired_on_healthy_config",
+   "BOTH-STATES CONTROL: same probe against a config with an unknown top-level key must report NOT-FIRED",
+   "assert the probe cannot pass using only filesystem evidence"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Hook-fire verification probe (installed is not the same as loaded)",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0041": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Corruption-handling paths are enumerable and fixture-testable.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0041",
+  "dependencies": [
+   "IMP-0040"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a deliberately truncated entry is detected and quarantined, verified by the quarantine directory listing; (2) the consumer receives correct content afterwards, verified by hash equality against the source. Detection without correct downstream service is only half the claim.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "stale-cache-mask",
+   "data-loss",
+   "detector-failure"
+  ],
+  "id": "IMP-0041",
+  "inputs": [
+   "_USER-PROMPTS.md:11013 (corrupted-cache tests)",
+   "_USER-PROMPTS.md:10834",
+   "tools/plugin-cache-reaper/test_reap_mutations.py (existing mutation suite)"
+  ],
+  "output_path": "command-center/receipts/IMP-0041.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement `cache refresh` / `cache clear <scope>` plus a validation step that detects a truncated or partially written cache entry, quarantines it, and rebuilds — never silently serving corrupted bytes as if they were valid.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm writes are tmp-plus-rename, not in-place.",
+  "tests_required": [
+   "tools/plugin/tests/test_cache_corruption.py (truncated, zero-byte, wrong-hash, partially written)",
+   "NEGATIVE CONTROL: an intact entry must not be quarantined in the same run",
+   "atomic write: a cache write interrupted mid-stream leaves no readable partial entry"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Cache refresh, invalidation, and corrupted-entry quarantine",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0045": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Must not repeat validate.py's measured portability defect (hashing working-tree bytes under core.autocrlf=true).",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0045",
+  "dependencies": [
+   "IMP-0006",
+   "IMP-0012",
+   "IMP-0010",
+   "IMP-0059"
+  ],
+  "evidence_requirement": "TWO independent signals from DIFFERENT platforms: the validator's verdict on Windows AND on a Linux runner over the same commit. They must agree; the existing command-center validator was measured red on Windows and green on Linux for the same data, and that class of split verdict must not recur.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "crlf-phantom-drift",
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "IMP-0045",
+  "inputs": [
+   "_USER-PROMPTS.md:10836 (conformance validator)",
+   "_USER-PROMPTS.md:10822 (executable conformance tests before broad implementation)",
+   "tools/command-center/validate.py (existing validator pattern)"
+  ],
+  "output_path": "command-center/receipts/IMP-0045.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/conformance-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement `conformance` as a single command that validates the installed plugin against its Phase-4 contracts — manifest schema, declared interpreters resolvable, declared entrypoints executable, declared permissions matching runtime usage, projection map accurate — and emits one machine-readable report with a per-check verdict.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must verify the validator hashes blob bytes (git cat-file), never working-tree bytes, and never git archive output.",
+  "tests_required": [
+   "tools/plugin/tests/test_conformance.py (one case per contract, each with a mutation that makes it fail)",
+   "PORTABILITY CONTROL: run on Windows and Linux over the same commit and assert identical verdicts",
+   "NEGATIVE CONTROL: 6+ deliberate contract violations must each be caught with a distinct code"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Plugin conformance validator (the plugin's own contract test)",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0056": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Redaction placement is the defect: filtering per field after a join is measurably too late.",
+   "role": "security-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0056",
+  "dependencies": [
+   "IMP-0051",
+   "IMP-0004"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a run that logs a planted synthetic credential produces zero matches when the log is grepped for the secret body; (2) the same log still contains the record that referenced it (proving the record was written, not dropped) — redaction that deletes the whole event is not redaction.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "secret-in-artifact",
+   "detector-failure",
+   "uncontrolled-silence"
+  ],
+  "id": "IMP-0056",
+  "inputs": [
+   "AGENTS.md#9 (never persist raw secrets)",
+   "_USER-PROMPTS.md:11018 (secret-leak tests)",
+   "rules/common/bash-hud-and-terminal-emit.md#2 (sanitize inside the parse, before the split)"
+  ],
+  "output_path": "command-center/receipts/IMP-0056.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/log-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement JSON-lines logging where every record carries the error code, unit id and timestamp, where a redaction filter runs on the value side of every field before write, and where files rotate by size and count so logs cannot consume the disk.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Security reviewer must attempt a control-character injection into a log field and confirm it cannot forge a record boundary.",
+  "tests_required": [
+   "tools/plugin/tests/test_log_redaction.py::test_secret_body_never_written",
+   "tools/plugin/tests/test_log_rotation.py::test_size_and_count_bounds_hold",
+   "NEGATIVE CONTROL: disable the filter and assert the secret DOES appear, proving the grep detector works"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Structured logging with mandatory redaction and bounded rotation",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0062": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Toolchain wiring with a schema-validation oracle.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0062",
+  "dependencies": [
+   "IMP-0002"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the SBOM validates against the CycloneDX schema; (2) its component count and names are cross-checked against an independent lockfile parse, requiring set equality. A schema-valid SBOM listing the wrong components would pass (1) alone.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "provenance-loss",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "IMP-0062",
+  "inputs": [
+   "_USER-PROMPTS.md:11110 (SBOM)",
+   "package.json",
+   "package-lock.json",
+   "osv-scanner.toml"
+  ],
+  "output_path": "command-center/receipts/IMP-0062.json",
+  "output_schema": "command-center/schema/receipt.schema.json + CycloneDX 1.5 JSON schema",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Emit a CycloneDX SBOM describing the plugin's transitive Python and Node dependencies plus any vendored trees, produced from the lockfiles at build time and attached to the release artifact. This PRODUCES the SBOM; registry-side ingestion and querying is a separate marketplace unit.",
+  "retry_policy": "bounded retry x2 for schema-fetch network flake; a content mismatch never retries",
+  "reviewer_requirement": "Reviewer confirms vendored/unpinned content is represented, not silently omitted because it has no lockfile entry.",
+  "tests_required": [
+   "tools/plugin/tests/test_sbom.py::test_sbom_matches_lockfile_closure",
+   "NEGATIVE CONTROL: add a dependency and assert it appears in the regenerated SBOM (and that the test fails if it does not)",
+   "vendored trees present in the payload must appear as components"
+  ],
+  "timeout_seconds": 3600,
+  "title": "SBOM generation for the plugin's own dependency closure",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "WebFetch"
+  ]
+ },
+ "IMP-0068": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Atomicity and rebuild equality are exactly testable.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0068",
+  "dependencies": [
+   "IMP-0067"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) an index rebuilt from blobs is semantically equal to the original (normalised comparison, not byte equality, since ordering may differ); (2) a write interrupted at a random point never leaves a readable partial index, verified by parsing the index after each of N kill points.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "index-corruption",
+   "data-loss",
+   "detector-failure"
+  ],
+  "id": "IMP-0068",
+  "inputs": [
+   "IMP-0067 index schema",
+   "_USER-PROMPTS.md:11013 (corrupted-cache tests)",
+   "_USER-PROMPTS.md:10848"
+  ],
+  "output_path": "command-center/receipts/IMP-0068.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "6",
+  "question_or_target": "Implement registry persistence where every index mutation is a tmp-write plus atomic rename, and where the entire index can be rebuilt from the stored package blobs alone — so a corrupted or lost index is recoverable rather than fatal.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm rebuild is exercised against blobs missing an index entry (an orphan), not only against a consistent set.",
+  "tests_required": [
+   "tools/marketplace/tests/test_registry_storage.py::test_rebuild_from_blobs_equals_original",
+   "tools/marketplace/tests/test_registry_storage.py::test_no_partial_index_visible_at_any_kill_point",
+   "NEGATIVE CONTROL: an in-place write implementation must fail the kill-point test"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Registry storage layer with atomic writes and self-healing index rebuild",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ }
+}

@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0264",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0264",
+  "completion_sentinel": "SUCCESS:TST-0264",
+  "completion_marker": "UNIT-COMPLETE:TST-0264",
+  "title": "Enforce minimum deliberation conditions so a council cannot stop before it has deliberated",
+  "spec_anchor": "_USER-PROMPTS.md:10762,:11338 catalog TST-0264 (spec file absent; floors taken from the unit text)",
+  "question_or_target": "Encode minimum-deliberation conditions as a hard precondition on ANY stopping expression so a satisfied stop rule cannot terminate a run that has not met the floor.",
+  "output_path": "command-center/receipts/TST-0264.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "min_bytes_threshold": 2048,
+  "registered": true,
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0264/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T01:03:02Z",
+    "ended_at": "2026-08-25T01:03:02Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry; re-run after a named harness or fixture change"
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0264-probe2-met-floors-and-bypass",
+    "independent": true,
+    "fresh_context": true,
+    "executed_both_states": true,
+    "verdict": "PASS"
+  },
+  "tests": [
+    {
+      "id": "stop-true-round-1-zero-briefs-continues",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe1_premature_stop_floored.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "observation": "Permissive expression `true` evaluated TRUE in round 1 with zero independent briefs; run continued; transcript named independent_opening_positions."
+    },
+    {
+      "id": "floors-met-true-stop-terminates-immediately",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe2_met_floors_and_bypass.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "observation": "After round 2 all floors were met and the expression was TRUE; the run stopped at round 2 with no extra round."
+    },
+    {
+      "id": "min-rounds-zero-rejected-at-validation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe2_met_floors_and_bypass.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "observation": "spec min_rounds=0 raised SpecValidationError code=floor-bypass-min_rounds before any round ran."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "gate-disabled-stops-early",
+      "kind": "both-states",
+      "verbatim": "NEGATIVE CONTROL (gate disabled): On the identical silent-cast fixture whose permissive stop expression evaluates TRUE in round 1 with zero independent opening briefs, disabling the minimum-deliberation gate makes the run STOP in round 1. The check is meant to reject that early stop: with the gate on, the same fixture CONTINUES and names independent_opening_positions.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "gate-disabled-expression-true",
+      "good_state_output": "floor-blocks-satisfied-stop"
+    },
+    {
+      "id": "floors-met-do-not-substitute-for-false-expression",
+      "kind": "both-states",
+      "verbatim": "NEGATIVE CONTROL (false expression): A productive cast that meets every floor by round 2 must NOT stop via the floor when the stopping expression is `false`. The floor is a precondition on a satisfied stop, not a stop rule of its own.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "expression-false",
+      "good_state_output": "expression-true-floors-met"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "tools/council/stopping/minimum.py",
+      "line": 279,
+      "snippet": "detail = f\"mandated roles still silent: {','.join(missing) or '(none)'}\"",
+      "claim": "decide_stop treats floors as a hard precondition: a True expression with unmet floors returns continue with floor-blocks-satisfied-stop.",
+      "kind": "source",
+      "verdict": "CONFIRMED",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe1_premature_stop_floored.py",
+      "verifier_probe": "emit-time recompute run_council(premature, apply_floors=True)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe1_premature_stop_floored.py",
+          "exit_code": 0,
+          "fingerprint": "8f8538cb70d826b5a5c65217cebd4f82c7298b2e32b4b730b2e73ee0538a7ed8",
+          "raw_output": "{\"both_states\": true, \"floor_block_message\": \"FLOOR BLOCKS STOP: independent_opening_positions (independent opening positions submitted: 0 < min 1)\", \"floored_decision\": \"continue\", \"floored_reason\": \"floor-blocks-satisfied-stop\", \"floored_transcript_sha256\": \"fcf1b6fd5e8b7f7064eadfca0b119fcb193c293318b255cca5df2132bb33d7ca\", \"independent_briefs\": 0, \"named_floor\": \"independent_opening_positions\", \"pass\": true, \"probe\": \"probe1-premature-stop-floored\", \"round\": 1, \"stop_expression\": \"true\", \"stop_expression_true\": true, \"ungated_reason\": \"gate-disabled-expression-true\", \"ungated_stopped_round\": 1, \"ungated_transcript_sha256\": \"7b0a1e3568c7014eb3f0c55ac96f21332aa06fd2a403189c3e415750403e0409\", \"unit_id\": \"TST-0264\", \"unmet_floors\": [\"independent_opening_positions\", \"min_evidence\", \"mandated_roles_spoken\"]}\nstop_true=True decision=continue named_floor=independent_opening_positions ungated_stop_round=1\nSUCCESS:TST-0264-probe1 premature stop floored; ungated control stops"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "emit-time recompute run_council premature floored",
+          "exit_code": 0,
+          "fingerprint": "eb84308c415865fabb5333962ed4b1e4b8088ee514ce44f93b1bdcfe557d9d4d",
+          "raw_output": "{\"decision\": \"continue\", \"floor_block_message\": \"FLOOR BLOCKS STOP: independent_opening_positions (independent opening positions submitted: 0 < min 1)\", \"independent_briefs\": 0, \"named_floor\": \"independent_opening_positions\", \"round\": 1, \"stop_expression_true\": true, \"unmet_floors\": [\"independent_opening_positions\", \"min_evidence\", \"mandated_roles_spoken\"]}"
+        }
+      ]
+    },
+    {
+      "path": "tools/council/simulate.py",
+      "line": 98,
+      "snippet": "raise SpecValidationError(\"no-rounds\", \"spec produced zero rounds\")",
+      "claim": "run_council evaluates the stopping expression each round then applies the floor gate; a min_rounds=0 spec never reaches a round.",
+      "kind": "source",
+      "verdict": "CONFIRMED",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe2_met_floors_and_bypass.py",
+      "verifier_probe": "emit-time recompute run_council(healthy)+validate_spec(bypass)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0264/probe2_met_floors_and_bypass.py",
+          "exit_code": 0,
+          "fingerprint": "e982429115e004bbca0293f666ea084f393663ef926a77aecc033458efc4248e",
+          "raw_output": "{\"bypass_code\": \"floor-bypass-min_rounds\", \"bypass_message\": \"min_rounds=0 is a floor bypass; hard minimum is 1\", \"ceiling_reason\": \"max-rounds-ceiling\", \"ceiling_rounds\": 4, \"determinism\": true, \"false_expression_did_not_stop_via_floors\": true, \"false_expression_round2_reason\": \"expression-false\", \"healthy_reason\": \"expression-true-floors-met\", \"healthy_stopped_round\": 2, \"min_rounds_zero_rejected\": true, \"pass\": true, \"probe\": \"probe2-met-floors-and-bypass\", \"round1_named_floor\": \"min_rounds\", \"transcript_sha256\": \"1a10f9bddc5c70864061ca2cce109397dbe4d933bad4fe0dc760ff2013c9228d\", \"unit_id\": \"TST-0264\"}\nstopped_round=2 no_overblock=True bypass=floor-bypass-min_rounds ceiling=max-rounds-ceiling\nSUCCESS:TST-0264-probe2 floors-met stops; min_rounds=0 rejected"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "emit-time recompute healthy stop + min_rounds=0 validate",
+          "exit_code": 0,
+          "fingerprint": "f81d65ec29ad58a9a50f98114973cf9d161e34da3a5a2233fb5652d36ed13ae0",
+          "raw_output": "{\"bypass_code\": \"floor-bypass-min_rounds\", \"healthy_reason\": \"expression-true-floors-met\", \"healthy_rounds\": 2, \"transcript_sha256\": \"1a10f9bddc5c70864061ca2cce109397dbe4d933bad4fe0dc760ff2013c9228d\"}"
+        }
+      ]
+    }
+  ],
+  "implementation": {
+    "simulator": "tools/council/simulate.py",
+    "floor_module": "tools/council/stopping/minimum.py",
+    "expr_module": "tools/council/stopping/expr.py",
+    "permissive_expression": "true",
+    "premature_named_floor": "independent_opening_positions",
+    "premature_floor_block_message": "FLOOR BLOCKS STOP: independent_opening_positions (independent opening positions submitted: 0 < min 1)",
+    "premature_unmet_floors": [
+      "independent_opening_positions",
+      "min_evidence",
+      "mandated_roles_spoken"
+    ],
+    "ungated_reason": "gate-disabled-expression-true",
+    "healthy_stopped_round": 2,
+    "healthy_transcript_sha256": "1a10f9bddc5c70864061ca2cce109397dbe4d933bad4fe0dc760ff2013c9228d",
+    "bypass_code": "floor-bypass-min_rounds",
+    "note": "tools/council/simulate.py and tools/council/stopping/ were absent; TST-0264 implemented the floor gate and a scripted-cast simulator so the unit's three tests can run. TST-0257/TST-0281/IMP-0308/IMP-0309 remain separate units and are not claimed delivered."
+  },
+  "inputs_inventory": [
+    {
+      "declared": "tools/council/simulate.py (deterministic council simulator)",
+      "status": "implemented-here",
+      "path": "tools/council/simulate.py"
+    },
+    {
+      "declared": "_USER-PROMPTS.md:10937-10942 / :11339 / :10762",
+      "status": "absent-on-worktree",
+      "note": "floors taken from catalog TST-0264 tests_required and question_or_target"
+    },
+    {
+      "declared": "stopping-rule engine from bucket B05/B07",
+      "status": "seam-implemented",
+      "path": "tools/council/stopping/minimum.py"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/TST-0264.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": false,
+      "read_ok": true,
+      "probe": {
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0264",
+        "method": "command",
+        "role": "verifier",
+        "note": "run after this receipt and the per-unit manifest are on disk"
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "_USER-PROMPTS.md is absent; numeric spec lines 10762/11338/11339 were not re-read from the original file.",
+      "settling_experiment": "Re-run against the restored spec file and confirm the four floor names still match.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "TST-0257 (full persona-fidelity simulator) and TST-0281 (six-example evaluator conformance) are not delivered on this worktree.",
+      "settling_experiment": "Once those units land, re-run these two probes against their modules without changing the floor contract.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tools/council/simulate.py",
+      "sha256": "3a4ae275252f3681af63581d8eee6ae1eadbf0556ce6cf1bfae89b7fc328685e",
+      "bytes": 4623,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/council/stopping/minimum.py",
+      "sha256": "87f272e315114bcc5eb2bafaeff01f9eb07a761ff953c56996c98d8b8ecc834a",
+      "bytes": 13008,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/council/stopping/expr.py",
+      "sha256": "87b7236dce20b7847884ed012dd143f9f9d4d89184063db69249fe101950c5c6",
+      "bytes": 5597,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/council/stopping/__init__.py",
+      "sha256": "fb338bf87d6dc21ba6fa3e44f70d05e5f321a4a40fd03a7743a69b4acdc86c44",
+      "bytes": 621,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0264/scenario.py",
+      "sha256": "641ae89c36e546d03d1fd4801e16cecbfbcbedf22cd6abc1a4d41d3bc2f1f203",
+      "bytes": 2797,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0264/probe1_premature_stop_floored.py",
+      "sha256": "9c0df288ce19d7dda3bc9947b391bfd0d1db7e5ebc2d7c46318d9fbf393928eb",
+      "bytes": 4492,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0264/probe2_met_floors_and_bypass.py",
+      "sha256": "774831574ec4ea835667beaf211755f0c0e771ee23616faabbe61f424e5755a5",
+      "bytes": 5438,
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "notes": "G-1 for TST-0264: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery."
+}

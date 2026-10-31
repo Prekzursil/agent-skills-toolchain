@@ -1,0 +1,362 @@
+{
+ "reviewer": {
+  "type": "object",
+  "description": "Evidence for predicate condition 9 (independent reviewer status is PASS). Self-review is not review: independent must be true and reviewer_id must differ from the author.",
+  "properties": {
+   "reviewer_id": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 256
+   },
+   "verdict": {
+    "type": "string",
+    "enum": [
+     "PASS",
+     "FAIL",
+     "CHANGES-REQUESTED",
+     "NOT-REVIEWED"
+    ]
+   },
+   "independent": {
+    "type": "boolean"
+   },
+   "fresh_context": {
+    "type": "boolean"
+   },
+   "vendor": {
+    "$ref": "#/$defs/vendor_id"
+   },
+   "notes": {
+    "type": "string",
+    "maxLength": 8192
+   },
+   "reviewed_at": {
+    "$ref": "#/$defs/iso_timestamp"
+   }
+  },
+  "required": [
+   "reviewer_id",
+   "verdict",
+   "independent"
+  ],
+  "additionalProperties": false
+ },
+ "downstream_consumer": {
+  "type": "object",
+  "description": "Evidence for predicate condition 12 (downstream consumers can read it) - the condition ADV-0001 attacks as decorative. A claim is not enough: the consumer must have been EXECUTED against this artifact, and `probe` records how.",
+  "properties": {
+   "consumer": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 512
+   },
+   "artifact_path": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 1024
+   },
+   "executed": {
+    "type": "boolean",
+    "description": "The consumer was actually run. False makes condition 12 NOT-CHECKED, never a pass."
+   },
+   "read_ok": {
+    "type": "boolean"
+   },
+   "exit_code": {
+    "type": "integer"
+   },
+   "probe": {
+    "$ref": "#/$defs/probe"
+   }
+  },
+  "required": [
+   "consumer",
+   "artifact_path",
+   "executed",
+   "read_ok",
+   "probe"
+  ],
+  "additionalProperties": false
+ },
+ "evidence_item": {
+  "type": "object",
+  "description": "Evidence for predicate condition 6 (required evidence anchors exist).",
+  "properties": {
+   "claim": {
+    "type": "string",
+    "description": "The single sentence this evidence supports, scoped to what was actually measured.",
+    "minLength": 1,
+    "maxLength": 2000
+   },
+   "verdict": {
+    "$ref": "#/$defs/verdict"
+   },
+   "confidence": {
+    "$ref": "#/$defs/confidence_band"
+   },
+   "anchor": {
+    "type": "string",
+    "description": "file:line, a URL, or a reproducible command.",
+    "minLength": 1,
+    "maxLength": 2048
+   },
+   "probes": {
+    "type": "array",
+    "description": "At least the SOURCE probe. A CONFIRMED or REFUTED verdict additionally requires a VERIFIER; the reducer enforces the role pair and fingerprint difference.",
+    "minItems": 1,
+    "maxItems": 16,
+    "items": {
+     "$ref": "#/$defs/probe"
+    }
+   },
+   "unverified": {
+    "type": "boolean",
+    "description": "Set when this evidence is UNVERIFIED. If true, settling_experiment is required - an UNVERIFIED tag with no named experiment is a hedge, not a caveat."
+   },
+   "settling_experiment": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 2000
+   }
+  },
+  "required": [
+   "claim",
+   "verdict",
+   "anchor",
+   "probes"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+   {
+    "if": {
+     "properties": {
+      "unverified": {
+       "const": true
+      }
+     },
+     "required": [
+      "unverified"
+     ]
+    },
+    "then": {
+     "required": [
+      "settling_experiment"
+     ]
+    }
+   },
+   {
+    "if": {
+     "properties": {
+      "verdict": {
+       "enum": [
+        "CONFIRMED",
+        "REFUTED"
+       ]
+      }
+     },
+     "required": [
+      "verdict"
+     ]
+    },
+    "then": {
+     "properties": {
+      "probes": {
+       "minItems": 2,
+       "allOf": [
+        {
+         "contains": {
+          "properties": {
+           "role": {
+            "const": "source"
+           }
+          },
+          "required": [
+           "role"
+          ]
+         }
+        },
+        {
+         "contains": {
+          "properties": {
+           "role": {
+            "const": "verifier"
+           }
+          },
+          "required": [
+           "role"
+          ]
+         }
+        }
+       ]
+      }
+     },
+     "required": [
+      "confidence"
+     ]
+    }
+   }
+  ]
+ },
+ "residual_unknown": {
+  "type": "object",
+  "description": "An honestly-scoped residual. A residual that is disclosed with a named settling experiment is NOT a refuted item and must not block; an undisclosed one is a defect.",
+  "properties": {
+   "claim": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 2000
+   },
+   "verdict": {
+    "$ref": "#/$defs/verdict"
+   },
+   "settling_experiment": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 2000
+   }
+  },
+  "required": [
+   "claim",
+   "verdict",
+   "settling_experiment"
+  ],
+  "additionalProperties": false
+ },
+ "manifest_registration": {
+  "type": "object",
+  "description": "Evidence for predicate condition 11 (output was registered in the artifact manifest).",
+  "properties": {
+   "registered": {
+    "type": "boolean"
+   },
+   "manifest_path": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 1024
+   },
+   "entry_id": {
+    "type": "string",
+    "maxLength": 256
+   },
+   "registered_at": {
+    "$ref": "#/$defs/iso_timestamp"
+   }
+  },
+  "required": [
+   "registered",
+   "manifest_path"
+  ],
+  "additionalProperties": false
+ },
+ "test_result": {
+  "type": "object",
+  "description": "Evidence for predicate condition 7 (required tests ran and passed).",
+  "properties": {
+   "id": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 256
+   },
+   "name": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 512
+   },
+   "command": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 4096
+   },
+   "result": {
+    "type": "string",
+    "description": "SKIP and NOT-RUN are recorded, never folded into a pass. The reducer treats either as condition 7 unsatisfied.",
+    "enum": [
+     "PASS",
+     "FAIL",
+     "ERROR",
+     "SKIP",
+     "NOT-RUN"
+    ]
+   },
+   "assertions": {
+    "type": "integer",
+    "minimum": 0
+   },
+   "duration_seconds": {
+    "type": "number",
+    "minimum": 0
+   },
+   "output_tail": {
+    "type": "string",
+    "maxLength": 16384
+   }
+  },
+  "required": [
+   "id",
+   "command",
+   "result"
+  ],
+  "additionalProperties": false
+ },
+ "retry": {
+  "type": "object",
+  "description": "Two-strikes accounting. After the second failure on the same error fingerprint the unit must pivot, so count is capped at 2 unless a pivot is recorded.",
+  "properties": {
+   "count": {
+    "type": "integer",
+    "description": "Number of retries already consumed (0 on a first-attempt success).",
+    "minimum": 0,
+    "maximum": 32
+   },
+   "policy": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 1024
+   },
+   "attempts": {
+    "type": "array",
+    "maxItems": 32,
+    "items": {
+     "type": "object",
+     "properties": {
+      "attempt": {
+       "type": "integer",
+       "minimum": 1
+      },
+      "error_fingerprint": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 256
+      },
+      "outcome": {
+       "$ref": "#/$defs/terminal_state"
+      },
+      "started_at": {
+       "$ref": "#/$defs/iso_timestamp"
+      }
+     },
+     "required": [
+      "attempt",
+      "outcome"
+     ],
+     "additionalProperties": false
+    }
+   },
+   "pivot_alternatives": {
+    "type": "array",
+    "description": "Required by the reducer once two attempts share an error fingerprint: at least 2 enumerated alternatives before a third attempt.",
+    "maxItems": 16,
+    "items": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 1024
+    }
+   }
+  },
+  "required": [
+   "count",
+   "policy"
+  ],
+  "additionalProperties": false
+ }
+}

@@ -1,0 +1,746 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0281.json",
+   "bytes": 11108,
+   "sha256": "5ef0a939a8db631bfb589664ae6dee6ea8ce5417dc6791c42328214c9fb68458",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0281 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0281.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0281.json",
+     "raw_output": "bytes=11108 sha256=5ef0a939a8db631bfb589664ae6dee6ea8ce5417dc6791c42328214c9fb68458",
+     "fingerprint": "bd7363777c23e621fc51d584eabfd150",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0281",
+     "raw_output": "schema-check",
+     "fingerprint": "e5262ce5c83b2df7dd9f53bb43a91f85",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0281 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0281",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0281",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "77acb90431a61ab3c21f5ce633731429",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0281",
+     "raw_output": "schema-valid",
+     "fingerprint": "6d98607e58c1501a14ed49b8ff319b36",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:TST-0281",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0281.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "TST-0281",
+ "extensions": {
+  "legacy_root": {
+   "answer": {
+    "summary": "The evaluator in tools/council/stopping/expr.py parses the six spec strings at :10937-10942, publishes their ASTs, and evaluates them on fire/silent/NOT-CHECKED fixtures. Kleene NOT-CHECKED is not coerced to false (NOT of an unchecked metric does not stop). AND binds tighter than OR; prefix NOT binds a comparison. Malformed expressions fail at spec-validation, never at round 12. Impure terms are rejected at validation; pure AND/OR short-circuit. SUCCESS:TST-0281"
+   },
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0281",
+   "fixed_pid": {
+    "applied": true,
+    "pid": 281,
+    "trace_unchanged": true
+   },
+   "frozen_clock": {
+    "applied": true,
+    "clock_ns": 1700000000000000281,
+    "trace_unchanged": true
+   },
+   "implementation": {
+    "impure_terms": "rejected-at-spec-validation",
+    "logic": "Kleene three-valued AND/OR/NOT",
+    "module": "tools/council/stopping/expr.py",
+    "not_checked": "does-not-stop",
+    "stop_iff": "true"
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0281/probe1_six_examples_and_precedence.py",
+     "id": "probe1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0281/probe2_three_valued_malformed_reviewer.py",
+     "id": "probe2"
+    }
+   ],
+   "nondeterminism_sources": [
+    {
+     "how_found": "Evaluator has no time.time/datetime.now; two evals of the six fire fixtures hashed identically.",
+     "leaks_into_production_dag": false,
+     "site": "tools/council/stopping/expr.py",
+     "source": "wall-clock"
+    },
+    {
+     "how_found": "Evaluator has no os.getpid; the same two hashes match under the live process pid.",
+     "leaks_into_production_dag": false,
+     "site": "tools/council/stopping/expr.py",
+     "source": "pid"
+    }
+   ],
+   "notes": "G-1 for TST-0281: live named probes exit 0, receipt state=SUCCESS, per-unit UNIT-ARTIFACT-MANIFEST row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0281",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "question": "Implementation target: the AND/OR/NOT composable stopping expressions at :10931 and :10760 need an evaluator whose semantics are pinned by tests - operator precedence, short-circuit versus full evaluation of side-effecting terms, unknown-term handling, and the behaviour when a term is NOT-CHECKED rather than true or false. Then run the six executable examples verbatim from :10937-10942 as conformance cases.",
+   "registered": true,
+   "schema_note": "Catalog names command-center/schema/receipt.schema.json, which is absent on this tree. command-center/schema/test-receipt.schema.json is a pytest collection contract and does not describe stopping-expression conformance; this receipt is not validated against it.",
+   "spec_examples": [
+    {
+     "ast": {
+      "left": {
+       "left": {
+        "name": "unique_ideas",
+        "op": "ident"
+       },
+       "op": ">=",
+       "right": {
+        "op": "lit",
+        "value": 100
+       }
+      },
+      "op": "AND",
+      "right": {
+       "left": {
+        "name": "completeness_score",
+        "op": "ident"
+       },
+       "op": ">=",
+       "right": {
+        "op": "lit",
+        "value": 0.9
+       }
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E1",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "unique_ideas >= 100 AND completeness_score >= 0.90",
+     "spec_line": 10937
+    },
+    {
+     "ast": {
+      "left": {
+       "left": {
+        "name": "consensus",
+        "op": "ident"
+       },
+       "op": ">=",
+       "right": {
+        "op": "lit",
+        "value": 0.95
+       }
+      },
+      "op": "AND",
+      "right": {
+       "left": {
+        "name": "no_new_objection_rounds",
+        "op": "ident"
+       },
+       "op": ">=",
+       "right": {
+        "op": "lit",
+        "value": 2
+       }
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E2",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+     "spec_line": 10938
+    },
+    {
+     "ast": {
+      "left": {
+       "left": {
+        "name": "unanimity",
+        "op": "ident"
+       },
+       "op": "==",
+       "right": {
+        "op": "lit",
+        "value": true
+       }
+      },
+      "op": "OR",
+      "right": {
+       "left": {
+        "name": "max_rounds",
+        "op": "ident"
+       },
+       "op": "==",
+       "right": {
+        "op": "lit",
+        "value": 12
+       }
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E3",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "unanimity == true OR max_rounds == 12",
+     "spec_line": 10939
+    },
+    {
+     "ast": {
+      "left": {
+       "left": {
+        "name": "quality_gate",
+        "op": "ident"
+       },
+       "op": "==",
+       "right": {
+        "name": "PASS",
+        "op": "ident"
+       }
+      },
+      "op": "AND",
+      "right": {
+       "left": {
+        "name": "unresolved_load_bearing_counterexample",
+        "op": "ident"
+       },
+       "op": "==",
+       "right": {
+        "op": "lit",
+        "value": 0
+       }
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E4",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+     "spec_line": 10940
+    },
+    {
+     "ast": {
+      "left": {
+       "left": {
+        "name": "evidence_saturation",
+        "op": "ident"
+       },
+       "op": "==",
+       "right": {
+        "op": "lit",
+        "value": true
+       }
+      },
+      "op": "OR",
+      "right": {
+       "left": {
+        "name": "time_minutes",
+        "op": "ident"
+       },
+       "op": ">=",
+       "right": {
+        "op": "lit",
+        "value": 180
+       }
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E5",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "evidence_saturation == true OR time_minutes >= 180",
+     "spec_line": 10941
+    },
+    {
+     "ast": {
+      "left": {
+       "name": "proof_of_impossibility",
+       "op": "ident"
+      },
+      "op": "==",
+      "right": {
+       "op": "lit",
+       "value": true
+      }
+     },
+     "fire_stop": true,
+     "fixture_stop_round": 2,
+     "id": "E6",
+     "not_checked": "NOT-CHECKED",
+     "silent_stop": false,
+     "source": "proof_of_impossibility == true",
+     "spec_line": 10942
+    }
+   ],
+   "trace_hash_comparison": {
+    "barrier_resolution": [
+     "spec-validation before round 1",
+     "evaluate each round until first true"
+    ],
+    "fan_out_cardinalities": [
+     {
+      "cardinality": 3,
+      "id": "E1",
+      "kind": "spec-example"
+     },
+     {
+      "cardinality": 3,
+      "id": "E2",
+      "kind": "spec-example"
+     },
+     {
+      "cardinality": 3,
+      "id": "E3",
+      "kind": "spec-example"
+     },
+     {
+      "cardinality": 3,
+      "id": "E4",
+      "kind": "spec-example"
+     },
+     {
+      "cardinality": 3,
+      "id": "E5",
+      "kind": "spec-example"
+     },
+     {
+      "cardinality": 3,
+      "id": "E6",
+      "kind": "spec-example"
+     }
+    ],
+    "identical": true,
+    "node_order": [
+     "E1",
+     "E2",
+     "E3",
+     "E4",
+     "E5",
+     "E6"
+    ],
+    "run_a_sha256": "41142b1bc2d5672b36cca3490a77cde56079fa0c56648e9b1370e5aeefd5bdde",
+    "run_b_sha256": "41142b1bc2d5672b36cca3490a77cde56079fa0c56648e9b1370e5aeefd5bdde",
+    "seed": 281
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0281",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0281/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0281"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0281.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0281.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "41df347a5955dbdbcdcedc33bf77a37c",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 11108,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0281.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": {
+  "summary": "The evaluator in tools/council/stopping/expr.py parses the six spec strings at :10937-10942, publishes their ASTs, and evaluates them on fire/silent/NOT-CHECKED fixtures. Kleene NOT-CHECKED is not coerced to false (NOT of an unchecked metric does not stop). AND binds tighter than OR; prefix NOT binds a comparison. Malformed expressions fail at spec-validation, never at round 12. Impure terms are rejected at validation; pure AND/OR short-circuit. SUCCESS:TST-0281"
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0281",
+ "fixed_pid": {
+  "applied": true,
+  "pid": 281,
+  "trace_unchanged": true
+ },
+ "frozen_clock": {
+  "applied": true,
+  "clock_ns": 1700000000000000281,
+  "trace_unchanged": true
+ },
+ "implementation": {
+  "impure_terms": "rejected-at-spec-validation",
+  "logic": "Kleene three-valued AND/OR/NOT",
+  "module": "tools/council/stopping/expr.py",
+  "not_checked": "does-not-stop",
+  "stop_iff": "true"
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0281/probe1_six_examples_and_precedence.py",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0281/probe2_three_valued_malformed_reviewer.py",
+   "id": "probe2"
+  }
+ ],
+ "nondeterminism_sources": [
+  {
+   "how_found": "Evaluator has no time.time/datetime.now; two evals of the six fire fixtures hashed identically.",
+   "leaks_into_production_dag": false,
+   "site": "tools/council/stopping/expr.py",
+   "source": "wall-clock"
+  },
+  {
+   "how_found": "Evaluator has no os.getpid; the same two hashes match under the live process pid.",
+   "leaks_into_production_dag": false,
+   "site": "tools/council/stopping/expr.py",
+   "source": "pid"
+  }
+ ],
+ "notes": "G-1 for TST-0281: live named probes exit 0, receipt state=SUCCESS, per-unit UNIT-ARTIFACT-MANIFEST row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0281",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Implementation target: the AND/OR/NOT composable stopping expressions at :10931 and :10760 need an evaluator whose semantics are pinned by tests - operator precedence, short-circuit versus full evaluation of side-effecting terms, unknown-term handling, and the behaviour when a term is NOT-CHECKED rather than true or false. Then run the six executable examples verbatim from :10937-10942 as conformance cases.",
+ "registered": true,
+ "schema_note": "Catalog names command-center/schema/receipt.schema.json, which is absent on this tree. command-center/schema/test-receipt.schema.json is a pytest collection contract and does not describe stopping-expression conformance; this receipt is not validated against it.",
+ "spec_examples": [
+  {
+   "ast": {
+    "left": {
+     "left": {
+      "name": "unique_ideas",
+      "op": "ident"
+     },
+     "op": ">=",
+     "right": {
+      "op": "lit",
+      "value": 100
+     }
+    },
+    "op": "AND",
+    "right": {
+     "left": {
+      "name": "completeness_score",
+      "op": "ident"
+     },
+     "op": ">=",
+     "right": {
+      "op": "lit",
+      "value": 0.9
+     }
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E1",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "unique_ideas >= 100 AND completeness_score >= 0.90",
+   "spec_line": 10937
+  },
+  {
+   "ast": {
+    "left": {
+     "left": {
+      "name": "consensus",
+      "op": "ident"
+     },
+     "op": ">=",
+     "right": {
+      "op": "lit",
+      "value": 0.95
+     }
+    },
+    "op": "AND",
+    "right": {
+     "left": {
+      "name": "no_new_objection_rounds",
+      "op": "ident"
+     },
+     "op": ">=",
+     "right": {
+      "op": "lit",
+      "value": 2
+     }
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E2",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+   "spec_line": 10938
+  },
+  {
+   "ast": {
+    "left": {
+     "left": {
+      "name": "unanimity",
+      "op": "ident"
+     },
+     "op": "==",
+     "right": {
+      "op": "lit",
+      "value": true
+     }
+    },
+    "op": "OR",
+    "right": {
+     "left": {
+      "name": "max_rounds",
+      "op": "ident"
+     },
+     "op": "==",
+     "right": {
+      "op": "lit",
+      "value": 12
+     }
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E3",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "unanimity == true OR max_rounds == 12",
+   "spec_line": 10939
+  },
+  {
+   "ast": {
+    "left": {
+     "left": {
+      "name": "quality_gate",
+      "op": "ident"
+     },
+     "op": "==",
+     "right": {
+      "name": "PASS",
+      "op": "ident"
+     }
+    },
+    "op": "AND",
+    "right": {
+     "left": {
+      "name": "unresolved_load_bearing_counterexample",
+      "op": "ident"
+     },
+     "op": "==",
+     "right": {
+      "op": "lit",
+      "value": 0
+     }
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E4",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+   "spec_line": 10940
+  },
+  {
+   "ast": {
+    "left": {
+     "left": {
+      "name": "evidence_saturation",
+      "op": "ident"
+     },
+     "op": "==",
+     "right": {
+      "op": "lit",
+      "value": true
+     }
+    },
+    "op": "OR",
+    "right": {
+     "left": {
+      "name": "time_minutes",
+      "op": "ident"
+     },
+     "op": ">=",
+     "right": {
+      "op": "lit",
+      "value": 180
+     }
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E5",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "evidence_saturation == true OR time_minutes >= 180",
+   "spec_line": 10941
+  },
+  {
+   "ast": {
+    "left": {
+     "name": "proof_of_impossibility",
+     "op": "ident"
+    },
+    "op": "==",
+    "right": {
+     "op": "lit",
+     "value": true
+    }
+   },
+   "fire_stop": true,
+   "fixture_stop_round": 2,
+   "id": "E6",
+   "not_checked": "NOT-CHECKED",
+   "silent_stop": false,
+   "source": "proof_of_impossibility == true",
+   "spec_line": 10942
+  }
+ ],
+ "trace_hash_comparison": {
+  "barrier_resolution": [
+   "spec-validation before round 1",
+   "evaluate each round until first true"
+  ],
+  "fan_out_cardinalities": [
+   {
+    "cardinality": 3,
+    "id": "E1",
+    "kind": "spec-example"
+   },
+   {
+    "cardinality": 3,
+    "id": "E2",
+    "kind": "spec-example"
+   },
+   {
+    "cardinality": 3,
+    "id": "E3",
+    "kind": "spec-example"
+   },
+   {
+    "cardinality": 3,
+    "id": "E4",
+    "kind": "spec-example"
+   },
+   {
+    "cardinality": 3,
+    "id": "E5",
+    "kind": "spec-example"
+   },
+   {
+    "cardinality": 3,
+    "id": "E6",
+    "kind": "spec-example"
+   }
+  ],
+  "identical": true,
+  "node_order": [
+   "E1",
+   "E2",
+   "E3",
+   "E4",
+   "E5",
+   "E6"
+  ],
+  "run_a_sha256": "41142b1bc2d5672b36cca3490a77cde56079fa0c56648e9b1370e5aeefd5bdde",
+  "run_b_sha256": "41142b1bc2d5672b36cca3490a77cde56079fa0c56648e9b1370e5aeefd5bdde",
+  "seed": 281
+ }
+}

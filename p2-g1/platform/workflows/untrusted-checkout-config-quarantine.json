@@ -1,0 +1,540 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "untrusted-checkout-config-quarantine",
+  "name": "Untrusted-checkout agent-config quarantine (pre-execution containment)",
+  "description": "BP-SEC-03 (card 63). Defining mechanism: a fully deterministic, agent-free filesystem scan that runs BEFORE any agent is allowed into a checkout, classifies each auto-load surface by whether it would EXECUTE code or merely INJECT text, quarantines the executable ones by RENAME-ASIDE (never delete - the evidence is the point), and emits a safe_to_enter verdict under adverse inference: an incomplete scan yields FALSE. This is the only blueprint in this set whose containment happens before, not after, the risky action, and the only one whose fan-out source is a runtime-discovered ARTIFACT rather than a caller-supplied parameter.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["security-governance-and-risk"],
+  "tags": ["bp-sec-03", "supply-chain", "pre-execution", "quarantine"],
+  "flagship": true,
+
+  "params": {
+    "checkout_path": {
+      "type": "path",
+      "required": true,
+      "description": "The freshly cloned or third-party checkout. No agent may run with this as cwd until the verdict exists."
+    },
+    "trust_level": {
+      "type": "enum",
+      "enum": ["first-party", "known-third-party", "unknown-third-party"],
+      "required": true,
+      "description": "Drives whether an owner decision is required before entry"
+    },
+    "surface_patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 64,
+      "default": [
+        ".claude/**",
+        ".codex/**",
+        ".mcp.json",
+        "hooks/**",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "settings.json",
+        "settings.local.json",
+        ".agents/**",
+        ".github/workflows/**"
+      ],
+      "description": "The known auto-load surfaces. The list is a floor, not a total - a novel loader path is a disclosed gap."
+    },
+    "baseline_ref": {
+      "type": "string",
+      "description": "Optional known-good upstream ref to diff the found config against, when the checkout is a fork of something trusted"
+    },
+    "quarantine_root": {
+      "type": "path",
+      "default": "command-center/security/quarantine",
+      "description": "Where renamed-aside surfaces are moved to, preserving relative structure"
+    }
+  },
+
+  "roles": {
+    "surface-scanner": {
+      "description": "Runs the deterministic scan; reads bytes, never executes anything found in the checkout",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/security/trust/**)"],
+      "write_paths": ["command-center/security/trust/**", "command-center/security/quarantine/**"],
+      "speaking_rights": "always"
+    },
+    "risk-classifier": {
+      "description": "Decides EXECUTES vs INJECTS per surface; treats an injecting surface as untrusted DATA, not as harmless",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Write(command-center/security/trust/**)"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - decides entry for an unknown third-party checkout",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/security/trust/**)"],
+    "deny": ["Bash", "WebFetch", "WebSearch", "mcp__codex__codex"],
+    "require_owner_approval": ["Write(command-center/security/trust/ENTRY-DECISION.json)"],
+    "network": "none",
+    "write_paths": ["command-center/security/trust/**", "command-center/security/quarantine/**"],
+    "forbid_write_paths": ["platform/**", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "scan-complete-or-unsafe": {
+      "predicate": "custom-expression",
+      "expression": "patterns_scanned == patterns_requested AND scan_errors == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-executable-surface-live": {
+      "predicate": "custom-expression",
+      "expression": "executable_surfaces_still_in_place == 0 AND quarantined_by_delete == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "scan-auto-load-surfaces",
+      "title": "Deterministic byte-level scan of every known auto-load surface",
+      "kind": "task",
+      "role": "surface-scanner",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "cache": {
+        "enabled": true,
+        "scope": "workflow",
+        "key_from": ["workflow_version", "stage_id", "inputs_hash"],
+        "store": "command-center/cache/trust-scan",
+        "ttl_seconds": 3600,
+        "verify_integrity": true
+      },
+      "work_unit": {
+        "id": "SEC-6301",
+        "title": "Enumerate every auto-load surface present in the checkout without executing any of it",
+        "phase": "7",
+        "question_or_target": "Walk checkout_path for every entry in surface_patterns and emit one row per match with its path, size, sha256 and first-line signature; a pattern that cannot be walked is recorded as an error, and an empty match set is recorded as an explicit empty list rather than as silence.",
+        "inputs": ["params.checkout_path", "params.surface_patterns"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surface-scanner",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/security/trust/**)"],
+        "execution_substrate": "local-windows-pwsh7",
+        "timeout_seconds": 900,
+        "output_path": "command-center/security/trust/auto-load-surfaces.json",
+        "output_schema": "command-center/schema/runtime-trust-inventory.schema.json",
+        "evidence_requirement": "per row: path, byte size, sha256; plus the count of patterns actually walked against the count requested, so an incomplete walk is visible as a number rather than as an absence of findings",
+        "tests_required": [
+          "a checkout carrying its own hooks/ directory must be detected (known-present control)",
+          "a clean checkout must return an explicit empty surface list with patterns_scanned == patterns_requested, not silence"
+        ],
+        "reviewer_requirement": "the risk classifier re-reads the raw inventory; no agent may be launched with checkout_path as cwd before the verdict stage",
+        "completion_sentinel": "SUCCESS:SEC-6301 when patterns_scanned equals patterns_requested and every match carries a sha256; otherwise FAILED:SEC-6301 <reason>",
+        "retry_policy": "two strikes then pivot to a different walker (PowerShell vs python) - a walk failure is never a clean result",
+        "failure_classification": ["scan-incomplete", "walker-error"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/security/trust/auto-load-surfaces.json",
+          "schema_ref": "command-center/schema/runtime-trust-inventory.schema.json",
+          "min_bytes": 64,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6301",
+          "consumers": ["classify-execution-risk", "quarantine-executables"]
+        }
+      ]
+    },
+    {
+      "id": "completeness-gate",
+      "title": "Adverse inference: an incomplete scan cannot certify entry",
+      "kind": "gate",
+      "depends_on": ["scan-auto-load-surfaces"],
+      "gate_ref": "scan-complete-or-unsafe"
+    },
+    {
+      "id": "classify-execution-risk",
+      "title": "EXECUTES vs INJECTS, per surface",
+      "kind": "task",
+      "depends_on": ["completeness-gate"],
+      "role": "risk-classifier",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "SEC-6302",
+        "title": "Classify each auto-load surface by whether entering the directory would execute it",
+        "phase": "7",
+        "question_or_target": "For each surface row decide would_execute true or false, citing the mechanism (a hook registration, a script path, an MCP command line) or the reason it only injects text; an injecting surface is still untrusted DATA and is recorded as such rather than as harmless.",
+        "inputs": ["command-center/security/trust/auto-load-surfaces.json", "params.baseline_ref"],
+        "dependencies": ["SEC-6301"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "risk-classifier",
+          "basis": "the execute-vs-inject decision authorises entry"
+        },
+        "tool_permissions": ["Read", "Grep", "Write(command-center/security/trust/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/security/trust/surface-classification.json",
+        "output_schema": "command-center/schema/runtime-trust-inventory.schema.json",
+        "evidence_requirement": "the executing mechanism quoted from the surface's own bytes at file:line; 'it looks like a config file' is not a classification",
+        "tests_required": [
+          "a hooks manifest registering a command must classify would_execute true",
+          "a plain CLAUDE.md must classify would_execute false AND still be marked untrusted-data"
+        ],
+        "reviewer_requirement": "an independent reviewer re-derives one would_execute=false verdict from the raw bytes",
+        "completion_sentinel": "SUCCESS:SEC-6302 when every surface row has a would_execute verdict with a quoted mechanism or reason; otherwise FAILED:SEC-6302 <reason>",
+        "retry_policy": "no retry on an unclassifiable surface - it is classified would_execute true by adverse inference",
+        "failure_classification": ["unclassifiable-surface", "overclaim"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/security/trust/surface-classification.json",
+          "schema_ref": "command-center/schema/runtime-trust-inventory.schema.json",
+          "min_bytes": 64,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6302",
+          "consumers": ["quarantine-executables", "entry-verdict"]
+        }
+      ]
+    },
+    {
+      "id": "quarantine-executables",
+      "title": "Rename aside every executable surface, one at a time, preserving evidence",
+      "kind": "fanout",
+      "depends_on": ["classify-execution-risk"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/security/trust/surface-classification.json#/surfaces_would_execute",
+        "item_var": "surface",
+        "key_field": "path"
+      },
+      "max_concurrency": 1,
+      "max_items": 256,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "rename-aside-one",
+          "title": "Move one executable surface under the quarantine root; never delete",
+          "kind": "task",
+          "role": "surface-scanner",
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "SEC-6303",
+            "title": "Rename one executable auto-load surface aside and prove the original path is gone",
+            "phase": "7",
+            "question_or_target": "Move the fan-out surface to quarantine_root preserving its relative path, then assert BOTH that the original path no longer resolves AND that the quarantined copy hashes identically to the pre-move sha256 - a quarantine that loses the bytes destroys the evidence the incident needs.",
+            "inputs": ["command-center/security/trust/surface-classification.json", "fanout.item.path", "params.quarantine_root"],
+            "dependencies": ["SEC-6302"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "surface-scanner",
+              "basis": "a move that must be byte-exact is substantive"
+            },
+            "tool_permissions": ["Read", "Bash:python", "Write(command-center/security/trust/**)"],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 600,
+            "output_path": "command-center/security/trust/quarantine-log",
+            "output_schema": "command-center/schema/bundle-scan-receipt.schema.json",
+            "evidence_requirement": "pre-move sha256, post-move sha256 and a negative existence probe on the original path - three fields, one of them a negative",
+            "tests_required": [
+              "a delete instead of a rename must fail the receipt (quarantined_by_delete must be 0)",
+              "a move that changes the bytes must fail the sha256 equality assertion"
+            ],
+            "reviewer_requirement": "the verdict stage re-probes the original path itself rather than trusting this receipt",
+            "completion_sentinel": "SUCCESS:SEC-6303 when the original path is absent and the quarantined bytes hash equal; otherwise FAILED:SEC-6303 <reason>",
+            "retry_policy": "no retry - a partial move is repaired by hand, not by a second attempt",
+            "failure_classification": ["quarantine-lost-bytes", "quarantine-by-delete", "move-failed"],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "containment-gate",
+      "title": "No executable surface may remain in place, and none may have been deleted",
+      "kind": "gate",
+      "depends_on": ["quarantine-executables"],
+      "gate_ref": "no-executable-surface-live"
+    },
+    {
+      "id": "owner-entry-decision",
+      "title": "An unknown third-party checkout needs an explicit owner decision, not a green scan",
+      "kind": "human_checkpoint",
+      "depends_on": ["containment-gate"],
+      "when": "trust_level == unknown-third-party",
+      "prompt": "The auto-load surfaces found in this checkout, their execute/inject classification, and the quarantine receipts are attached. Authorise agent entry, request an audit of the quarantined surfaces first, or refuse entry.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["authorise-entry", "audit-quarantined-first", "refuse-entry"],
+      "decision_artifact": {
+        "path": "command-center/security/trust/ENTRY-DECISION.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": ["entry-verdict"]
+      }
+    },
+    {
+      "id": "entry-verdict",
+      "title": "Emit safe_to_enter, defaulting to FALSE",
+      "kind": "task",
+      "depends_on": ["owner-entry-decision"],
+      "role": "risk-classifier",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "SEC-6304",
+        "title": "Emit the safe_to_enter verdict with an enumerated surface list",
+        "phase": "7",
+        "question_or_target": "Emit safe_to_enter with the enumerated surface list, the quarantine receipts and the owner decision where one was required; safe_to_enter is FALSE unless every prior gate passed, and the surface list is always enumerated - possibly empty - so silence is never the verdict.",
+        "inputs": ["command-center/security/trust/surface-classification.json", "command-center/security/trust/quarantine-log"],
+        "dependencies": ["SEC-6303"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "risk-classifier",
+          "basis": "the verdict is what unblocks every downstream agent"
+        },
+        "tool_permissions": ["Read", "Write(command-center/security/trust/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/security/trust/entry-verdict.json",
+        "output_schema": "command-center/schema/runtime-trust-inventory.schema.json",
+        "evidence_requirement": "the verdict cites each gate result by name; a TRUE verdict with any gate absent is rejected",
+        "tests_required": [
+          "an absent gate result must produce safe_to_enter false (adverse inference control)",
+          "a clean checkout must produce safe_to_enter true WITH an explicit empty surface list"
+        ],
+        "reviewer_requirement": "an independent reviewer confirms no downstream agent ran with checkout_path as cwd before this artifact existed",
+        "completion_sentinel": "SUCCESS:SEC-6304 when the verdict, the enumerated surface list and every cited gate result are present; otherwise FAILED:SEC-6304 <reason>",
+        "retry_policy": "no retry - an unresolvable verdict is FALSE",
+        "failure_classification": ["verdict-unsupported", "gate-result-missing"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/security/trust/entry-verdict.json",
+          "schema_ref": "command-center/schema/runtime-trust-inventory.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6304",
+          "consumers": ["any-agent-that-would-enter-the-checkout"]
+        }
+      ]
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "verdict-emitted",
+      "expression": "entry_verdict_emitted == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "patterns_scanned == patterns_requested",
+      "on_stop": "complete"
+    },
+    {
+      "id": "scan-could-not-complete",
+      "expression": "scan_errors >= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": ["walker-error"],
+    "no_retry_on": ["quarantine-by-delete", "quarantine-lost-bytes"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-entry-decision"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": ["scan-incomplete", "quarantine-by-delete", "verdict-unsupported"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-entry-decision",
+    "quarantine_path": "command-center/security/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/trust-scan",
+    "granularity": "stage",
+    "idempotency_key_from": ["workflow_id", "stage_id", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 1800,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/trust-scan.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": ["workflow_version", "inputs_hash"],
+    "store": "command-center/cache/trust-scan",
+    "ttl_seconds": 3600,
+    "verify_integrity": true,
+    "invalidate_on": ["checkout-head-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report", "artifact-diff"],
+    "plan_artifact": "command-center/dry-run/trust-scan-plan.json",
+    "forbid_tools": ["Bash:python", "Write(command-center/security/trust/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": { "currency": "USD", "expected": 0.15, "max": 0.6 },
+    "wallclock_seconds": { "min": 30, "expected": 240, "max": 1200 },
+    "tokens": { "expected": 40000, "max": 150000 },
+    "tool_calls": { "expected": 25, "max": 90 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "renames aside inside the target checkout and writes under command-center/security/**; a rename is undone by renaming back",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/untrusted-checkout-config-quarantine.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "AGENTS.md#9-cloned-repo-auto-loaded-agent-config",
+        "relation": "TRANSLATE",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["AGENTS.md#9-cloned-repo-auto-loaded-agent-config"]
+  },
+
+  "outputs": {
+    "entry-verdict": {
+      "path": "command-center/security/trust/entry-verdict.json",
+      "schema_ref": "command-center/schema/runtime-trust-inventory.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["orchestrators-dispatching-into-a-third-party-checkout"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "agent-free-pre-execution-scan-then-rename-aside-containment",
+      "distinguishing_stage": "quarantine-executables",
+      "distinguishing_gate": "no-executable-surface-live",
+      "not_a_duplicate_because": "BP-SEC-05 measures LEGAL obligation and pinning on a third-party artifact and blocks on an absent licence; this contains the EXECUTION risk of merely making the directory an agent's cwd, and is the only workflow here that runs entirely before the risky action."
+    },
+    "disclosed_gap": "surface_patterns is a floor derived from the loader paths known on 2026-08-10. A novel auto-load path would be missed. The settling experiment is a diff of the runtime's own loader source against this pattern list at each runtime upgrade.",
+    "worked_example": {
+      "name": "an unregistered marketplace clone that ships its own hooks/",
+      "params": {
+        "checkout_path": "vendor/context-mode-clone",
+        "trust_level": "unknown-third-party",
+        "surface_patterns": [".claude/**", ".codex/**", ".mcp.json", "hooks/**", "AGENTS.md", "CLAUDE.md", "settings.json"],
+        "quarantine_root": "command-center/security/quarantine"
+      },
+      "expected_stage_path": [
+        "scan-auto-load-surfaces",
+        "completeness-gate",
+        "classify-execution-risk",
+        "quarantine-executables",
+        "rename-aside-one",
+        "containment-gate",
+        "owner-entry-decision",
+        "entry-verdict"
+      ],
+      "expected_artifacts": [
+        "command-center/security/trust/auto-load-surfaces.json",
+        "command-center/security/trust/surface-classification.json",
+        "command-center/security/trust/ENTRY-DECISION.json",
+        "command-center/security/trust/entry-verdict.json"
+      ],
+      "expected_terminal": "SUCCESS:SEC-6304",
+      "narrative": "The scan finds four surfaces: hooks/ with two registered commands (would_execute true), .mcp.json naming an npx command line (would_execute true), CLAUDE.md (would_execute false, marked untrusted-data), and AGENTS.md (same). Both executing surfaces are renamed aside with pre/post sha256 equal and a negative existence probe on the original paths, so the clone can still be audited later. trust_level is unknown-third-party, so the owner decision fires and returns audit-quarantined-first; the verdict artifact records safe_to_enter true for the now-inert checkout with the two quarantined surfaces enumerated by path."
+    }
+  }
+}

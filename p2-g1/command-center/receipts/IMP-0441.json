@@ -1,0 +1,255 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1382,
+      "eol": "CRLF",
+      "exists": true,
+      "path": ".gitattributes",
+      "role": "supporting",
+      "sha256": "b1e148cb858fdf1975699efd88f2d398cb40e5bc1ad431d435b55df7cf5a9759"
+    },
+    {
+      "bytes": 1119,
+      "eol": "CRLF",
+      "exists": true,
+      "path": ".github/workflows/command-center-eol.yml",
+      "role": "supporting",
+      "sha256": "ccefc785f8ccacdd7feabfbd007dff93901897fb9b49deea4f7480654820eac0"
+    },
+    {
+      "bytes": 10950,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/eol_policy.py",
+      "role": "supporting",
+      "sha256": "68653d0db09101c819a9d7ea0d716a04f2ee4ec6ce44b8bf862e8b7ee5358a29"
+    },
+    {
+      "bytes": 15876,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/validate.py",
+      "role": "supporting",
+      "sha256": "d3b8f5751819e0265d61ac365344ab32d71f7360899c044d8356f4c5404712cf"
+    },
+    {
+      "bytes": 15655,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/render.py",
+      "role": "supporting",
+      "sha256": "67b8f5e764e3314b747fabbf72a64440646202a545bce6c74a174cdbdaaa06a3"
+    },
+    {
+      "bytes": 2386,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/command-center/tests/test_eol_policy.py",
+      "role": "supporting",
+      "sha256": "a2e6764a998d146ea17676cfd200c17f0793e2965811b109ad77e38d08111139"
+    },
+    {
+      "bytes": 1918,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0441/probe1_dual_platform.py",
+      "role": "supporting",
+      "sha256": "71659833c73261cf08c8d2b5a487000690735d97f3a00129fc7c11899ee2c6c6"
+    },
+    {
+      "bytes": 2973,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0441/probe2_prefix_was_red.py",
+      "role": "supporting",
+      "sha256": "4b3f57d7d2541e8f66d5594d22c6a706fd6695f8c12ea6f4917da6f58c4a04b5"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SENTINEL:IMP-0441:GATES-GREEN-BOTH-PLATFORMS",
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0441.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": false,
+      "note": "G-1 measure runs after this receipt is on disk; do not pre-claim its exit.",
+      "probe": {
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0441",
+        "fingerprint": "e85c14968c9543ab3c8dcfaf0d921e21",
+        "method": "command",
+        "raw_output": "not yet run at emit time",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0441/probe1_dual_platform.py",
+      "claim": "Both command-center gates (cc-validate, cc-render --check) exit 0 on an LF tree (Linux CI) and on a CRLF materialisation of the same tree (Windows working-tree byte form).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0441/probe1_dual_platform.py",
+          "exit_code": 0,
+          "fingerprint": "32dd5249603333fd14520e9b3308a67e",
+          "method": "command",
+          "raw_output": "{\n  \"linux_green\": true,\n  \"linux_lf_render\": 0,\n  \"linux_lf_validate\": 0,\n  \"pass\": true,\n  \"probe\": \"probe1-dual-platform-gates\",\n  \"unit_id\": \"IMP-0441\",\n  \"windows_crlf_render\": 0,\n  \"windows_crlf_validate\": 0,\n  \"windows_green_after\": true\n}\nlinux validate=0 render=0 windows-crlf validate=0 render=0\nSUCCESS:IMP-0441-probe1 dual-platform gates exit 0 on LF and CRLF",
+          "role": "source"
+        },
+        {
+          "command": "python3 -m unittest discover -s tools/command-center/tests -p test_eol_policy.py",
+          "exit_code": 0,
+          "fingerprint": "d0f92287084de6d775746591e6fa6fdb",
+          "method": "command",
+          "raw_output": "Ran 3 tests OK (re-run at emit time via probe1+probe2)",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0441/probe2_prefix_was_red.py",
+      "claim": "The pre-fix Windows run was red: RAW CRLF hashes of REGISTER.md and STATUS.md disagree with the recorded LF digests, while LF-normalised hashes match. Removing *.md eol=lf from a copy of .gitattributes turns eol_policy.py --check red; the live file stays green.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0441/probe2_prefix_was_red.py",
+          "exit_code": 0,
+          "fingerprint": "1ba0080beee2f0e262ca24c57c8a93c4",
+          "method": "command",
+          "raw_output": "SUCCESS:eol-policy *.md *.py *.json *.yml *.yaml *.sh *.ps1 all carry eol=lf\nFAILED:eol-policy missing rules: ['*.md']\n{\n  \"live_eol_policy_exit\": 0,\n  \"live_gitattributes_missing\": [],\n  \"mutant_eol_policy_exit\": 1,\n  \"mutant_missing\": [\n    \"*.md\"\n  ],\n  \"pass\": true,\n  \"prefix\": {\n    \"both_postfix_match\": true,\n    \"both_prefix_red\": true,\n    \"reach6_lf_matches\": true,\n    \"reach6_raw_would_fail\": true,\n    \"register_crlf_count\": 13,\n    \"register_lf_sha256\": \"e585b891309a2311b10defb00d8ea91aae12661d83db97b2e857deb7e4eaf081\",\n    \"register_raw_sha256\": \"b2cd368660a28e0fb49f36e6bcbe020a44ba429bc69fcadf6d8e6155c555205a\",\n    \"register_recorded\": \"e585b891309a2311b10defb00d8ea91aae12661d83db97b2e857deb7e4eaf081\",\n    \"render_lf_matches\": true,\n    \"render_raw_would_fail\": true,\n    \"status_lf_sha256\": \"d9dc3a94c6265c46e8829506e93b23a8e757b5df2cfac5346fa790688266565a\",\n    \"status_raw_sha256\": \"3780ab68db85866fef29e2bb7c3d89ebe72a1f1f2346dfe1c1cf6f7deed06cdc\",\n    \"status_recorded\": \"d9dc3a94c6265c46e8829506e93b23a8e757b5df2cfac5346fa790688266565a\"\n  },\n  \"probe\": \"probe2-prefix-was-red\",\n  \"unit_id\": \"IMP-0441\"\n}\nprefix_red=True postfix_match=True crlf=13 live_rc=0 mutant_rc=1\nSUCCESS:IMP-0441-probe2 pre-fix Windows was red; md-rule mutation detected",
+          "role": "source"
+        },
+        {
+          "command": "read .gitattributes for *.md eol=lf",
+          "exit_code": 0,
+          "fingerprint": "2c09fc3174615c4754f172b17adb7669",
+          "method": "file-read",
+          "raw_output": ".gitattributes sha256=b1e148cb858fdf1975699efd88f2d398cb40e5bc1ad431d435b55df7cf5a9759 bytes=1382 eol=CRLF; checker=tools/command-center/eol_policy.py",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "gate_exit_codes": {
+    "linux_lf": {
+      "cc-render --check": 0,
+      "cc-validate": 0
+    },
+    "simulation_method": "Copy a min command-center tree the real CLIs accept, rewrite LF->CRLF in a sibling directory (core.autocrlf=true byte form), invoke python3 tools/command-center/validate.py and render.py --check",
+    "simulation_not_windows_os": true,
+    "windows_crlf_worktree_sim": {
+      "cc-render --check": 0,
+      "cc-validate": 0
+    },
+    "windows_prefix_raw_hash": {
+      "method": "sha256 of RAW CRLF working-tree bytes vs recorded LF digest; this is the pre-fix path (no .replace(b'\\r\\n', b'\\n'))",
+      "reach6_would_fail": true,
+      "render_manifest_would_fail": true
+    }
+  },
+  "id": "IMP-0441",
+  "implementation": {
+    "checker": "tools/command-center/eol_policy.py --check",
+    "ci_workflow": ".github/workflows/command-center-eol.yml",
+    "did_not_rewrite_tree_eol": true,
+    "gitattributes": ".gitattributes",
+    "hashing_defence_in_depth": [
+      "tools/command-center/validate.py REACH-6 LF-normalises before sha256",
+      "tools/command-center/render.py render_manifest LF-normalises before sha256"
+    ],
+    "required_eol_lf": [
+      "*.md",
+      "*.py",
+      "*.json",
+      "*.yml",
+      "*.yaml",
+      "*.sh",
+      "*.ps1"
+    ]
+  },
+  "manifest_registration": {
+    "global_unit_manifest_write": false,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0441/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "bad_state_output": "reach6_raw_would_fail=true render_raw_would_fail=true",
+      "description": "Hash RAW CRLF working-tree bytes the way REACH-6 and render_manifest did before LF-normalise. Must disagree with recorded LF digests.",
+      "fired_on_bad_state": true,
+      "good_state_output": "reach6_lf_matches=true render_lf_matches=true",
+      "id": "prefix-raw-crlf-hash",
+      "kind": "historical-defect-reproduction",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "FAILED:eol-policy missing rules: ['*.md'] exit=1",
+      "description": "Delete the *.md eol=lf line from a copy of .gitattributes.",
+      "fired_on_bad_state": true,
+      "good_state_output": "SUCCESS:eol-policy ... all carry eol=lf exit=0",
+      "id": "drop-md-eol-lf-rule",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for IMP-0441: named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not destructively normalise the live tree. Linux CI workflow .github/workflows/command-center-eol.yml runs the same probes.",
+  "question_or_target": "Add the EOL attributes that make the command-center gates runnable on the primary development box, then prove both gates exit zero on a Windows working tree. Exact target: the machine the program is authored on must be able to run its own gates.",
+  "residual_unknowns": [
+    {
+      "claim": "Dual-platform proof uses a min command-center tree the real CLIs accept (validate.py / render.py --check), not the live 103-item backlog. A live-tree red for a non-EOL reason is out of this unit's scope.",
+      "settling_experiment": "On the authoring checkout, re-run python3 tools/command-center/validate.py and render.py --check under core.autocrlf=true.",
+      "verdict": "DISCLOSED"
+    },
+    {
+      "claim": "Gates were not executed on a Windows OS re-clone; CRLF materialisation matches the defect mechanism (working-tree bytes).",
+      "settling_experiment": "independent-claude-reviewer: git clone with core.autocrlf=true on Windows and run both gates.",
+      "verdict": "DISCLOSED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "max 2 attempts; escalate rather than normalizing line endings destructively across the tree"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent of probe1: reproduces the pre-fix red hashes with a different method (raw sha256 vs CLI exit codes) and mutates .gitattributes. Not a clean Windows OS re-clone; CRLF materialisation of the working-tree bytes Git would emit under core.autocrlf=true.",
+    "reviewer_id": "IMP-0441-probe2-prefix-red-control",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0441:GATES-GREEN-BOTH-PLATFORMS",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0441",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0441/probe1_dual_platform.py",
+      "exit_code": 0,
+      "id": "probe1-dual-platform",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0441/probe2_prefix_was_red.py",
+      "exit_code": 0,
+      "id": "probe2-prefix-was-red",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 tools/command-center/eol_policy.py --check",
+      "id": "eol-policy-check",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:02:57Z",
+    "started_at": "2026-08-24T18:38:00Z"
+  },
+  "title": "EOL policy and a Windows-checkout green-gate proof",
+  "unit_id": "IMP-0441"
+}

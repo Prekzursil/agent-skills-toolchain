@@ -1,0 +1,684 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1096,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/decision-record.schema.json",
+   "role": "supporting",
+   "sha256": "aecf1c441dd02b678e85f3a45bc9359ba5d6d1209a4604ec368922c43a44fa98"
+  },
+  {
+   "bytes": 16385,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/phase3/A1/DESIGN.json",
+   "role": "fixture",
+   "sha256": "c588b9498287037470994d9299a45eff3cde854447ac07f70f26d4e15d5b7a0b"
+  },
+  {
+   "bytes": 24938,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/phase3/A2/DESIGN.json",
+   "role": "fixture",
+   "sha256": "6333275b67917dbade59064ce161f7beb14266991d1f9660b52665a8db6a537c"
+  },
+  {
+   "bytes": 10097,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/phase3/A1/REFUTATION.json",
+   "role": "fixture",
+   "sha256": "accc87becb7bb11903e61c72533a168e57fb10da334e684b51ce8e1ba4a1689b"
+  },
+  {
+   "bytes": 14722,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/phase3/A2/REFUTATION.json",
+   "role": "fixture",
+   "sha256": "cd34a3f57746011e17c7ac14852725a4b56f870fbdb69228f5b07ec6a565d4fe"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/phase3/SALVAGE-REGISTER.json",
+   "consumer": "salvage.check_coverage",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "salvage.check_coverage",
+    "exit_code": 0,
+    "fingerprint": "consumer:check-coverage",
+    "method": "static-analysis",
+    "raw_output": "coverage_ok=True ok",
+    "role": "verifier"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/phase3/SALVAGE-REGISTER.json",
+   "consumer": "salvage.check_disposition",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "salvage.check_disposition",
+    "exit_code": 0,
+    "fingerprint": "consumer:check-disposition",
+    "method": "static-analysis",
+    "raw_output": "disposition_ok=True ok",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe1_coverage.py",
+   "claim": "Every losing architecture has classified salvage rows XOR a certified-nothing reason; the winner is not listed as a loser.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "salvage.check_coverage",
+     "exit_code": 0,
+     "fingerprint": "coverage:xor-certified-nothing",
+     "method": "static-analysis",
+     "raw_output": "coverage_ok=True ok",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe1_coverage.py",
+     "exit_code": 0,
+     "fingerprint": "probe1:coverage-both-states",
+     "method": "command",
+     "raw_output": "named probe1 both-states (mutant drop cert / drop A1 rows)",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe2_disposition.py",
+   "claim": "Disposition totals equal PORT-NOW + PORT-LATER + DROP, each PORT-LATER has a trigger, each DROP has a reason, and the minority needle remains in the register.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "salvage.check_disposition",
+     "exit_code": 0,
+     "fingerprint": "disposition:partition-and-needle",
+     "method": "static-analysis",
+     "raw_output": "disposition_ok=True ok",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe2_disposition.py",
+     "exit_code": 0,
+     "fingerprint": "probe2:disposition-both-states",
+     "method": "schema-validate",
+     "raw_output": "named probe2 mutants: bad dimension, lying totals, dropped needle",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "ARC-0075",
+  "manifest_path": "command-center/p2-wave/probes/ARC-0075/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "Removing one certified-nothing entry must fail the coverage XOR.",
+   "fired_on_bad_state": true,
+   "id": "drop-certified-nothing-loser",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "totals.rows != len(salvage_rows) must fail disposition.",
+   "fired_on_bad_state": true,
+   "id": "lying-disposition-totals",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Redacting the minority-preserve mechanism must fail the needle check.",
+   "fired_on_bad_state": true,
+   "id": "silent-drop-minority-needle",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "report": {
+  "answer": "Local evidence ranking (not ARC-0074) selects A2 (generated-ssot) as the salvage incumbent because live dossiers exist only for A1 and A2, and A2 scores higher on fail-closed semantics, drift detection, and provenance. Eight entries lose: A1 contributes classified salvage rows; A3-A9 are certified nothing because DESIGN.json is absent. Do not treat this as the tournament winner. Do not rebuild ADV units.",
+  "certified_nothing": [
+   {
+    "architecture_class": "marketplace-first",
+    "design_unit": "ARC-0017",
+    "entry_id": "A3",
+    "reason": "command-center/phase3/A3/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "gateway-lazy-activation",
+    "design_unit": "ARC-0024",
+    "entry_id": "A4",
+    "reason": "command-center/phase3/A4/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "distributed-workflow-runtime",
+    "design_unit": "ARC-0031",
+    "entry_id": "A5",
+    "reason": "command-center/phase3/A5/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "cross-vendor-adapter",
+    "design_unit": "ARC-0038",
+    "entry_id": "A6",
+    "reason": "command-center/phase3/A6/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "security-first",
+    "design_unit": "ARC-0045",
+    "entry_id": "A7",
+    "reason": "command-center/phase3/A7/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "ux-product-first",
+    "design_unit": "ARC-0052",
+    "entry_id": "A8",
+    "reason": "command-center/phase3/A8/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   },
+   {
+    "architecture_class": "maximal-hybrid",
+    "design_unit": "ARC-0059",
+    "entry_id": "A9",
+    "reason": "command-center/phase3/A9/DESIGN.json is absent on this worktree. No scorecard dimension can be evidenced, so salvaging mechanisms would be taste-selected. Certified as contributing nothing."
+   }
+  ],
+  "control_ids": [
+   "coverage-xor-certified-nothing",
+   "disposition-totals-must-match-rows",
+   "minority-needle-must-remain"
+  ],
+  "decision": {
+   "adv_rebuild_circle": false,
+   "score_source": "local-evidence-ranking-from-live-dossiers",
+   "summary": "Local evidence ranking (not ARC-0074) selects A2 (generated-ssot) as the salvage incumbent because live dossiers exist only for A1 and A2, and A2 scores higher on fail-closed semantics, drift detection, and provenance. Eight entries lose: A1 contributes classified salvage rows; A3-A9 are certified nothing because DESIGN.json is absent. Do not treat this as the tournament winner. Do not rebuild ADV units.",
+   "well_threshold": 3,
+   "winner_class": "generated-ssot",
+   "winner_id": "A2",
+   "winner_is_arc_0074": false,
+   "winner_source": "local-evidence-ranking"
+  },
+  "disposition_totals": {
+   "DROP": 3,
+   "PORT-LATER": 2,
+   "PORT-NOW": 4,
+   "rows": 9
+  },
+  "entries": [
+   {
+    "architecture_class": "config-first-minimal",
+    "design_present": true,
+    "design_unit": "ARC-0003",
+    "entry_id": "A1",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": true,
+     "FAILURE-MODES.json": true,
+     "MIGRATION.json": true,
+     "REFUTATION.json": true
+    },
+    "score_total": 24,
+    "scores": {
+     "drift_detection": 3,
+     "expressibility": 5,
+     "fail_closed_semantics": 2,
+     "migration_fidelity": 5,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 5,
+     "resource_efficiency": 4
+    }
+   },
+   {
+    "architecture_class": "generated-ssot",
+    "design_present": true,
+    "design_unit": "ARC-0010",
+    "entry_id": "A2",
+    "is_winner": true,
+    "lenses": {
+     "DESIGN.json": true,
+     "FAILURE-MODES.json": true,
+     "MIGRATION.json": false,
+     "REFUTATION.json": true
+    },
+    "score_total": 26,
+    "scores": {
+     "drift_detection": 4,
+     "expressibility": 5,
+     "fail_closed_semantics": 5,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 5,
+     "refutation_honesty": 5,
+     "resource_efficiency": 2
+    }
+   },
+   {
+    "architecture_class": "marketplace-first",
+    "design_present": false,
+    "design_unit": "ARC-0017",
+    "entry_id": "A3",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "gateway-lazy-activation",
+    "design_present": false,
+    "design_unit": "ARC-0024",
+    "entry_id": "A4",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "distributed-workflow-runtime",
+    "design_present": false,
+    "design_unit": "ARC-0031",
+    "entry_id": "A5",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "cross-vendor-adapter",
+    "design_present": false,
+    "design_unit": "ARC-0038",
+    "entry_id": "A6",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "security-first",
+    "design_present": false,
+    "design_unit": "ARC-0045",
+    "entry_id": "A7",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "ux-product-first",
+    "design_present": false,
+    "design_unit": "ARC-0052",
+    "entry_id": "A8",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   },
+   {
+    "architecture_class": "maximal-hybrid",
+    "design_present": false,
+    "design_unit": "ARC-0059",
+    "entry_id": "A9",
+    "is_winner": false,
+    "lenses": {
+     "DESIGN.json": false,
+     "FAILURE-MODES.json": false,
+     "MIGRATION.json": false,
+     "REFUTATION.json": false
+    },
+    "score_total": 0,
+    "scores": {
+     "drift_detection": 0,
+     "expressibility": 0,
+     "fail_closed_semantics": 0,
+     "migration_fidelity": 0,
+     "provenance_and_tamper": 0,
+     "refutation_honesty": 0,
+     "resource_efficiency": 0
+    }
+   }
+  ],
+  "evidence": [
+   {
+    "anchor": "command-center/phase3/A1/DESIGN.json:212",
+    "claim": "A1 DESIGN specifies unlisted files are not loaded.",
+    "line": 212,
+    "path": "command-center/phase3/A1/DESIGN.json",
+    "snippet": "unlisted_file",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/phase3/A1/REFUTATION.json:2",
+    "claim": "A1 dissent: config-first minimises surprise execution, not surprise absence.",
+    "line": 2,
+    "path": "command-center/phase3/A1/REFUTATION.json",
+    "snippet": "minimises surprise execution",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/phase3/A2/DESIGN.json:225",
+    "claim": "A2 DESIGN fail-closes unlisted generated files as ORPHAN.",
+    "line": 225,
+    "path": "command-center/phase3/A2/DESIGN.json",
+    "snippet": "unlisted_generated_file",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/phase3/A2/REFUTATION.json:232",
+    "claim": "A2 refutation forbids an ADV rebuild circle (no hatch, no split generator).",
+    "line": 232,
+    "path": "command-center/phase3/A2/REFUTATION.json",
+    "snippet": "Do not rebuild A2",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/phase3/A1/FAILURE-MODES.json:31",
+    "claim": "A1 failure-modes: smallest structural fix is one writable tree.",
+    "line": 31,
+    "path": "command-center/phase3/A1/FAILURE-MODES.json",
+    "snippet": "single writable tree",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/phase3/A2/FAILURE-MODES.json:2",
+    "claim": "A2 completeness Direction A is live-failing on this tree (orphan registry rows).",
+    "line": 2,
+    "path": "command-center/phase3/A2/FAILURE-MODES.json",
+    "snippet": "Direction A",
+    "verdict": "CONFIRMED"
+   }
+  ],
+  "kind": "decision-record",
+  "minority_needles": [
+   "minimises surprise execution"
+  ],
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe1_coverage.py",
+    "id": "probe1",
+    "role": "coverage"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe2_disposition.py",
+    "id": "probe2",
+    "role": "disposition-totality"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe1_coverage.py",
+    "measured": true,
+    "method": "rows XOR certified_nothing per loser",
+    "name": "losing-entry-coverage"
+   },
+   {
+    "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe2_disposition.py",
+    "measured": 9,
+    "method": "PORT-NOW + PORT-LATER + DROP == rows",
+    "name": "disposition-partition"
+   }
+  ],
+  "question": "What must NOT be lost when eight architectures lose? Enumerate, per losing entry, the mechanisms that scored well on at least one rubric dimension, record why each was not carried into the winner, and classify each as PORT-NOW, PORT-LATER (with the trigger condition), or DROP (with the reason).",
+  "reviewer": {
+   "independent": true,
+   "reviewer_id": "ARC-0075-dissent-A1-refutation",
+   "scope": "Confirm no minority-favoured mechanism was silently dropped. Needle: config-first minimises surprise execution.",
+   "side": "dissent-A1",
+   "verdict": "PASS"
+  },
+  "salvage_rows": [
+   {
+    "disposition": "PORT-NOW",
+    "evidence_anchor": "command-center/phase3/A1/DESIGN.json:212",
+    "losing_entry": "A1",
+    "mechanism": "Capability load is MANIFEST-enumerated: a file sitting in a capabilities directory is not a capability unless listed.",
+    "minority_preserve": false,
+    "reason": null,
+    "row_id": "A1-M1-manifest-enumeration",
+    "score": 5,
+    "scorecard_dimension": "expressibility",
+    "trigger": null,
+    "why_not_in_winner": "A2 fail-closes generated ORPHANs (unlisted_generated_file) but does not scan a live tree beside the registry. The listing rule must apply to any unreviewed file, not only generated projections."
+   },
+   {
+    "disposition": "DROP",
+    "evidence_anchor": "command-center/phase3/A1/REFUTATION.json:2",
+    "losing_entry": "A1",
+    "mechanism": "Unlisted files are silently skipped (no fail-closed orphan signal).",
+    "minority_preserve": false,
+    "reason": "REFUTED as min-risk: silent omit is specified, not a wording slip. Keep the listing rule; drop the silence.",
+    "row_id": "A1-M2-silent-skip-drop",
+    "score": 5,
+    "scorecard_dimension": "expressibility",
+    "trigger": null,
+    "why_not_in_winner": "Silence is the defect. Winner already names ORPHAN FAIL-CLOSED. Porting A1's silence would reintroduce the unlisted-skill omit that A2 exists to catch."
+   },
+   {
+    "disposition": "PORT-LATER",
+    "evidence_anchor": "command-center/phase3/A1/DESIGN.json:211",
+    "losing_entry": "A1",
+    "mechanism": "Equal load_order ties break by UTF-8 path order. No mtime, no timestamp, no runtime coin-flip.",
+    "minority_preserve": false,
+    "reason": null,
+    "row_id": "A1-M3-no-mtime-tie",
+    "score": 5,
+    "scorecard_dimension": "expressibility",
+    "trigger": "Winner (or a later overlay) allows two files with equal load_order / equal registry precedence.",
+    "why_not_in_winner": "A2 fail-closes duplicate registry ids and currently has no overlay files, so a path-order tie-break is unused."
+   },
+   {
+    "disposition": "PORT-NOW",
+    "evidence_anchor": "command-center/phase3/A1/MIGRATION.json:50",
+    "losing_entry": "A1",
+    "mechanism": "Two-direction migration: a unique line on either side forbids taking the other side as a one-directional overwrite. Clocks do not authorise overwrite.",
+    "minority_preserve": false,
+    "reason": null,
+    "row_id": "A1-M4-unique-line-freeze",
+    "score": 5,
+    "scorecard_dimension": "migration_fidelity",
+    "trigger": null,
+    "why_not_in_winner": "A2 extraction already queues live-larger remainder instead of opaque_body. The stronger unique-line freeze is not written as a clock-independent overwrite ban on the winner's live tree."
+   },
+   {
+    "disposition": "PORT-NOW",
+    "evidence_anchor": "command-center/phase3/A1/FAILURE-MODES.json:31",
+    "losing_entry": "A1",
+    "mechanism": "Smallest structural fix for two-tree drift: one writable tree. Detection-after-the-fact is not structural consistency.",
+    "minority_preserve": false,
+    "reason": null,
+    "row_id": "A1-M5-single-writable-tree",
+    "score": 3,
+    "scorecard_dimension": "drift_detection",
+    "trigger": null,
+    "why_not_in_winner": "A2's registry is a logical SSOT, but this host still has Direction-A orphan registry rows and zero generated files \u2014 a second implicit tree. Collapse the live writable set to the registry+generated pair."
+   },
+   {
+    "disposition": "PORT-LATER",
+    "evidence_anchor": "command-center/phase3/A1/FAILURE-MODES.json:2",
+    "losing_entry": "A1",
+    "mechanism": "Stop-hook after-the-fact live-vs-repo drift detector with measured both-states latency.",
+    "minority_preserve": false,
+    "reason": null,
+    "row_id": "A1-M6-stop-hook-later",
+    "score": 3,
+    "scorecard_dimension": "drift_detection",
+    "trigger": "A second live tree exists beside the registry/generated tree after PORT-NOW of A1-M5 is refused or delayed.",
+    "why_not_in_winner": "A2 detects drift at generate-time (TAMPERED/STALE/ORPHAN). A Stop-hook is a second sensor for a remaining live tree."
+   },
+   {
+    "disposition": "DROP",
+    "evidence_anchor": "command-center/phase3/A1/DESIGN.json:208",
+    "losing_entry": "A1",
+    "mechanism": "No generated layer and no resident runtime (fewest moving parts).",
+    "minority_preserve": false,
+    "reason": "REFUTED as min-risk: no_generated_layer removes the orphan detector. Do not rebuild A2 into A1.",
+    "row_id": "A1-M7-no-generator-drop",
+    "score": 4,
+    "scorecard_dimension": "resource_efficiency",
+    "trigger": null,
+    "why_not_in_winner": "Absence of a generator is absence of the completeness detector. Porting 'no generator' into A2 is an ADV rebuild circle."
+   },
+   {
+    "disposition": "PORT-NOW",
+    "evidence_anchor": "command-center/phase3/A1/REFUTATION.json:2",
+    "losing_entry": "A1",
+    "mechanism": "Config-first minimises surprise execution of unreviewed files (activation risk), not surprise absence (omission risk).",
+    "minority_preserve": true,
+    "reason": null,
+    "row_id": "A1-M8-minority-unreviewed-execution",
+    "score": 3,
+    "scorecard_dimension": "fail_closed_semantics",
+    "trigger": null,
+    "why_not_in_winner": "A2 ORPHAN fail-closes generated projections. The dissent extends the same rule to any unreviewed file in a live tree, including non-generated drops the registry never named."
+   },
+   {
+    "disposition": "DROP",
+    "evidence_anchor": "command-center/phase3/A2/DESIGN.json:221",
+    "losing_entry": "A1",
+    "mechanism": "No field-level merge. Replacement is whole-object. Field merge would be a generator.",
+    "minority_preserve": false,
+    "reason": "already-in-winner (A2 precedence.merge)",
+    "row_id": "A1-M9-whole-object-replace",
+    "score": 5,
+    "scorecard_dimension": "expressibility",
+    "trigger": null,
+    "why_not_in_winner": "Already present: A2 merge rule discards hand-edits on regenerate."
+   }
+  ],
+  "tournament_inputs": {
+   "command-center/phase3/MINORITY-REPORT.json": false,
+   "command-center/phase3/SCORECARDS.json": false,
+   "command-center/phase3/WINNING-ARCHITECTURE.json": false
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Tournament SCORECARDS.json / WINNING-ARCHITECTURE.json are absent on this worktree, so the salvage incumbent is a local A1/A2 ranking rather than the ARC-0074 tournament winner.",
+   "settling_experiment": "Place command-center/phase3/SCORECARDS.json and WINNING-ARCHITECTURE.json on disk and re-run salvage.build(); winner_source must become WINNING-ARCHITECTURE.json when that file names an A1-A9 id.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Dissent-side reviewer: no minority-favoured mechanism was silently dropped. Needle: config-first minimises surprise execution.",
+  "reviewer_id": "ARC-0075-dissent-A1-refutation",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0075",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0075]",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe1_coverage.py",
+   "id": "coverage",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0075/probe2_disposition.py",
+   "id": "disposition",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:16Z",
+  "started_at": "2026-08-24T18:59:00Z"
+ },
+ "unit_id": "ARC-0075"
+}

@@ -1,0 +1,1278 @@
+{
+ "answer": {
+  "classification": "shared-state-leakage",
+  "evidence_strength": "ADEQUATE",
+  "failing_permutation_count": 11,
+  "minimal_pairs": [
+   [
+    "test_plant_polluter",
+    "test_plant_victim"
+   ],
+   [
+    "test_plant_writer",
+    "test_plant_reader"
+   ]
+  ],
+  "permutations_executed": 12,
+  "summary": "Executed 12 seeded permutations (seeds 34401..34412); 11 failed. Bisection produced minimal ordered pairs [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]] classified as shared-state leakage (hidden-setup writer/reader; pollution polluter/victim), not C11 flake and not C18 seed sensitivity. Planted control fired. Isolated-session and no-plant suites report zero pairs (both-states). A pass across three permutations is weak evidence and must be labelled as such. This campaign is ADEQUATE (>=10). SUCCESS:TST-0344"
+ },
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0344.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 25591,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0344/engine.py",
+   "role": "supporting",
+   "sha256": "2bdbd8a89db0ed8d78114484d5dcc0b651fe7621a329664dbc365557dd3f4fd1"
+  },
+  {
+   "bytes": 5220,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0344/probe1_permutations_and_bisect.py",
+   "role": "supporting",
+   "sha256": "1e69f67e10b77e31f979cc5a734fa528d0e91b9d58c9d71ff13b540b54151c2c"
+  },
+  {
+   "bytes": 8400,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "role": "supporting",
+   "sha256": "5ca5eb5f532171b7c3531e8f9565f6089127ad0f92f1867cbed6dc90a547f753"
+  },
+  {
+   "bytes": 2280,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0344/test-registry.json",
+   "role": "supporting",
+   "sha256": "01d21be4ecb56075170cb35adc85ed53618cdc21a85d1594b5e17c370c30c9b4"
+  },
+  {
+   "bytes": 1083,
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "supporting",
+   "sha256": "ecc5c6e142b9a04b751774098bebfb300593e75b83306f804e75f6a9f7c75377"
+  }
+ ],
+ "classification_vs_c11_c18": {
+  "c11_flake": "outcome varies under the SAME order (coin-flip plant in probe2)",
+  "c18_seed": "outcome varies with TEST rng seed, not shuffle seed",
+  "order_dependence": "outcome varies with relative order; stable under same order",
+  "repair": "stop mutating shared fixture/global state; not quarantine-as-flake and not seed-registry alone"
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0344",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0344/engine.py:run_campaign",
+   "claim": "12 distinct seeded orders; shuffle moved (distinct_orders=12); 11 failing permutations recorded with seeds.",
+   "detail": "[{\"failed\": [\"test_plant_victim\"], \"seed\": 34401}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34402}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34403}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34404}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34405}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34407}, {\"failed\": [\"test_plant_victim\", \"test_plant_reader\"], \"seed\": 34408}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34409}, {\"failed\": [\"test_plant_reader\", \"test_plant_victim\"], \"seed\": 34410}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34411}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34412}]",
+   "kind": "permutation-campaign",
+   "path": "command-center/p2-wave/probes/TST-0344/engine.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0344/engine.py:bisect_failure",
+   "claim": "Every failing permutation bisected to a minimal ordered pair. Pairs: [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]].",
+   "detail": "[{\"classification\": \"shared-state-leakage\", \"kind\": \"hidden-setup\", \"pair\": [\"test_plant_writer\", \"test_plant_reader\"], \"t_when_s_first\": \"PASS\", \"t_when_t_first\": \"FAIL\"}, {\"classification\": \"shared-state-leakage\", \"kind\": \"pollution\", \"pair\": [\"test_plant_polluter\", \"test_plant_victim\"], \"t_when_s_first\": \"FAIL\", \"t_when_t_first\": \"PASS\"}]",
+   "kind": "minimal-ordered-pair-bisection",
+   "path": "command-center/p2-wave/probes/TST-0344/engine.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "claim": "Planted writer/reader (hidden-setup) and polluter/victim (pollution) are surfaced under a shared session and absent when the session is isolated per test or plants are removed.",
+   "detail": "{\"bad_pairs\": [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]], \"dropped_decoys\": [[\"test_delta_independent\", \"test_plant_reader\"], [\"test_zeta_independent\", \"test_plant_victim\"]], \"isolated_pairs\": [], \"no_plant_pairs\": []}",
+   "kind": "planted-control-both-states",
+   "path": "command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0344/engine.py:_weak_windows",
+   "claim": "A pass across three permutations is weak evidence and must be labelled as such.",
+   "detail": "Campaign n=12 strength=ADEQUATE; 3-perm all-pass windows=0 (labelled WEAK if any).",
+   "kind": "weak-three-permutation-label",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": "Report the permutations run, every failing permutation and the minimal reproducing pair for each. A pass across three permutations is weak evidence and must be labelled as such.",
+ "fallback_schema": "command-center/schema/test-receipt.schema.json",
+ "fixed_pid": {
+  "applied": true,
+  "pid": 344,
+  "trace_unchanged": true
+ },
+ "frozen_clock": {
+  "applied": true,
+  "clock_ns": 1725000000000000000,
+  "trace_unchanged": true
+ },
+ "global_test_registry": {
+  "local_registry": "command-center/p2-wave/probes/TST-0344/test-registry.json",
+  "note": "Global TEST-REGISTRY.json is absent. The detector runs the probe-local registered suite including the planted control. Estate-wide pytest shuffle is NOT-CHECKED.",
+  "path": "command-center/TEST-REGISTRY.json",
+  "present": true
+ },
+ "id": "TST-0344",
+ "kind": "test-receipt",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0344/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe1_permutations_and_bisect.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"bisection_count\": 13, \"distinct_orders\": 12, \"evidence_strength\": \"ADEQUATE\", \"expected_planted_pairs\": [{\"found\": true, \"kind\": \"hidden-setup\", \"pair\": [\"test_plant_writer\", \"test_plant_reader\"]}, {\"found\": true, \"kind\": \"pollution\", \"pair\": [\"test_plant_polluter\", \"test_plant_victim\"]}], \"failing_permutation_count\": 11, \"failing_permutations\": [{\"failed\": [\"test_plant_victim\"], \"seed\": 34401}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34402}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34403}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34404}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34405}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34407}, {\"failed\": [\"test_plant_victim\", \"test_plant_reader\"], \"seed\": 34408}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34409}, {\"failed\": [\"test_plant_reader\", \"test_plant_victim\"], \"seed\": 34410}, {\"failed\": [\"test_plant_reader\"], \"seed\": 34411}, {\"failed\": [\"test_plant_victim\"], \"seed\": 34412}], \"matrix_sha256\": \"616699263eddc537a28250dd01046a32a62c8bb470e8c08ac1ea590751ce8623\", \"minimal_pairs\": [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]], \"n_permutations\": 12, \"pass\": true, \"probe\": \"probe1-permutations-and-bisect\", \"relative_order_pairs\": [{\"classification\": \"shared-state-leakage\", \"kind\": \"hidden-setup\", \"pair\": [\"test_plant_writer\", \"test_plant_reader\"], \"t_when_s_first\": \"PASS\", \"t_when_t_first\": \"FAIL\"}, {\"classification\": \"shared-state-leakage\", \"kind\": \"pollution\", \"pair\": [\"test_plant_polluter\", \"test_plant_victim\"], \"t_when_s_first\": \"FAIL\", \"t_when_t_first\": \"PASS\"}], \"same_seed_matrix_identical\": true, \"same_seed_shuffle_identical\": true, \"seeds\": [34401, 34402, 34403, 34404, 34405, 34406, 34407, 34408, 34409, 34410, 34411, 34412], \"shuffle_moved\": true, \"three_permutation_rule\": \"A pass across three permutations is weak evidence and must be labelled as such.\", \"unit_id\": \"TST-0344\", \"varying_tests\": [\"test_plant_reader\", \"test_plant_victim\"], \"weak_windows\": []}\nperms=12 failing=11 pairs=[['test_plant_polluter', 'test_plant_victim'], ['test_plant_writer', 'test_plant_reader']] weak_3perm_windows=0 matrix=616699263eddc537\nSUCCESS:TST-0344-probe1 12 permutations, 11 failing, pairs=[['test_plant_polluter', 'test_plant_victim'], ['test_plant_writer', 'test_plant_reader']]",
+   "role": "permutations-matrix-and-bisection"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"bad_state\": {\"failing_permutation_count\": 11, \"isolate_per_test\": false, \"minimal_pairs\": [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]], \"varying_tests\": [\"test_plant_reader\", \"test_plant_victim\"]}, \"both_states\": true, \"c18_seed_swap\": {\"changed_tests\": [\"test_seed_declared_ok\"], \"distinct_from_order_dependence\": true, \"plant_order_tests_changed\": [], \"seed_test_changed\": true}, \"good_state_isolated\": {\"constant_fail\": [\"test_plant_reader\"], \"isolate_per_test\": true, \"minimal_pairs\": [], \"varying_tests\": []}, \"good_state_no_plants\": {\"failing_permutation_count\": 0, \"minimal_pairs\": [], \"plants\": false, \"varying_tests\": []}, \"independent\": true, \"pass\": true, \"probe\": \"probe2-planted-control-both-states\", \"reviewer_confirmed_pairs\": [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]], \"reviewer_dropped_decoys\": [[\"test_delta_independent\", \"test_plant_reader\"], [\"test_zeta_independent\", \"test_plant_victim\"]], \"reviewer_id\": \"TST-0344-probe2-both-states-and-not-c11-c18\", \"reviewer_matrix_candidates\": [[\"test_delta_independent\", \"test_plant_reader\"], [\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"], [\"test_zeta_independent\", \"test_plant_victim\"]], \"reviewer_reconstructed_pairs\": [[\"test_plant_polluter\", \"test_plant_victim\"], [\"test_plant_writer\", \"test_plant_reader\"]], \"same_order_flake_plant\": {\"classification\": \"flake (C11)\", \"repeats\": 5, \"unstable\": [\"test_plant_coin_flip\"]}, \"same_order_stable_plants\": {\"classification\": \"same-order-stable (not C11)\", \"repeats\": 5, \"unstable\": []}, \"unit_id\": \"TST-0344\"}\nbad_pairs=[['test_plant_polluter', 'test_plant_victim'], ['test_plant_writer', 'test_plant_reader']] isolated_pairs=[] no_plant_pairs=[] same_order_stable=True flake=['test_plant_coin_flip'] c18=['test_seed_declared_ok']\nSUCCESS:TST-0344-probe2 both-states control, reviewer reconstructed [('test_plant_polluter', 'test_plant_victim'), ('test_plant_writer', 'test_plant_reader')]",
+   "role": "both-states-planted-control-and-reviewer"
+  }
+ ],
+ "negative_controls": [
+  {
+   "fired_on_bad_state": true,
+   "id": "planted-hidden-setup-writer-reader",
+   "kind": "known-broken-twin",
+   "silent_on_good_state": true
+  },
+  {
+   "fired_on_bad_state": true,
+   "id": "planted-pollution-polluter-victim",
+   "kind": "known-broken-twin",
+   "silent_on_good_state": true
+  },
+  {
+   "fired_on_bad_state": true,
+   "id": "isolated-session-no-pairs",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "nondeterminism_sources": [
+  {
+   "how_found": "randomised-order campaign + pair bisection",
+   "leaks_into_production_dag": false,
+   "site": "shared Session.token / Session.clean mutated by planted tests",
+   "source": "other"
+  }
+ ],
+ "notes": "G-1 delivery of TST-0344 randomised-order order-dependence detector. Live named probes exit 0. Did not run global unit_manifest.py --write. Cloud ok=true is not delivery. SUCCESS:TST-0344",
+ "outcome_matrix": [
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_beta_independent",
+    "test_delta_independent",
+    "test_alpha_independent",
+    "test_plant_polluter",
+    "test_epsilon_independent",
+    "test_gamma_independent",
+    "test_seed_declared_ok",
+    "test_plant_writer",
+    "test_eta_independent",
+    "test_plant_reader",
+    "test_zeta_independent",
+    "test_plant_victim"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34401
+  },
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_alpha_independent",
+    "test_eta_independent",
+    "test_plant_writer",
+    "test_gamma_independent",
+    "test_delta_independent",
+    "test_beta_independent",
+    "test_epsilon_independent",
+    "test_seed_declared_ok",
+    "test_plant_reader",
+    "test_zeta_independent",
+    "test_plant_polluter",
+    "test_plant_victim"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34402
+  },
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_plant_polluter",
+    "test_eta_independent",
+    "test_zeta_independent",
+    "test_alpha_independent",
+    "test_delta_independent",
+    "test_epsilon_independent",
+    "test_plant_writer",
+    "test_plant_victim",
+    "test_gamma_independent",
+    "test_plant_reader",
+    "test_beta_independent",
+    "test_seed_declared_ok"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34403
+  },
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_plant_writer",
+    "test_delta_independent",
+    "test_plant_polluter",
+    "test_plant_reader",
+    "test_alpha_independent",
+    "test_plant_victim",
+    "test_beta_independent",
+    "test_eta_independent",
+    "test_seed_declared_ok",
+    "test_gamma_independent",
+    "test_epsilon_independent",
+    "test_zeta_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34404
+  },
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_plant_polluter",
+    "test_seed_declared_ok",
+    "test_eta_independent",
+    "test_plant_writer",
+    "test_delta_independent",
+    "test_zeta_independent",
+    "test_plant_reader",
+    "test_gamma_independent",
+    "test_beta_independent",
+    "test_epsilon_independent",
+    "test_alpha_independent",
+    "test_plant_victim"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34405
+  },
+  {
+   "failed": [],
+   "order": [
+    "test_eta_independent",
+    "test_gamma_independent",
+    "test_plant_writer",
+    "test_delta_independent",
+    "test_epsilon_independent",
+    "test_beta_independent",
+    "test_plant_victim",
+    "test_plant_polluter",
+    "test_zeta_independent",
+    "test_plant_reader",
+    "test_seed_declared_ok",
+    "test_alpha_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "PASS",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34406
+  },
+  {
+   "failed": [
+    "test_plant_reader"
+   ],
+   "order": [
+    "test_alpha_independent",
+    "test_plant_reader",
+    "test_beta_independent",
+    "test_delta_independent",
+    "test_plant_victim",
+    "test_plant_writer",
+    "test_zeta_independent",
+    "test_eta_independent",
+    "test_epsilon_independent",
+    "test_seed_declared_ok",
+    "test_gamma_independent",
+    "test_plant_polluter"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "FAIL",
+    "test_plant_victim": "PASS",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34407
+  },
+  {
+   "failed": [
+    "test_plant_victim",
+    "test_plant_reader"
+   ],
+   "order": [
+    "test_epsilon_independent",
+    "test_plant_polluter",
+    "test_alpha_independent",
+    "test_zeta_independent",
+    "test_beta_independent",
+    "test_plant_victim",
+    "test_plant_reader",
+    "test_delta_independent",
+    "test_gamma_independent",
+    "test_seed_declared_ok",
+    "test_plant_writer",
+    "test_eta_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "FAIL",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34408
+  },
+  {
+   "failed": [
+    "test_plant_reader"
+   ],
+   "order": [
+    "test_plant_victim",
+    "test_eta_independent",
+    "test_plant_reader",
+    "test_epsilon_independent",
+    "test_zeta_independent",
+    "test_beta_independent",
+    "test_plant_writer",
+    "test_delta_independent",
+    "test_plant_polluter",
+    "test_alpha_independent",
+    "test_gamma_independent",
+    "test_seed_declared_ok"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "FAIL",
+    "test_plant_victim": "PASS",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34409
+  },
+  {
+   "failed": [
+    "test_plant_reader",
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_beta_independent",
+    "test_plant_polluter",
+    "test_plant_reader",
+    "test_gamma_independent",
+    "test_seed_declared_ok",
+    "test_epsilon_independent",
+    "test_zeta_independent",
+    "test_plant_writer",
+    "test_delta_independent",
+    "test_plant_victim",
+    "test_eta_independent",
+    "test_alpha_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "FAIL",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34410
+  },
+  {
+   "failed": [
+    "test_plant_reader"
+   ],
+   "order": [
+    "test_epsilon_independent",
+    "test_delta_independent",
+    "test_seed_declared_ok",
+    "test_gamma_independent",
+    "test_eta_independent",
+    "test_alpha_independent",
+    "test_beta_independent",
+    "test_plant_victim",
+    "test_plant_reader",
+    "test_plant_writer",
+    "test_plant_polluter",
+    "test_zeta_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "FAIL",
+    "test_plant_victim": "PASS",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34411
+  },
+  {
+   "failed": [
+    "test_plant_victim"
+   ],
+   "order": [
+    "test_plant_polluter",
+    "test_plant_writer",
+    "test_eta_independent",
+    "test_seed_declared_ok",
+    "test_delta_independent",
+    "test_zeta_independent",
+    "test_alpha_independent",
+    "test_plant_victim",
+    "test_plant_reader",
+    "test_epsilon_independent",
+    "test_gamma_independent",
+    "test_beta_independent"
+   ],
+   "outcomes": {
+    "test_alpha_independent": "PASS",
+    "test_beta_independent": "PASS",
+    "test_delta_independent": "PASS",
+    "test_epsilon_independent": "PASS",
+    "test_eta_independent": "PASS",
+    "test_gamma_independent": "PASS",
+    "test_plant_polluter": "PASS",
+    "test_plant_reader": "PASS",
+    "test_plant_victim": "FAIL",
+    "test_plant_writer": "PASS",
+    "test_seed_declared_ok": "PASS",
+    "test_zeta_independent": "PASS"
+   },
+   "seed": 34412
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "output_schema_present": true,
+ "permutation_campaign": {
+  "bisections": [
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34401
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34402
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34403
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34404
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34405
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_reader",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "seed": 34407
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34408
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_reader",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "seed": 34408
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_reader",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "seed": 34409
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_reader",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "seed": 34410
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34410
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_reader",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "seed": 34411
+   },
+   {
+    "classification": "shared-state-leakage",
+    "id": "test_plant_victim",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34412
+   }
+  ],
+  "constant_pass": [
+   "test_alpha_independent",
+   "test_beta_independent",
+   "test_gamma_independent",
+   "test_plant_writer",
+   "test_delta_independent",
+   "test_epsilon_independent",
+   "test_zeta_independent",
+   "test_plant_polluter",
+   "test_eta_independent",
+   "test_seed_declared_ok"
+  ],
+  "declaration_order": [
+   "test_alpha_independent",
+   "test_plant_reader",
+   "test_beta_independent",
+   "test_gamma_independent",
+   "test_plant_writer",
+   "test_delta_independent",
+   "test_plant_victim",
+   "test_epsilon_independent",
+   "test_zeta_independent",
+   "test_plant_polluter",
+   "test_eta_independent",
+   "test_seed_declared_ok"
+  ],
+  "distinct_orders": 12,
+  "evidence_strength": "ADEQUATE",
+  "failing_permutations": [
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_beta_independent",
+     "test_delta_independent",
+     "test_alpha_independent",
+     "test_plant_polluter",
+     "test_epsilon_independent",
+     "test_gamma_independent",
+     "test_seed_declared_ok",
+     "test_plant_writer",
+     "test_eta_independent",
+     "test_plant_reader",
+     "test_zeta_independent",
+     "test_plant_victim"
+    ],
+    "seed": 34401
+   },
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_alpha_independent",
+     "test_eta_independent",
+     "test_plant_writer",
+     "test_gamma_independent",
+     "test_delta_independent",
+     "test_beta_independent",
+     "test_epsilon_independent",
+     "test_seed_declared_ok",
+     "test_plant_reader",
+     "test_zeta_independent",
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "seed": 34402
+   },
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_plant_polluter",
+     "test_eta_independent",
+     "test_zeta_independent",
+     "test_alpha_independent",
+     "test_delta_independent",
+     "test_epsilon_independent",
+     "test_plant_writer",
+     "test_plant_victim",
+     "test_gamma_independent",
+     "test_plant_reader",
+     "test_beta_independent",
+     "test_seed_declared_ok"
+    ],
+    "seed": 34403
+   },
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_plant_writer",
+     "test_delta_independent",
+     "test_plant_polluter",
+     "test_plant_reader",
+     "test_alpha_independent",
+     "test_plant_victim",
+     "test_beta_independent",
+     "test_eta_independent",
+     "test_seed_declared_ok",
+     "test_gamma_independent",
+     "test_epsilon_independent",
+     "test_zeta_independent"
+    ],
+    "seed": 34404
+   },
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_plant_polluter",
+     "test_seed_declared_ok",
+     "test_eta_independent",
+     "test_plant_writer",
+     "test_delta_independent",
+     "test_zeta_independent",
+     "test_plant_reader",
+     "test_gamma_independent",
+     "test_beta_independent",
+     "test_epsilon_independent",
+     "test_alpha_independent",
+     "test_plant_victim"
+    ],
+    "seed": 34405
+   },
+   {
+    "failed": [
+     "test_plant_reader"
+    ],
+    "order": [
+     "test_alpha_independent",
+     "test_plant_reader",
+     "test_beta_independent",
+     "test_delta_independent",
+     "test_plant_victim",
+     "test_plant_writer",
+     "test_zeta_independent",
+     "test_eta_independent",
+     "test_epsilon_independent",
+     "test_seed_declared_ok",
+     "test_gamma_independent",
+     "test_plant_polluter"
+    ],
+    "seed": 34407
+   },
+   {
+    "failed": [
+     "test_plant_victim",
+     "test_plant_reader"
+    ],
+    "order": [
+     "test_epsilon_independent",
+     "test_plant_polluter",
+     "test_alpha_independent",
+     "test_zeta_independent",
+     "test_beta_independent",
+     "test_plant_victim",
+     "test_plant_reader",
+     "test_delta_independent",
+     "test_gamma_independent",
+     "test_seed_declared_ok",
+     "test_plant_writer",
+     "test_eta_independent"
+    ],
+    "seed": 34408
+   },
+   {
+    "failed": [
+     "test_plant_reader"
+    ],
+    "order": [
+     "test_plant_victim",
+     "test_eta_independent",
+     "test_plant_reader",
+     "test_epsilon_independent",
+     "test_zeta_independent",
+     "test_beta_independent",
+     "test_plant_writer",
+     "test_delta_independent",
+     "test_plant_polluter",
+     "test_alpha_independent",
+     "test_gamma_independent",
+     "test_seed_declared_ok"
+    ],
+    "seed": 34409
+   },
+   {
+    "failed": [
+     "test_plant_reader",
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_beta_independent",
+     "test_plant_polluter",
+     "test_plant_reader",
+     "test_gamma_independent",
+     "test_seed_declared_ok",
+     "test_epsilon_independent",
+     "test_zeta_independent",
+     "test_plant_writer",
+     "test_delta_independent",
+     "test_plant_victim",
+     "test_eta_independent",
+     "test_alpha_independent"
+    ],
+    "seed": 34410
+   },
+   {
+    "failed": [
+     "test_plant_reader"
+    ],
+    "order": [
+     "test_epsilon_independent",
+     "test_delta_independent",
+     "test_seed_declared_ok",
+     "test_gamma_independent",
+     "test_eta_independent",
+     "test_alpha_independent",
+     "test_beta_independent",
+     "test_plant_victim",
+     "test_plant_reader",
+     "test_plant_writer",
+     "test_plant_polluter",
+     "test_zeta_independent"
+    ],
+    "seed": 34411
+   },
+   {
+    "failed": [
+     "test_plant_victim"
+    ],
+    "order": [
+     "test_plant_polluter",
+     "test_plant_writer",
+     "test_eta_independent",
+     "test_seed_declared_ok",
+     "test_delta_independent",
+     "test_zeta_independent",
+     "test_alpha_independent",
+     "test_plant_victim",
+     "test_plant_reader",
+     "test_epsilon_independent",
+     "test_gamma_independent",
+     "test_beta_independent"
+    ],
+    "seed": 34412
+   }
+  ],
+  "matrix_sha256": "616699263eddc537a28250dd01046a32a62c8bb470e8c08ac1ea590751ce8623",
+  "minimal_pairs": [
+   [
+    "test_plant_polluter",
+    "test_plant_victim"
+   ],
+   [
+    "test_plant_writer",
+    "test_plant_reader"
+   ]
+  ],
+  "n": 12,
+  "planted_pairs": [
+   {
+    "found": true,
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ]
+   },
+   {
+    "found": true,
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ]
+   }
+  ],
+  "relative_order_pairs": [
+   {
+    "classification": "shared-state-leakage",
+    "kind": "hidden-setup",
+    "pair": [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    "t_when_s_first": "PASS",
+    "t_when_t_first": "FAIL"
+   },
+   {
+    "classification": "shared-state-leakage",
+    "kind": "pollution",
+    "pair": [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    "t_when_s_first": "FAIL",
+    "t_when_t_first": "PASS"
+   }
+  ],
+  "same_seed_matrix_identical": true,
+  "same_seed_shuffle_identical": true,
+  "seeds": [
+   34401,
+   34402,
+   34403,
+   34404,
+   34405,
+   34406,
+   34407,
+   34408,
+   34409,
+   34410,
+   34411,
+   34412
+  ],
+  "shuffle_moved": true,
+  "three_permutation_rule": "A pass across three permutations is weak evidence and must be labelled as such.",
+  "varying_tests": [
+   "test_plant_reader",
+   "test_plant_victim"
+  ],
+  "weak_three_perm_windows": []
+ },
+ "probe1_summary": {
+  "matrix_sha256": "616699263eddc537a28250dd01046a32a62c8bb470e8c08ac1ea590751ce8623",
+  "minimal_pairs": [
+   [
+    "test_plant_polluter",
+    "test_plant_victim"
+   ],
+   [
+    "test_plant_writer",
+    "test_plant_reader"
+   ]
+  ],
+  "n_permutations": 12
+ },
+ "question": "Question: does any test pass only because another ran first? Run the suite in randomised order across multiple permutations, bisect any failure to the minimal ordered pair that reproduces it, and report each pair as shared-state leakage rather than as a flake. Order-dependence is distinct from seed sensitivity (C18) and from flakiness (C11) and is repaired differently - it is almost always a fixture that mutates global state.",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "command-center/TEST-REGISTRY.json is absent; this unit did not shuffle an estate-wide pytest collection. TST-0336 and TST-0343 (declared dependencies) are not delivered on this worktree; C11/C18 discrimination is against planted twins.",
+   "settling_experiment": "After TEST-REGISTRY exists, feed collected node ids into engine.shuffle_order and re-run the 12-seed campaign.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "Two strikes then pivot. Same shuffle seed must replay the identical order and outcome matrix; a different answer on the same seed is a detector failure.",
+  "recorded_seeds": [
+   34401,
+   34402,
+   34403,
+   34404,
+   34405,
+   34406,
+   34407,
+   34408,
+   34409,
+   34410,
+   34411,
+   34412
+  ]
+ },
+ "reviewer": {
+  "both_states_reproduced": true,
+  "fresh_context": true,
+  "independent": true,
+  "method": "Reconstructed candidate pairs from the raw permutation matrix, dropped decoys that do not reproduce under live [S,T] vs [T,S] runs, reproduced both-states (shared vs isolated session), same-order stability vs coin-flip flake, and C18 seed swap.",
+  "probe2": {
+   "bad_state": {
+    "failing_permutation_count": 11,
+    "isolate_per_test": false,
+    "minimal_pairs": [
+     [
+      "test_plant_polluter",
+      "test_plant_victim"
+     ],
+     [
+      "test_plant_writer",
+      "test_plant_reader"
+     ]
+    ],
+    "varying_tests": [
+     "test_plant_reader",
+     "test_plant_victim"
+    ]
+   },
+   "both_states": true,
+   "c18_seed_swap": {
+    "changed_tests": [
+     "test_seed_declared_ok"
+    ],
+    "distinct_from_order_dependence": true,
+    "plant_order_tests_changed": [],
+    "seed_test_changed": true
+   },
+   "good_state_isolated": {
+    "constant_fail": [
+     "test_plant_reader"
+    ],
+    "isolate_per_test": true,
+    "minimal_pairs": [],
+    "varying_tests": []
+   },
+   "good_state_no_plants": {
+    "failing_permutation_count": 0,
+    "minimal_pairs": [],
+    "plants": false,
+    "varying_tests": []
+   },
+   "independent": true,
+   "pass": true,
+   "probe": "probe2-planted-control-both-states",
+   "reviewer_confirmed_pairs": [
+    [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    [
+     "test_plant_writer",
+     "test_plant_reader"
+    ]
+   ],
+   "reviewer_dropped_decoys": [
+    [
+     "test_delta_independent",
+     "test_plant_reader"
+    ],
+    [
+     "test_zeta_independent",
+     "test_plant_victim"
+    ]
+   ],
+   "reviewer_id": "TST-0344-probe2-both-states-and-not-c11-c18",
+   "reviewer_matrix_candidates": [
+    [
+     "test_delta_independent",
+     "test_plant_reader"
+    ],
+    [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    [
+     "test_plant_writer",
+     "test_plant_reader"
+    ],
+    [
+     "test_zeta_independent",
+     "test_plant_victim"
+    ]
+   ],
+   "reviewer_reconstructed_pairs": [
+    [
+     "test_plant_polluter",
+     "test_plant_victim"
+    ],
+    [
+     "test_plant_writer",
+     "test_plant_reader"
+    ]
+   ],
+   "same_order_flake_plant": {
+    "classification": "flake (C11)",
+    "repeats": 5,
+    "unstable": [
+     "test_plant_coin_flip"
+    ]
+   },
+   "same_order_stable_plants": {
+    "classification": "same-order-stable (not C11)",
+    "repeats": 5,
+    "unstable": []
+   },
+   "unit_id": "TST-0344"
+  },
+  "reviewer_id": "TST-0344-probe2-both-states-and-not-c11-c18",
+  "verdict": "PASS"
+ },
+ "schema_note": "Catalog output_schema is command-center/schema/receipt.schema.json, which is absent on this worktree. This receipt is the measured order-dependence report (permutation matrix, failing permutations, minimal pairs, planted control, both-states). It is not validated against a missing schema, and it does not borrow unrelated test-receipt constants (entry-point / import-path-break) that this unit does not measure.",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0344",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0344",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe1_permutations_and_bisect.py",
+   "id": "test_at_least_ten_permutations",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe1_permutations_and_bisect.py",
+   "id": "test_bisection_minimal_ordered_pair",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "id": "test_planted_order_dependence_detected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe1_permutations_and_bisect.py",
+   "exit_code": 0,
+   "id": "named-probe1-permutations-and-bisect",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0344/probe2_planted_control_and_reviewer.py",
+   "exit_code": 0,
+   "id": "named-probe2-planted-control-and-reviewer",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": [
+  "At least 10 permutations executed.",
+  "Bisection to a minimal ordered pair for every failure found.",
+  "Planted control: add a test that writes global state another test reads, and confirm the randomised runner surfaces it."
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:05:22Z",
+  "started_at": "2026-08-25T01:05:22Z"
+ },
+ "title": "Detect order-dependence by randomising execution order with a planted control",
+ "trace_hash_comparison": {
+  "barrier_resolution": [
+   "same-seed shuffle replay",
+   "same-seed outcome-matrix replay"
+  ],
+  "fan_out_cardinalities": [
+   {
+    "cardinality": 12,
+    "id": "shuffle-seeds",
+    "kind": "permutation"
+   }
+  ],
+  "identical": true,
+  "node_order": [
+   "test_alpha_independent",
+   "test_plant_reader",
+   "test_beta_independent",
+   "test_gamma_independent",
+   "test_plant_writer",
+   "test_delta_independent",
+   "test_plant_victim",
+   "test_epsilon_independent",
+   "test_zeta_independent",
+   "test_plant_polluter",
+   "test_eta_independent",
+   "test_seed_declared_ok"
+  ],
+  "run_a_sha256": "616699263eddc537a28250dd01046a32a62c8bb470e8c08ac1ea590751ce8623",
+  "run_b_sha256": "616699263eddc537a28250dd01046a32a62c8bb470e8c08ac1ea590751ce8623",
+  "seed": 34401
+ },
+ "unit_id": "TST-0344"
+}

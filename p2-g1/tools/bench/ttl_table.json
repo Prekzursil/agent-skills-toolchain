@@ -1,0 +1,49 @@
+{
+  "comment": "TST-0303 per-class staleness TTL table. A stored green from a check whose oracle queried a live external source expires after its class TTL; hermetic results never expire. The classification is from OBSERVED network calls (tools/bench/classify.py), never the declared class. Source of truth for tools/bench/ttl.py.",
+  "classes": [
+    {
+      "class": "hermetic",
+      "ttl_human": "never",
+      "ttl_seconds": null,
+      "reason": "Oracle made no external network call; a stored green is still a measurement of the same function."
+    },
+    {
+      "class": "model-endpoint",
+      "ttl_human": "6h",
+      "ttl_seconds": 21600,
+      "reason": "Vendor model snapshots and availability change within a working day."
+    },
+    {
+      "class": "marketplace-index",
+      "ttl_human": "12h",
+      "ttl_seconds": 43200,
+      "reason": "Marketplace listings and versions churn faster than advisory feeds."
+    },
+    {
+      "class": "advisory-db",
+      "ttl_human": "24h",
+      "ttl_seconds": 86400,
+      "reason": "Advisory databases ship new snapshots continuously; last week's CVE green is not today's."
+    },
+    {
+      "class": "package-registry",
+      "ttl_human": "24h",
+      "ttl_seconds": 86400,
+      "reason": "Package registries publish new versions continuously; a stored green can predate the current release."
+    },
+    {
+      "class": "unknown-live",
+      "ttl_human": "1h",
+      "ttl_seconds": 3600,
+      "reason": "A live call to an unmapped host gets the worst-case shortest TTL."
+    }
+  ],
+  "host_map": {
+    "nvd.nist.gov": "advisory-db",
+    "api.anthropic.com": "model-endpoint",
+    "marketplace.visualstudio.com": "marketplace-index",
+    "open-vsx.org": "marketplace-index",
+    "pypi.org": "package-registry"
+  },
+  "unmapped_live_default": "unknown-live"
+}

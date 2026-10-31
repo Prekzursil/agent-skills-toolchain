@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d39-team-b-10",
+  "preset": "risk_committee",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Re-estimate the single most load-bearing claim in the program from raw sources, with a Team B that has never seen Team A's reasoning.",
+    "charter": "Team A states the claim and its derivation. Team B re-derives the SAME claim from the raw sources with a brief that contains zero Team-A tokens - byte-checked, not asserted. An adjudicator then rules on the DIVERGENCE, not on either team's confidence. This council exists because the most expensive recurring failure on this estate is a load-bearing value that was measured once, by one instrument, and then carried forward: two agents re-running the same broken probe both reported CONFIRMED. Independence here is a property of the BRIEF, and it is verified mechanically.",
+    "risk_tier": "critical",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "Team B's brief is byte-identical to the declared source set and contains zero Team-A tokens",
+      "Team B re-derived the claim from raw sources, not from Team A's summary",
+      "the two derivations are compared on the VALUE and on the METHOD, and both differences are reported",
+      "the adjudicator's ruling names which instrument it trusted and why"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "command_output", "min_independent_sources": 2, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": true, "deadline_minutes": 180 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "vendor_diverse", "adversarial"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 10 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 2, "max_share_per_vendor": 0.5 },
+    "roster": [
+      { "participant_id": "team-a-1", "display_name": "Team A - claim owner", "model": "opus-5", "vendor": "anthropic", "expertise": ["the original derivation"], "role": "custom:team_a_analyst", "authority": "contributor", "context": { "partition_id": "brief-a" }, "conflicts": [{ "kind": "prior_verdict", "detail": "authored the claim under re-estimate", "recused": false }] },
+      { "participant_id": "team-a-2", "display_name": "Team A - method analyst", "model": "opus-5", "vendor": "anthropic", "expertise": ["measurement method"], "role": "custom:team_a_analyst", "authority": "contributor", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-a-3", "display_name": "Team A - source analyst", "model": "opus-5", "vendor": "anthropic", "expertise": ["source provenance"], "role": "custom:team_a_analyst", "authority": "contributor", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-a-4", "display_name": "Team A - synthesiser", "model": "opus-5", "vendor": "anthropic", "expertise": ["synthesis"], "role": "synthesizer", "authority": "contributor", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-b-1", "display_name": "Team B - independent re-deriver", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["independent derivation"], "role": "custom:team_b_analyst", "authority": "contributor", "context": { "partition_id": "brief-b", "briefing": "You have the raw sources and the question. You do NOT have anyone else's answer. If you find yourself reasoning about what someone else concluded, stop - you have been contaminated." }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "team-b-2", "display_name": "Team B - method challenger", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["detector validation"], "role": "custom:team_b_analyst", "authority": "contributor", "context": { "partition_id": "brief-b", "briefing": "Use a MECHANICALLY DIFFERENT instrument: a different shell, a different data field, a different measurement. Re-running the original probe is not a second signal and must not be reported as confirmation." }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "team-b-3", "display_name": "Team B - source challenger", "model": "gemini-3-pro", "vendor": "google", "expertise": ["source provenance"], "role": "custom:team_b_analyst", "authority": "contributor", "context": { "partition_id": "brief-b" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "team-b-4", "display_name": "Team B - synthesiser", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["synthesis"], "role": "synthesizer", "authority": "contributor", "context": { "partition_id": "brief-b" } },
+      { "participant_id": "adjudicator", "display_name": "Adjudicator (rules on the divergence)", "model": "opus-5", "vendor": "anthropic", "expertise": ["adjudication", "instrument comparison"], "role": "judge", "authority": "judge", "effort": "max", "context": { "briefing": "You are ruling on a DIVERGENCE, not counting votes. On a split verdict about a briefed fact, the specific probe wins over the agent count: read the probes, do not tally them." } },
+      { "participant_id": "scribe", "display_name": "Scribe", "model": "opus-5", "vendor": "anthropic", "expertise": ["transcript"], "role": "scribe", "authority": "observer", "rights": { "may_speak": false, "may_vote": false } }
+    ],
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        { "partition_id": "brief-a", "visible_to": ["team-a-1", "team-a-2", "team-a-3", "team-a-4"], "sources": ["the declared source set", "the original derivation"] },
+        { "partition_id": "brief-b", "visible_to": ["team-b-1", "team-b-2", "team-b-3", "team-b-4"], "sources": ["the declared source set ONLY - no derivation, no summary, no verdict"] }
+      ]
+    },
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "duplicate_detection": { "enabled": true, "dimensions": ["vendor", "prompt", "position_similarity"], "max_similarity": 0.8 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "prep_time_minutes": 30, "required_artifacts": ["evidence_pack", "position_memo"] },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      { "caucus_id": "team-a", "members": ["team-a-1", "team-a-2", "team-a-3", "team-a-4"], "private_rounds": 1 },
+      { "caucus_id": "team-b", "members": ["team-b-1", "team-b-2", "team-b-3", "team-b-4"], "private_rounds": 1 }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "parallel-derivation", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "custom", "stage_id": "divergence-adjudication", "custom_name": "P11 competitive re-estimate: compare value AND method, then rule on the divergence", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "ruling" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 2, "max": 2, "divergence_before_convergence": true },
+    "obligations": { "must_cite_evidence": true, "must_respond_to_prior": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 10, "runner": "local" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 180, "turns": 30, "experiments": 10, "max_inactivity_rounds": 1 },
+  "targets": { "evidence_items": 8, "counterexamples": 1 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:brief_hash_match",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "sha256 of Team B's brief compared against the sha256 of the declared source set",
+          "note": "DIAL 1 of 3 - 'briefs byte-identical'. The design names brief_hash as an editable dial. This is the only way to know Team B read what you think it read."
+        },
+        {
+          "metric": "custom:team_a_token_leakage",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "n-gram scan of Team B's brief against Team A's derivation; reports the count of shared distinctive tokens",
+          "note": "DIAL 2 of 3 - 'zero Team-A tokens in Team-B brief'. Non-zero means Team B was anchored and its agreement is worth nothing."
+        },
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 2,
+          "note": "DIAL 3 of 3. Two fully independent derivations. Raise to 3 for a third vendor pool - but note the cost is linear and the design already prices this at 2x."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 2, "min_independent_positions": 2, "min_minutes": 45, "min_evidence_items": 8 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 180, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the brief hash and the leakage count are both recorded in the receipt",
+      "the adjudicator names the instrument it trusted and the instrument it discarded"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "circular_citation_check": true },
+    "resolution": ["run_experiment", "recruit_independent_critic", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "collusion", "circular_citation", "evidence_free_majority", "hidden_conflict_of_interest", "hallucinated_expertise", "prompt_injection", "consensus_failing_executable_tests"],
+    "fast_unanimity_response": ["recruit_independent_critic", "blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "claim_evidence_contradiction_graph", "evidence_map", "experiments", "confidence_trajectory", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "forbid" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["acting on the re-estimated value"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d39/", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Team-B competitive re-estimate (10 seats, 2x cost, one claim only)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: exactly once per program, on the single most load-bearing claim - the number that, if wrong, invalidates everything downstream. WHEN NOT TO USE: routinely. The design is explicit: reserve for one claim per program, because the price is a full 2x re-derivation. Also do NOT use it to settle a question an exact algorithm can answer - write the differ instead. The design's named dials are source_set and brief_hash. EDITABLE DIALS: /participants/information_partition/partitions/1/sources (Team B's brief - the single most important field in this spec), /stopping/expression/all_of/2/value (number of independent derivations), /participants/roster (the vendor split IS the independence axis; making both teams the same vendor silently destroys the value of the run), /budgets/time_minutes. STOPPING (human form): custom:brief_hash_match == true AND custom:team_a_token_leakage == 0 AND independent_positions >= 2. source_expression absent per the SEM-001/SEM-012 collision proven by _probe_sem_rule_collision.py. PRESET-NAME CAVEAT: mapped to risk_committee because the artefact is a re-graded risk on a load-bearing claim; the mechanism (P11 + P54) is not itself a domain.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1707", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:273", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:982", "_USER-PROMPTS.md:11198"],
+    "lineage": ["C-D39 deep-team-b-10", "P11 team-b-competitive-estimate", "P54 cross-vendor-mirrored"]
+  }
+}

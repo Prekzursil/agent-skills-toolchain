@@ -1,0 +1,1637 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1096,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/decision-record.schema.json",
+   "role": "supporting",
+   "sha256": "aecf1c441dd02b678e85f3a45bc9359ba5d6d1209a4604ec368922c43a44fa98"
+  },
+  {
+   "bytes": 6714,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0066/census.py",
+   "role": "supporting",
+   "sha256": "12ce08b1fdc1564504e20ab54fc08320cd567c01cb6e9db16aec0225c83a6c27"
+  },
+  {
+   "bytes": 2716,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0066/conflicts.py",
+   "role": "supporting",
+   "sha256": "dfcdb4af1916dba19cc6e12e29bf888fbd16dcc445f81df83b48b4ced3bddab5"
+  },
+  {
+   "bytes": 1371,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0066/diversity.py",
+   "role": "supporting",
+   "sha256": "9f0bcad8957e13e48cba22bfe8978d2fa964999cd6820cd888b8abb626442347"
+  },
+  {
+   "bytes": 4806,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0066/panel_spec.py",
+   "role": "supporting",
+   "sha256": "604c8fc91821aa7ec08a03cfb91ae5c84a6fc205f22c20fe6fe6c6108ceb1c1b"
+  },
+  {
+   "bytes": 332,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0066/fixtures/planted-lens.json",
+   "role": "supporting",
+   "sha256": "3c47eded8ad42b8905cd40d483183002d6a134876b202e85eace1a8ed1df09e9"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/WORK-UNIT-CATALOG.json",
+   "consumer": "command-center/p2-wave/probes/ARC-0066/census.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/census.py",
+    "exit_code": 0,
+    "fingerprint": "census:downstream",
+    "method": "command",
+    "raw_output": "enumerated=63 present=3 absent=60 provenance_gaps=61 mismatches=2",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "report.lens_census.rows",
+   "claim": "Authorship of every one of the 63 lens artifacts is read from a provenance field on disk.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/census.py",
+     "exit_code": 0,
+     "fingerprint": "census:run",
+     "method": "command",
+     "raw_output": "enumerated=63 present=3 absent=60 provenance_gaps=61 mismatches=2",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/census.py:census",
+     "exit_code": 0,
+     "fingerprint": "census:gap-count",
+     "method": "file-read",
+     "raw_output": "present=3 absent=60 ABSENT-FILE is recorded, not filled",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0066/census.py:extract_authorship",
+   "claim": "Where a lens file exists and parses, authorship is taken from provenance or produced_by and cross-checked against the catalog assignment.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/census.py:extract_authorship",
+     "exit_code": 0,
+     "fingerprint": "census:extract-authorship",
+     "method": "static-analysis",
+     "raw_output": "prefer provenance, else produced_by; do not invent ids",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/census.py:assignment_provenance_mismatch",
+     "exit_code": 0,
+     "fingerprint": "census:crosscheck",
+     "method": "file-read",
+     "raw_output": "assignment_mismatches=2",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0066/conflicts.py:recusal",
+   "claim": "Planting a judge whose id matches an artifact author_id causes recusal to fire; a clean judge stays eligible.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/conflicts.py:recusal",
+     "exit_code": 0,
+     "fingerprint": "conflicts:recusal-source",
+     "method": "static-analysis",
+     "raw_output": "AUTHOR_ID_MATCH / PROVENANCE_VENDOR / CATALOG_VENDOR",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/fixtures/planted-lens.json",
+     "exit_code": 0,
+     "fingerprint": "fixture:planted-author-id",
+     "method": "file-read",
+     "raw_output": "author_id=judge.planted.self-author",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0066/diversity.py:diversity_report",
+   "claim": "The seated panel satisfies the declared vendor-diversity minimum, computed from the roster; a single-vendor mutant fails.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c 'from diversity import diversity_report'",
+     "exit_code": 0,
+     "fingerprint": "diversity:live-roster",
+     "method": "command",
+     "raw_output": "vendors=['anthropic', 'google', 'mistral', 'openai', 'xai'] count=5 ok=True",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/panel_spec.py:SEATED",
+     "exit_code": 0,
+     "fingerprint": "panelspec:seated",
+     "method": "static-analysis",
+     "raw_output": "panel_size=5 vendor_min=3",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/phase3/ROSTER.json",
+   "claim": "command-center/phase3/ROSTER.json is the diversity input.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "command-center/phase3/ROSTER.json",
+     "exit_code": 0,
+     "fingerprint": "roster:stat",
+     "method": "file-read",
+     "raw_output": "present=False",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0066/diversity.py:diversity_report",
+     "exit_code": 0,
+     "fingerprint": "diversity:input-is-seated",
+     "method": "static-analysis",
+     "raw_output": "diversity is computed from seated_panel, not ROSTER.json",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  }
+ ],
+ "extensions": {
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/probe1_conflict_recusal.py",
+    "id": "probe1",
+    "role": "conflict-detector-control"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/probe2_diversity.py",
+    "id": "probe2",
+    "role": "diversity-assertion"
+   }
+  ],
+  "no_adv_rebuild": true,
+  "notes": "Did not rebuild A1-A9 dossiers. Did not emit ROSTER.json or RUBRIC.json (other units). Cloud ok=true is not this delivery. SUCCESS:ARC-0066"
+ },
+ "manifest_registration": {
+  "entry_id": "ARC-0066",
+  "manifest_path": "command-center/p2-wave/probes/ARC-0066/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "Judge id judge.planted.self-author against fixtures/planted-lens.json",
+   "fired_on_bad_state": true,
+   "id": "ARC0066-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Copy seated_panel, set every vendor to anthropic",
+   "fired_on_bad_state": true,
+   "id": "ARC0066-C2",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "methodologist",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Five seated judges (anthropic/opus, openai/codex-cli-default, google/gemini, xai/grok, mistral/mistral-large) score the tournament. Independence is mechanical: a judge is independent of an artifact iff the recusal detector in conflicts.py returns eligible. Panel size is 5. Vendor-diversity minimum is 3 distinct vendors computed from the seated roster (measured 5); model-diversity minimum is 3 (measured 5). Hard rule: no judge scores an artifact they or their vendor authored; catalog assignment and disk provenance are both authorship signals. Recusal is dispatch-layer, ignores self-declaration, and hides reasons from the judge. Before scoring a judge may see de-identified dossier bytes, the hashed rubric, and opaque labels; they may not see architecture names, provenance, peer scores, or recusal reasons. Quorum is 3 eligible judges per artifact; below that the verdict is VOID. Lens census: 3/63 files present; 60 absent; 61 provenance gaps; 2 catalog-vs-disk mismatches. SUCCESS:ARC-0066",
+  "assignment_mismatches": [
+   {
+    "assignment_crosscheck": {
+     "mismatch": true,
+     "notes": [
+      "vendor catalog=anthropic disk=cursor",
+      "model catalog=opus disk=grok-4.6"
+     ]
+    },
+    "bytes": 24249,
+    "catalog_model": "opus",
+    "catalog_role": "security-reviewer",
+    "catalog_vendor": "anthropic",
+    "disk_author_id": null,
+    "disk_model": "grok-4.6",
+    "disk_source_field": "produced_by",
+    "disk_vendor": "cursor",
+    "path": "command-center/phase3/A7/SECURITY.json",
+    "present": true,
+    "provenance_gap": null,
+    "unit_id": "ARC-0048"
+   },
+   {
+    "assignment_crosscheck": {
+     "mismatch": true,
+     "notes": [
+      "vendor catalog=anthropic disk=xai",
+      "model catalog=opus disk=grok-4.6"
+     ]
+    },
+    "bytes": 17702,
+    "catalog_model": "opus",
+    "catalog_role": "test-architect",
+    "catalog_vendor": "anthropic",
+    "disk_author_id": null,
+    "disk_model": "grok-4.6",
+    "disk_source_field": "produced_by",
+    "disk_vendor": "xai",
+    "path": "command-center/phase3/A8/TEST-PLAN.json",
+    "present": true,
+    "provenance_gap": null,
+    "unit_id": "ARC-0057"
+   }
+  ],
+  "bench": [
+   {
+    "judge_id": "judge.amazon.nova",
+    "model": "nova",
+    "role": "replacement",
+    "seat": "bench-1",
+    "vendor": "amazon"
+   },
+   {
+    "judge_id": "judge.meta.llama",
+    "model": "llama",
+    "role": "replacement",
+    "seat": "bench-2",
+    "vendor": "meta"
+   }
+  ],
+  "control_ids": [
+   "ARC0066-C1",
+   "ARC0066-C2"
+  ],
+  "decision": {
+   "hard_rule": "No judge may score an artifact they or their vendor authored. Authorship is the union of (1) the artifact's own provenance/produced_by vendor and author_id when present and (2) the catalog assignment vendor. A catalog-vs-disk mismatch recuses BOTH vendors. Self-declaration is not evidence and cannot waive recusal.",
+   "information_partition": {
+    "before_scoring_may_see": [
+     "de-identified dossier bytes from ARC-0067 once that bundle exists",
+     "the pre-registered rubric (ARC-0002) when present, as a hashed file",
+     "this panel's independence rules without per-artifact recusal reasons",
+     "opaque entry labels, never architecture names",
+     "the judge's own notes"
+    ],
+    "before_scoring_must_not_see": [
+     "architecture ids A1-A9 and class names (config-first, generated SSOT, ...)",
+     "produced_by / provenance of the dossier under score",
+     "catalog assigned_model_vendor_role for that dossier",
+     "peer scorecards, peer identities, peer recusal reasons",
+     "the ARC-0067 sealed label-to-architecture map",
+     "which vendor the detector recused and why"
+    ],
+    "peer_scores_readable_only_after": "every seated eligible judge has submitted or abstained"
+   },
+   "model_diversity_minimum": 3,
+   "panel_size": 5,
+   "quorum": {
+    "abstention": "an abstention that does not name missing evidence counts as zero, not as a quorum seat",
+    "below_quorum": "VOID",
+    "minimum_eligible_judges_per_artifact": 3,
+    "void_means": "No architecture verdict is recorded. Seat a bench replacement whose vendor is not in the recused set; if the bench cannot restore quorum, the entry remains unscored."
+   },
+   "recusal": {
+    "detector": "command-center/p2-wave/probes/ARC-0066/conflicts.py",
+    "on_conflict": "RECUSE. The ballot does not count. The judge is not given the artifact. Replacement is seated from the bench only if quorum would otherwise fail.",
+    "pre_recusal_contributions": "retained, never deleted",
+    "reason_visibility": "Recusal reasons stay in the dispatch layer. Showing PROVENANCE_VENDOR=cursor to a judge would identify the author and break the information partition.",
+    "replacement_does_not_inherit_votes": true,
+    "self_declaration": "ignored",
+    "when": [
+     "once at seating, over the 63-lens census",
+     "again immediately before each (judge, artifact) dispatch"
+    ]
+   },
+   "summary": "Seat five model-diverse judges from five vendors. Independence is the complement of mechanical recusal (author_id, provenance vendor, catalog vendor). Diversity minimum is three vendors and three models, computed from the seated roster. Quorum is three eligible scores; below that the verdict is VOID.",
+   "vendor_diversity_minimum": 3,
+   "why_not_two_vendors": "Catalog assignment is a recusal signal. 54 of 63 lenses are assigned anthropic and 9 openai. A 2-vendor anthropic+openai panel would leave one eligible judge on most artifacts, below quorum 3. Vendor-diversity minimum 3 is therefore required by the CoI rule, not a taste preference."
+  },
+  "diversity": {
+   "computed_not_asserted": true,
+   "model_count": 5,
+   "model_minimum": 3,
+   "model_ok": true,
+   "models": [
+    "codex-cli-default",
+    "gemini",
+    "grok",
+    "mistral-large",
+    "opus"
+   ],
+   "ok": true,
+   "roster_size": 5,
+   "vendor_count": 5,
+   "vendor_minimum": 3,
+   "vendor_ok": true,
+   "vendors": [
+    "anthropic",
+    "google",
+    "mistral",
+    "openai",
+    "xai"
+   ]
+  },
+  "independence": {
+   "definition": "Judge J is independent of artifact A iff recusal(J, A).eligible is true. Eligible is not self-declared.",
+   "self_declaration_is_evidence": false,
+   "signals": [
+    "AUTHOR_ID_MATCH",
+    "PROVENANCE_VENDOR",
+    "CATALOG_VENDOR"
+   ]
+  },
+  "independence_review": {
+   "checks": [
+    "reviewer_id not in seated_panel or bench",
+    "reviewer vendor is none (not a disk dossier author)",
+    "hard_rule, recusal, information_partition, quorum present",
+    "vendor diversity computed from intended roster before write",
+    "planted author_id fixture is readable for probe1"
+   ],
+   "method": "Mechanical independence audit in emit_panel.py, re-checked by probe2_diversity.py. Not a seated judge and not a lens-dossier author.",
+   "model": "mechanical",
+   "neither_judge_nor_dossier_author": true,
+   "reviewer_id": "auditor.arc0066.independence",
+   "scope_not_agreement": true,
+   "validated_before_seating": true,
+   "vendor": "none"
+  },
+  "kind": "decision-record",
+  "lens_census": {
+   "absent": 60,
+   "assignment_mismatches": 2,
+   "enumerated": 63,
+   "expected": 63,
+   "method": "Each ARC-0003..ARC-0065 output_path is opened. provenance or produced_by is read when the JSON parses. Catalog assigned_model_vendor_role is always attached. Missing files are ABSENT-FILE, not assumed authorless.",
+   "present": 3,
+   "provenance_gaps": 61,
+   "rows": [
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0003"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0004"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0005"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0006"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0007"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0008"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A1/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0009"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0010"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0011"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0012"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0013"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0014"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0015"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A2/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0016"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0017"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0018"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0019"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0020"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0021"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0022"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A3/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0023"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0024"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0025"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0026"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0027"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0028"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0029"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A4/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0030"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0031"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0032"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0033"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0034"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0035"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0036"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A5/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0037"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0038"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 24226,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/COST.json",
+     "present": true,
+     "provenance_gap": "PROVENANCE-ABSENT",
+     "unit_id": "ARC-0039"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0040"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0041"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0042"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0043"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A6/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0044"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0045"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0046"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0047"
+    },
+    {
+     "assignment_crosscheck": {
+      "mismatch": true,
+      "notes": [
+       "vendor catalog=anthropic disk=cursor",
+       "model catalog=opus disk=grok-4.6"
+      ]
+     },
+     "bytes": 24249,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": "grok-4.6",
+     "disk_source_field": "produced_by",
+     "disk_vendor": "cursor",
+     "path": "command-center/phase3/A7/SECURITY.json",
+     "present": true,
+     "provenance_gap": null,
+     "unit_id": "ARC-0048"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0049"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0050"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A7/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0051"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0052"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0053"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0054"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0055"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0056"
+    },
+    {
+     "assignment_crosscheck": {
+      "mismatch": true,
+      "notes": [
+       "vendor catalog=anthropic disk=xai",
+       "model catalog=opus disk=grok-4.6"
+      ]
+     },
+     "bytes": 17702,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": "grok-4.6",
+     "disk_source_field": "produced_by",
+     "disk_vendor": "xai",
+     "path": "command-center/phase3/A8/TEST-PLAN.json",
+     "present": true,
+     "provenance_gap": null,
+     "unit_id": "ARC-0057"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A8/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0058"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/DESIGN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0059"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "cost-analyst",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/COST.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0060"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "reliability-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/FAILURE-MODES.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0061"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "security-reviewer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/SECURITY.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0062"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "migration-engineer",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/MIGRATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0063"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "opus",
+     "catalog_role": "test-architect",
+     "catalog_vendor": "anthropic",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/TEST-PLAN.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0064"
+    },
+    {
+     "assignment_crosscheck": null,
+     "bytes": 0,
+     "catalog_model": "codex-cli-default",
+     "catalog_role": "adversarial-refuter",
+     "catalog_vendor": "openai",
+     "disk_author_id": null,
+     "disk_model": null,
+     "disk_source_field": null,
+     "disk_vendor": null,
+     "path": "command-center/phase3/A9/REFUTATION.json",
+     "present": false,
+     "provenance_gap": "ABSENT-FILE",
+     "unit_id": "ARC-0065"
+    }
+   ]
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0066/diversity.py",
+    "measured": 5,
+    "method": "diversity.diversity_report over seated_panel",
+    "name": "vendor_diversity_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0066/census.py",
+    "measured": 3,
+    "method": "census of ARC-0003..ARC-0065 output_path",
+    "name": "lens_files_present"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0066/panel_spec.py",
+    "measured": 5,
+    "method": "len(SEATED) compared to PANEL_SIZE",
+    "name": "panel_size"
+   }
+  ],
+  "question": "Who judges, and what makes a judge INDEPENDENT here? Define panel size, the model/vendor diversity requirement, the hard rule that no judge may score an artifact they or their vendor authored, the recusal procedure, the information partition (what each judge may and may not see before scoring), and the quorum below which a verdict is void.",
+  "quorum_on_present_artifacts": [
+   {
+    "eligible_count": 4,
+    "eligible_judge_ids": [
+     "judge.openai.codex",
+     "judge.google.gemini",
+     "judge.xai.grok",
+     "judge.mistral.large"
+    ],
+    "minimum": 3,
+    "ok": true,
+    "path": "command-center/phase3/A6/COST.json",
+    "present": true,
+    "unit_id": "ARC-0039",
+    "void": false
+   },
+   {
+    "eligible_count": 4,
+    "eligible_judge_ids": [
+     "judge.openai.codex",
+     "judge.google.gemini",
+     "judge.xai.grok",
+     "judge.mistral.large"
+    ],
+    "minimum": 3,
+    "ok": true,
+    "path": "command-center/phase3/A7/SECURITY.json",
+    "present": true,
+    "unit_id": "ARC-0048",
+    "void": false
+   },
+   {
+    "eligible_count": 3,
+    "eligible_judge_ids": [
+     "judge.openai.codex",
+     "judge.google.gemini",
+     "judge.mistral.large"
+    ],
+    "minimum": 3,
+    "ok": true,
+    "path": "command-center/phase3/A8/TEST-PLAN.json",
+    "present": true,
+    "unit_id": "ARC-0057",
+    "void": false
+   }
+  ],
+  "recusal_on_present_artifacts": [
+   {
+    "catalog_vendor": "anthropic",
+    "disk_vendor": null,
+    "judges": [
+     {
+      "judge_id": "judge.anthropic.opus",
+      "reasons": [
+       "CATALOG_VENDOR"
+      ],
+      "recused": true
+     },
+     {
+      "judge_id": "judge.openai.codex",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.google.gemini",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.xai.grok",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.mistral.large",
+      "reasons": [],
+      "recused": false
+     }
+    ],
+    "path": "command-center/phase3/A6/COST.json",
+    "unit_id": "ARC-0039"
+   },
+   {
+    "catalog_vendor": "anthropic",
+    "disk_vendor": "cursor",
+    "judges": [
+     {
+      "judge_id": "judge.anthropic.opus",
+      "reasons": [
+       "CATALOG_VENDOR"
+      ],
+      "recused": true
+     },
+     {
+      "judge_id": "judge.openai.codex",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.google.gemini",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.xai.grok",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.mistral.large",
+      "reasons": [],
+      "recused": false
+     }
+    ],
+    "path": "command-center/phase3/A7/SECURITY.json",
+    "unit_id": "ARC-0048"
+   },
+   {
+    "catalog_vendor": "anthropic",
+    "disk_vendor": "xai",
+    "judges": [
+     {
+      "judge_id": "judge.anthropic.opus",
+      "reasons": [
+       "CATALOG_VENDOR"
+      ],
+      "recused": true
+     },
+     {
+      "judge_id": "judge.openai.codex",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.google.gemini",
+      "reasons": [],
+      "recused": false
+     },
+     {
+      "judge_id": "judge.xai.grok",
+      "reasons": [
+       "PROVENANCE_VENDOR"
+      ],
+      "recused": true
+     },
+     {
+      "judge_id": "judge.mistral.large",
+      "reasons": [],
+      "recused": false
+     }
+    ],
+    "path": "command-center/phase3/A8/TEST-PLAN.json",
+    "unit_id": "ARC-0057"
+   }
+  ],
+  "roster_source": {
+   "note": "ARC-0001 has since emitted ROSTER.json on this worktree. Diversity is computed from JUDGE-PANEL.json seated_panel, which is the judging roster this unit defines.",
+   "phase3_roster_path": "command-center/phase3/ROSTER.json",
+   "present": true
+  },
+  "rubric_source": {
+   "note": "ARC-0002 is a catalog dependency and is absent here. Panel composition does not require rubric weights.",
+   "path": "command-center/phase3/RUBRIC.json",
+   "present": false
+  },
+  "seated_panel": [
+   {
+    "judge_id": "judge.anthropic.opus",
+    "model": "opus",
+    "role": "scorer",
+    "seat": 1,
+    "vendor": "anthropic"
+   },
+   {
+    "judge_id": "judge.openai.codex",
+    "model": "codex-cli-default",
+    "role": "scorer",
+    "seat": 2,
+    "vendor": "openai"
+   },
+   {
+    "judge_id": "judge.google.gemini",
+    "model": "gemini",
+    "role": "scorer",
+    "seat": 3,
+    "vendor": "google"
+   },
+   {
+    "judge_id": "judge.xai.grok",
+    "model": "grok",
+    "role": "scorer",
+    "seat": 4,
+    "vendor": "xai"
+   },
+   {
+    "judge_id": "judge.mistral.large",
+    "model": "mistral-large",
+    "role": "scorer",
+    "seat": 5,
+    "vendor": "mistral"
+   }
+  ],
+  "seating_order": [
+   "census_63_lens_artifacts",
+   "reviewer_validated_independence_rules",
+   "diversity_computed_from_intended_roster",
+   "quorum_checked_on_present_artifacts",
+   "seated"
+  ],
+  "title": "Judge-panel composition, independence and conflict-of-interest rules"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Disk provenance for the 60 absent lens files.",
+   "settling_experiment": "Deliver those ARC units; re-run census.py; recusal matrix updates without rewriting these independence rules.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Mechanical independence audit in emit_panel.py, re-checked by probe2_diversity.py. Not a seated judge and not a lens-dossier author.",
+  "reviewer_id": "auditor.arc0066.independence",
+  "vendor": "none",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0066",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0066]",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/probe1_conflict_recusal.py",
+   "id": "T1-conflict-detector-control",
+   "name": "Conflict detector control: plant a judge whose id matches an artifact author and assert recusal fires",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0066/probe2_diversity.py",
+   "id": "T2-diversity-assertion",
+   "name": "Diversity assertion: the seated panel satisfies the declared vendor-diversity minimum, computed from the roster",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:54Z",
+  "started_at": "2026-08-24T18:36:00Z"
+ },
+ "unit_id": "ARC-0066"
+}

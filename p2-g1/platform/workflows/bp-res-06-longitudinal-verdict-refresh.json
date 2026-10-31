@@ -1,0 +1,944 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-res-06-longitudinal-verdict-refresh",
+  "name": "Longitudinal Verdict Refresh",
+  "description": "Treat a settled research verdict as PERISHABLE: watch its load-bearing sources on a cadence and re-open the verdict only when a source actually moves materially. The distinguishing machine is the pair (change-detection loop, temporal-validity memory write): a material change spawns a fresh research run as a SUBWORKFLOW and marks the old note superseded_by, while a non-change writes a dated no-op observation - because silence is not evidence a page is stable. A monitor that has never fired is validated against a known-changed control page before its silence is trusted, and if the monitor service is unreachable the verdict is marked STALE-UNWATCHED, not HOLDS.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative",
+    "research-and-evidence"
+  ],
+  "tags": [
+    "temporal-validity",
+    "change-monitor",
+    "verdict-decay"
+  ],
+  "flagship": false,
+  "params": {
+    "verdict_note_permalink": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The memory note holding the verdict under watch"
+    },
+    "watched_urls": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 25,
+      "items": {
+        "type": "string",
+        "min_length": 8
+      },
+      "description": "The verdict's load-bearing sources"
+    },
+    "control_url": {
+      "type": "string",
+      "required": true,
+      "min_length": 8,
+      "description": "A page the owner can edit at will - the detector control that proves the monitor can fire"
+    },
+    "materiality_rule": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The stated rule that decides whether a diff is material; recorded with every decision because the judgement is not deterministic"
+    },
+    "cadence": {
+      "type": "enum",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "weekly",
+      "description": "Poll cadence"
+    },
+    "max_cycles": {
+      "type": "integer",
+      "default": 52,
+      "minimum": 1,
+      "maximum": 520,
+      "description": "Hard bound on the polling loop"
+    },
+    "etag_precheck": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cheap HTTP ETag / Last-Modified check before spending a paid monitor call"
+    }
+  },
+  "roles": {
+    "monitor-registrar": {
+      "description": "Registers the monitors on a PAID external service; the owner must approve because it commits standing quota",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__search-hub__firecrawl_monitor_create",
+        "mcp__search-hub__firecrawl_monitor_list",
+        "Write(command-center/monitors/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "change-poller": {
+      "description": "Polls on cadence and does the cheap ETag pre-check first; reports a service outage as an outage, never as no-change",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "WebFetch",
+        "mcp__search-hub__firecrawl_monitor_check",
+        "mcp__search-hub__firecrawl_monitor_get",
+        "Write(command-center/monitors/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "materiality-judge": {
+      "description": "Runs ONLY on a detected change and decides materiality against the stated rule, recording the rule text with the decision",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "WebFetch",
+        "Write(command-center/monitors/**)"
+      ],
+      "speaking_rights": "on-request"
+    },
+    "memory-curator": {
+      "description": "Writes temporal validity: superseded_by on the old note, valid_as_of on the new one, so recall surfaces current truth",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "mcp__basic-memory__read_note",
+        "mcp__basic-memory__write_note",
+        "mcp__basic-memory__edit_note",
+        "Write(command-center/monitors/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "WebFetch",
+      "Write(command-center/monitors/**)",
+      "mcp__search-hub__firecrawl_monitor_create",
+      "mcp__search-hub__firecrawl_monitor_check",
+      "mcp__search-hub__firecrawl_monitor_list",
+      "mcp__search-hub__firecrawl_monitor_get",
+      "mcp__basic-memory__read_note",
+      "mcp__basic-memory__write_note",
+      "mcp__basic-memory__edit_note"
+    ],
+    "deny": [
+      "Bash",
+      "WebSearch",
+      "mcp__basic-memory__delete_note"
+    ],
+    "require_owner_approval": [
+      "mcp__search-hub__firecrawl_monitor_create"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/monitors/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'materiality-judge'",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "materiality is the only judgement in the loop; the polling around it is mechanical"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "subworkflows": {
+    "bp-res-01-grounded-evidence-cascade": {
+      "workflow_id": "bp-res-01-grounded-evidence-cascade",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/bp-res-01-grounded-evidence-cascade.json"
+    }
+  },
+  "gates": {
+    "monitor-can-fire": {
+      "predicate": "custom-expression",
+      "expression": "control_monitor_fired == true AND monitors_registered >= 1",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "service-reachable": {
+      "predicate": "custom-expression",
+      "expression": "monitor_service_reachable == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "register-monitors",
+      "title": "Register monitors on the verdict's load-bearing URLs (paid, owner-approved)",
+      "kind": "task",
+      "role": "monitor-registrar",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0601",
+        "title": "Register one monitor per watched URL plus one on the owner-editable control page",
+        "phase": "2B",
+        "question_or_target": "Register a change monitor for each load-bearing URL and one for the control page. Record the monitor ids and the quota this commits, because standing monitor quota is the real cost of this blueprint.",
+        "inputs": [
+          "params.watched_urls",
+          "params.control_url",
+          "params.cadence"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "monitor-registrar",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__search-hub__firecrawl_monitor_create",
+          "mcp__search-hub__firecrawl_monitor_list",
+          "Write(command-center/monitors/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/monitors/bp-res-06/monitor-contract.json",
+        "output_schema": "command-center/schema/telemetry-contract.schema.json",
+        "evidence_requirement": "each row carries the monitor id returned by the service, the URL, the cadence, and the quota committed",
+        "tests_required": [
+          "registering with an unreachable service must FAIL loudly, never record a monitor id it did not receive"
+        ],
+        "reviewer_requirement": "the owner approves the standing quota commitment before this stage runs (tool_policy.require_owner_approval)",
+        "completion_sentinel": "SUCCESS:BPR-0601 emitted only when every watched URL plus the control page has a monitor id returned by the service; otherwise FAILED:BPR-0601 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a second failure leaves the verdict UNWATCHED and says so",
+        "failure_classification": [
+          "service-unreachable",
+          "quota-exhausted"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "paid-monitor-registration"
+      },
+      "produces": [
+        {
+          "path": "command-center/monitors/bp-res-06/monitor-contract.json",
+          "schema_ref": "command-center/schema/telemetry-contract.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0601",
+          "consumers": [
+            "control-probe",
+            "poll-loop"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control-probe",
+      "title": "Detector control: edit the control page and require the monitor to fire",
+      "kind": "task",
+      "depends_on": [
+        "register-monitors"
+      ],
+      "role": "change-poller",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0602",
+        "title": "Prove the monitor can fire at all before trusting any silence from it",
+        "phase": "2B",
+        "question_or_target": "Have the owner-editable control page changed, then check its monitor. It MUST fire. A monitor that does not fire on a known change measures nothing, and every silent monitor in this run is therefore untrustworthy.",
+        "inputs": [
+          "command-center/monitors/bp-res-06/monitor-contract.json",
+          "params.control_url"
+        ],
+        "dependencies": [
+          "BPR-0601"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "change-poller",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__search-hub__firecrawl_monitor_check",
+          "WebFetch",
+          "Write(command-center/monitors/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/monitors/bp-res-06/detector-control.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "the control page's before/after hash, the monitor's fire event, and the elapsed time from edit to detection",
+        "tests_required": [
+          "MANDATORY both-states: the control monitor must FIRE after the page is edited and must NOT fire on an unedited static page in the same cycle"
+        ],
+        "reviewer_requirement": "the control gate blocks the loop until this fires, so no silent monitor is ever read as stability",
+        "completion_sentinel": "SUCCESS:BPR-0602 emitted only when the control monitor fired and the fire event is recorded with its detection latency; otherwise FAILED:BPR-0602 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 3 attempts spread over the cadence; a third miss fails the control",
+        "failure_classification": [
+          "detector-failure",
+          "service-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "known-changed-control-page"
+      },
+      "produces": [
+        {
+          "path": "command-center/monitors/bp-res-06/detector-control.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0602",
+          "consumers": [
+            "control-gate",
+            "poll-loop"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "control-gate",
+      "title": "Silence is not evidence: the loop cannot start until the control fires",
+      "kind": "gate",
+      "depends_on": [
+        "control-probe"
+      ],
+      "gate_ref": "monitor-can-fire"
+    },
+    {
+      "id": "poll-loop",
+      "title": "Poll on cadence; judge materiality only on a real change",
+      "kind": "loop",
+      "depends_on": [
+        "control-gate"
+      ],
+      "loop_var": "cycle",
+      "body": [
+        {
+          "id": "etag-precheck",
+          "title": "Cheap ETag / Last-Modified check before spending a paid call",
+          "kind": "task",
+          "when": "etag_precheck == true",
+          "role": "change-poller",
+          "timeout_seconds": 300,
+          "work_unit": {
+            "id": "BPR-0603",
+            "title": "Compare ETag and Last-Modified before invoking the paid monitor",
+            "phase": "2B",
+            "question_or_target": "For each watched URL compare the stored ETag / Last-Modified with the live headers. Only URLs whose headers moved, or that expose no validators at all, are escalated to the paid monitor call.",
+            "inputs": [
+              "command-center/monitors/bp-res-06/monitor-contract.json"
+            ],
+            "dependencies": [
+              "BPR-0601"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "change-poller",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "WebFetch",
+              "Write(command-center/monitors/**)"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 300,
+            "output_path": "command-center/monitors/bp-res-06/cycles/etag-precheck.json",
+            "output_schema": "command-center/schema/measurement-run.schema.json",
+            "evidence_requirement": "per URL: the stored and live validator values, and the escalate / skip decision",
+            "tests_required": [
+              "a URL exposing NO ETag and NO Last-Modified must be escalated, never treated as unchanged"
+            ],
+            "reviewer_requirement": "the poll stage re-reads this decision and records any URL it skipped so a missed change is attributable",
+            "completion_sentinel": "SUCCESS:BPR-0603 emitted only when every watched URL has an escalate / skip decision carrying both validator values; otherwise FAILED:BPR-0603 <failure-class> <reason>",
+            "retry_policy": "fixed backoff, at most 2 attempts per URL",
+            "failure_classification": [
+              "service-unreachable",
+              "detector-failure"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "validator-precheck-before-paid-call"
+          },
+          "produces": [
+            {
+              "path": "command-center/monitors/bp-res-06/cycles/etag-precheck.json",
+              "schema_ref": "command-center/schema/measurement-run.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0603",
+              "consumers": [
+                "poll-cycle"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "poll-cycle",
+          "title": "Check the monitors and record a dated observation either way",
+          "kind": "task",
+          "depends_on": [
+            "etag-precheck"
+          ],
+          "role": "change-poller",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPR-0604",
+            "title": "Check each escalated monitor and write a dated observation, change or no-change",
+            "phase": "2B",
+            "question_or_target": "Check the monitors for the escalated URLs. Write a dated observation for EVERY watched URL - including an explicit no-op record - so an absence of fires is attributable rather than silent. A service outage is recorded as STALE-UNWATCHED, never as no-change.",
+            "inputs": [
+              "command-center/monitors/bp-res-06/cycles/etag-precheck.json",
+              "command-center/monitors/bp-res-06/monitor-contract.json"
+            ],
+            "dependencies": [
+              "BPR-0603"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "change-poller",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "mcp__search-hub__firecrawl_monitor_check",
+              "mcp__search-hub__firecrawl_monitor_get",
+              "Write(command-center/monitors/**)"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 900,
+            "output_path": "command-center/monitors/bp-res-06/cycles/observation.json",
+            "output_schema": "command-center/schema/evidence-decay-report.schema.json",
+            "evidence_requirement": "one dated row per watched URL per cycle: changed / unchanged / STALE-UNWATCHED, with the diff summary when changed",
+            "tests_required": [
+              "with the service unreachable, every row must read STALE-UNWATCHED - a run that reports 'unchanged' during an outage is the failure this test exists for"
+            ],
+            "reviewer_requirement": "the memory curator refuses to write HOLDS for any cycle containing a STALE-UNWATCHED row",
+            "completion_sentinel": "SUCCESS:BPR-0604 emitted only when every watched URL has a dated observation for this cycle; otherwise FAILED:BPR-0604 <failure-class> <reason>",
+            "retry_policy": "fixed backoff, at most 2 attempts; a second failure records STALE-UNWATCHED",
+            "failure_classification": [
+              "service-unreachable",
+              "quota-exhausted"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "dated-no-op-observation"
+          },
+          "produces": [
+            {
+              "path": "command-center/monitors/bp-res-06/cycles/observation.json",
+              "schema_ref": "command-center/schema/evidence-decay-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0604",
+              "consumers": [
+                "judge-materiality",
+                "curate-memory"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "judge-materiality",
+          "title": "Judge materiality against the stated rule, on change only",
+          "kind": "task",
+          "depends_on": [
+            "poll-cycle"
+          ],
+          "when": "changes_detected > 0",
+          "role": "materiality-judge",
+          "timeout_seconds": 1200,
+          "work_unit": {
+            "id": "BPR-0605",
+            "title": "Decide whether a detected diff is material to THIS verdict",
+            "phase": "2B",
+            "question_or_target": "For each detected change decide material / immaterial strictly against the stated materiality_rule, and record the rule text verbatim beside the decision, because the judgement is not deterministic and must be auditable later.",
+            "inputs": [
+              "command-center/monitors/bp-res-06/cycles/observation.json",
+              "params.materiality_rule"
+            ],
+            "dependencies": [
+              "BPR-0604"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "materiality-judge",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "Read",
+              "WebFetch",
+              "Write(command-center/monitors/**)"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/monitors/bp-res-06/cycles/materiality.json",
+            "output_schema": "command-center/schema/evidence-integrity-report.schema.json",
+            "evidence_requirement": "each decision quotes the diff span it turned on and the materiality_rule text as applied",
+            "tests_required": [
+              "a cosmetic diff (whitespace, a nav link) must be immaterial",
+              "both-states: a diff that changes the number the verdict rests on must be material"
+            ],
+            "reviewer_requirement": "the owner can re-read the rule text and the diff span together, so a drifting interpretation is visible",
+            "completion_sentinel": "SUCCESS:BPR-0605 emitted only when every detected change has a material / immaterial decision carrying the diff span and the rule text; otherwise FAILED:BPR-0605 <failure-class> <reason>",
+            "retry_policy": "fixed backoff, at most 2 attempts",
+            "failure_classification": [
+              "materiality-ambiguous",
+              "overclaim"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "rule-quoted-materiality-judgement"
+          },
+          "produces": [
+            {
+              "path": "command-center/monitors/bp-res-06/cycles/materiality.json",
+              "schema_ref": "command-center/schema/evidence-integrity-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0605",
+              "consumers": [
+                "reopen-research",
+                "curate-memory"
+              ]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 520,
+        "min_iterations": 1,
+        "converged_when": "verdict_retired == true OR cycle >= max_cycles",
+        "no_progress_rounds": 12,
+        "metrics": [
+          {
+            "name": "verdict_retired",
+            "direction": "stabilize"
+          },
+          {
+            "name": "material_changes",
+            "direction": "decrease",
+            "target": 0
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "reopen-research",
+      "title": "On a material change, re-open the verdict by spawning a fresh research run",
+      "kind": "subworkflow",
+      "depends_on": [
+        "poll-loop"
+      ],
+      "when": "material_change_confirmed == true",
+      "workflow": {
+        "workflow_id": "bp-res-01-grounded-evidence-cascade",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "reopened_from": "bp-res-06-longitudinal-verdict-refresh"
+      },
+      "isolation": "none",
+      "propagate_failure": false,
+      "timeout_seconds": 10800
+    },
+    {
+      "id": "service-gate",
+      "title": "An unreachable monitor service means STALE-UNWATCHED, not HOLDS",
+      "kind": "gate",
+      "depends_on": [
+        "poll-loop"
+      ],
+      "gate_ref": "service-reachable"
+    },
+    {
+      "id": "curate-memory",
+      "title": "Write temporal validity: superseded_by on the old note, valid_as_of on the new",
+      "kind": "task",
+      "depends_on": [
+        "reopen-research",
+        "service-gate"
+      ],
+      "role": "memory-curator",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0606",
+        "title": "Update the memory graph so recall surfaces current truth and dead ends are retired",
+        "phase": "2B",
+        "question_or_target": "Write the verdict status. On a material change: add superseded_by to the old note and valid_as_of to the new one. On no change: append a dated no-op observation. On an outage: mark the verdict STALE-UNWATCHED.",
+        "inputs": [
+          "command-center/monitors/bp-res-06/cycles/materiality.json",
+          "command-center/monitors/bp-res-06/cycles/observation.json",
+          "params.verdict_note_permalink"
+        ],
+        "dependencies": [
+          "BPR-0604",
+          "BPR-0605"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "memory-curator",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__basic-memory__read_note",
+          "mcp__basic-memory__write_note",
+          "mcp__basic-memory__edit_note",
+          "Write(command-center/monitors/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/monitors/bp-res-06/supersession.json",
+        "output_schema": "command-center/schema/supersession-graph.schema.json",
+        "evidence_requirement": "the supersession graph records both edges (old superseded_by new, new valid_as_of date) and the note revision ids returned by the memory store",
+        "tests_required": [
+          "exactly one superseded_by edge per material change - a second write for the same change is a duplicate defect",
+          "an outage cycle must produce a STALE-UNWATCHED status and NO supersession edge"
+        ],
+        "reviewer_requirement": "one independent reviewer re-reads the old note and confirms it now points forward, so recall cannot surface the retired verdict as current",
+        "completion_sentinel": "SUCCESS:BPR-0606 emitted only when the verdict status is written, and every material change has exactly one supersession edge carrying store revision ids; otherwise FAILED:BPR-0606 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failed writes, leave the old note untouched and escalate - a half-written supersession is worse than none",
+        "failure_classification": [
+          "memory-write-failed",
+          "service-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "temporal-validity-supersession-write"
+      },
+      "produces": [
+        {
+          "path": "command-center/monitors/bp-res-06/supersession.json",
+          "schema_ref": "command-center/schema/supersession-graph.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0606",
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "verdict-retired",
+      "expression": "verdict_retired == true OR owner_unsubscribed == true",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "monitor-noise-dominates",
+      "expression": "immaterial_fires_per_material_fire >= 10",
+      "applies_to": "workflow",
+      "minimum_conditions": "cycles_completed >= 4",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "service-unreachable",
+      "quota-exhausted"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "curate-memory"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "service-unreachable",
+      "quota-exhausted",
+      "materiality-ambiguous",
+      "memory-write-failed"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "curate-memory",
+    "quarantine_path": "command-center/monitors/bp-res-06/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/monitors/bp-res-06/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "replay_source": "artifact-cache",
+    "verify": "none"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/monitors/bp-res-06/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__search-hub__firecrawl_monitor_create",
+      "mcp__search-hub__firecrawl_monitor_check",
+      "mcp__basic-memory__write_note",
+      "mcp__basic-memory__edit_note",
+      "Write(command-center/monitors/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.4,
+      "max": 2.0
+    },
+    "wallclock_seconds": {
+      "min": 60,
+      "expected": 300,
+      "max": 1800
+    },
+    "tokens": {
+      "min": 5000,
+      "expected": 30000,
+      "max": 150000
+    },
+    "tool_calls": {
+      "expected": 10,
+      "max": 80
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "registers PAID standing monitors and mutates the memory graph; deleting the monitors is an owner action",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-06.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/firecrawl",
+        "relation": "COMPOSE",
+        "license": "third-party service, owner account",
+        "credit": "Firecrawl"
+      },
+      {
+        "source": "basic-memory temporal validity (superseded_by / valid_as_of)",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-RES-06",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "supersession": {
+      "path": "command-center/monitors/bp-res-06/supersession.json",
+      "schema_ref": "command-center/schema/supersession-graph.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    },
+    "monitor-contract": {
+      "path": "command-center/monitors/bp-res-06/monitor-contract.json",
+      "schema_ref": "command-center/schema/telemetry-contract.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "poll-loop"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-06",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 422
+    },
+    "acquisition_route_from_card": "COMPOSE",
+    "mechanism_signature": [
+      "paid-monitor-registration-with-owner-approval",
+      "known-changed-control-page-before-trusting-silence",
+      "validator-precheck-before-paid-call",
+      "dated-no-op-observation",
+      "rule-quoted-materiality-judgement",
+      "temporal-validity-supersession-write",
+      "stale-unwatched-instead-of-holds-on-outage"
+    ],
+    "contraindications": [
+      "NOT for high-churn pages - monitor noise swamps signal, and the stopping rule exists to say so",
+      "NOT for anything behind auth",
+      "NOT a substitute for re-running the research when the domain shifts structurally: a structural shift can invalidate a verdict with ZERO URL changes, which this blueprint cannot see"
+    ],
+    "unverified": [
+      "UNVERIFIED end-to-end; settling experiment = register 3 monitors, edit exactly one control page, and confirm exactly one fire and exactly one superseded_by write.",
+      "UNVERIFIED that <=5 watched verdicts is the sustainable ceiling before monitor noise dominates; the monitor-noise-dominates stopping rule is the instrument that would measure it."
+    ],
+    "owner_decision": "Which verdicts (if any) are worth a standing PAID monitor, and at what cadence?",
+    "worked_example": {
+      "name": "watch a model-pricing verdict weekly",
+      "params": {
+        "verdict_note_permalink": "main/reference/model-pricing-verdict-2026-08",
+        "watched_urls": [
+          "https://docs.anthropic.com/en/docs/about-claude/pricing",
+          "https://platform.openai.com/docs/pricing"
+        ],
+        "control_url": "https://example.invalid/owner-editable-control-page",
+        "materiality_rule": "a change is material only if a price-per-million-tokens figure or a model id in the verdict's table changes",
+        "cadence": "weekly",
+        "max_cycles": 52,
+        "etag_precheck": true
+      },
+      "facts": {
+        "material_change_confirmed": true,
+        "changes_detected": 1
+      },
+      "expected_stage_order": [
+        "register-monitors",
+        "control-probe",
+        "control-gate",
+        "poll-loop",
+        "reopen-research",
+        "service-gate",
+        "curate-memory"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 1,
+      "expected_gate_ids": [
+        "control-gate",
+        "service-gate"
+      ],
+      "expected_loop_bound": 520,
+      "acceptance": [
+        "the control page edit produces exactly one monitor fire",
+        "a cosmetic diff on a watched page is judged immaterial and writes a dated no-op",
+        "a price change is material, spawns the research subworkflow, and writes exactly one superseded_by edge"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "monitor-noise-dominates",
+          "why": "the floor stops a single noisy first cycle from retiring the monitor",
+          "fires_on": {
+            "immaterial_fires_per_material_fire": 14,
+            "cycles_completed": 9,
+            "verdict_retired": false,
+            "owner_unsubscribed": false
+          },
+          "does_not_fire_on": {
+            "immaterial_fires_per_material_fire": 14,
+            "cycles_completed": 2,
+            "verdict_retired": false,
+            "owner_unsubscribed": false
+          }
+        },
+        {
+          "rule": "verdict-retired",
+          "why": "the loop must end when the owner retires or unsubscribes the verdict",
+          "fires_on": {
+            "immaterial_fires_per_material_fire": 1,
+            "cycles_completed": 9,
+            "verdict_retired": true,
+            "owner_unsubscribed": false
+          },
+          "does_not_fire_on": {
+            "immaterial_fires_per_material_fire": 1,
+            "cycles_completed": 9,
+            "verdict_retired": false,
+            "owner_unsubscribed": false
+          }
+        }
+      ]
+    }
+  }
+}

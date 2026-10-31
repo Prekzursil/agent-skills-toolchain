@@ -1,0 +1,721 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-req-04.assumption-ledger-elicitation",
+ "name": "Assumption-Ledger Elicitation",
+ "description": "Before a long-horizon plan runs, enumerate what it silently assumes, rate each row high/medium/low, and treat a LOW-confidence LOAD-BEARING row as a verify-or-clarify trigger rather than a silent bet. A required-but-blank field defaults to the WORST case and that default is written down. On any step failure the ledger is re-read first, because a wrong assumption is the usual root cause.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "product-design-and-strategy",
+  "security-governance-and-risk"
+ ],
+ "tags": [
+  "assumptions",
+  "adverse-inference",
+  "verify-not-ask",
+  "pre-execution"
+ ],
+ "flagship": true,
+ "params": {
+  "plan_path": {
+   "type": "path",
+   "required": true,
+   "description": "The plan whose assumptions are extracted"
+  },
+  "required_fields": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "default": [],
+   "description": "Fields the plan MUST fill; a blank one is adverse-inferred to worst case"
+  },
+  "worst_case_defaults": {
+   "type": "object",
+   "default": {},
+   "description": "field -> the worst-case value a blank must resolve to"
+  },
+  "probe_budget": {
+   "type": "integer",
+   "default": 4,
+   "minimum": 1,
+   "maximum": 32,
+   "description": "Max verification probes fanned out for LOW+load-bearing rows"
+  }
+ },
+ "roles": {
+  "extractor": {
+   "description": "Reads the plan and lists what it takes for granted, including omissions",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep"
+   ]
+  },
+  "rater": {
+   "description": "Assigns load_bearing and a high/medium/low band, and must justify a high band",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "voting",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read"
+   ]
+  },
+  "prober": {
+   "description": "Re-derives a low-confidence assumption in a fresh context that cannot inherit the plan's reasoning",
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "effort": "high",
+   "authority": "judge",
+   "independence": "independent",
+   "cross_vendor_required": true,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Bash:git",
+    "Bash:python"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Bash:git",
+   "Bash:python",
+   "Write(command-center/assumptions/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/assumptions/**"
+  ]
+ },
+ "model_routing": {
+  "strategy": "vendor-diverse",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "routes": [
+   {
+    "when": "stage_role == prober",
+    "target": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "effort": "high"
+    },
+    "reason": "a same-vendor prober inherits the same blind spot that produced the assumption"
+   }
+  ],
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "no-silent-bet": {
+   "predicate": "custom-expression",
+   "expression": "low_confidence_load_bearing_unhandled == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "escalate-to-human"
+  },
+  "blanks-adverse-inferred": {
+   "predicate": "custom-expression",
+   "expression": "blank_required_fields == 0 OR worst_case_defaults_written == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-extract",
+   "title": "S0 EXTRACT the assumptions the plan rests on",
+   "kind": "task",
+   "role": "extractor",
+   "timeout_seconds": 900,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-REQ04-S0",
+    "title": "Extract the load-bearing premises a plan never states",
+    "phase": "2B",
+    "question_or_target": "List every premise the plan would break without, including premises implied by an omission.",
+    "inputs": [
+     "params.plan_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "extractor",
+     "basis": "substantive subagents default to Opus"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/assumptions/req04-ledger.json",
+    "output_schema": "command-center/schema/residual-risk-ledger.schema.json",
+    "evidence_requirement": "each row quotes the plan line that implies it, or names the omission that implies it",
+    "tests_required": [
+     "a plan with a blank required field must yield a row carrying the worst-case default"
+    ],
+    "reviewer_requirement": "the rater, who may not also author rows",
+    "completion_sentinel": "SUCCESS:BP3-REQ04-S0 only when every row quotes a plan line or names the omission it comes from; otherwise FAILED:BP3-REQ04-S0 <reason>",
+    "retry_policy": "two strikes then pivot to a differently-seeded extraction",
+    "failure_classification": [
+     "spec-underspecified",
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/assumptions/req04-ledger.json",
+     "schema_ref": "command-center/schema/residual-risk-ledger.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-REQ04-S0",
+     "consumers": [
+      "s1-mark",
+      "s2-rate"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s0b-blanks",
+   "title": "S0b APPLY the adverse-inference default to every blank required field",
+   "kind": "gate",
+   "depends_on": [
+    "s0-extract"
+   ],
+   "gate_ref": "blanks-adverse-inferred"
+  },
+  {
+   "id": "s1-mark",
+   "title": "S1 MARK which rows are load-bearing",
+   "kind": "task",
+   "role": "rater",
+   "depends_on": [
+    "s0b-blanks"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-REQ04-S1",
+    "title": "Mark load_bearing, and drop rows that are not",
+    "phase": "2B",
+    "question_or_target": "Decide, per row, whether the plan fails if the row is false. A non-load-bearing row is deleted, not carried.",
+    "inputs": [
+     "command-center/assumptions/req04-ledger.json"
+    ],
+    "dependencies": [
+     "BP3-REQ04-S0"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "rater",
+     "basis": "judgement, reviewed by the prober downstream"
+    },
+    "tool_permissions": [
+     "Read"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/assumptions/req04-marked.json",
+    "output_schema": "command-center/schema/residual-risk-ledger.schema.json",
+    "evidence_requirement": "each load_bearing=true row names the plan step that fails if the row is false",
+    "tests_required": [
+     "a ritual row with no failing step must be dropped, keeping the ledger from becoming a checklist"
+    ],
+    "reviewer_requirement": "the prober re-reads the marks before probing",
+    "completion_sentinel": "SUCCESS:BP3-REQ04-S1 only when no row is load_bearing without a named failing step; otherwise FAILED:BP3-REQ04-S1 <reason>",
+    "retry_policy": "two strikes then pivot; a third identical marking pass is banned",
+    "failure_classification": [
+     "overclaim",
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s2-rate",
+   "title": "S2 RATE confidence high/medium/low",
+   "kind": "task",
+   "role": "rater",
+   "depends_on": [
+    "s1-mark"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-REQ04-S2",
+    "title": "Attach a calibrated band to every load-bearing row",
+    "phase": "2B",
+    "question_or_target": "Assign high, medium or low to each load-bearing row and pair the band with its evidence tag.",
+    "inputs": [
+     "command-center/assumptions/req04-marked.json"
+    ],
+    "dependencies": [
+     "BP3-REQ04-S1"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "rater",
+     "basis": "calibrated banding, not a bare hedge"
+    },
+    "tool_permissions": [
+     "Read"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/assumptions/req04-rated.json",
+    "output_schema": "command-center/schema/residual-risk-ledger.schema.json",
+    "evidence_requirement": "a high band cites the measurement that justifies it; a bare 'should be fine' is rejected as a hedge",
+    "tests_required": [
+     "a high band with no cited measurement must be demoted to low"
+    ],
+    "reviewer_requirement": "the prober, cross-vendor",
+    "completion_sentinel": "SUCCESS:BP3-REQ04-S2 only when every band is paired with an evidence tag; otherwise FAILED:BP3-REQ04-S2 <reason>",
+    "retry_policy": "two strikes then pivot",
+    "failure_classification": [
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s3-probe",
+   "title": "S3 VERIFY every LOW-confidence load-bearing row (never silently bet)",
+   "kind": "fanout",
+   "depends_on": [
+    "s2-rate"
+   ],
+   "over": {
+    "source": "artifact",
+    "ref": "command-center/assumptions/req04-rated.json",
+    "item_var": "assumption",
+    "key_field": "row_id"
+   },
+   "max_concurrency": 4,
+   "arrival_stagger_ms": 500,
+   "max_items": 32,
+   "on_item_failure": "quarantine",
+   "body": [
+    {
+     "id": "probe-one",
+     "kind": "task",
+     "role": "prober",
+     "timeout_seconds": 1200,
+     "work_unit": {
+      "id": "BP3-REQ04-S3",
+      "title": "Re-derive one low-confidence assumption in a fresh context",
+      "phase": "2B",
+      "question_or_target": "Independently establish or refute one assumption using a mechanically different measurement from the one that produced it.",
+      "inputs": [
+       "command-center/assumptions/req04-rated.json"
+      ],
+      "dependencies": [
+       "BP3-REQ04-S2"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "gpt-5-codex",
+       "vendor": "openai",
+       "role": "prober",
+       "basis": "cross-vendor so the probe cannot inherit the author's reasoning"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Bash:git",
+       "Bash:python"
+      ],
+      "execution_substrate": "codex-mcp",
+      "timeout_seconds": 1200,
+      "output_path": "command-center/assumptions/req04-probe.json",
+      "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+      "evidence_requirement": "names BOTH the source measurement that produced the assumption and the mechanically different one that checked it",
+      "tests_required": [
+       "re-running the ORIGINAL probe must be rejected as a non-independent signal",
+       "a probe with no declared source measurement is a violation, not an independent confirmation"
+      ],
+      "reviewer_requirement": "the rater reads the probe before the band is revised",
+      "completion_sentinel": "SUCCESS:BP3-REQ04-S3 only when the artifact names a source probe AND a mechanically different verifier; otherwise FAILED:BP3-REQ04-S3 <reason>",
+      "retry_policy": "two strikes then pivot to a third measurement class",
+      "failure_classification": [
+       "detector-failure",
+       "same-probe-rerun"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "all",
+    "on_partial": "fail",
+    "reject_result_matching": [
+     "started in the background",
+     "Check /codex:status"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s3-gate",
+   "title": "S3 gate: no LOW+load-bearing row may be carried silently",
+   "kind": "gate",
+   "depends_on": [
+    "s3-probe"
+   ],
+   "gate_ref": "no-silent-bet"
+  },
+  {
+   "id": "s4-recheck",
+   "title": "S4 RE-CHECK the ledger on any step failure (failure-triggered, not scheduled)",
+   "kind": "repair_loop",
+   "depends_on": [
+    "s3-gate"
+   ],
+   "target": [
+    "s2-rate",
+    "s3-probe"
+   ],
+   "max_attempts": 2,
+   "classification_filter": [
+    "detector-failure",
+    "overclaim",
+    "stale-premise"
+   ],
+   "escalate_to": "owner",
+   "require_root_cause": true,
+   "when": "step_failed == true",
+   "diagnose": {
+    "id": "recheck-diagnose",
+    "kind": "task",
+    "role": "prober",
+    "work_unit": {
+     "id": "BP3-REQ04-S4D",
+     "title": "Find which ledger row the failure falsifies",
+     "phase": "2B",
+     "question_or_target": "Map the observed failure back to the assumption it falsifies, or state that no ledger row explains it.",
+     "inputs": [
+      "command-center/assumptions/req04-rated.json"
+     ],
+     "dependencies": [
+      "BP3-REQ04-S3"
+     ],
+     "assigned_model_vendor_role": {
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "role": "prober",
+      "basis": "cross-vendor diagnosis"
+     },
+     "tool_permissions": [
+      "Read",
+      "Grep",
+      "Bash:python"
+     ],
+     "execution_substrate": "codex-mcp",
+     "timeout_seconds": 900,
+     "output_path": "command-center/assumptions/req04-recheck.json",
+     "output_schema": "command-center/schema/root-cause-graph.schema.json",
+     "evidence_requirement": "links the failure signal to the row it falsifies, or records NO-LEDGER-ROW-EXPLAINS-THIS",
+     "tests_required": [
+      "a failure explained by no row must widen the ledger, not be forced onto an existing row"
+     ],
+     "reviewer_requirement": "the rater, who must accept or contest the demotion before it lands",
+     "completion_sentinel": "SUCCESS:BP3-REQ04-S4D only when the failure is either linked to a row or explicitly recorded as unexplained; otherwise FAILED:BP3-REQ04-S4D <reason>",
+     "retry_policy": "one retry then escalate",
+     "failure_classification": [
+      "detector-failure"
+     ],
+     "owner_approval_required": false
+    }
+   },
+   "verify": {
+    "id": "recheck-verify",
+    "kind": "gate",
+    "gate": {
+     "predicate": "custom-expression",
+     "expression": "falsified_rows_demoted == true AND low_confidence_load_bearing_unhandled == 0",
+     "blocking": true,
+     "evidence_required": true,
+     "on_fail": "escalate-to-human"
+    }
+   }
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "ledger-clean",
+   "expression": "low_confidence_load_bearing_unhandled == 0",
+   "applies_to": "workflow",
+   "minimum_conditions": "rows_rated >= 1",
+   "on_stop": "complete"
+  },
+  {
+   "id": "probe-impossible",
+   "expression": "probe_impossible == true AND risk_recorded_with_blast_radius == true",
+   "applies_to": "workflow",
+   "on_stop": "emit-partial"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "detector-failure",
+   "severed-stream"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "owner"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "escalate-to-human",
+  "classify_as": [
+   "stale-premise",
+   "detector-failure",
+   "overclaim"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "owner",
+  "quarantine_path": "command-center/quarantine/req04"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/req04",
+  "granularity": "fanout-item",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "params_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/req04.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "model_outputs"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "schema-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "inputs_hash",
+   "model_id"
+  ],
+  "store": "command-center/cache/req04",
+  "ttl_seconds": 86400,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "graph"
+  ],
+  "plan_artifact": "command-center/dry-run/req04-plan.json",
+  "forbid_tools": [
+   "Bash:git",
+   "Bash:python",
+   "Write(command-center/assumptions/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 120,
+   "expected": 900,
+   "max": 3600
+  },
+  "tokens": {
+   "min": 20000,
+   "expected": 120000,
+   "max": 400000
+  },
+  "tool_calls": {
+   "expected": 20,
+   "max": 160
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "read-only over the plan and repo; writes only under command-center/assumptions/**",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-req-04.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "AGENTS.md#1b-surface-load-bearing-assumptions",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/fresh-context-verify",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "workflows/plan-gate.mjs",
+    "relation": "DISTILL",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-04",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "ledger": {
+   "path": "command-center/assumptions/req04-rated.json",
+   "schema_ref": "command-center/schema/residual-risk-ledger.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the calling plan",
+    "bp-pln-01.mechanical-plan-lint-then-adversarial-trio"
+   ]
+  },
+  "probes": {
+   "path": "command-center/assumptions/req04-probe.json",
+   "schema_ref": "command-center/schema/stale-premise-reprobe.schema.json",
+   "min_bytes": 192,
+   "register_in_manifest": true,
+   "consumers": [
+    "the calling plan"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-04 (doc-order 26 of 96)",
+  "distinguishing_mechanism": "route a LOW-confidence load-bearing row to a cross-vendor VERIFICATION PROBE, not to an owner question; and resolve a blank required field to the worst case. BP-REQ-03 asks the owner; this one interrogates the world.",
+  "worked_example": {
+   "name": "stale pinned ref plus a blank required field",
+   "narrative": "A plan assumes 'origin/main is at the ref we pinned three weeks ago' and leaves the rollback field blank. The pinned-ref row is load-bearing with low confidence and no probe, so it must be reported unhandled. The blank rollback field must resolve to the declared worst case, not to an empty string.",
+   "mechanism": "mechanisms.unhandled_assumptions + mechanisms.blank_field_default",
+   "input": {
+    "rows": [
+     {
+      "text": "origin/main is still at the ref pinned three weeks ago",
+      "load_bearing": true,
+      "confidence": "low",
+      "verification_probe": null
+     },
+     {
+      "text": "the test suite runs in under ten minutes",
+      "load_bearing": false,
+      "confidence": "low",
+      "verification_probe": null
+     },
+     {
+      "text": "the coverage gate command exists in this project",
+      "load_bearing": true,
+      "confidence": "low",
+      "verification_probe": "read .coverage-thresholds.json and run enforcement.command"
+     }
+    ],
+    "blank_field": {
+     "declared": "",
+     "worst_case": "no rollback path exists"
+    }
+   },
+   "expected": {
+    "unhandled_texts": [
+     "origin/main is still at the ref pinned three weeks ago"
+    ],
+    "blank_resolves_to": "no rollback path exists"
+   },
+   "controls": [
+    {
+     "mutate": "give the pinned-ref row a verification_probe",
+     "expected_unhandled": 0,
+     "why": "a probed row is handled; the gate must then pass"
+    }
+   ]
+  }
+ }
+}

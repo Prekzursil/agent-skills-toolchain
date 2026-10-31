@@ -1,0 +1,390 @@
+{
+ "unit_id": "WFA-0067",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0067",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0067-mechanism-registry-gate.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0067 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0067-mechanism-registry-gate.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0067-mechanism-registry-gate.json",
+     "raw_output": "bytes=8299 sha256=86a128f0ca9f4163f19a5f2a60821003963f6fffc1b9c8696d99670f62a30d23",
+     "fingerprint": "8c465475e902a964c92bc6bd9f3d4c67",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0067",
+     "raw_output": "schema-check",
+     "fingerprint": "eb4e419cd4c58517a3793138fc4b362d",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0067 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0067",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0067",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "976560aec6c4d4eb9149e756143990bc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0067",
+     "raw_output": "schema-valid",
+     "fingerprint": "46e9d03ba80ad62560e62a2a74f5b4bc",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "record_type": "RegressionFixture",
+   "title": "CI gate keeping the mechanism registry closed, anchored and non-colliding",
+   "question": "A gate that fails when a mechanism id is added without a definition and discriminating example, when an artifact references an unknown mechanism id, or when a mechanism id collides with the candidate, blueprint or option namespaces.",
+   "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+   "schema_pack_present": true,
+   "generated_at": "2026-08-25T01:02:03Z",
+   "gate": {
+    "path": "tools/command-center/mechanism_registry_gate.py",
+    "ci_invocation": [
+     "python tools/command-center/mechanism_registry_gate.py",
+     "python tools/command-center/validate.py"
+    ],
+    "opt_in_flag": null,
+    "checks_armed_by_default": true,
+    "blob_recipe": "git cat-file -p HEAD:<path> (fallback: working-tree LF-normalised)"
+   },
+   "blob_recipe": "git cat-file -p HEAD:<path>",
+   "live_estate": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/mechanism_registry_gate.py",
+    "exit_code": 0,
+    "raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=working-tree-lf-normalized\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true",
+    "violations": [],
+    "stats": {
+     "mechanisms": 12,
+     "citations": 5,
+     "closed": true,
+     "blob_sources": [
+      "working-tree-lf-normalized"
+     ]
+    },
+    "blobs": [
+     {
+      "path": "command-center/wfa/mechanism-registry.json",
+      "source": "working-tree-lf-normalized",
+      "bytes": 4217
+     },
+     {
+      "path": "command-center/wfa/mechanism-incidence.json",
+      "source": "working-tree-lf-normalized",
+      "bytes": 376
+     },
+     {
+      "path": "command-center/wfa/mechanism-namespaces.json",
+      "source": "working-tree-lf-normalized",
+      "bytes": 450
+     }
+    ],
+    "validate_ci_command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/validate.py",
+    "validate_ci_exit_code": 0,
+    "validate_ci_raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all"
+   },
+   "both_states": {
+    "known_good": {
+     "fixture": "copied-live-estate",
+     "fired": false,
+     "exit_code": 0,
+     "raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=working-tree-lf-normalized\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true"
+    },
+    "planted_bad": {
+     "fixture": "MX-0099-empty-definition",
+     "fired": true,
+     "exit_code": 1,
+     "raw_output": "MECH-UNDEF MX-0099: mechanism id added without a definition\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+    }
+   },
+   "planted_violations": [
+    {
+     "id": "undefined-id",
+     "kind": "undefined-id",
+     "check": "MECH-UNDEF",
+     "fired": true,
+     "exit_code": 1,
+     "extra_flags": [],
+     "raw_output": "MECH-UNDEF MX-0099: mechanism id added without a definition\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+    },
+    {
+     "id": "dangling-reference",
+     "kind": "dangling-reference",
+     "check": "MECH-DANGLING",
+     "fired": true,
+     "exit_code": 1,
+     "extra_flags": [],
+     "raw_output": "MECH-DANGLING MX-9999: artifact planted-unknown-ref.json references unknown mechanism id\nmech-registry-gate mechanisms=12 citations=6 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+    },
+    {
+     "id": "cross-namespace-collision",
+     "kind": "cross-namespace-collision",
+     "check": "MECH-COLLIDE",
+     "fired": true,
+     "exit_code": 1,
+     "extra_flags": [],
+     "raw_output": "MECH-COLLIDE M-16: mechanism id collides with the option namespace\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+    }
+   ],
+   "noop_hole": {
+    "mutation": "delete the whole vocabulary 'mechanisms' block",
+    "fired": true,
+    "exit_code": 1,
+    "extra_flags": [],
+    "raw_output": "MECH-EMPTY mechanisms: vocabulary mechanisms block is missing or empty (no-op-hole: a completeness check that passes deletion of the block it guards)\n  MECH-DANGLING MX-0001: artifact command-center/wfa/mechanism-registry.json references unknown mechanism id\n  MECH-DANGLING MX-0002: artifact command-center/wfa/mechanism-registry.json references unknown mechanism id\n  MECH-DANGLING MX-0001: artifact tools/command-center/mechanism_registry_gate.py references unknown mechanism id\n  MECH-DANGLING MX-0002: artifact tools/command-center/mechanism_registry_gate.py references unknown mechanism id\n  MECH-DANGLING MX-0003: artifact command-center/wfa/WFA-0058-mechanism-vocabulary.json references unknown mechanism id\nmech-registry-gate mechanisms=0 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=6"
+   },
+   "crlf_blob_control": {
+    "blob_source": "git-cat-file-HEAD",
+    "blob_sha256": "1565bd826cd582b2e69f62b13928df332989960d9d98170a6e36a5e2e7ee03ac",
+    "worktree_sha256": "64b29f2163a182a2c1346a805c0eb04e394289033e2ff1c38572379b82addad1",
+    "blob_equals_lf": true,
+    "blob_differs_from_crlf_worktree": true,
+    "worktree_has_crlf": true,
+    "gate_exit_code": 0,
+    "gate_raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=git-cat-file-HEAD\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true"
+   },
+   "vocabulary_guarded": {
+    "path": "command-center/wfa/mechanism-registry.json",
+    "note": "Gate guards command-center/wfa/mechanism-registry.json. WFA-0058 canonical 1.0.0 vocabulary is present on this worktree and replaces the bootstrap 0.1.0 three-entry set by extending it; deleting the mechanisms block must still turn this gate red."
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0067",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0067-mechanism-registry-gate.json",
+   "bytes": 8299,
+   "sha256": "86a128f0ca9f4163f19a5f2a60821003963f6fffc1b9c8696d99670f62a30d23",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0067/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0067"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0067-mechanism-registry-gate.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0067-mechanism-registry-gate.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "c7954039dbf06407d8a5e2356ce90911",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "RegressionFixture",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 8299,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0067-mechanism-registry-gate.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "record_type": "RegressionFixture",
+ "title": "CI gate keeping the mechanism registry closed, anchored and non-colliding",
+ "question": "A gate that fails when a mechanism id is added without a definition and discriminating example, when an artifact references an unknown mechanism id, or when a mechanism id collides with the candidate, blueprint or option namespaces.",
+ "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+ "schema_pack_present": true,
+ "generated_at": "2026-08-25T01:02:03Z",
+ "gate": {
+  "path": "tools/command-center/mechanism_registry_gate.py",
+  "ci_invocation": [
+   "python tools/command-center/mechanism_registry_gate.py",
+   "python tools/command-center/validate.py"
+  ],
+  "opt_in_flag": null,
+  "checks_armed_by_default": true,
+  "blob_recipe": "git cat-file -p HEAD:<path> (fallback: working-tree LF-normalised)"
+ },
+ "blob_recipe": "git cat-file -p HEAD:<path>",
+ "live_estate": {
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/mechanism_registry_gate.py",
+  "exit_code": 0,
+  "raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=working-tree-lf-normalized\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true",
+  "violations": [],
+  "stats": {
+   "mechanisms": 12,
+   "citations": 5,
+   "closed": true,
+   "blob_sources": [
+    "working-tree-lf-normalized"
+   ]
+  },
+  "blobs": [
+   {
+    "path": "command-center/wfa/mechanism-registry.json",
+    "source": "working-tree-lf-normalized",
+    "bytes": 4217
+   },
+   {
+    "path": "command-center/wfa/mechanism-incidence.json",
+    "source": "working-tree-lf-normalized",
+    "bytes": 376
+   },
+   {
+    "path": "command-center/wfa/mechanism-namespaces.json",
+    "source": "working-tree-lf-normalized",
+    "bytes": 450
+   }
+  ],
+  "validate_ci_command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/validate.py",
+  "validate_ci_exit_code": 0,
+  "validate_ci_raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all"
+ },
+ "both_states": {
+  "known_good": {
+   "fixture": "copied-live-estate",
+   "fired": false,
+   "exit_code": 0,
+   "raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=working-tree-lf-normalized\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true"
+  },
+  "planted_bad": {
+   "fixture": "MX-0099-empty-definition",
+   "fired": true,
+   "exit_code": 1,
+   "raw_output": "MECH-UNDEF MX-0099: mechanism id added without a definition\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+  }
+ },
+ "planted_violations": [
+  {
+   "id": "undefined-id",
+   "kind": "undefined-id",
+   "check": "MECH-UNDEF",
+   "fired": true,
+   "exit_code": 1,
+   "extra_flags": [],
+   "raw_output": "MECH-UNDEF MX-0099: mechanism id added without a definition\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+  },
+  {
+   "id": "dangling-reference",
+   "kind": "dangling-reference",
+   "check": "MECH-DANGLING",
+   "fired": true,
+   "exit_code": 1,
+   "extra_flags": [],
+   "raw_output": "MECH-DANGLING MX-9999: artifact planted-unknown-ref.json references unknown mechanism id\nmech-registry-gate mechanisms=12 citations=6 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+  },
+  {
+   "id": "cross-namespace-collision",
+   "kind": "cross-namespace-collision",
+   "check": "MECH-COLLIDE",
+   "fired": true,
+   "exit_code": 1,
+   "extra_flags": [],
+   "raw_output": "MECH-COLLIDE M-16: mechanism id collides with the option namespace\nmech-registry-gate mechanisms=13 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=1"
+  }
+ ],
+ "noop_hole": {
+  "mutation": "delete the whole vocabulary 'mechanisms' block",
+  "fired": true,
+  "exit_code": 1,
+  "extra_flags": [],
+  "raw_output": "MECH-EMPTY mechanisms: vocabulary mechanisms block is missing or empty (no-op-hole: a completeness check that passes deletion of the block it guards)\n  MECH-DANGLING MX-0001: artifact command-center/wfa/mechanism-registry.json references unknown mechanism id\n  MECH-DANGLING MX-0002: artifact command-center/wfa/mechanism-registry.json references unknown mechanism id\n  MECH-DANGLING MX-0001: artifact tools/command-center/mechanism_registry_gate.py references unknown mechanism id\n  MECH-DANGLING MX-0002: artifact tools/command-center/mechanism_registry_gate.py references unknown mechanism id\n  MECH-DANGLING MX-0003: artifact command-center/wfa/WFA-0058-mechanism-vocabulary.json references unknown mechanism id\nmech-registry-gate mechanisms=0 citations=5 blob_sources=working-tree-lf-normalized\nFAILED:mech-registry-gate violations=6"
+ },
+ "crlf_blob_control": {
+  "blob_source": "git-cat-file-HEAD",
+  "blob_sha256": "1565bd826cd582b2e69f62b13928df332989960d9d98170a6e36a5e2e7ee03ac",
+  "worktree_sha256": "64b29f2163a182a2c1346a805c0eb04e394289033e2ff1c38572379b82addad1",
+  "blob_equals_lf": true,
+  "blob_differs_from_crlf_worktree": true,
+  "worktree_has_crlf": true,
+  "gate_exit_code": 0,
+  "gate_raw_output": "mech-registry-gate mechanisms=12 citations=5 blob_sources=git-cat-file-HEAD\nSUCCESS:mech-registry-gate mechanisms=12 citations=5 closed=true"
+ },
+ "vocabulary_guarded": {
+  "path": "command-center/wfa/mechanism-registry.json",
+  "note": "Gate guards command-center/wfa/mechanism-registry.json. WFA-0058 canonical 1.0.0 vocabulary is present on this worktree and replaces the bootstrap 0.1.0 three-entry set by extending it; deleting the mechanisms block must still turn this gate red."
+ }
+}

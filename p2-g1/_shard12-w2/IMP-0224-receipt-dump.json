@@ -1,0 +1,211 @@
+{
+ "artifacts": [
+  {
+   "bytes": 18021,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/event-ledger/ledger.py",
+   "role": "primary-implementation",
+   "sha256": "331613d46f0ab39f25b7d5f1bdaf2a086e9ead88d9af701913f96e37e072f5a8"
+  },
+  {
+   "bytes": 2335,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/event-ledger/kill_target.py",
+   "role": "supporting",
+   "sha256": "13558230653e4e4b44717b0836b9a604bee99e78066b2752de3e7090fd49a2c8"
+  },
+  {
+   "bytes": 1530,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/event-ledger/schema/record.schema.json",
+   "role": "supporting",
+   "sha256": "adaafa2ca8a1fb8bfe17dbbff2442eff71e080a85ecb4c73631253fc67180d2f"
+  },
+  {
+   "bytes": 5446,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/event-ledger/tests/test_crash_safe.py",
+   "role": "supporting",
+   "sha256": "a951f8d52da72c611887fda916ec4423c53c03aa56db1592e8f5fd797406ca29"
+  },
+  {
+   "bytes": 5799,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/lib/handled-ledger.mjs",
+   "role": "supporting",
+   "sha256": "830a17edcc18866310e22f3f87f893e5c85d169b16c6cf253570b8909ab768cd"
+  },
+  {
+   "bytes": 3941,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0224/probe1_kill_loop.py",
+   "role": "supporting",
+   "sha256": "10a40cd0276842a3a4f28e8f2d271d432eef71b623bbc1a6d53d0b13e4632575"
+  },
+  {
+   "bytes": 8923,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+   "role": "supporting",
+   "sha256": "129ad34c62abb5a36da64fc07f0651e089a082eb2a3a91aee44fa9fa51109b0a"
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/event-ledger/ledger.py:LedgerWriter.append",
+   "claim": "50/50 kill-loop iterations leave a parseable published ledger (computed pass count).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe1_kill_loop.py",
+     "exit_code": 0,
+     "fingerprint": "c7d26cc2430b2e8367264620778b195e",
+     "method": "50-iteration-SIGKILL-during-chunked-staging-write",
+     "raw_output": "{\"half_written_total\": 0, \"interrupted_staging_observed\": 50, \"iterations\": 50, \"parseable_ledgers\": 50, \"pass\": true, \"probe\": \"probe1-kill-loop\", \"sample\": [{\"grew\": false, \"half_written\": 0, \"line_count\": 1, \"parseable\": true, \"rc\": -9, \"saw_staging\": true, \"staging_left\": 1}, {\"grew\": false, \"half_written\": 0, \"line_count\": 1, \"parseable\": true, \"rc\": -9, \"saw_staging\": true, \"staging_left\": 1}, {\"grew\": false, \"half_written\": 0, \"line_count\": 1, \"parseable\": true, \"rc\": -9, \"saw_staging\": true, \"staging_left\": 1}], \"unit_id\": \"IMP-0224\"}\nparseable=50/50 half_written=0 staging_hits=50\nSUCCESS:IMP-0224-probe1 50/50 kill-loop parseable; partial records absent",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe1_kill_loop.py",
+     "exit_code": 0,
+     "fingerprint": "db77feae979235bd5c80056a323129d9",
+     "method": "computed-parseable-count-equals-iterations",
+     "raw_output": "{\"parseable_ledgers\": 50, \"iterations\": 50, \"half_written_total\": 0}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+   "claim": "Zero half-written records across the loop by per-line schema check (independent required-field list, not inspect_published_bytes).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+     "exit_code": 0,
+     "fingerprint": "682bbe620e4558460ab0bb60c64fc59b",
+     "method": "per-line-json-and-schema-over-50-killed-ledgers",
+     "raw_output": "{\"atomic_kill_loop\": {\"half_written\": 0, \"json_fail\": 0, \"ledgers\": 50, \"missing_trailing_newline\": 0, \"ok_lines\": 50, \"schema_fail\": 0}, \"naive_in_place_kill\": {\"samples\": [{\"bytes\": 355, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 371, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 355, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}], \"torn_hits\": 8, \"trials\": 8}, \"pass\": true, \"planted_truncation\": {\"bad_half\": 2, \"fired_on_bad\": true, \"good_half\": 0, \"silent_on_good\": true}, \"probe\": \"probe2-line-schema\", \"unit_id\": \"IMP-0224\"}\nschema_half=0 planted_bad=True naive_torn=8/8\nSUCCESS:IMP-0224-probe2 per-line schema 0 half-written; naive/planted controls fire",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+     "exit_code": 0,
+     "fingerprint": "aa9eba2ef969d0e98cb9fdb9173cfe27",
+     "method": "planted-truncation-and-naive-in-place-kill-fire",
+     "raw_output": "{\"half_written\": 0, \"planted\": {\"bad_half\": 2, \"fired_on_bad\": true, \"good_half\": 0, \"silent_on_good\": true}, \"naive_torn\": 8}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "kill_loop": {
+  "half_written_total": 0,
+  "interrupted_staging_observed": 50,
+  "iterations": 50,
+  "parseable_ledgers": 50
+ },
+ "live_ledgers": {
+  "events": "command-center/events/EVENTS.jsonl",
+  "events_bytes": 406,
+  "run_ledger": "command-center/events/run-ledger.jsonl",
+  "run_ledger_bytes": 359,
+  "seeded_now": [
+   "command-center/events/run-ledger.jsonl"
+  ]
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0224/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "mechanism": {
+  "hash_chain": "prev_sha256 of previous line bytes; genesis is 64 zeros",
+  "js_twin": "tools/lib/handled-ledger.mjs same staging+fsync+rename protocol",
+  "never_in_place": true,
+  "partial_record": "absent-from-published-path (staging leftover ignored)",
+  "publish": "write complete snapshot to sibling staging file, fsync, os.replace"
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe1_kill_loop.py",
+   "exit_code": 0,
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+   "exit_code": 0,
+   "id": "probe2"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "missing-trailing-newline and JSONDecodeError on last part",
+   "description": "A complete seeded ledger plus a truncated JSON suffix must fail the per-line schema check; the unmutated seed must pass.",
+   "fired_on_bad_state": true,
+   "good_state_output": "seed line schema-ok, half_written=0",
+   "id": "planted-truncated-tail",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive torn_hits=8",
+   "description": "unsafe_direct_append writes the published path in chunks. SIGKILL during that write produces a torn tail the schema check rejects. Proves the probe discriminates.",
+   "fired_on_bad_state": true,
+   "good_state_output": "atomic kill-loop half_written=0",
+   "id": "naive-in-place-chunked-write",
+   "kind": "mutation-replace-atomic-rename-with-direct-write",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0224: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. cloud ok=true is not delivery. Did not run global unit_manifest.py --write. SUCCESS:IMP-0224",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Target: a single append-only run ledger that survives a hard kill mid-write. Acceptance: killing the process during a write leaves the ledger parseable with the partial record ABSENT rather than truncated - verified by a kill-loop test, not by reasoning about atomicity.",
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot; this delivery did not require a pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 duplicates the required-field list and splits published bytes on newline itself. It does not use inspect_published_bytes as the pass predicate. A planted torn tail and a naive in-place writer both fire.",
+  "reviewer_id": "IMP-0224-probe2-line-schema",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0224",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0224; EVENTS.jsonl JSONL precedent; tools/event-ledger; tools/lib/handled-ledger.mjs",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/event-ledger/tests/test_crash_safe.py",
+   "id": "test_crash_safe",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe1_kill_loop.py",
+   "id": "probe1_kill_loop",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0224/probe2_line_schema.py",
+   "id": "probe2_line_schema",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:34Z",
+  "started_at": "2026-08-25T01:01:34Z"
+ },
+ "title": "Implement the append-only resumable ledger writer with crash-safe atomic appends",
+ "unit_id": "IMP-0224"
+}

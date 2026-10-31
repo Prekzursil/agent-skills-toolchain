@@ -1,0 +1,602 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1113,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/conformance-report.schema.json",
+   "role": "supporting",
+   "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190"
+  },
+  {
+   "bytes": 22534,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0106/hostility.py",
+   "role": "supporting",
+   "sha256": "c5e288a76629c0b48acfa28f71bb4b6c55bd71b5bcc0667ae7c462b321c97320"
+  },
+  {
+   "bytes": 3007,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+   "role": "supporting",
+   "sha256": "3830d4ed3d45cf4fce859f2cc6fe556949d0957f2719de4b92caa29457ae7ba4"
+  },
+  {
+   "bytes": 2804,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+   "role": "supporting",
+   "sha256": "bc719b1be9f0faafdcf335244ad9c32205efac1b0c53a3c1661786499dcdaaa3"
+  },
+  {
+   "bytes": 15876,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/validate.py",
+   "role": "supporting",
+   "sha256": "d3b8f5751819e0265d61ac365344ab32d71f7360899c044d8356f4c5404712cf"
+  },
+  {
+   "bytes": 10412,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/seed.py",
+   "role": "supporting",
+   "sha256": "2f4c76df5a0897c0d0f59f47a8d4104472be86bd436ffc2ab751fbf4ed04d09d"
+  },
+  {
+   "bytes": 8826,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/catalog.py",
+   "role": "supporting",
+   "sha256": "e0bb0f4d448810db51b5d3794c620e0438eea9644143e81b06502ea7e5f6def5"
+  },
+  {
+   "bytes": 12507,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/unit_manifest.py",
+   "role": "supporting",
+   "sha256": "65e87a4849e9da1e2583ebf8b7d8f8aca1a7cfa16965387fcaa664d1f90e0e01"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/p2-wave/probes/ARC-0106/probe1-crlf.raw.json",
+   "consumer": "json.loads of probe1-crlf.raw.json",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; from pathlib import Path; p=Path('command-center/p2-wave/probes/ARC-0106/probe1-crlf.raw.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['blob_method']['never_git_archive_for_blob'] is True; print('read_ok', p.as_posix(), 'keys', len(d))\"",
+    "exit_code": 0,
+    "fingerprint": "4211fbd65e7d7df735b770daba7dd85d",
+    "method": "command",
+    "raw_output": "read_ok command-center/p2-wave/probes/ARC-0106/probe1-crlf.raw.json keys 7",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py:1",
+   "claim": "Line-ending behaviour is taken from git cat-file -p on a throwaway lab blob, never from git archive; both readings and a CRLF working-tree rewrite are recorded, and REACH-6 stays clean on LF and CRLF (lf=True, crlf=True).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+     "exit_code": 0,
+     "fingerprint": "58a6a56d33216648f6e5e3c59fe40e9f",
+     "method": "command",
+     "raw_output": "worktree_git=False cat-file_bytes=17 cat-file_crlf=0 archive_bytes=17 archive_crlf=0 archive_equals_blob=True wt_crlf_differs=True validate_lf_reach6_clean=True validate_crlf_reach6_clean=True seed_matches_lf_blob=True um_survives_crlf=True catalog_load_breaks_on_bom=True\nSUCCESS:ARC-0106-probe1 crlf-blob-bom",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0106/probe1-crlf.raw.json",
+     "exit_code": 0,
+     "fingerprint": "07c183f14e5f49254377f9ff32d83554",
+     "method": "file-read",
+     "raw_output": "{\"archive_bytes\": 17, \"cat_file_bytes\": 17, \"never_git_archive_for_blob\": true, \"seed_matches_lf_blob\": true, \"working_tree_crlf_shown\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py:1",
+   "claim": "NUL was created via the extended-length analogue without crashing unit_manifest; a relative path longer than 260 characters was exercised (len=336, failure_mode=none-on-linux); casefold collisions were planted.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+     "exit_code": 0,
+     "fingerprint": "2287800fd146d03a2f6348506e3f164b",
+     "method": "command",
+     "raw_output": "nul_created=True nul_extended=\\\\?\\\\\\tmp\\arc0106-p2-8meap8ed\\re um_nul_handled=True long_rel_len=336 long_failure_mode=none-on-linux case_files=2 casefold_collisions=['manifest.json'] contracts_present=0\nSUCCESS:ARC-0106-probe2 reserved-longpath-case",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/ARC-0106/probe2-hostility.raw.json",
+     "exit_code": 0,
+     "fingerprint": "bcc87cf71438f09c98cda260ba900ba1",
+     "method": "file-read",
+     "raw_output": "{\"casefold_collisions\": [\"manifest.json\"], \"failure_mode\": \"none-on-linux\", \"handled\": true, \"nul_created\": true, \"relative_len\": 336}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+    "exit_code": 0,
+    "id": "probe1"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+    "exit_code": 0,
+    "id": "probe2"
+   }
+  ],
+  "question": "Do the contracts and their validators survive this platform? Test UTF-8 with and without BOM, CRLF versus LF (the measured defect where the command-center validator hashes working-tree bytes and is therefore unrunnable on any Windows checkout), Windows reserved device names such as NUL and CON that break relative-path computation, long paths beyond 260 characters, and case-insensitive path collisions. Which validators break, and what is the minimal fix for each?"
+ },
+ "manifest_registration": {
+  "entry_id": "ARC-0106",
+  "manifest_path": "command-center/p2-wave/probes/ARC-0106/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "naive_raw=ee8229be795b0816778960b619ea1553696ed55155d9877f5850a598ab611852 normalised=949ceb22b3fadbfe2fdeff6a678eebc241c74bf83499531620092644f141d2cd",
+   "description": "A raw CRLF digest of the same bytes must mismatch the LF blob; LF-normalised validators must stay silent on both states.",
+   "fired_on_bad_state": true,
+   "good_state_output": "um_survives=True seed_matches=True",
+   "id": "NC-CRLF-NAIVE-DIGEST",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+   "description": "catalog.load must break on a UTF-8 BOM and succeed without one.",
+   "fired_on_bad_state": true,
+   "good_state_output": "None",
+   "id": "NC-UTF8-BOM",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "test-engineer",
+  "vendor": "xai"
+ },
+ "profile": "conformance-report",
+ "report": {
+  "answer": "Contracts ARC-0078/0080/0084 are absent on this tree. Live command-center digest validators SURVIVE CRLF vs the LF blob because they LF-normalise before hashing; a raw working-tree hash would still mismatch (the historical REACH-6 Windows defect). catalog.load, seed overlay, and unit_manifest receipts BREAK on a UTF-8 BOM (minimal fix: utf-8-sig). Reserved name NUL was created via the extended-length analogue and did not crash unit_manifest on Linux (Windows still needs an explicit refuse/prefix guard). Paths longer than 260 characters SURVIVE here (failure_mode=none-on-linux); Windows MAX_PATH remains unguarded. Case-insensitive collisions are not detected. SUCCESS:ARC-0106",
+  "blob_method": {
+   "archive_equals_blob": true,
+   "method": "git cat-file -p on a throwaway lab repo; git archive recorded only as the contrast reading",
+   "never_git_archive_for_blob": true,
+   "note": "This delivery worktree has no .git, so cat-file/archive against HEAD fail. Both tools were still invoked on the worktree (recorded) and then proved on a throwaway lab repository. On this Linux host git archive returned the same LF bytes as cat-file -p; the Windows archive-to-CRLF conversion is not reproduced here. Working-tree CRLF is shown by rewriting the lab file after commit.",
+   "readings": {
+    "git archive": {
+     "bytes": 17,
+     "crlf": 0,
+     "lf_bytes": 17,
+     "rc": 0,
+     "sha256": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad",
+     "sha256_lf_norm": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad",
+     "stderr_head": ""
+    },
+    "git cat-file -p": {
+     "bytes": 17,
+     "crlf": 0,
+     "lf_bytes": 17,
+     "rc": 0,
+     "sha256": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad",
+     "sha256_lf_norm": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad",
+     "stderr_head": ""
+    },
+    "git cat-file -p after working-tree CRLF rewrite": {
+     "bytes": 17,
+     "crlf": 0,
+     "lf_bytes": 17,
+     "rc": 0,
+     "sha256": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad",
+     "sha256_lf_norm": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad"
+    },
+    "working-tree after CRLF rewrite": {
+     "bytes": 20,
+     "crlf": 3,
+     "lf_bytes": 17,
+     "sha256": "7805807c263944785808d663457f8c088a859f1cad0b844a5c28bda816e06b9a",
+     "sha256_lf_norm": "062fb3c9d40b334fe7bbb1d54bd37272402244ba6e38721342544dc8205ce2ad"
+    }
+   },
+   "working_tree_crlf_shown": true,
+   "worktree_git": {
+    "is_git_repo": false,
+    "note": "Worktree has no .git; blob method is proved on a throwaway lab repo.",
+    "readings": {
+     "git archive": {
+      "rc": 128,
+      "stderr_head": "fatal: not a git repository (or any of the parent directories): .git\n",
+      "stdout_bytes": 0
+     },
+     "git cat-file -p": {
+      "rc": 128,
+      "stderr_head": "fatal: not a git repository (or any of the parent directories): .git\n",
+      "stdout_bytes": 0
+     },
+     "rev-parse": {
+      "rc": 128,
+      "stderr_head": "fatal: not a git repository (or any of the parent directories): .git\n",
+      "stdout_bytes": 0
+     }
+    }
+   }
+  },
+  "contracts_under_test": [
+   {
+    "id": "ARC-0078",
+    "path": "command-center/phase4/contracts/ARC-0078.json",
+    "present": false
+   },
+   {
+    "id": "ARC-0080",
+    "path": "command-center/phase4/contracts/ARC-0080.json",
+    "present": false
+   },
+   {
+    "id": "ARC-0084",
+    "path": "command-center/phase4/contracts/ARC-0084.json",
+    "present": false
+   }
+  ],
+  "control_ids": [
+   "NC-CRLF-NAIVE-DIGEST",
+   "NC-UTF8-BOM"
+  ],
+  "findings": [
+   {
+    "detail": "ARC-0078, ARC-0080 and ARC-0084 contract files are not on this tree at command-center/phase4/contracts/. Conformance therefore targets the live command-center validators those contracts would bind (digest/manifest for ARC-0084; no plugin or packager module is present for ARC-0078/ARC-0080).",
+    "id": "F-CONTRACT-ABSENT",
+    "minimal_fix": "Author the three contract units; this report does not invent them.",
+    "surface": "phase4-contracts",
+    "validator": "contracts",
+    "verdict": "ABSENT"
+   },
+   {
+    "detail": "validate.py REACH-6 and seed.py provenance hash LF-normalise before digesting. LF blob reach6_clean=True; CRLF working-tree reach6_clean=True; seed CRLF digest matches LF blob=True; unit_manifest and render_manifest match the LF-normalised digest. Naive raw CRLF digest would mismatch the blob (naive_would_break=True).",
+    "id": "F-CRLF-REACH6",
+    "minimal_fix": "Keep read_bytes().replace(b'\\r\\n', b'\\n') on every digest writer and reader. Do not hash working-tree bytes raw.",
+    "surface": "CRLF-vs-LF",
+    "validator": "validate.py+seed.py+unit_manifest.py+render.py",
+    "verdict": "SURVIVES"
+   },
+   {
+    "detail": "catalog.load uses encoding=utf-8 then json.loads, so a UTF-8 BOM raises. without_bom={'error': None, 'ok': True}; with_bom={'error': 'JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)', 'ok': False}; unit_manifest BOM receipt ok=False (ManifestError: unreadable/unparseable JSON /tmp/arc0106-p1-7ga8urea/bom-lab/um-bom/command-center/receipts/BOM.json: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)); seed overlay BOM ok=False (JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)). json.loads under utf-8-sig accepts the same bytes.",
+    "id": "F-UTF8-BOM",
+    "minimal_fix": "Read JSON with encoding='utf-8-sig' (catalog.py, seed.py overlay, validate.py graph, unit_manifest receipts, register_parse.parse_file).",
+    "surface": "UTF-8-BOM",
+    "validator": "catalog.py",
+    "verdict": "BREAKS"
+   },
+   {
+    "detail": "Created a file named NUL (Linux analogue of CreateFileW with the \\\\?\\ prefix \\\\?\\\\\\tmp\\arc0106-p2-8meap8ed\\reserved-lab\\NUL). unit_manifest handled=True crashed=False relative_to={'crashed': False, 'ok': True, 'refused': False, 'relative': 'NUL'}. Live sources have no reserved-device guard; on Windows open('NUL') would bind the device rather than a file.",
+    "id": "F-RESERVED-NUL",
+    "minimal_fix": "Reject path components whose stem is in {NUL,CON,PRN,AUX,COM1-9,LPT1-9} unless the caller used an extended-length prefix; never open the device.",
+    "surface": "windows-reserved-names",
+    "validator": "unit_manifest.py",
+    "verdict": "SURVIVES"
+   },
+   {
+    "detail": "Relative path length=336 absolute=378 created=True failure_mode=none-on-linux unit_manifest={'bytes': 14, 'crashed': False, 'ok': True, 'sha256': '44129124a7e038270c34e88133ba1b5da4cf40269866cf979964979698be2824'}. On this Linux host the path is legal. Windows without \\\\?\\: FileNotFoundError / WinError 3 or 206 (filename or extension too long) once the path exceeds MAX_PATH=260 without \\\\?\\.",
+    "id": "F-LONG-PATH",
+    "minimal_fix": "On Windows, prefix paths at or above 260 characters with \\\\?\\ before open/stat, or fail closed with an explicit path-too-long error.",
+    "surface": "path-length-gt-260",
+    "validator": "unit_manifest.py",
+    "verdict": "SURVIVES"
+   },
+   {
+    "detail": "Planted ['Manifest.json', 'manifest.json'] as distinct files (linux_distinct=2); casefold collisions={'manifest.json': ['Manifest.json', 'manifest.json']}. unit_manifest emitted 2 rows with 2 distinct digests. live_code_detects_casefold_collision=False.",
+    "id": "F-CASE-COLLISION",
+    "minimal_fix": "When two registered paths compare equal under casefold, fail closed instead of treating them as distinct artifacts.",
+    "surface": "case-insensitive-collision",
+    "validator": "unit_manifest.py",
+    "verdict": "BREAKS"
+   },
+   {
+    "detail": "tools/plugin/validate.py and tools/package/boundary.py are not on this tree, so plugin-manifest interpreter rules and package exclusion/size-ceiling validators could not be executed. Path hostility was measured on the live digest/manifest tooling instead.",
+    "id": "F-PLUGIN-PACKAGER-ABSENT",
+    "minimal_fix": "Deliver ARC-0078 and ARC-0080 validators, then re-run this suite.",
+    "surface": "ARC-0078-ARC-0080-validators",
+    "validator": "plugin+package",
+    "verdict": "ABSENT"
+   }
+  ],
+  "host": {
+   "git_worktree_repo": false,
+   "os_name": "posix",
+   "path_sep": "/",
+   "python": "3.12.3",
+   "system": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39"
+  },
+  "kind": "conformance-report",
+  "measurements": {
+   "bom": {
+    "catalog_load_breaks_on_bom": true,
+    "json_loads_utf8_sig_with_bom": {
+     "error": null,
+     "ok": true
+    },
+    "json_loads_utf8_with_bom": {
+     "error": "JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+     "ok": false
+    },
+    "seed_overlay_with_bom": {
+     "error": "JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+     "ok": false
+    },
+    "unit_manifest_receipt_with_bom": {
+     "error": "ManifestError: unreadable/unparseable JSON /tmp/arc0106-p1-7ga8urea/bom-lab/um-bom/command-center/receipts/BOM.json: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+     "ok": false
+    },
+    "with_bom": {
+     "error": "JSONDecodeError: Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)",
+     "ok": false
+    },
+    "without_bom": {
+     "error": null,
+     "ok": true
+    }
+   },
+   "case_collision": {
+    "casefold_collisions": {
+     "manifest.json": [
+      "Manifest.json",
+      "manifest.json"
+     ]
+    },
+    "linux_names": [
+     "Manifest.json",
+     "manifest.json"
+    ]
+   },
+   "crlf": {
+    "crlf_reach6_clean": true,
+    "lf_reach6_clean": true,
+    "render_survives": true,
+    "seed_matches_lf_blob": true,
+    "unit_manifest_survives": true
+   },
+   "git_archive_contrast": {
+    "archive_bytes": 17,
+    "cat_file_bytes": 17,
+    "working_tree_bytes": 20,
+    "working_tree_crlf": 3
+   },
+   "long_path": {
+    "failure_mode": "none-on-linux",
+    "relative_len": 336,
+    "unit_manifest_ok": true
+   },
+   "reserved": {
+    "handled_or_refused": true,
+    "nul_created": true
+   }
+  },
+  "minimal_fixes": [
+   {
+    "applies_to": "CRLF digest (validate/seed/render/unit_manifest)",
+    "fix": "Already applied: LF-normalise before hashing. Keep writer and reader paired."
+   },
+   {
+    "applies_to": "UTF-8 BOM (catalog.load, seed overlay, unit_manifest receipts)",
+    "fix": "Open text JSON with encoding='utf-8-sig'."
+   },
+   {
+    "applies_to": "Windows reserved device names",
+    "fix": "Refuse reserved stems unless an extended-length \\\\?\\ path is used."
+   },
+   {
+    "applies_to": "paths longer than 260 characters",
+    "fix": "Use \\\\?\\ on Windows or fail closed with an explicit too-long error."
+   },
+   {
+    "applies_to": "case-insensitive collisions",
+    "fix": "Fail closed when two artifact paths compare equal under str.casefold."
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+    "measured": true,
+    "method": "command",
+    "name": "validate_lf_reach6_clean"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+    "measured": true,
+    "method": "command",
+    "name": "validate_crlf_reach6_clean"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0106/hostility.py",
+    "measured": true,
+    "method": "command",
+    "name": "catalog_load_breaks_on_bom"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+    "measured": true,
+    "method": "command",
+    "name": "nul_created"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+    "measured": 336,
+    "method": "command",
+    "name": "long_path_relative_len"
+   },
+   {
+    "anchor": "command-center/phase4/contracts",
+    "measured": 0,
+    "method": "file-read",
+    "name": "phase4_contracts_present"
+   }
+  ],
+  "question": "Do the contracts and their validators survive this platform? Test UTF-8 with and without BOM, CRLF versus LF (the measured defect where the command-center validator hashes working-tree bytes and is therefore unrunnable on any Windows checkout), Windows reserved device names such as NUL and CON that break relative-path computation, long paths beyond 260 characters, and case-insensitive path collisions. Which validators break, and what is the minimal fix for each?",
+  "source_guards": {
+   "catalog.py": {
+    "casefold": false,
+    "lf_normalize": false,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   },
+   "register_parse.py": {
+    "casefold": false,
+    "lf_normalize": false,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   },
+   "render.py": {
+    "casefold": false,
+    "lf_normalize": true,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   },
+   "seed.py": {
+    "casefold": false,
+    "lf_normalize": true,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   },
+   "unit_manifest.py": {
+    "casefold": false,
+    "lf_normalize": true,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   },
+   "validate.py": {
+    "casefold": false,
+    "lf_normalize": true,
+    "max_path_260": false,
+    "reserved_device_guard": false,
+    "utf8_sig": false
+   }
+  },
+  "title": "Encoding and platform-hostility conformance on this Linux host",
+  "validators": [
+   {
+    "id": "cc-validate",
+    "path": "tools/command-center/validate.py",
+    "present": true
+   },
+   {
+    "id": "cc-seed",
+    "path": "tools/command-center/seed.py",
+    "present": true
+   },
+   {
+    "id": "cc-catalog-load",
+    "path": "tools/command-center/catalog.py",
+    "present": true
+   },
+   {
+    "id": "cc-render-manifest",
+    "path": "tools/command-center/render.py",
+    "present": true
+   },
+   {
+    "id": "cc-unit-manifest",
+    "path": "tools/command-center/unit_manifest.py",
+    "present": true
+   },
+   {
+    "id": "cc-register-parse",
+    "path": "tools/command-center/register_parse.py",
+    "present": true
+   },
+   {
+    "id": "plugin-manifest-validator",
+    "path": "tools/plugin/validate.py",
+    "present": false
+   },
+   {
+    "id": "package-boundary-validator",
+    "path": "tools/package/boundary.py",
+    "present": false
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Windows MAX_PATH and reserved-device CreateFileW were not executed on a Windows host.",
+   "settling_experiment": "Re-run probe2 on a Windows checkout using \\\\?\\ prefixes and record WinError 3/206.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Phase-4 contract files ARC-0078/0080/0084 are absent; plugin and package validators are absent.",
+   "settling_experiment": "Deliver those contract units and re-run this suite against their validators.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "retry once after fixing validator input; a second schema-invalid result closes the unit FAILED"
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Named probe1 re-runs cat-file vs archive vs CRLF working-tree and BOM both-states independently of emit.py's narrative.",
+  "reviewer_id": "ARC-0106-probe1-crlf-blob",
+  "vendor": "grok",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0106",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ARC-0106",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe1_crlf_blob.py",
+   "id": "T-CRLF-BOTH-STATES",
+   "name": "CRLF both-states: one validator on a CRLF working tree and on the LF blob",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+   "id": "T-RESERVED-NUL",
+   "name": "Reserved-name control: create NUL through the extended-length prefix analogue",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0106/probe2_reserved_longpath.py",
+   "id": "T-LONG-PATH",
+   "name": "Long-path control: exercise a path beyond 260 characters and record the failure mode",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:08Z",
+  "started_at": "2026-08-25T00:56:08Z"
+ },
+ "unit_id": "ARC-0106"
+}

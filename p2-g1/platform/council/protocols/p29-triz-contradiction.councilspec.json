@@ -1,0 +1,403 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p29-triz-contradiction",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "State the decision as a contradiction (improving A worsens B) and require resolutions that improve A WITHOUT worsening B; a compromise answer is rejected as out of scope.",
+    "charter": "One round, then fall through. This protocol bans the compromise answer that every tradeoff protocol is trying to optimise, so it is a PRE-PASS, not a replacement for one.",
+    "risk_tier": "low",
+    "desired_output": "recommendation",
+    "success_criteria": [
+      "at least one resolution improves A with no measured worsening of B",
+      "every compromise answer was rejected with the axis it traded away named",
+      "if no dissolving resolution exists the council returns NO_DECISION and the caller falls through to a tradeoff protocol"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 2,
+      "max_share_per_vendor": 0.7
+    },
+    "roster": [
+      {
+        "participant_id": "triz-chair",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "moderator",
+        "authority": "chair",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "contradiction framing"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "separation-in-time",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "TRIZ separation principles"
+        ],
+        "context": {
+          "briefing": "Resolve by separation in TIME. A tradeoff answer is out of scope."
+        }
+      },
+      {
+        "participant_id": "separation-in-space",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "TRIZ separation principles"
+        ],
+        "context": {
+          "briefing": "Resolve by separation in SPACE. A tradeoff answer is out of scope."
+        }
+      },
+      {
+        "participant_id": "separation-in-condition",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "TRIZ separation principles"
+        ],
+        "context": {
+          "briefing": "Resolve by separation in CONDITION or SCALE. A tradeoff answer is out of scope."
+        }
+      },
+      {
+        "participant_id": "tradeoff-gatekeeper",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "critic",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "scope enforcement"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "briefing": "Reject any answer that improves A by worsening B. That is the banned answer."
+        }
+      }
+    ],
+    "role_templates": [
+      "proposer",
+      "critic",
+      "moderator"
+    ],
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": [
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "contradiction_framing",
+        "stage_id": "frame",
+        "rounds": 1,
+        "participants": [
+          "triz-chair"
+        ],
+        "exit_when": {
+          "metric": "custom:contradiction_pairs_named",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "brainstorm",
+        "stage_id": "separation-resolutions",
+        "rounds": 1,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 4,
+          "novel_ideas_per_round": 4
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "tradeoff_answer_rejection",
+        "stage_id": "scope-gate",
+        "rounds": 1,
+        "participants": [
+          "tradeoff-gatekeeper"
+        ],
+        "exit_when": {
+          "metric": "custom:unrejected_tradeoff_answers",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "resolutions"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 1,
+      "max": 2,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": false
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 30,
+    "turns": 15,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 1
+  },
+  "targets": {
+    "unique_ideas": 12,
+    "categories": 4,
+    "novelty_ratio": 0.7,
+    "objections": 4,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ANY[ALL[custom:dissolving_resolutions >= 1, custom:unrejected_tradeoff_answers <= 0], max_rounds == 2]",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "custom:dissolving_resolutions",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number"
+            },
+            {
+              "metric": "custom:unrejected_tradeoff_answers",
+              "op": "<=",
+              "value": 0,
+              "value_type": "number"
+            }
+          ]
+        },
+        {
+          "metric": "max_rounds",
+          "op": "==",
+          "value": 2
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 3,
+      "min_evidence_items": 2
+    },
+    "hard_caps": {
+      "max_rounds": 2,
+      "max_minutes": 40,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "no_decision",
+      "proof_of_impossibility",
+      "dissent"
+    ],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "declare_no_decision",
+      "narrow_scope",
+      "split_question"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "premature_convergence",
+      "endless_debate",
+      "weak_synthesis",
+      "echo_chamber",
+      "role_collapse",
+      "idea_count_gaming"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "argument_ledger",
+      "unresolved_unknowns",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p29-triz-contradiction",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P29 TRIZ contradiction (GENERATIVE)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:570",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:575",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:581",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:582"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P29 triz-contradiction"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (6 declared): (1) endless_debate is structurally impossible - the card caps this protocol at one round and the stopping rule's second branch fires at max_rounds == 2 with on_cap=no_decision, so the caller falls through to a tradeoff protocol instead of grinding; (2) premature_convergence is blocked because a resolution only counts if custom:dissolving_resolutions >= 1 AND every compromise answer was explicitly rejected; (3) weak_synthesis is answered by a required argument_ledger naming the separation principle used; (4) echo_chamber is cut by independent simultaneous generation with one separation axis per seat; (5) role_collapse - the gatekeeper becoming a proposer, or a proposer smuggling a tradeoff - is caught by the scope-gate stage's own exit condition; (6) idea_count_gaming is blocked by trivial_variant_policy=reject, the strictest setting in the schema, because a 'resolution' that is a relabelled compromise is exactly a trivial variant. STOPPING RULE IS DELIBERATELY DISJUNCTIVE: ANY[dissolved, cap-reached] is the card's fall-through, and it is the one rule in this lane where a single-leaf flip is SUPPOSED to survive - that is OR semantics, not a decorative condition. UNVERIFIED: the card asks for a run against a known dissolved contradiction from this estate (sterile-cockpit versus coverage) and that run has not happened; until it does, confidence in this protocol stays at the card's roughly even 40-60%."
+  }
+}

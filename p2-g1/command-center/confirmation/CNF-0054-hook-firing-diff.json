@@ -1,0 +1,992 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0054",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0054 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the deliberate-disable control was detected by the diff and the ordered firing lists are attached. Any other terminal state is FAILED:CNF-0054 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0054",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0054-hook-firing-diff.json",
+      "bytes": 36894,
+      "sha256": "7cb26e96541dc9cf31d06e1cff22f06b2e126f022cb53b90f416e83bc8df492d",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/regression-delta.schema.json",
+      "bytes": 1101,
+      "sha256": "84480f69300ef5ee15378265b4e4faad2a29d10265667b7195f3436e6a81ed0d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0054/inventory.py",
+      "bytes": 18446,
+      "sha256": "b51aa307c9f16a149d96b41915df97797ee3fec2c51478f420b714abbbe44a09",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0054/hook_runner.py",
+      "bytes": 1056,
+      "sha256": "8503f93f0e8a054365e07b929ac650404193bb61a7bfa5ffd16e12ec233ec5ab",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0054/emit_report.py",
+      "bytes": 19886,
+      "sha256": "5541a2c8971dc34bf113401386044c586cd2e00ce9271bf63c7f684be7467a5a",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0054/probe1_ordered_firing.py",
+      "bytes": 3525,
+      "sha256": "2d777723eadb31fd9447cd891552e2ab33d5e2e80a5e3060f34941dc6ee7b2ef",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+      "bytes": 4535,
+      "sha256": "7ee4df52db1f43f7e0c8fea89165fab86e11cc9052e8047efe5d2185f540444c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "hooks/hooks.json",
+      "bytes": 11986,
+      "sha256": "e11b4b8a826c265749b36343ebf687cf5e888bba13a6cad95a5d3d6570c5b00a",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "hooks/_dispatch/manifest.json",
+      "bytes": 13607,
+      "sha256": "1148983a362127a3dea36def85134df6859bc9c4994d65485b819c95ec24bb2d",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The ordered firing lists for the instrumented before and after sessions are identical; no hook_id is missing from the after set.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0054/probe1_ordered_firing.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0054/inventory.py",
+          "raw_output": "{\"after\": 9, \"before\": 9, \"missing\": []}",
+          "fingerprint": "b15b47d84177af40cf310fce2c4ddf5e65a726a6a70ff708458d4f34cd8f44b6",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0054/probe1_ordered_firing.py",
+          "raw_output": "named probe1 re-runs the execution-log inventory and diffs sets",
+          "fingerprint": "bc321aad76e9d87c34075468342c1154c934ea409f9ab39ad69c00f7ed888597",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "Detector control: disabling hook.pre-tool is named in missing_from_after while the hook remains in the manifest; $schema zero-load fires nothing; silent non-zero Stop is distinct from never-fired Notification.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+          "raw_output": "{\"disable_detected\": true, \"distinguished\": true, \"schema_detected\": true, \"schema_firing_count\": 0}",
+          "fingerprint": "60483cefbc5e71ffd5a47f78ec0f30084f00dadf67ccd84660c49be8749c5fac",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "python3 -B platform/lib/schema_resolver.py command-center/confirmation/CNF-0054-hook-firing-diff.json command-center/schema/regression-delta.schema.json",
+          "raw_output": "artifact must parse against the physical regression-delta profile",
+          "fingerprint": "5165111dad9feafdacec6b1ee9a2b16e288df859ff048ec6fbd469d9f2599b66",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "installed-is-not-loaded",
+      "name": "Manifest membership is not firing evidence; $schema zero-load is visible to the firing-log diff and invisible to a naive manifest count.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "{\"firing_count_schema_fixture\": 0, \"loader_mode\": \"schema-key-zero-load\", \"manifest_count_before\": 7, \"manifest_count_schema_fixture\": 7, \"missing_from_after\": [\"hook.session-start\", \"hook.user-prompt\", \"hook.pre-tool\", \"hook.post-tool\", \"hook.notification\", \"hook.stop\", \"hook.session-end\"]}"
+    },
+    {
+      "id": "deliberate-disable-detected",
+      "name": "Disable one hook on purpose; the set difference names its absence while the manifest still lists it.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "{\"disabled_hook_id\": \"hook.pre-tool\", \"fired_after\": [\"hook.session-start\", \"hook.user-prompt\", \"hook.post-tool\", \"hook.notification\", \"hook.stop\", \"hook.session-end\"], \"missing_from_after\": [\"hook.pre-tool\"], \"still_in_manifest\": true}"
+    },
+    {
+      "id": "silent-nonzero-vs-never-fires",
+      "name": "A hook that fires and exits non-zero is kept on the ordered list; a hook that never fires is absent.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0054/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "{\"fired_hook_ids\": [\"hook.session-start\", \"hook.user-prompt\", \"hook.pre-tool\", \"hook.post-tool\", \"hook.stop\", \"hook.session-end\"], \"never_fired_but_installed\": [\"hook.notification\"], \"silent_nonzero\": [{\"event\": \"Stop\", \"exit_code\": 1, \"hook_id\": \"hook.stop\"}]}"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "deliberate-disable-hook.pre-tool",
+      "kind": "known-broken-fixture",
+      "description": "Disable hook.pre-tool on the after manifest. The firing-log diff must name it missing; a naive manifest count must not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "[\"hook.pre-tool\"]",
+      "good_state_output": "[]"
+    },
+    {
+      "id": "codex-schema-key-zero-load",
+      "kind": "known-broken-fixture",
+      "description": "A $schema key on the dispatch document loads ZERO hooks while every hook remains listed (Codex plugin-hooks precedent).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "firing_count=0 mode=schema-key-zero-load",
+      "good_state_output": "firing_count=9 mode=enabled-hooks"
+    },
+    {
+      "id": "silent-nonzero-vs-never-fires",
+      "kind": "mutation",
+      "description": "hook.stop fires with exit 1; hook.notification is disabled. The ordered list must keep Stop and omit Notification.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "[{\"hook_id\": \"hook.stop\", \"event\": \"Stop\", \"exit_code\": 1}]",
+      "good_state_output": "[\"hook.notification\"]"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0054-probe2-detector-control",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Re-run the DETECTOR CONTROL on the known-broken fixtures; do not merely re-read this conclusion."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0054/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0054"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py Draft202012Validator",
+      "artifact_path": "command-center/confirmation/CNF-0054-hook-firing-diff.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B platform/lib/schema_resolver.py command-center/confirmation/CNF-0054-hook-firing-diff.json command-center/schema/regression-delta.schema.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "5165111dad9feafdacec6b1ee9a2b16e288df859ff048ec6fbd469d9f2599b66",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:53Z",
+    "ended_at": "2026-08-25T00:59:54Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Commit-to-commit product-hook firing delta is not computed; this worktree has no .git and product commands were not spawned.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run CNF-0054 on a git checkout with a recorded pre-change hook execution log, or execute product commands in an isolated sandbox and diff those logs."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "harness-integration-auditor",
+    "execution_substrate": "local-serialized"
+  },
+  "report": {
+    "kind": "regression-delta",
+    "observations": [
+      {
+        "name": "before-firing-count",
+        "measured": 9,
+        "method": "execution-log of the scripted session against fixtures/before",
+        "anchor": "command-center/p2-wave/probes/CNF-0054/inventory.py:run_session"
+      },
+      {
+        "name": "after-firing-count",
+        "measured": 9,
+        "method": "execution-log of the same scripted session against fixtures/after",
+        "anchor": "command-center/p2-wave/probes/CNF-0054/inventory.py:run_session"
+      },
+      {
+        "name": "any-hook-missing-from-after",
+        "measured": false,
+        "method": "set-difference of fired hook_id values from the execution log",
+        "anchor": "command-center/p2-wave/probes/CNF-0054/inventory.py:set_diff"
+      },
+      {
+        "name": "deliberate-disable-detected",
+        "measured": true,
+        "method": "disable hook.pre-tool; missing_from_after names it; manifest still lists it",
+        "anchor": "command-center/p2-wave/probes/CNF-0054/fixtures/control-disable/manifest.json"
+      },
+      {
+        "name": "schema-zero-load-firing-count",
+        "measured": 0,
+        "method": "Codex $schema key on the dispatch document loads zero hooks",
+        "anchor": "command-center/p2-wave/probes/CNF-0054/fixtures/schema-zero-load/manifest.json"
+      },
+      {
+        "name": "product-surface-present",
+        "measured": true,
+        "method": "stat of known product dispatch paths (no tree-wide rglob)",
+        "anchor": "hooks/hooks.json"
+      },
+      {
+        "name": "product-commands-executed",
+        "measured": false,
+        "method": "policy: product command entries are side-effecting and were not spawned",
+        "anchor": "hooks/_dispatch/dispatch.py"
+      }
+    ],
+    "control_ids": [
+      "deliberate-disable-hook.pre-tool",
+      "codex-schema-key-zero-load",
+      "silent-nonzero-vs-never-fires"
+    ],
+    "title": "Hook-firing inventory diff before and after the change",
+    "question": "Did the change silently stop a hook from firing? Capture which hooks fire, in what order, with what exit codes, across a fixed scripted session before and after, and answer: is any hook missing from the after set? The measured precedent is a client loading ZERO hooks while appearing correctly installed.",
+    "output_path": "command-center/confirmation/CNF-0054-hook-firing-diff.json",
+    "output_schema": "command-center/schema/regression-delta.schema.json",
+    "live_product_surface": {
+      "worktree": "/opt/p2/ast-integrate",
+      "product_dispatch_manifests": [
+        "hooks/hooks.json",
+        "hooks/_dispatch/manifest.json",
+        "agent-self/config/hooks/hooks.json",
+        "tools/editor/metaswarm/hooks/hooks.json"
+      ],
+      "product_surface_present": true,
+      "product_installed_hook_count": 81,
+      "product_schema_key_present": false,
+      "product_commands_executed_this_run": false,
+      "inventories": {
+        "hooks/hooks.json": {
+          "path": "hooks/hooks.json",
+          "schema_key_present": false,
+          "installed_count": 26,
+          "installed_ids": [
+            "PreToolUse[0].0",
+            "PreToolUse[1].0",
+            "PreToolUse[2].0",
+            "PreToolUse[3].0",
+            "PreToolUse[4].0",
+            "PreToolUse[5].0",
+            "PreToolUse[6].0",
+            "PreToolUse[7].0",
+            "PreToolUse[8].0",
+            "PreToolUse[9].0",
+            "PreCompact[0].0",
+            "SessionStart[0].0",
+            "PostToolUse[0].0",
+            "PostToolUse[1].0",
+            "PostToolUse[2].0",
+            "PostToolUse[3].0",
+            "PostToolUse[4].0",
+            "PostToolUse[5].0",
+            "PostToolUse[6].0",
+            "PostToolUse[7].0",
+            "PostToolUseFailure[0].0",
+            "Stop[0].0",
+            "Stop[1].0",
+            "Stop[2].0",
+            "Stop[3].0",
+            "SessionEnd[0].0"
+          ],
+          "description_head": "agent-skills-toolchain hooks (cross-tool: Claude Code + Codex CLI). No `$schema` key -- Codex's plugin-hooks parser rejects unknown fields and silently loads ZERO hooks from this plugin if one is present."
+        },
+        "hooks/_dispatch/manifest.json": {
+          "path": "hooks/_dispatch/manifest.json",
+          "schema_key_present": false,
+          "installed_count": 27,
+          "installed_ids": [
+            "SessionStart/bg-registry/reconcile",
+            "SessionStart/memory-spool/replay",
+            "SessionStart/memory-spool/flush_check",
+            "SessionStart/heartbeat",
+            "SessionStart/open-loops/resurface",
+            "SessionStart/background-digest/reader",
+            "Stop/bg-registry/done_marker",
+            "Stop/heartbeat",
+            "Stop/wire-check",
+            "Stop/git-hygiene",
+            "Stop/honest-signal",
+            "Stop/stub-ledger/report",
+            "Stop/forge/todo-surfacer",
+            "Stop/journey-coverage",
+            "Stop/dark-surface",
+            "PostToolUse/memory-spool/flush_check",
+            "PostToolUse/tool-result-sentinel",
+            "PostToolUse/claim-guard/ledger-write",
+            "PostToolUse/stub-ledger/record",
+            "PostToolUse/edit-validate/record",
+            "PreToolUse/mcp-liveness/pretool",
+            "PreToolUse/edit-checkpoints",
+            "PreToolUse/bg-registry/register",
+            "PreToolUse/memory-spool/spool",
+            "PreToolUse/dup-guard",
+            "PreToolUse/monitor-autolaunch",
+            "PreToolUse/codex-monitor-autolaunch"
+          ],
+          "description_head": "Per-event dispatcher manifest. Each event lists the SESSION-NEW checks consolidated behind one hook invocation. dispatch.py reads stdin once, runs each check whose `matcher` (regex on tool_name; absent = always) matches, IN-PROCESS in its o"
+        },
+        "agent-self/config/hooks/hooks.json": {
+          "path": "agent-self/config/hooks/hooks.json",
+          "schema_key_present": false,
+          "installed_count": 26,
+          "installed_ids": [
+            "PreToolUse[0].0",
+            "PreToolUse[1].0",
+            "PreToolUse[2].0",
+            "PreToolUse[3].0",
+            "PreToolUse[4].0",
+            "PreToolUse[5].0",
+            "PreToolUse[6].0",
+            "PreToolUse[7].0",
+            "PreToolUse[8].0",
+            "PreToolUse[9].0",
+            "PreCompact[0].0",
+            "SessionStart[0].0",
+            "PostToolUse[0].0",
+            "PostToolUse[1].0",
+            "PostToolUse[2].0",
+            "PostToolUse[3].0",
+            "PostToolUse[4].0",
+            "PostToolUse[5].0",
+            "PostToolUse[6].0",
+            "PostToolUse[7].0",
+            "PostToolUseFailure[0].0",
+            "Stop[0].0",
+            "Stop[1].0",
+            "Stop[2].0",
+            "Stop[3].0",
+            "SessionEnd[0].0"
+          ],
+          "description_head": "agent-skills-toolchain hooks (cross-tool: Claude Code + Codex CLI). No `$schema` key -- Codex's plugin-hooks parser rejects unknown fields and silently loads ZERO hooks from this plugin if one is present."
+        },
+        "tools/editor/metaswarm/hooks/hooks.json": {
+          "path": "tools/editor/metaswarm/hooks/hooks.json",
+          "schema_key_present": false,
+          "installed_count": 2,
+          "installed_ids": [
+            "SessionStart[0].0",
+            "PreCompact[0].0"
+          ],
+          "description_head": ""
+        }
+      },
+      "sibling_hook_fixture_manifests": [
+        "command-center/p2-wave/probes/ADV-0067/fixtures/empty/manifest.json",
+        "command-center/p2-wave/probes/ADV-0067/fixtures/gamed/manifest.json",
+        "command-center/p2-wave/probes/ADV-0067/fixtures/genuine/manifest.json",
+        "command-center/p2-wave/probes/ADV-0067/fixtures/popularity_twin/manifest.json",
+        "command-center/p2-wave/probes/ARC-0007/fixtures/migrated/config/hooks/manifest.json",
+        "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-restore-probe/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-snapshot/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/ARC-0078/fixtures/historical-zero-hooks/hooks.json",
+        "command-center/p2-wave/probes/ARC-0078/fixtures/missing-interpreter/hooks.json",
+        "command-center/p2-wave/probes/ARC-0078/fixtures/working/hooks.json",
+        "command-center/p2-wave/probes/AUD-0059/fixtures/registered/manifest.json",
+        "command-center/p2-wave/probes/BLD-0002/fixtures/scratch/hooks/hooks.json",
+        "command-center/p2-wave/probes/BLD-0004/fixtures/code/hooks.json",
+        "command-center/p2-wave/probes/CNF-0100/fixtures/install/hooks.json",
+        "command-center/p2-wave/probes/IMP-0039/fixtures/broken/hooks.json",
+        "command-center/p2-wave/probes/IMP-0039/fixtures/dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0039/fixtures/healthy/hooks.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/current/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/home-mcp-wrong-file/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/marker-only-claude-json/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/marker-only-hooks/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/marker-only-mcp/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/marker-only-skills/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/mcp-json/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/IMP-0048/fixtures/root-disabled/home/.claude/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/REL-0004/fixtures/package/hooks.json",
+        "command-center/p2-wave/probes/REL-0017/fixtures/captured/hand/hooks.json",
+        "command-center/p2-wave/probes/RES-0034/fixtures/leak-hooks/hooks.json",
+        "command-center/p2-wave/probes/RES-0177/fixtures/estate/home/.claude/plugins/marketplaces/lab/plugins/claude-reflect/hooks/hooks.json",
+        "command-center/p2-wave/probes/RES-0177/fixtures/estate/home/.claude/plugins/marketplaces/lab/plugins/hookify/hooks/hooks.json",
+        "command-center/p2-wave/probes/RES-0177/fixtures/estate/home/.claude/plugins/marketplaces/lab/plugins/ralph-loop/hooks/hooks.json",
+        "command-center/p2-wave/probes/RES-0177/fixtures/estate/home/.claude/plugins/marketplaces/lab/plugins/remember/hooks/hooks.json",
+        "command-center/p2-wave/probes/TST-0068/fixtures/estate/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/TST-0068/fixtures/gold/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/TST-0082/fixtures/healthy/hooks.json",
+        "command-center/p2-wave/probes/TST-0082/fixtures/malformed/hooks.json",
+        "command-center/p2-wave/probes/TST-0082/fixtures/plugin/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/TST-0087/fixtures/estate/live/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/TST-0087/fixtures/estate/repo/hooks/_dispatch/manifest.json",
+        "command-center/p2-wave/probes/TST-0256/fixtures/captured-old/hooks/_dispatch/manifest.json"
+      ],
+      "note": "Product dispatch files are present (hooks/hooks.json and hooks/_dispatch/manifest.json). Their command entries were NOT executed this run (side-effecting: git-hygiene, spawns, npx). Ordered firing lists come from the CNF-0054 instrumented dispatcher execution log, never from manifest membership. hooks/hooks.json documents the Codex $schema zero-load precedent in its description and omits the key."
+    },
+    "before": {
+      "label": "baseline-all-hooks-fire",
+      "manifest_path": "command-center/p2-wave/probes/CNF-0054/fixtures/before/manifest.json",
+      "loader_mode": "enabled-hooks",
+      "manifest_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "loaded_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "ordered_firing": [
+        {
+          "seq": 1,
+          "hook_id": "hook.session-start",
+          "event": "SessionStart",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 2,
+          "hook_id": "hook.user-prompt",
+          "event": "UserPromptSubmit",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 3,
+          "hook_id": "hook.pre-tool",
+          "event": "PreToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Read"
+        },
+        {
+          "seq": 4,
+          "hook_id": "hook.post-tool",
+          "event": "PostToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Read"
+        },
+        {
+          "seq": 5,
+          "hook_id": "hook.pre-tool",
+          "event": "PreToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Bash"
+        },
+        {
+          "seq": 6,
+          "hook_id": "hook.post-tool",
+          "event": "PostToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Bash"
+        },
+        {
+          "seq": 7,
+          "hook_id": "hook.notification",
+          "event": "Notification",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 8,
+          "hook_id": "hook.stop",
+          "event": "Stop",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 9,
+          "hook_id": "hook.session-end",
+          "event": "SessionEnd",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        }
+      ],
+      "fired_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "firing_count": 9
+    },
+    "after": {
+      "label": "current-replay-same-session",
+      "manifest_path": "command-center/p2-wave/probes/CNF-0054/fixtures/after/manifest.json",
+      "loader_mode": "enabled-hooks",
+      "manifest_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "loaded_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "ordered_firing": [
+        {
+          "seq": 1,
+          "hook_id": "hook.session-start",
+          "event": "SessionStart",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 2,
+          "hook_id": "hook.user-prompt",
+          "event": "UserPromptSubmit",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 3,
+          "hook_id": "hook.pre-tool",
+          "event": "PreToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Read"
+        },
+        {
+          "seq": 4,
+          "hook_id": "hook.post-tool",
+          "event": "PostToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Read"
+        },
+        {
+          "seq": 5,
+          "hook_id": "hook.pre-tool",
+          "event": "PreToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Bash"
+        },
+        {
+          "seq": 6,
+          "hook_id": "hook.post-tool",
+          "event": "PostToolUse",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": "Bash"
+        },
+        {
+          "seq": 7,
+          "hook_id": "hook.notification",
+          "event": "Notification",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 8,
+          "hook_id": "hook.stop",
+          "event": "Stop",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        },
+        {
+          "seq": 9,
+          "hook_id": "hook.session-end",
+          "event": "SessionEnd",
+          "exit_code": 0,
+          "source": "execution-log",
+          "tool": null
+        }
+      ],
+      "fired_hook_ids": [
+        "hook.session-start",
+        "hook.user-prompt",
+        "hook.pre-tool",
+        "hook.post-tool",
+        "hook.notification",
+        "hook.stop",
+        "hook.session-end"
+      ],
+      "firing_count": 9
+    },
+    "delta": {
+      "missing_from_after": [],
+      "extra_in_after": [],
+      "any_hook_missing_from_after": false,
+      "exit_code_changes": [],
+      "method": "set-difference of hook_id values taken from the execution log, never from the dispatch manifest"
+    },
+    "answer": {
+      "any_hook_missing_from_after": false,
+      "summary": "On the instrumented before/after pair for this worktree, no hook is missing from the after firing set (before_count=9 after_count=9). Product dispatch files exist (hooks/hooks.json, hooks/_dispatch/manifest.json) and were inventoried as installed, not executed. Firing evidence is the instrumented execution log. The detector is not vacuous: deliberately disabling hook.pre-tool makes that id appear in missing_from_after while it remains in the manifest, and the $schema zero-load fixture fires nothing. SUCCESS:CNF-0054 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the deliberate-disable control was detected by the diff and the ordered firing lists are attached. Any other terminal state is FAILED:CNF-0054 <classification> with the diagnostic tail attached."
+    },
+    "controls": {
+      "deliberate_disable": {
+        "disabled_hook_id": "hook.pre-tool",
+        "still_in_manifest": true,
+        "after": {
+          "label": "deliberate-disable-hook.pre-tool",
+          "manifest_path": "command-center/p2-wave/probes/CNF-0054/fixtures/control-disable/manifest.json",
+          "loader_mode": "enabled-hooks",
+          "manifest_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "loaded_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "ordered_firing": [
+            {
+              "seq": 1,
+              "hook_id": "hook.session-start",
+              "event": "SessionStart",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 2,
+              "hook_id": "hook.user-prompt",
+              "event": "UserPromptSubmit",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 3,
+              "hook_id": "hook.post-tool",
+              "event": "PostToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Read"
+            },
+            {
+              "seq": 4,
+              "hook_id": "hook.post-tool",
+              "event": "PostToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Bash"
+            },
+            {
+              "seq": 5,
+              "hook_id": "hook.notification",
+              "event": "Notification",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 6,
+              "hook_id": "hook.stop",
+              "event": "Stop",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 7,
+              "hook_id": "hook.session-end",
+              "event": "SessionEnd",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            }
+          ],
+          "fired_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "firing_count": 7
+        },
+        "delta": {
+          "missing_from_after": [
+            "hook.pre-tool"
+          ],
+          "extra_in_after": [],
+          "any_hook_missing_from_after": true,
+          "exit_code_changes": [],
+          "method": "set-difference of hook_id values taken from the execution log, never from the dispatch manifest"
+        },
+        "detected": true
+      },
+      "installed_is_not_loaded": {
+        "precedent": "A $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+        "after": {
+          "label": "codex-schema-key-zero-load",
+          "manifest_path": "command-center/p2-wave/probes/CNF-0054/fixtures/schema-zero-load/manifest.json",
+          "loader_mode": "schema-key-zero-load",
+          "manifest_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "loaded_hook_ids": [],
+          "ordered_firing": [],
+          "fired_hook_ids": [],
+          "firing_count": 0
+        },
+        "delta": {
+          "missing_from_after": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "extra_in_after": [],
+          "any_hook_missing_from_after": true,
+          "exit_code_changes": [],
+          "method": "set-difference of hook_id values taken from the execution log, never from the dispatch manifest"
+        },
+        "naive_manifest_count_unchanged": true,
+        "detected": true
+      },
+      "silent_nonzero_vs_never_fires": {
+        "after": {
+          "label": "silent-nonzero-vs-never-fires",
+          "manifest_path": "command-center/p2-wave/probes/CNF-0054/fixtures/classify/manifest.json",
+          "loader_mode": "enabled-hooks",
+          "manifest_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.notification",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "loaded_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "ordered_firing": [
+            {
+              "seq": 1,
+              "hook_id": "hook.session-start",
+              "event": "SessionStart",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 2,
+              "hook_id": "hook.user-prompt",
+              "event": "UserPromptSubmit",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 3,
+              "hook_id": "hook.pre-tool",
+              "event": "PreToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Read"
+            },
+            {
+              "seq": 4,
+              "hook_id": "hook.post-tool",
+              "event": "PostToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Read"
+            },
+            {
+              "seq": 5,
+              "hook_id": "hook.pre-tool",
+              "event": "PreToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Bash"
+            },
+            {
+              "seq": 6,
+              "hook_id": "hook.post-tool",
+              "event": "PostToolUse",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": "Bash"
+            },
+            {
+              "seq": 7,
+              "hook_id": "hook.stop",
+              "event": "Stop",
+              "exit_code": 1,
+              "source": "execution-log",
+              "tool": null
+            },
+            {
+              "seq": 8,
+              "hook_id": "hook.session-end",
+              "event": "SessionEnd",
+              "exit_code": 0,
+              "source": "execution-log",
+              "tool": null
+            }
+          ],
+          "fired_hook_ids": [
+            "hook.session-start",
+            "hook.user-prompt",
+            "hook.pre-tool",
+            "hook.post-tool",
+            "hook.stop",
+            "hook.session-end"
+          ],
+          "firing_count": 8
+        },
+        "silent_nonzero": [
+          {
+            "hook_id": "hook.stop",
+            "event": "Stop",
+            "exit_code": 1
+          }
+        ],
+        "never_fired_but_installed": [
+          "hook.notification"
+        ],
+        "distinguished": true
+      }
+    }
+  },
+  "controls": {
+    "deliberate_disable": {
+      "disabled_hook_id": "hook.pre-tool",
+      "still_in_manifest": true,
+      "delta": {
+        "missing_from_after": [
+          "hook.pre-tool"
+        ],
+        "extra_in_after": [],
+        "any_hook_missing_from_after": true,
+        "exit_code_changes": [],
+        "method": "set-difference of hook_id values taken from the execution log, never from the dispatch manifest"
+      },
+      "detected": true
+    },
+    "installed_is_not_loaded": {
+      "precedent": "A $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+      "delta": {
+        "missing_from_after": [
+          "hook.session-start",
+          "hook.user-prompt",
+          "hook.pre-tool",
+          "hook.post-tool",
+          "hook.notification",
+          "hook.stop",
+          "hook.session-end"
+        ],
+        "extra_in_after": [],
+        "any_hook_missing_from_after": true,
+        "exit_code_changes": [],
+        "method": "set-difference of hook_id values taken from the execution log, never from the dispatch manifest"
+      },
+      "naive_manifest_count_unchanged": true,
+      "detected": true
+    },
+    "silent_nonzero_vs_never_fires": {
+      "silent_nonzero": [
+        {
+          "hook_id": "hook.stop",
+          "event": "Stop",
+          "exit_code": 1
+        }
+      ],
+      "never_fired_but_installed": [
+        "hook.notification"
+      ],
+      "distinguished": true
+    }
+  }
+}

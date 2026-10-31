@@ -1,0 +1,1652 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1128,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/research-claim-record.schema.json",
+   "role": "supporting",
+   "sha256": "17aef3975f6a422d6d5c0f59738b4ad66cd6e1dc9eeb08938ca7c4bdbda4301d"
+  },
+  {
+   "bytes": 10580,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+   "role": "supporting",
+   "sha256": "dd271adace16c7147bcd8b0b14f390c9cd2640a2c00ef391aade937d69e959ac"
+  },
+  {
+   "bytes": 9792,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0124/scrub.py",
+   "role": "supporting",
+   "sha256": "da7ee058e251e8328f87f91c3a9bd962a4b6f70d1a82509a945fd5919c8c2d1e"
+  },
+  {
+   "bytes": 2056,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0124/control.py",
+   "role": "supporting",
+   "sha256": "0c16c3d56255ffad16c0d85ef74daa8d79dab8952a163c07333f53ad17a0442f"
+  },
+  {
+   "bytes": 3465,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+   "role": "supporting",
+   "sha256": "67f91d8739e490af1df8f2178bebe9e10c839d35318c27c1d6b1879a8c9eee4b"
+  },
+  {
+   "bytes": 3945,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+   "role": "supporting",
+   "sha256": "db0c636ee4262426267b87015f18aa236902bb73d82e7a07798f4ccf7e02fcf9"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/research/RES-0124.json",
+   "consumer": "jsonschema.Draft7Validator against command-center/schema/research-claim-record.schema.json (disk RefResolver, no network)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/probes/RES-0124/emit_report.py",
+    "exit_code": 0,
+    "fingerprint": "0cd7f943d62dd5dbad018bfd",
+    "method": "schema-validate",
+    "raw_output": "schema-valid; garbage rejected",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0124/scan.py:210",
+   "claim": "C1 windows home paths present on the live tree",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+     "exit_code": 0,
+     "fingerprint": "9816e208c5e497e2aba7248c",
+     "method": "command",
+     "raw_output": "windows_home_path=44996 byte_prefix_hits=43970 seeded_identifier=0 files_walked=49987",
+     "role": "source"
+    },
+    {
+     "command": "WIN_BYTE_PREFIXES bytes.find vs WIN_RE finditer on the same tree",
+     "exit_code": 0,
+     "fingerprint": "2e0bae6b7e426bee6a4eb64d",
+     "method": "byte-compare",
+     "raw_output": "byte_prefix_hits=43970 regex=44996",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0124/control.py:19",
+   "claim": "seeded identifier detector control both-states",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+     "exit_code": 0,
+     "fingerprint": "448b6abd42ba9427a04ec43a",
+     "method": "command",
+     "raw_output": "seeded_found=True seeded_absent_after_removal=True pass=True seed_value_reproduced=False",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/RES-0124/fixtures/negative.users-word-only.txt",
+     "exit_code": 0,
+     "fingerprint": "d8a6a024c4756541e4210391",
+     "method": "file-read",
+     "raw_output": "negative_users_word_only_silent=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0124/scrub.py:37",
+   "claim": "naive line regex effective as a publication scrub",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "command-center/p2-wave/probes/RES-0124/scrub.py run_bypasses",
+     "exit_code": 0,
+     "fingerprint": "a8ec977a8865112dc18d66de",
+     "method": "static-analysis",
+     "raw_output": "M1_line_regex.recorded_effective=false M1b_decode_then_redact.recorded_effective=true minimum_safe_set=M1b_decode_then_redact,M2b_path_and_content,M3b_filename_and_shape,M4_location_only_reports,M5_packed_bytes_gate",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py # mitigation-effective-set",
+     "exit_code": 0,
+     "fingerprint": "91be7a2d52f9168c1daa66bc",
+     "method": "test-run",
+     "raw_output": "M1_line_regex not in minimum_safe_set; bypasses survived",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  },
+  {
+   "anchor": "ADV-0040",
+   "claim": "screenshot/OCR personal data channel",
+   "probes": [
+    {
+     "command": "scope: RES-0124 does not run a face or OCR detector",
+     "exit_code": 0,
+     "fingerprint": "ec71d70e15cb275ef1e10496",
+     "method": "manual-inspection",
+     "raw_output": "NOT-CHECKED; owned by ADV-0040",
+     "role": "source"
+    }
+   ],
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "extensions": {
+  "answer_not_legal_advice": true,
+  "category_counts": {
+   "by_category": {
+    "credential_filename": 12,
+    "credential_shape": 146,
+    "email": 19731,
+    "event_ledger": 134,
+    "seeded_identifier": 0,
+    "transcript_or_session": 62,
+    "unix_home_path": 1688,
+    "windows_home_path": 44996
+   },
+   "byte_prefix_hits": 43970,
+   "content_files_scanned": 44940,
+   "files_walked": 49987,
+   "grand_total": 66769,
+   "locations": {
+    "credential_filename": [
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/cli/A1_token_file_at_repo_root/.env"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/cli/A6_prefixed_env_secret_in_projection/tools/plugin/.env.plugin"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/mkt_src/B1_token_undeclared/payload/.env"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0141/work/universe/covered/.env"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/AUD-0090/deps/py/certifi/cacert.pem"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "skills-claude-only/metaswarm-setup/templates/.env.example"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "tools/editor/metaswarm/skills/setup/templates/.env.example"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "tools/editor/metaswarm/templates/.env.example"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "tools/mcp/cloud-hub/accounts.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "tools/mcp/search-hub/accounts.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "tools/omniaudit-mcp/.env.example"
+     }
+    ],
+    "credential_shape": [
+     {
+      "kind": "content",
+      "line": 1392,
+      "path": "agents/skills/code-security/AGENTS.md",
+      "span_len": 35
+     },
+     {
+      "kind": "content",
+      "line": 159,
+      "path": "agents/skills/code-security/rules/secrets.md",
+      "span_len": 35
+     },
+     {
+      "kind": "content",
+      "line": 2,
+      "path": "agents/skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "span_len": 29
+     },
+     {
+      "kind": "content",
+      "line": 2,
+      "path": "agents/skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "span_len": 40
+     },
+     {
+      "kind": "content",
+      "line": 2,
+      "path": "agents/skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "span_len": 20
+     },
+     {
+      "kind": "content",
+      "line": 2,
+      "path": "agents/skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "span_len": 21
+     },
+     {
+      "kind": "content",
+      "line": 185,
+      "path": "agents/skills/workflow-monitor/tests/test_render_html.py",
+      "span_len": 29
+     },
+     {
+      "kind": "content",
+      "line": 186,
+      "path": "agents/skills/workflow-monitor/tests/test_render_html.py",
+      "span_len": 40
+     },
+     {
+      "kind": "content",
+      "line": 187,
+      "path": "agents/skills/workflow-monitor/tests/test_render_html.py",
+      "span_len": 20
+     },
+     {
+      "kind": "content",
+      "line": 200,
+      "path": "agents/skills/workflow-monitor/tests/test_render_html.py",
+      "span_len": 29
+     },
+     {
+      "kind": "content",
+      "line": 144,
+      "path": "agents/skills/workflow-monitor/tests/test_render_md.py",
+      "span_len": 29
+     },
+     {
+      "kind": "content",
+      "line": 145,
+      "path": "agents/skills/workflow-monitor/tests/test_render_md.py",
+      "span_len": 40
+     }
+    ],
+    "email": [
+     {
+      "kind": "content",
+      "line": 55,
+      "path": "agents/skills/browser-rail/scripts/test_browser_rail.py",
+      "span_len": 11
+     },
+     {
+      "kind": "content",
+      "line": 64,
+      "path": "agents/skills/browser-rail/scripts/test_browser_rail.py",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 59,
+      "path": "agents/skills/cloudflare-deploy/references/api/api.md",
+      "span_len": 16
+     },
+     {
+      "kind": "content",
+      "line": 15,
+      "path": "agents/skills/cloudflare-deploy/references/argo-smart-routing/api.md",
+      "span_len": 16
+     },
+     {
+      "kind": "content",
+      "line": 60,
+      "path": "agents/skills/cloudflare-deploy/references/browser-rendering/patterns.md",
+      "span_len": 16
+     },
+     {
+      "kind": "content",
+      "line": 37,
+      "path": "agents/skills/cloudflare-deploy/references/cron-triggers/patterns.md",
+      "span_len": 16
+     },
+     {
+      "kind": "content",
+      "line": 48,
+      "path": "agents/skills/cloudflare-deploy/references/do-storage/testing.md",
+      "span_len": 17
+     },
+     {
+      "kind": "content",
+      "line": 49,
+      "path": "agents/skills/cloudflare-deploy/references/do-storage/testing.md",
+      "span_len": 17
+     },
+     {
+      "kind": "content",
+      "line": 50,
+      "path": "agents/skills/cloudflare-deploy/references/do-storage/testing.md",
+      "span_len": 17
+     },
+     {
+      "kind": "content",
+      "line": 23,
+      "path": "agents/skills/cloudflare-deploy/references/email-routing/README.md",
+      "span_len": 24
+     },
+     {
+      "kind": "content",
+      "line": 19,
+      "path": "agents/skills/cloudflare-deploy/references/email-routing/api.md",
+      "span_len": 18
+     },
+     {
+      "kind": "content",
+      "line": 20,
+      "path": "agents/skills/cloudflare-deploy/references/email-routing/api.md",
+      "span_len": 18
+     }
+    ],
+    "event_ledger": [
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agents/skills/claim-verify-gate/references/claim-ledger.md"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/config/hooks/claim-guard/ledger-write.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/config/hooks/event-ledger/ledger.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/config/hooks/event-ledger/test_ledger.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/harness/ledger.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/harness/tests/test_cov_ledger.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agent-self/harness/tests/test_ledger_receipts_and_taint.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "ci/harness/ledger.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/audit/AUD-0065-ledger-memory-state-inventory.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/events/EVENTS.jsonl"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/hook-audit/R3-STUBLEDGER.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/hook-audit/_r3_stubledger.py"
+     }
+    ],
+    "seeded_identifier": [],
+    "transcript_or_session": [
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "agents/skills/microsoft-foundry/foundry-agent/invoke/references/session-management.md"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/confirmation/CNF-0071-transcript-claims.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0013/probe2-transcript.raw.txt"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0091/probe1_primed_transcript.py"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0139/fixtures/session-skill-injection.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ADV-0141/work/universe/transcripts/session.jsonl"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/live/rules/live-only-edits/session-notes.md"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/repo/rules/live-only-edits/session-notes.md"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ARC-0021/fixtures/estate/user-data/session-notes.md"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/ARC-0055/fixtures/session-census.json"
+     },
+     {
+      "kind": "path",
+      "line": 0,
+      "path": "command-center/p2-wave/probes/BLD-0001/fixtures/transcripts/session-claude.jsonl"
+     }
+    ],
+    "unix_home_path": [
+     {
+      "kind": "content",
+      "line": 122,
+      "path": "agents/skills/codex-databricks-fanout/SKILL.md",
+      "span_len": 22
+     },
+     {
+      "kind": "content",
+      "line": 245,
+      "path": "agents/skills/codex-databricks-fanout/SKILL.md",
+      "span_len": 22
+     },
+     {
+      "kind": "content",
+      "line": 26,
+      "path": "agents/skills/codex-databricks-fanout/scripts/harness/contract.py",
+      "span_len": 22
+     },
+     {
+      "kind": "content",
+      "line": 706,
+      "path": "agents/skills/continuous-learning-v2/scripts/test_parse_instinct.py",
+      "span_len": 11
+     },
+     {
+      "kind": "content",
+      "line": 86,
+      "path": "agents/skills/protein-interaction-network-analysis/DESCRIPTION_UPDATE_PROGRESS.md",
+      "span_len": 13
+     },
+     {
+      "kind": "content",
+      "line": 124,
+      "path": "agents/skills/source-command-resume-session/SKILL.md",
+      "span_len": 11
+     },
+     {
+      "kind": "content",
+      "line": 189,
+      "path": "agents/skills/using-git-worktrees/SKILL.md",
+      "span_len": 13
+     },
+     {
+      "kind": "content",
+      "line": 2028,
+      "path": "agents/skills/workflow-authoring/templates/governed-run-orchestrator.md",
+      "span_len": 22
+     },
+     {
+      "kind": "content",
+      "line": 117,
+      "path": "agent-self/config/commands/resume-session.md",
+      "span_len": 11
+     },
+     {
+      "kind": "content",
+      "line": 110,
+      "path": "agent-self/harness/tests/test_injection_grammar.py",
+      "span_len": 11
+     },
+     {
+      "kind": "content",
+      "line": 193,
+      "path": "ci/skills-allowlist/using-git-worktrees/SKILL.md",
+      "span_len": 13
+     },
+     {
+      "kind": "content",
+      "line": 554,
+      "path": "ci/tests/test_deployed_hook_twin_parity.py",
+      "span_len": 9
+     }
+    ],
+    "windows_home_path": [
+     {
+      "kind": "content",
+      "line": 6,
+      "path": "agents/skills/binary-ninja-mcp/references/upstream.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 24,
+      "path": "agents/skills/browser-rail/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 17,
+      "path": "agents/skills/capa-triage/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 22,
+      "path": "agents/skills/capa-triage/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 22,
+      "path": "agents/skills/capa-triage/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 12,
+      "path": "agents/skills/cheminformatics-rdkit/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 17,
+      "path": "agents/skills/cheminformatics-rdkit/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 18,
+      "path": "agents/skills/cheminformatics-rdkit/SKILL.md",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 264,
+      "path": "agents/skills/claim-verify-gate/scripts/test_claim_gate.py",
+      "span_len": 21
+     },
+     {
+      "kind": "content",
+      "line": 26,
+      "path": "agents/skills/codex-databricks-fanout/scripts/e2e/build_research_targets.py",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 27,
+      "path": "agents/skills/codex-databricks-fanout/scripts/e2e/build_research_targets.py",
+      "span_len": 19
+     },
+     {
+      "kind": "content",
+      "line": 31,
+      "path": "agents/skills/codex-databricks-fanout/scripts/e2e/merge_map.py",
+      "span_len": 19
+     }
+    ]
+   },
+   "path_classified_files": 208,
+   "sum_check_ok": true,
+   "top_files": {
+    "credential_filename": [
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/cli/A1_token_file_at_repo_root/.env",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/cli/A6_prefixed_env_secret_in_projection/tools/plugin/.env.plugin",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0024/_work/fixtures/mkt_src/B1_token_undeclared/payload/.env",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0141/work/universe/covered/.env",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/AUD-0090/deps/py/certifi/cacert.pem",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "skills-claude-only/metaswarm-setup/templates/.env.example",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "tools/editor/metaswarm/skills/setup/templates/.env.example",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "tools/editor/metaswarm/templates/.env.example",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "tools/mcp/cloud-hub/accounts.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "tools/mcp/search-hub/accounts.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "tools/omniaudit-mcp/.env.example",
+      "value_reproduced": false
+     }
+    ],
+    "credential_shape": [
+     {
+      "count": 33,
+      "path": "command-center/p2-wave/probes/RES-0106/captures/unleash_techdebt_docs.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 12,
+      "path": "tools/monitorcore/tests/test_redact.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 8,
+      "path": "tools/monitorcore/tests/golden/wf_export00.noredact.html",
+      "value_reproduced": false
+     },
+     {
+      "count": 8,
+      "path": "tools/monitorcore/tests/golden/wf_export00.noredact.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "agents/skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "agents/skills/workflow-monitor/tests/test_render_html.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "agents/skills/workflow-monitor/tests/test_render_md.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "command-center/adversarial/ADV-0041-path-and-identity-disclosure.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "hooks/_shared/test_use_vs_mention.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "hooks/_shared/use-vs-mention-corpus.jsonl",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "skills/workflow-monitor/fixtures/export/projects/C--Users-Prekzursil/d219bc39-7d7f-4290-befd-f1c079161057/subagents/workflows/wf_export00-fixture/agent-secretcheck.jsonl",
+      "value_reproduced": false
+     },
+     {
+      "count": 4,
+      "path": "skills/workflow-monitor/tests/test_render_html.py",
+      "value_reproduced": false
+     }
+    ],
+    "email": [
+     {
+      "count": 7907,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-ua-parser-js.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 6767,
+      "path": "command-center/p2-wave/probes/RES-0120/captures/npm-claude-code.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 647,
+      "path": "platform/corpus/CANONICAL-CLAIMS.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 288,
+      "path": "command-center/adversarial/ADV-0068-moderation-and-dispute-abuse.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 263,
+      "path": "command-center/p2-wave/probes/AUD-0090/deps/py/ruff-0.15.17.dist-info/sboms/ruff.cyclonedx.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 237,
+      "path": "command-center/p2-wave/probes/RES-0053/captures/npm-api-event-stream.body",
+      "value_reproduced": false
+     },
+     {
+      "count": 237,
+      "path": "command-center/p2-wave/probes/RES-0055/captures/r1-npm-event-stream.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 160,
+      "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-pr-4074.html",
+      "value_reproduced": false
+     },
+     {
+      "count": 112,
+      "path": "command-center/p2-wave/probes/RES-0123/captures/anthropic-consumer.body",
+      "value_reproduced": false
+     },
+     {
+      "count": 112,
+      "path": "command-center/p2-wave/probes/RES-0125/captures/anthropic-consumer-terms.html",
+      "value_reproduced": false
+     },
+     {
+      "count": 93,
+      "path": "command-center/p2-wave/probes/RES-0131/captures/sources/packagist-monolog-json.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 86,
+      "path": "command-center/p2-wave/probes/CNF-0021/tools/pwsh/ThirdPartyNotices.txt",
+      "value_reproduced": false
+     }
+    ],
+    "event_ledger": [
+     {
+      "count": 1,
+      "path": "agents/skills/claim-verify-gate/references/claim-ledger.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/config/hooks/claim-guard/ledger-write.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/config/hooks/event-ledger/ledger.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/config/hooks/event-ledger/test_ledger.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/harness/ledger.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/harness/tests/test_cov_ledger.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "agent-self/harness/tests/test_ledger_receipts_and_taint.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "ci/harness/ledger.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/audit/AUD-0065-ledger-memory-state-inventory.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/events/EVENTS.jsonl",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/hook-audit/R3-STUBLEDGER.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/hook-audit/_r3_stubledger.py",
+      "value_reproduced": false
+     }
+    ],
+    "seeded_identifier": [],
+    "transcript_or_session": [
+     {
+      "count": 1,
+      "path": "agents/skills/microsoft-foundry/foundry-agent/invoke/references/session-management.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/confirmation/CNF-0071-transcript-claims.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0013/probe2-transcript.raw.txt",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0091/probe1_primed_transcript.py",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0139/fixtures/session-skill-injection.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ADV-0141/work/universe/transcripts/session.jsonl",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/live/rules/live-only-edits/session-notes.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/repo/rules/live-only-edits/session-notes.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ARC-0021/fixtures/estate/user-data/session-notes.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/ARC-0055/fixtures/session-census.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1,
+      "path": "command-center/p2-wave/probes/BLD-0001/fixtures/transcripts/session-claude.jsonl",
+      "value_reproduced": false
+     }
+    ],
+    "unix_home_path": [
+     {
+      "count": 791,
+      "path": "tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout",
+      "value_reproduced": false
+     },
+     {
+      "count": 210,
+      "path": "command-center/p2-wave/probes/AUD-0090/deps/py/ruff-0.15.17.dist-info/sboms/ruff.cyclonedx.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 127,
+      "path": "command-center/p2-wave/probes/RES-0120/captures/npm-claude-code.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 42,
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-86809.html",
+      "value_reproduced": false
+     },
+     {
+      "count": 36,
+      "path": "tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr",
+      "value_reproduced": false
+     },
+     {
+      "count": 26,
+      "path": "command-center/p2-wave/probes/RES-0115/snapshots/20106b0f3bee.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 26,
+      "path": "command-center/p2-wave/probes/WFA-0026/captures/vendor-claude-hooks.body",
+      "value_reproduced": false
+     },
+     {
+      "count": 15,
+      "path": "command-center/p2-wave/probes/RES-0088/fixtures/snapshots/gha-jobs-context.html",
+      "value_reproduced": false
+     },
+     {
+      "count": 13,
+      "path": "command-center/p2-wave/probes/RES-0009/snapshots/cli-hooks.md",
+      "value_reproduced": false
+     },
+     {
+      "count": 13,
+      "path": "command-center/p2-wave/probes/RES-0022/captures/hooks.body",
+      "value_reproduced": false
+     },
+     {
+      "count": 13,
+      "path": "command-center/p2-wave/probes/RES-0120/captures/docs-hooks.plain.txt",
+      "value_reproduced": false
+     },
+     {
+      "count": 13,
+      "path": "command-center/p2-wave/probes/RES-0181/captures/raw/docs-claude-code-hooks.md",
+      "value_reproduced": false
+     }
+    ],
+    "windows_home_path": [
+     {
+      "count": 4313,
+      "path": "command-center/ssot/walk-paths.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 2101,
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 2101,
+      "path": "command-center/WORK-UNIT-CATALOG.premerge-fix-backup.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 2101,
+      "path": "command-center/p2-wave/probes/RES-0161/captures/local-catalog.bin",
+      "value_reproduced": false
+     },
+     {
+      "count": 2101,
+      "path": "command-center/p2-wave/probes/RES-0167/captures/catalog-res-0167.body",
+      "value_reproduced": false
+     },
+     {
+      "count": 2086,
+      "path": "command-center/_adv0031_runtime_out.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 2056,
+      "path": "command-center/_wfa5_corpus.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1769,
+      "path": "command-center/ssot/walk-dedup.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1574,
+      "path": "command-center/ssot/inbound-refs.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 1438,
+      "path": "command-center/ssot/enumerate-checkouts.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 870,
+      "path": "command-center/_wfa5_features.json",
+      "value_reproduced": false
+     },
+     {
+      "count": 778,
+      "path": "command-center/ssot/_enumerate.log",
+      "value_reproduced": false
+     }
+    ]
+   },
+   "value_reproduced": false
+  },
+  "claims": [
+   {
+    "canonical_mechanism": "unicode-regex content scan exclusive-span classified as windows_home_path",
+    "claim": "Publishing the current artifact tree would export Windows home-path identifiers (drive + Users + name) already stored in corpus files.",
+    "claim_id": "C1",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "a file that only contains the word Users is not a home path (negative fixture)"
+     ],
+     "support": [
+      "byte prefix count and regex count are both > 0"
+     ]
+    },
+    "evidence_tier": "E1",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+    "signals": [
+     {
+      "id": "S1-python-regex-content",
+      "measurement": "WIN_RE finditer over decoded file text",
+      "result": "count=44996"
+     },
+     {
+      "id": "S2-raw-bytes-prefix",
+      "measurement": "bytes.find of assembled home-path prefixes",
+      "result": "count=43970"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   },
+   {
+    "canonical_mechanism": "unix regex that refuses a preceding colon so C: drive paths do not double-count",
+    "claim": "Unix-style /home or /Users names, counted independently of Windows drive paths, are not the dominant leak class on this tree.",
+    "claim_id": "C2",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "a genuine posix home directory path would still be counted if present"
+     ],
+     "support": [
+      "colon-exclusion prevents C: drive paths from counting as unix"
+     ]
+    },
+    "evidence_tier": "E1",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+    "signals": [
+     {
+      "id": "S1-python-regex-unix",
+      "measurement": "UNIX_RE finditer over decoded file text",
+      "result": "count=1688"
+     },
+     {
+      "id": "S2-windows-minus-unix",
+      "measurement": "windows_home_path vs unix_home_path category fields",
+      "result": "windows=44996 unix=1688"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   },
+   {
+    "canonical_mechanism": "path-basename inventory independent of file bytes",
+    "claim": "Credential-shaped filenames exist in the tree and are a publication surface even when file contents are never opened.",
+    "claim_id": "C3",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "a credential stored only inside a README would be invisible to this claim"
+     ],
+     "support": [
+      "filename inventory does not read bytes"
+     ]
+    },
+    "evidence_tier": "E1",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+    "signals": [
+     {
+      "id": "S1-path-basename",
+      "measurement": "path_category credential_filename on relative path",
+      "result": "count=12"
+     },
+     {
+      "id": "S2-content-not-consulted",
+      "measurement": "credential_filename files are not content-scanned",
+      "result": "contents_omitted=true"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   },
+   {
+    "canonical_mechanism": "path-field classification on relative POSIX paths",
+    "claim": "Transcript, session, or event-ledger shaped files are part of the publication surface when present; counts are path-classified.",
+    "claim_id": "C4",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "session text copied into a .json with a research filename bypasses path-only drop"
+     ],
+     "support": [
+      "path tokens are a different data field than content regex"
+     ]
+    },
+    "evidence_tier": "E1",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+    "signals": [
+     {
+      "id": "S1-transcript-path",
+      "measurement": "path_category transcript_or_session",
+      "result": "count=62"
+     },
+     {
+      "id": "S2-ledger-path",
+      "measurement": "path_category event_ledger (different path tokens)",
+      "result": "count=134"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   },
+   {
+    "canonical_mechanism": "security-reviewer bypass suite against M1_line_regex",
+    "claim": "A per-line home-path regex is not an effective publication scrub: constructed encodings keep the identifier.",
+    "claim_id": "C5",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "novel encodings not in the bypass suite remain residual"
+     ],
+     "support": [
+      "a mitigation is recorded effective only when every bypass failed"
+     ]
+    },
+    "evidence_tier": "E1",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+    "signals": [
+     {
+      "id": "S1-bypass-url-split-unicode-b64",
+      "measurement": "in-memory bypass payloads, values not stored",
+      "result": "naive_effective=false"
+     },
+     {
+      "id": "S2-decode-then-redact-contrast",
+      "measurement": "same payloads after M1b_decode_then_redact",
+      "result": "m1b_effective=true"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   },
+   {
+    "canonical_mechanism": "record-as-effective-only-after-bypass rule",
+    "claim": "The minimum scrubbing contract that may be recorded as effective is the surviving set after bypass: decode-then-redact, path-and-content transcript drop, filename-and-shape credential drop, location-only reports, and a packed-bytes publication gate.",
+    "claim_id": "C6",
+    "confidence_band": "almost-certain",
+    "edges": {
+     "contradiction": [
+      "OCR/screenshot channel is ADV-0040 and is NOT-CHECKED here"
+     ],
+     "support": [
+      "reviewer constructed a bypass of every listed mitigation before recording"
+     ]
+    },
+    "evidence_tier": "E2",
+    "freshness_stamp": "2026-08-25T01:08:58Z",
+    "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+    "signals": [
+     {
+      "id": "S1-effective-set",
+      "measurement": "mitigations with recorded_effective true",
+      "result": "M1b_decode_then_redact,M2b_path_and_content,M3b_filename_and_shape,M4_location_only_reports,M5_packed_bytes_gate"
+     },
+     {
+      "id": "S2-naive-excluded",
+      "measurement": "M1_line_regex and M2_path_exclude and M3_filename_only excluded if bypassed",
+      "result": "naive_line_regex_effective=false"
+     }
+    ],
+    "snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310",
+    "source_lineage": {
+     "anchors": [
+      {
+       "path": "command-center/WORK-UNIT-CATALOG.json",
+       "role": "publication-corpus-member"
+      },
+      {
+       "path": "command-center/p2-wave/probes/RES-0124/scan.py",
+       "role": "content-and-path-scanner"
+      }
+     ],
+     "kind": "local-tree-measurement"
+    },
+    "value_reproduced": false,
+    "verdict": "CONFIRMED"
+   }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0124 in the receipt AND a category-count scan over the real tree with a passing seeded-identifier detector control",
+  "detector_control": {
+   "negative_users_word_only_silent": true,
+   "pass": true,
+   "planted_hits": 1,
+   "removed_hits": 0,
+   "scratch_outside_tree": true,
+   "seed_value_reproduced": false,
+   "seeded_absent_after_removal": true,
+   "seeded_found": true,
+   "tree_seeded_identifier_count": 0
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+    "id": "probe1",
+    "role": "category-count-real-tree"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+    "id": "probe2",
+    "role": "seeded-identifier-detector-control"
+   }
+  ],
+  "never_print_values": true,
+  "notes": "G-1 for RES-0124: live named probes exit 0, research artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. Schema $ref resolved from disk; no network. Domain counts live in extensions so receipt_core additionalProperties stays closed.",
+  "output_path": "command-center/research/RES-0124.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "scrubbing_contract": {
+   "minimum_safe_set": [
+    "M1b_decode_then_redact",
+    "M2b_path_and_content",
+    "M3b_filename_and_shape",
+    "M4_location_only_reports",
+    "M5_packed_bytes_gate"
+   ],
+   "mitigations": [
+    {
+     "bypass_attempts": [
+      {
+       "id": "B1_urlencode",
+       "mechanism": "percent-encoding hides separators from a raw line regex",
+       "survived": true
+      },
+      {
+       "id": "B2_split_line",
+       "mechanism": "username on the next line after a Users separator",
+       "survived": true
+      },
+      {
+       "id": "B3_unicode_escape",
+       "mechanism": "JSON/unicode escapes hide the separator in raw file bytes",
+       "survived": true
+      },
+      {
+       "id": "B6_base64",
+       "mechanism": "base64 of a home path has no raw C: Users prefix; naive regex is silent",
+       "survived": true
+      }
+     ],
+     "id": "M1_line_regex",
+     "recorded_effective": false,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B1_urlencode",
+       "mechanism": "url-decode then redact",
+       "survived": false
+      },
+      {
+       "id": "B2_split_line",
+       "mechanism": "join Users-separator line-break then redact",
+       "survived": false
+      },
+      {
+       "id": "B3_unicode_escape",
+       "mechanism": "unicode-unescape then redact",
+       "survived": false
+      },
+      {
+       "id": "B6_base64",
+       "mechanism": "base64-decode candidate chunks then redact",
+       "survived": false
+      }
+     ],
+     "id": "M1b_decode_then_redact",
+     "recorded_effective": true,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B4_transcript_copied_into_json",
+       "mechanism": "path no longer looks like a transcript; body still carries session text",
+       "survived": true
+      }
+     ],
+     "id": "M2_path_exclude",
+     "recorded_effective": false,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B4_transcript_copied_into_json",
+       "mechanism": "content markers drop copied session text even under a research filename",
+       "survived": false
+      }
+     ],
+     "id": "M2b_path_and_content",
+     "recorded_effective": true,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B5_key_in_markdown",
+       "mechanism": "credential-shaped token in a non-credential filename",
+       "survived": true
+      }
+     ],
+     "id": "M3_filename_only",
+     "recorded_effective": false,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B5_key_in_markdown",
+       "mechanism": "shape regex redacts well-known prefixes inside any text file",
+       "survived": false
+      }
+     ],
+     "id": "M3b_filename_and_shape",
+     "recorded_effective": true,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B7_schema_forbids_match_text",
+       "mechanism": "placeholder; replaced by structural check on the emitted artifact",
+       "survived": false
+      }
+     ],
+     "id": "M4_location_only_reports",
+     "recorded_effective": true,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    },
+    {
+     "bypass_attempts": [
+      {
+       "id": "B8_gate_is_policy_not_current_tree",
+       "mechanism": "gate is a publication precondition; current tree is expected dirty",
+       "survived": false
+      }
+     ],
+     "id": "M5_packed_bytes_gate",
+     "recorded_effective": true,
+     "rule": "a mitigation may be recorded as effective only when every constructed bypass against it failed"
+    }
+   ],
+   "note": "Publication is safe only after the packed-bytes gate is green on the bytes that would actually ship, using the surviving set. Screenshot/OCR coverage is out of scope (ADV-0040)."
+  },
+  "tree_snapshot_sha256": "21265e77ea3693eff69db3ff3658be2950c0be5379d932552664965a6216d310"
+ },
+ "manifest_registration": {
+  "entry_id": "RES-0124",
+  "manifest_path": "command-center/p2-wave/probes/RES-0124/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "seeded_found=True",
+   "description": "Plant a synthetic identifier in a scratch file outside the tree, confirm the scan finds it, remove it, confirm the scan is silent, and confirm the real tree has zero leftover seeded identifiers.",
+   "fired_on_bad_state": true,
+   "good_state_output": "seeded_absent_after_removal=True tree_seed=0",
+   "id": "RES0124-C1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "absolute home path would increment the category",
+   "description": "A fixture that uses the word Users without an absolute home path must not increment windows_home_path or unix_home_path.",
+   "fired_on_bad_state": true,
+   "good_state_output": "negative_users_word_only_silent=True",
+   "id": "RES0124-C2",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "privacy-analyst",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": "If this tree were published as-is, estate-identifying Windows home paths would leave with it (content count 44996; independent byte-prefix count 43970). Credential-shaped filenames counted 12; transcript/session files 62; event-ledger files 134. Unix home paths after colon-exclusion counted 1688. No discovered secret or personal value is reproduced in this record, only location and category. Naive per-line redaction is not effective. The minimum contract that survived constructed bypasses is: M1b_decode_then_redact, M2b_path_and_content, M3b_filename_and_shape, M4_location_only_reports, M5_packed_bytes_gate. The current tree does not pass the packed-bytes gate; the gate is the publication precondition, not a claim that the tree is already clean. SUCCESS:RES-0124 in the receipt AND a category-count scan over the real tree with a passing seeded-identifier detector control",
+  "control_ids": [
+   "RES0124-C1",
+   "RES0124-C2"
+  ],
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0124/scan.py:98",
+    "measured": 44996,
+    "method": "WIN_RE finditer exclusive-span",
+    "name": "windows_home_path"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0124/scan.py:223",
+    "measured": 43970,
+    "method": "bytes.find of assembled C: Users prefixes",
+    "name": "byte_prefix_hits"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0124/scan.py:125",
+    "measured": 0,
+    "method": "SEED_RE on decoded text",
+    "name": "seeded_identifier"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0124/control.py:19",
+    "measured": true,
+    "method": "plant-then-remove scratch identifier",
+    "name": "detector_control_pass"
+   }
+  ],
+  "question": "If this program's artifacts were published, what personal or estate-identifying data would leave with them (paths, usernames, transcripts, event ledgers), and what is the minimum scrubbing contract that makes publication safe?",
+  "title": "Determine the privacy and data-protection surface if this toolchain is ever published"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "screenshot/OCR personal-data channel (ADV-0040)",
+   "settling_experiment": "Run ADV-0040 face/OCR detectors on the bytes that would actually ship; this unit does not operate that channel.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 1,
+  "policy": "two strikes then pivot; first attempt used Draft7Validator without a disk $ref store and hit RefResolutionError on ast-integrate.invalid (network). This emit pivots to a disk RefResolver. A second identical fingerprint parks BLOCKED."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Construct a bypass of every listed mitigation before recording it as effective; re-run the seeded-identifier both-states control. Scope is bypass survival, not agreement with this receipt.",
+  "reviewer_id": "RES-0124-probe2-bypass-reviewer",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:RES-0124 in the receipt AND a category-count scan over the real tree with a passing seeded-identifier detector control",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0124",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe1_category_scan.py",
+   "id": "T1-category-count-real-tree",
+   "name": "categorized scan over the real artifact tree",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0124/probe2_seeded_control.py",
+   "id": "T2-seeded-identifier-detector-control",
+   "name": "seeded-identifier both-states plus bypass review",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.000145,
+  "ended_at": "2026-08-25T01:08:58Z",
+  "started_at": "2026-08-25T01:08:58Z"
+ },
+ "unit_id": "RES-0124"
+}

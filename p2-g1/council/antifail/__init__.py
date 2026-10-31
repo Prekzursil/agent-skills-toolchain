@@ -1,0 +1,1 @@
+"""Antifail alias."""

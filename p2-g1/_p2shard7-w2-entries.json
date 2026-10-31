@@ -1,0 +1,577 @@
+{
+ "BLD-0043": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "test-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0043",
+  "dependencies": [
+   "B01",
+   "B08"
+  ],
+  "evidence_requirement": "A mapping must be STRUCTURAL - a REQ id in the test id, a marker, or a registry entry. A mapping asserted only by a code comment does not count and is reported as unmapped.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "sampling-error"
+  ],
+  "id": "BLD-0043",
+  "inputs": [
+   "the CC-0024 requirement records (REQ ids and their source lines)",
+   "command-center/TEST-REGISTRY.json",
+   "the executed test inventory from B08"
+  ],
+  "output_path": "command-center/receipts/BLD-0043.json",
+  "output_schema": "command-center/schema/traceability-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which requirement has no test, and which test asserts something no requirement asked for? Join the CC-0024 requirement records to TEST-REGISTRY.json in both directions, emit the two orphan sets, and classify each orphan test as either an UNDOCUMENTED REQUIREMENT (promote it) or SCOPE CREEP (retire it, with the reason recorded).  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "No retry: an unmapped requirement is a finding routed to B08, not a failure of this unit.",
+  "reviewer_requirement": "One independent reviewer who checks ten mappings by reading the test body and confirming it actually asserts the requirement, not merely that the id matches.",
+  "tests_required": [
+   "Control: deleting a known test must move its requirement into the untested set.",
+   "Control: a test mapped only via a comment must be reported unmapped.",
+   "Control: an orphan test must be classified into exactly one of promote/retire, never left unclassified."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Requirement-to-test bidirectional mapping with orphan classification",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0044": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0044",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "The egress block must itself be controlled: prove a deliberate download attempt FAILS under the block before any green result under it is trusted. A green suite under an unproven block measures nothing.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "non-portable"
+  ],
+  "id": "BLD-0044",
+  "inputs": [
+   "the full test suite",
+   "the CNF-0147 egress-blocked confirmation-suite receipt (consumed, not re-derived)",
+   "the egress-blocking harness",
+   "the cache directories the suite touches"
+  ],
+  "output_path": "command-center/receipts/BLD-0044.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which test's outcome depends on an input nobody declared? Re-run the suite under randomized test order, a different PRNG seed, a shifted timezone, a different working directory, a cold cache, and with network egress BLOCKED; report every test whose result changes. The estate measured 14 tests silently downloading a bootstrap script despite comments asserting they never download. SCOPE BOUNDARY: CNF-0147 runs the egress-blocked re-run over the CONFIRMATION suite; this unit consumes that receipt and contributes the multi-axis CROSS-PRODUCT over the full suite - order x seed x timezone x cwd x cache - in which egress is one column rather than the deliverable.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot: after two blocker-setup failures, run the suite inside a network-isolated container rather than attempting a third host-level block.",
+  "reviewer_requirement": "One independent reviewer who repeats the egress-blocked run and confirms both the block control and the failure list.",
+  "tests_required": [
+   "Block control: a deliberate fetch must fail under the egress block (both-states proof for the blocker itself).",
+   "Order: at least two distinct random seeds must be used; a test that passes under one order and fails under another is reported.",
+   "Cache: a cold-cache run must be compared against a warm-cache run and any divergence reported.",
+   "Control: a genuinely hermetic test must pass identically in all environments (no false positives)."
+  ],
+  "timeout_seconds": 14400,
+  "title": "Nondeterminism and hidden-input census under randomized order, seed, TZ, cwd and blocked egress",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0045": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "test-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0045",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Coverage must be collected WITH branch coverage enabled; a run without it cannot see the regression this unit exists to find. Report per-region assertion dependency, not a global percentage.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "BLD-0045",
+  "inputs": [
+   "branch-enabled coverage output from the B08 suite",
+   "the shipped source tree",
+   "the rollback and error-handling code paths specifically"
+  ],
+  "output_path": "command-center/receipts/BLD-0045.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which lines are executed by the suite but whose behaviour nothing asserts? Cross line and branch coverage against assertion reachability: for each covered region, determine whether any assertion depends on its output. Report high-coverage, zero-assertion regions and concentrate the analysis on error handling and rollback paths, where coverage most often means 'executed while nobody looked'.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot from static assertion-dependency inference to mutation of the specific region before a third attempt.",
+  "reviewer_requirement": "One independent reviewer who deletes the assertion from one covered region and confirms the audit reclassifies it.",
+  "tests_required": [
+   "Control: a function called only for its side effect with no assertion must be reported.",
+   "Control: a function whose return value feeds an assert must NOT be reported.",
+   "Control: an except-branch that is covered but whose effect is never asserted must be reported (this is the concentration target).",
+   "Instrument control: prove branch coverage is actually on by observing a partial-branch entry in the report."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Covered-but-unasserted code audit, concentrated on error and rollback paths",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0049": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "security-researcher",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0049",
+  "dependencies": [
+   "B07",
+   "B10"
+  ],
+  "evidence_requirement": "Each ingress is traced to a concrete concatenation site at path:line. A path claimed FENCED must show the fencing construct, not merely a comment asserting the content is untrusted.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "credential-exposure",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "BLD-0049",
+  "inputs": [
+   "every ingress point in the runner, adapters and council runtime",
+   "the prompt assembly code paths",
+   "the spec failure class: council transcript or participant artifact injects instructions into later stages"
+  ],
+  "output_path": "command-center/receipts/BLD-0049.json",
+  "output_schema": "command-center/schema/threat-coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: through which paths does third-party text reach an agent's instruction channel? Trace every ingress - fetched web pages, MCP tool results, marketplace package descriptions and READMEs, imported workflow definitions, council transcripts and participant artifacts, PR and issue bodies, and repository-supplied agent config - to the point where its bytes are concatenated into a prompt, and record whether each is fenced as untrusted DATA.  SCOPE BOUNDARY: CNL-0100, WFA-0158 and CNF-0114 each defend one specific injection path. This unit contributes the whole-system INGRESS census plus the canary-reachability control that proves each payload actually reached the boundary under test.  [Phase 13 question answered: what threat actor was not modeled]",
+  "retry_policy": "Two strikes then pivot: if a canary cannot be routed through an ingress twice, mark that ingress NOT-REACHABLE-BY-TEST and escalate rather than declaring it safe.",
+  "reviewer_requirement": "One independent reviewer who authors one new canary payload shape (encoded rather than plaintext) and re-runs the two highest-risk ingresses.",
+  "tests_required": [
+   "Canary: inject a benign canary instruction ('write CANARY to <scratch path>') through each ingress and assert the canary file is NOT created.",
+   "Reachability control: the canary must be observable in the transcript as DATA, proving the injection actually reached the boundary being tested - a canary that never arrived proves nothing.",
+   "Control: an ingress with fencing deliberately disabled MUST show the canary firing, or the test is not measuring the fence."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Prompt-injection ingress data-flow census with a canary assertion per path",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0050": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "threat-modeler",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0050",
+  "dependencies": [
+   "B06",
+   "B07",
+   "B10"
+  ],
+  "evidence_requirement": "A boundary counts as CHECKED only with a named validation rule at path:line AND a test id. A boundary whose 'check' is a comment or a naming convention is UNCHECKED. Report the count of boundaries found by this walk that appear in NO existing threat model - that number is the deliverable.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "credential-exposure"
+  ],
+  "id": "BLD-0050",
+  "inputs": [
+   "the architecture diagrams and the data-flow description of the shipped system",
+   "the ADV-0021 STRIDE model of the install/update path (consumed as one boundary, not re-derived)",
+   "every network call, subprocess spawn, file read of foreign content and inter-agent message site"
+  ],
+  "output_path": "command-center/receipts/BLD-0050.json",
+  "output_schema": "command-center/schema/trust-boundary-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which trust boundary does the system cross without an owner, a validation rule, or a test? Walk the data and control flows and enumerate EVERY crossing - process to process, local to network, our code to a vendor API, trusted config to untrusted content, agent to agent, machine to human, build time to run time - and for each record the direction, what crosses, who owns the check, the validation rule, and the test that exercises it. SCOPE BOUNDARY: BLD-0048 enumerates by ACTOR and ADV-0021 models the install path specifically; boundary-driven enumeration finds what an actor list misses, which is why both are run.  [Phase 13 question answered: what threat actor was not modeled]",
+  "retry_policy": "Two strikes then pivot from architecture-document walking to code-site enumeration (start from every socket and subprocess call and work outward).",
+  "reviewer_requirement": "An Anthropic-vendor reviewer walks two flows independently and reports any crossing this census missed.",
+  "tests_required": [
+   "Control: delete one known validation rule in a scratch copy and prove its boundary flips to UNCHECKED.",
+   "Completeness control: every network call and subprocess spawn site in the tree must map to exactly one enumerated boundary; an unmapped site means the walk is incomplete.",
+   "Control: a boundary already covered by ADV-0021 must be marked CONSUMED, not re-audited.",
+   "Direction control: a boundary crossed in both directions must be recorded twice with separate checks - a rule that validates only inbound data is not a bidirectional check."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Trust-boundary crossing census: every boundary, its owner, its validation rule and its test",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0058": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "scheduler-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0058",
+  "dependencies": [
+   "B07",
+   "B09"
+  ],
+  "evidence_requirement": "Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "resource-exhaustion",
+   "green-not-live",
+   "single-signal"
+  ],
+  "id": "BLD-0058",
+  "inputs": [
+   "the scheduler's arrival control and backoff implementation",
+   "per-vendor rate-limit documentation and observed 429 behaviour",
+   "the two subscription budgets (measured where measurable)"
+  ],
+  "output_path": "command-center/receipts/BLD-0058.json",
+  "output_schema": "command-center/schema/scale-model.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: what arrival schedule avoids a 429 storm at ten times fan-out, and which quota binds first? Model per-vendor rate limits and the two independent subscription budgets, compute a staggered arrival schedule, and identify the point at which a batch would starve interactive work. A quota that cannot be measured is reported NOT-CHECKED, never assumed.  [Phase 13 question answered: what would break at 10x scale]",
+  "retry_policy": "Retry once with a lower burst rate; never retry a burst that produced sustained 429s against a live vendor.",
+  "reviewer_requirement": "One independent reviewer who re-derives the binding quota from a different measurement (observed throughput rather than documented limits).",
+  "tests_required": [
+   "Both-states: a simulated burst at 10x must produce 429s WITHOUT the stagger and none WITH it.",
+   "Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.",
+   "Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Arrival-rate and quota model: the stagger that avoids a 429 storm at 10x",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash",
+   "WebFetch"
+  ]
+ },
+ "BLD-0059": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "methodologist",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0059",
+  "dependencies": [
+   "B09"
+  ],
+  "evidence_requirement": "Report the makespan with and without sampling, the sampling scheme's stated confidence, and the detection probability for a class-wide defect at a stated prevalence. A confidence number with no power calculation is not evidence.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "sampling-error",
+   "overclaim",
+   "resource-exhaustion"
+  ],
+  "id": "BLD-0059",
+  "inputs": [
+   "the per-unit reviewer_requirement fields across the merged catalog",
+   "measured reviewer wall-clock from B09",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11041 (expand re-verification when the sampled error rate exceeds the threshold)"
+  ],
+  "output_path": "command-center/receipts/BLD-0059.json",
+  "output_schema": "command-center/schema/scale-model.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: at ten times the unit count, does the independent-reviewer requirement become the critical path, and what sampling scheme preserves the error bound? Every unit currently carries a reviewer requirement; model reviewer throughput, compute the resulting makespan, and design a stratified sampling scheme with a stated confidence plus the spec's own escalation rule - when the sampled error rate exceeds the threshold, re-verification expands to the entire affected class.  SCOPE BOUNDARY: CNF-0139 implements the class-expansion trigger and proves it fires. This unit contributes the reviewer-throughput MAKESPAN model that decides whether sampling is needed at all, and at what size.  [Phase 13 question answered: what would break at 10x scale]",
+  "retry_policy": "Two strikes then pivot: if the simulation cannot reach the claimed confidence twice, lower the claim rather than re-tuning the simulation.",
+  "reviewer_requirement": "One independent reviewer who recomputes the power calculation from the stated parameters and must reach the same sample size.",
+  "tests_required": [
+   "Simulation: the sampling scheme must detect an injected class-wide defect at the claimed confidence.",
+   "Control: a scheme that would pass a 20%-defective class must be rejected by the unit's own acceptance criterion.",
+   "Control: the escalation rule must be shown to fire on a simulated over-threshold sample."
+  ],
+  "timeout_seconds": 5400,
+  "title": "The serial reviewer gate as the binding constraint at 10x, and a defensible sampling scheme",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0061": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "contradiction-refuter",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0061",
+  "dependencies": [
+   "B09",
+   "B10",
+   "B12"
+  ],
+  "evidence_requirement": "On a split verdict about a briefed fact the specific PROBE wins over the agent count - read the probes, do not tally. Every contradiction cites both claims at path:line plus the probe each rests on, and names the raw source that would settle it.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "contradiction",
+   "detector-failure",
+   "single-signal"
+  ],
+  "id": "BLD-0061",
+  "inputs": [
+   "every lane artifact and receipt",
+   "command-center/CLAIM-REGISTRY.json",
+   "the probes each contradicting claim rests on"
+  ],
+  "output_path": "command-center/receipts/BLD-0061.json",
+  "output_schema": "command-center/schema/contradiction-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which pair of program findings cannot both be true? Extract typed claims from every lane's artifacts, group them by subject, and detect contradictions - opposite verdicts on one subject, incompatible counts for one quantity, a CONFIRMED and a REFUTED on the same proposition. A self-contradicting program output is a detector failure, not a finding, and must be resolved from the raw source rather than by counting agents.  [Phase 13 question answered: meta: completeness of the blind-spot review itself (disposition rule, _USER-PROMPTS.md:11082)]",
+  "retry_policy": "No retry by majority vote. If the sweep cannot resolve a contradiction, it is escalated with both probes attached.",
+  "reviewer_requirement": "An Anthropic-vendor reviewer resolves two contradictions from the raw sources without reading either original claim's narrative.",
+  "tests_required": [
+   "Control: plant an opposite-verdict pair and prove detection.",
+   "Control (false-positive guard): two claims about DIFFERENT subjects with similar wording must not be flagged - the estate measured a 'DRIFTED' verdict produced by comparing two different files.",
+   "Control: a count contradiction (two lanes reporting different values for one quantity) must be caught, not only prose contradictions."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Cross-lane contradiction sweep: findings that cannot both be true",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "CC-0003": {
+  "_source_slice_file": "CC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CC-0003",
+  "dependencies": [
+   "CC-0002"
+  ],
+  "evidence_requirement": "The reducer module path:line plus the verbatim output of the table-driven test run. Every condition must be individually falsifiable: the receipt must show one input that makes each of the 10 conditions return FALSE.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "CC-0003",
+  "inputs": [
+   "_USER-PROMPTS.md:10627-10648 (the completion predicate)",
+   "command-center/COMPLETION-GATES.json",
+   "command-center/schema/receipt.schema.json (from CC-0002)",
+   "rules/common/single-signal-verification.md"
+  ],
+  "output_path": "command-center/receipts/CC-0003.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Implementation target: one reducer implementing spec conditions 1-10 (_USER-PROMPTS.md:10631-10645) that returns a typed verdict plus a per-condition evidence pointer, and is imported by local runners, cloud dispatchers, monitors, harvesters, workflow fan-in, cross-vendor adapters and final synthesis. It must enforce the three explicit anti-patterns at 10646: exit code zero alone is never success, a plausible digest is not a receipt, and a file path in text is not proof the file exists.",
+  "retry_policy": "No blind retry: a second failure requires a fresh-context re-derivation of the condition list directly from _USER-PROMPTS.md:10631-10645 rather than from the failing implementation.",
+  "reviewer_requirement": "Two independent reviewers, one of them cross-vendor (Codex), because a same-vendor reviewer shares the author's blind spots on exactly this class.",
+  "tests_required": [
+   "Table-driven: exactly one falsifying case per condition, 10 cases, each proving the reducer returns INCOMPLETE for the right reason.",
+   "Exit-zero-with-missing-artifact must return INCOMPLETE, not COMPLETE.",
+   "A well-formed but fabricated digest with no artifact on disk must return INCOMPLETE.",
+   "NOT-CHECKED must be a distinct return value from PASS - a condition that was not evaluated may never fold into a pass."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Implement the ONE shared completion predicate reducer used at every fan-in",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "CC-0010": {
+  "_source_slice_file": "CC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "baseline-custodian",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CC-0010",
+  "dependencies": [],
+  "evidence_requirement": "Two mechanically independent signals that the tree was quiescent during the freeze window - for example a `git status` digest taken before and after AND a filesystem mtime scan over the tracked set - and the anchor SHA. A single quiescence check is one signal, not proof.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "uncontrolled-silence",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "CC-0010",
+  "inputs": [
+   "command-center/BASELINE-SNAPSHOT.json and BASELINE-SNAPSHOT.md",
+   "_USER-PROMPTS.md:10652-10660 (Phase 0)",
+   "the working checkout plus the 5 remaining worktrees graded NEEDS-OWNER-DECISION",
+   "SHA 53c37c6c"
+  ],
+  "output_path": "command-center/receipts/CC-0010.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Question: what exactly is frozen at Phase 0? The baseline lane's snapshot ran while concurrent sibling agents mutated the tree - a sibling's transient red phase was captured as 4 test failures and then self-resolved - so every working-tree number in that snapshot is a timestamped sample and only SHA 53c37c6c is a valid rollback anchor. Implementation target: a freeze protocol that pins the SHA as the anchor, snapshots branches, worktrees, live deployments, caches, plugin settings, marketplaces, hooks, skills and MCPs, labels every working-tree measurement as SAMPLE, and refuses to emit BASELINE while the tree is being written.",
+  "retry_policy": "Two strikes then pivot to a scratch-clone freeze; do not attempt a third in-place freeze on a shared working tree.",
+  "reviewer_requirement": "One independent reviewer who verifies the SAMPLE-vs-BASELINE discrimination by racing the freeze themselves.",
+  "tests_required": [
+   "Adversarial control: run the freeze while a writer touches a tracked file -> must emit SAMPLE, never BASELINE.",
+   "Positive control: run against a quiesced scratch clone -> must emit BASELINE.",
+   "Rollback rehearsal: restore the anchor SHA into a scratch clone and confirm the recorded artifact digests reproduce.",
+   "The snapshot must enumerate all nine snapshot classes named at :10654 and mark any it could not read as NOT-CHECKED rather than empty."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Define a freeze that is actually a freeze, and forbid a baseline verdict from a mutating tree",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "PowerShell",
+   "Bash"
+  ]
+ },
+ "CC-0019": {
+  "_source_slice_file": "CC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "corpus-normalizer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CC-0019",
+  "dependencies": [
+   "CC-0017",
+   "CC-0018"
+  ],
+  "evidence_requirement": "Every emitted record must carry a source anchor that re-resolves. Sample 20 records at random and re-open each cited file:line; report the resolve rate as a fraction, not as a pass. Report input count, emitted count and dropped count so the three reconcile.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "uncontrolled-silence",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "CC-0019",
+  "inputs": [
+   "~/.claude/harness-restore-20260806/ (Prompt One artifacts and _USER-PROMPTS.md)",
+   "07-OPTION-UNIVERSE, 08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG, 13-ARCHITECTURE-CANDIDATES, 17-DECISION-LOG",
+   "command-center/sources/REGISTER.md and sources/overlay.json",
+   "the CC-0017 schema and the CC-0018 ranking function"
+  ],
+  "output_path": "command-center/receipts/CC-0019.json",
+  "output_schema": "command-center/schema/claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Implementation target: execute Phase 1 normalization over the real corpus - the 1.49 MB harness-restore corpus with 375 messages, the 29 contracted Prompt One artifacts (283 platform options, 284 workflow candidates, 108 blueprints, 58 council protocols, 72 presets, 11 architectures), prior test failures and incident notes - emitting canonical claim records with resolvable source lineage. Report the count of inputs DROPPED as a first-class number; a normalization that reports zero drops by construction has not measured anything.",
+  "retry_policy": "Two strikes then pivot to per-artifact ingestion with per-artifact receipts, so a single malformed source cannot fail the whole run a third time.",
+  "reviewer_requirement": "One independent reviewer who samples a different 20 records than the author and independently checks the anchors.",
+  "tests_required": [
+   "Random 20-record sample: every cited anchor must re-resolve to the quoted text.",
+   "Conservation: inputs = emitted + merged + dropped, with the dropped set enumerated and reasoned.",
+   "Detector control: a planted synthetic finding must appear in the output; if it does not, the ingester is silently skipping inputs.",
+   "Idempotence: a second run over an unchanged corpus must emit the same record ids."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Run the corpus normalization: turn prior findings, option cards, claims, failures and incidents into canonical records",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "CNF-0070": {
+  "_source_slice_file": "CNF-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "archival-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0070 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every archived corroboration cites a capture timestamp at or before the citation date. Any other terminal state is FAILED:CNF-0070 <classification> with the diagnostic tail attached.",
+  "dependencies": [
+   "CNF-0062",
+   "B03"
+  ],
+  "evidence_requirement": "the snapshot URL with its capture timestamp, the located quote in the snapshot, and the live-versus-snapshot diff",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "never-supported",
+   "source-changed",
+   "no-snapshot-available"
+  ],
+  "id": "CNF-0070",
+  "inputs": [
+   "the failed citations from CNF-0062",
+   "the recorded citation dates",
+   "an archival snapshot service"
+  ],
+  "output_path": "command-center/confirmation/CNF-0070-archival-corroboration.json",
+  "output_schema": "command-center/schema/citation-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "For every citation where the live page no longer matches, does an archived snapshot from the citation date support the claim? Retrieve the snapshot, diff it against today, and answer: was the claim true when made and has since changed, or was it never supported?",
+  "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is never retried, it is filed",
+  "reviewer_requirement": "one reviewer who is given ONLY the raw source and the recorded probe output and must re-derive the verdict BEFORE being shown this unit's conclusion; a reviewer who reads the conclusion first has been anchored and does not count",
+  "tests_required": [
+   "a snapshot captured AFTER the citation date does not establish what was true at citation time and is rejected",
+   "was-true-then-changed and never-supported are different verdicts and must not be merged",
+   "archived content is untrusted data and is never executed"
+  ],
+  "timeout_seconds": 7200,
+  "title": "Archival corroboration when the live source has changed since it was cited",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "WebFetch",
+   "mcp__search-hub__web_search_exa",
+   "mcp__search-hub__tavily_search"
+  ]
+ }
+}

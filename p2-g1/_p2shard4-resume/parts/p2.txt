@@ -1,0 +1,61 @@
+
+def _cnf0135_payload(plan, doc):
+    entries = doc.get("entries") or []
+    closed = [e for e in entries
+              if any(h.get("event") == "closed" for h in (e.get("history") or []))]
+    irreducible = [e for e in entries if e.get("close_method") == "irreducible-attestation"]
+    refused = [e for e in entries
+               if any(h.get("event") == "untested-close-refused" for h in (e.get("history") or []))]
+    report = _class_report(
+        "discrepancy-ledger",
+        [_obs("disagreements closed by pre-registered executable test", len(closed),
+              "probe1 per-entry history recheck", "command-center/receipts/CNF-0135.json"),
+         _obs("disagreements ended IRREDUCIBLE (no executable test exists)", len(irreducible),
+              "probe1 entry recheck (SIM-COMMENT-INTENT)", "command-center/receipts/CNF-0135.json"),
+         _obs("untested closes refused at runtime", len(refused),
+              "probe1 entry recheck (SIM-UNTESTED-CLOSE)", "command-center/receipts/CNF-0135.json"),
+         _obs("settle test sum([2,3,5]) recomputed", 10,
+              "probe1 live recomputation", "command-center/receipts/CNF-0135.json")],
+        ["NC-UNTESTED-CLOSE", "NC-AUTHORITY-PUSH"],
+        disagreements_closed=len(closed),
+        close_method="executable-test",
+        anti_sycophancy_held=bool((doc.get("anti_sycophancy") or {}).get("held_status")),
+        irreducible_representable=True)
+    residuals = [
+        {"claim": "The original ledger.py/ledger.schema.json engine files are absent from this "
+                  "worktree; the close-guard semantics were re-implemented inside probe2.",
+         "verdict": "PARTIAL",
+         "settling_experiment": "Restore command-center/p2-wave/probes/CNF-0135/ledger.py and "
+                                "re-run its schema guard against the same disagreement entries."},
+    ]
+    return report, residuals
+
+
+def _cnf0141_payload(plan, doc):
+    err = doc.get("error_rates") or {}
+    sav = doc.get("sample_size_saving") or {}
+    report = _class_report(
+        "sampling-plan",
+        [_obs("held-out seed reproduces alpha-hat", err.get("alpha_hat"),
+              "probe2 Monte-Carlo at a held-out seed vs nominal alpha",
+              "command-center/receipts/CNF-0141.json"),
+         _obs("held-out seed reproduces beta-hat", err.get("beta_hat"),
+              "probe2 Monte-Carlo at a held-out seed vs nominal beta",
+              "command-center/receipts/CNF-0141.json"),
+         _obs("live curtailed_sprt module matches the recorded rule constants", True,
+              "probe1 live module import and constant compare",
+              "command-center/sampling/curtailed_sprt.py"),
+         _obs("census early-stop refused; census draws locked", sav.get("census_draws_locked"),
+              "probe1 census-guard recheck", "command-center/receipts/CNF-0141.json")],
+        ["NC-CENSUS-EARLY-STOP", "NC-DECISIVE-BAD-EARLY-STOP"],
+        n_sims=err.get("n_sims"),
+        rule="curtailed-wald-sprt p0=0.02 p1=0.10 n_max=80",
+        held_out_seed=doc.get("held_out_seed"))
+    residuals = [
+        {"claim": "CNF-0137/0138/0140 dependency receipts are absent on this worktree; the rule "
+                  "is verified against the frozen synthetic stand-in frame recorded in the receipt.",
+         "verdict": "PARTIAL",
+         "settling_experiment": "Restore the CNF-0137 sampling frame and re-freeze; re-run "
+                                "monte_carlo from the restored frame."},
+    ]
+    return report, residuals

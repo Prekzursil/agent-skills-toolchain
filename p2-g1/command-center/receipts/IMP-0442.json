@@ -1,0 +1,885 @@
+{
+ "answer": "No. On a 40-unit mixed dry run (10 per substrate, all arriving at tick 0) the local-serialized concurrent series is in {0,1} with peak 1. Removing the serial lock raises that peak to 10 and turns the flat-at-one predicate red, so the lock is the cause, not a clipped readout.",
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0442.json",
+   "bytes": 29245,
+   "sha256": "16ba47724e1c1459acee4f7dc9100a50ac8dc878d689608a44dcf115d0df6eaf",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "bytes": 1060,
+   "exists": true,
+   "path": "command-center/schema/dispatch-plan.schema.json",
+   "role": "primary",
+   "sha256": "c7285560331e3d4699b5ec3ac4c1fa3cac83a99b61f5b531f0f8b2bde8d50fbe",
+   "eol": "LF"
+  },
+  {
+   "bytes": 4665,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0442/dispatcher.py",
+   "role": "supporting",
+   "sha256": "7eb5c0da51fb81e240b271f4be734668f832fa605270457bb2c854f98a5b7069",
+   "eol": "LF"
+  },
+  {
+   "bytes": 1736,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py",
+   "role": "supporting",
+   "sha256": "5c723d63058646fa12a7f0c63d8c0239bde1deba538ca5b2f47cea8c33c36e22",
+   "eol": "LF"
+  },
+  {
+   "bytes": 1751,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py",
+   "role": "supporting",
+   "sha256": "67c67054fe23a3776f7dc9917d9be729cbe0cfeebb820fb8cff5d9550d22a328",
+   "eol": "LF"
+  }
+ ],
+ "catalog_census": {
+  "cloud-batch": 200,
+  "local-parallel": 786,
+  "local-serialized": 565,
+  "other": 0,
+  "worktree-isolated": 456
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+ "dependencies": {
+  "IMP-0436": {
+   "note": "IMP-0436.json is absent on this worktree. Dispatcher reads the per-unit execution_substrate already set on all 2007 work_units (census other=0). It does not claim IMP-0436 delivered.",
+   "receipt_present": false,
+   "role": "per-unit override semantics for execution_substrate"
+  },
+  "IMP-0443": {
+   "note": "Declared dependency; routing does not import IMP-0443.",
+   "role": "catalog sibling; not required to route by substrate"
+  }
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+   "artifact_path": "command-center/receipts/IMP-0442.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0442.json",
+    "raw_output": "ACCEPT:IMP-0442 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "fingerprint": "a7843dba3fd7591b0971341889d2d9bc",
+    "exit_code": 0
+   }
+  },
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+   "artifact_path": "command-center/receipts/IMP-0442.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+    "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py\n      1,\n      0\n    ],\n    \"receipt_id_swaps\": [],\n    \"substrate_source\": \"live WORK-UNIT-CATALOG execution_substrate fields\",\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe1 local-serialized flat at one; others at cap 10\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py\n    \"control_peak_local_serialized\": 1,\n    \"mutant_peak_local_serialized\": 10,\n    \"mutation_detected\": true,\n    \"can_start_armed_refuses_second\": true,\n    \"can_start_disarmed_admits_second\": true,\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe2 serial-lock removal turns the series above one\nartifact command-center/receipts/IMP-0442.json bytes=27465 sha256=21ea0109145e3963dc4c35dd1a3b1c8055d241ab275da6a699d0553488bd400f\nSUCCESS:delivered IMP-0442",
+    "fingerprint": "128a34d72809c48a67ab345733345348",
+    "exit_code": 0
+   }
+  }
+ ],
+ "dry_run": {
+  "arrival": "all ready_at=0 so serialized units would overlap without the lock",
+  "catalog_path": "command-center/WORK-UNIT-CATALOG.json",
+  "duration_ticks": 8,
+  "per_substrate": 10,
+  "unit_count": 40,
+  "unit_ids": [
+   "ADV-0009",
+   "ADV-0011",
+   "ADV-0012",
+   "ADV-0014",
+   "ADV-0016",
+   "ADV-0017",
+   "ADV-0018",
+   "ADV-0019",
+   "ADV-0021",
+   "ADV-0023",
+   "ADV-0002",
+   "ADV-0004",
+   "ADV-0005",
+   "ADV-0006",
+   "ADV-0007",
+   "ADV-0013",
+   "ADV-0015",
+   "ADV-0035",
+   "ADV-0041",
+   "ADV-0045",
+   "ADV-0001",
+   "ADV-0003",
+   "ADV-0008",
+   "ADV-0010",
+   "ADV-0022",
+   "ADV-0024",
+   "ADV-0025",
+   "ADV-0027",
+   "ADV-0028",
+   "ADV-0029",
+   "ADV-0020",
+   "ADV-0080",
+   "ADV-0083",
+   "ADV-0129",
+   "ADV-0135",
+   "ARC-0072",
+   "ARC-0099",
+   "ARC-0105",
+   "ARC-0109",
+   "AUD-0023"
+  ]
+ },
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0442/dispatcher.py",
+   "claim": "40-unit mixed dry run (10 per substrate, live catalog ids) has local-serialized peak 1 and series values only in {0,1}; local-parallel/worktree-isolated/cloud-batch peaks 10/10/10.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py",
+     "method": "test-run",
+     "raw_output": "{\"peaks\": {\"cloud-batch\": 10, \"local-parallel\": 10, \"local-serialized\": 1, \"worktree-isolated\": 10}, \"serial_flat_at_one\": true}",
+     "role": "source",
+     "fingerprint": "cd5f6bd53c9d5965173b234f926579b1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py",
+     "method": "other",
+     "raw_output": "{\"locked_peak\": 1, \"unlocked_peak\": 10}",
+     "role": "verifier",
+     "fingerprint": "4b80a2a57139e42cbcf8724b9b04f33c"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py",
+   "claim": "Each of the four substrates is isolated: every unit ran on its declared lane; worktree slots did not collide; dumping all units to local-parallel produces 30 isolation violations.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "isolation_per_substrate(locked)",
+     "method": "test-run",
+     "raw_output": "{\"cloud-batch\": {\"declared_count\": 10, \"foreign_ids\": [], \"isolated\": true, \"missing_ids\": [], \"routed_count\": 10}, \"local-parallel\": {\"declared_count\": 10, \"foreign_ids\": [], \"isolated\": true, \"missing_ids\": [], \"routed_count\": 10}, \"local-serialized\": {\"declared_count\": 10, \"foreign_ids\": [], \"isolated\": true, \"missing_ids\": [], \"routed_count\": 10}, \"worktree-isolated\": {\"declared_count\": 10, \"foreign_ids\": [], \"isolated\": true, \"missing_ids\": [], \"routed_count\": 10}}",
+     "role": "source",
+     "fingerprint": "8e5811d055f01ceade6d43d42a58b4d7"
+    },
+    {
+     "command": "DispatchOpts(honor_declared_substrate=False)",
+     "method": "other",
+     "raw_output": "{\"isolation_ok\": false, \"violation_count\": 30}",
+     "role": "verifier",
+     "fingerprint": "d0c50e392823b3500bf314032808bf35"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "four_substrates": [
+  "local-serialized",
+  "local-parallel",
+  "worktree-isolated",
+  "cloud-batch"
+ ],
+ "id": "IMP-0442",
+ "isolation": {
+  "ok": true,
+  "per_substrate": {
+   "cloud-batch": {
+    "declared_count": 10,
+    "foreign_ids": [],
+    "isolated": true,
+    "missing_ids": [],
+    "routed_count": 10
+   },
+   "local-parallel": {
+    "declared_count": 10,
+    "foreign_ids": [],
+    "isolated": true,
+    "missing_ids": [],
+    "routed_count": 10
+   },
+   "local-serialized": {
+    "declared_count": 10,
+    "foreign_ids": [],
+    "isolated": true,
+    "missing_ids": [],
+    "routed_count": 10
+   },
+   "worktree-isolated": {
+    "declared_count": 10,
+    "foreign_ids": [],
+    "isolated": true,
+    "missing_ids": [],
+    "routed_count": 10
+   }
+  },
+  "violations": [],
+  "worktree_slot_collisions": 0
+ },
+ "live_run": {
+  "locked": {
+   "completed": 40,
+   "honor_declared_substrate": true,
+   "isolation_ok": true,
+   "isolation_per_substrate": {
+    "cloud-batch": {
+     "declared_count": 10,
+     "foreign_ids": [],
+     "isolated": true,
+     "missing_ids": [],
+     "routed_count": 10
+    },
+    "local-parallel": {
+     "declared_count": 10,
+     "foreign_ids": [],
+     "isolated": true,
+     "missing_ids": [],
+     "routed_count": 10
+    },
+    "local-serialized": {
+     "declared_count": 10,
+     "foreign_ids": [],
+     "isolated": true,
+     "missing_ids": [],
+     "routed_count": 10
+    },
+    "worktree-isolated": {
+     "declared_count": 10,
+     "foreign_ids": [],
+     "isolated": true,
+     "missing_ids": [],
+     "routed_count": 10
+    }
+   },
+   "isolation_violations": [],
+   "peaks": {
+    "cloud-batch": 10,
+    "local-parallel": 10,
+    "local-serialized": 1,
+    "worktree-isolated": 10
+   },
+   "serial_flat_at_one": true,
+   "serial_lock": true,
+   "serial_never_exceeds_one": true,
+   "serial_series": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "substrates_present": [
+    "cloud-batch",
+    "local-parallel",
+    "local-serialized",
+    "worktree-isolated"
+   ],
+   "ticks": 81,
+   "unit_count": 40,
+   "worktree_slot_collisions": 0
+  },
+  "probe1": {
+   "pass": true,
+   "peaks": {
+    "cloud-batch": 10,
+    "local-parallel": 10,
+    "local-serialized": 1,
+    "worktree-isolated": 10
+   }
+  },
+  "probe2": {
+   "pass": true,
+   "unlocked_peak": 10
+  },
+  "unlocked_peaks": {
+   "cloud-batch": 10,
+   "local-parallel": 10,
+   "local-serialized": 10,
+   "worktree-isolated": 10
+  }
+ },
+ "min_bytes_threshold": 2048,
+ "mutation_control": {
+  "flat_at_one_predicate_failed": true,
+  "flat_at_one_with_lock": true,
+  "isolation_mutant_honor_declared_false": {
+   "isolation_ok": false,
+   "peaks": {
+    "cloud-batch": 0,
+    "local-parallel": 40,
+    "local-serialized": 0,
+    "worktree-isolated": 0
+   },
+   "violation_count": 30
+  },
+  "removed_serial_lock": true,
+  "serial_peak_with_lock": 1,
+  "serial_peak_without_lock": 10,
+  "unlocked_compact_series": [
+   {
+    "concurrent": {
+     "cloud-batch": 10,
+     "local-parallel": 10,
+     "local-serialized": 10,
+     "worktree-isolated": 10
+    },
+    "tick": 0
+   },
+   {
+    "concurrent": {
+     "cloud-batch": 0,
+     "local-parallel": 0,
+     "local-serialized": 0,
+     "worktree-isolated": 0
+    },
+    "tick": 8
+   }
+  ]
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py",
+   "id": "probe1",
+   "role": "mixed-dry-run-isolation"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py",
+   "id": "probe2",
+   "role": "serial-lock-mutation"
+  }
+ ],
+ "negative_controls": [
+  {
+   "fired_on_bad_state": true,
+   "id": "IMP-0442-NC-SERIAL-LOCK",
+   "silent_on_good_state": true,
+   "kind": "other",
+   "description": "IMP-0442-NC-SERIAL-LOCK"
+  },
+  {
+   "fired_on_bad_state": true,
+   "id": "IMP-0442-NC-ISOLATION-DUMP",
+   "silent_on_good_state": true,
+   "kind": "other",
+   "description": "IMP-0442-NC-ISOLATION-DUMP"
+  }
+ ],
+ "output_path": "command-center/receipts/IMP-0442.json",
+ "output_schema": "command-center/schema/dispatch-plan.schema.json",
+ "peaks": {
+  "cloud-batch": 10,
+  "local-parallel": 10,
+  "local-serialized": 1,
+  "worktree-isolated": 10
+ },
+ "profile": "selfimprove-measure-artifact",
+ "question": "Implement the dispatcher that reads the catalog and routes each unit to its declared execution_substrate, with local-serialized meaning strictly one at a time. Exact question: with a catalog containing units of all four substrates, does the observed simultaneous count for local-serialized ever exceed one?",
+ "question_or_target": "Implement the dispatcher that reads the catalog and routes each unit to its declared execution_substrate, with local-serialized meaning strictly one at a time. Exact question: with a catalog containing units of all four substrates, does the observed simultaneous count for local-serialized ever exceed one?",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0436 override-vs-default provenance dump is not on disk. Dispatcher uses the per-unit field; a later defaults-only unit would raise DispatchError rather than inherit local-windows-pwsh7.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Re-run this unit's named probes and re-scan the catalog slice; a changed answer must be re-receipted."
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Catalog reviewer_requirement asks an independent-claude-reviewer to inspect the time-series, not the summary. G-1 for this unit is live named probes plus an honest non-BLOCKED artifact. Waiting on an ADV rebuild is the circle the dispatch prompt forbids.",
+  "reviewer_id": "IMP-0442-probe2-serial-lock-mutation",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "routing": {
+  "assignments_locked": {
+   "ADV-0001": "worktree-isolated",
+   "ADV-0002": "local-parallel",
+   "ADV-0003": "worktree-isolated",
+   "ADV-0004": "local-parallel",
+   "ADV-0005": "local-parallel",
+   "ADV-0006": "local-parallel",
+   "ADV-0007": "local-parallel",
+   "ADV-0008": "worktree-isolated",
+   "ADV-0009": "local-serialized",
+   "ADV-0010": "worktree-isolated",
+   "ADV-0011": "local-serialized",
+   "ADV-0012": "local-serialized",
+   "ADV-0013": "local-parallel",
+   "ADV-0014": "local-serialized",
+   "ADV-0015": "local-parallel",
+   "ADV-0016": "local-serialized",
+   "ADV-0017": "local-serialized",
+   "ADV-0018": "local-serialized",
+   "ADV-0019": "local-serialized",
+   "ADV-0020": "cloud-batch",
+   "ADV-0021": "local-serialized",
+   "ADV-0022": "worktree-isolated",
+   "ADV-0023": "local-serialized",
+   "ADV-0024": "worktree-isolated",
+   "ADV-0025": "worktree-isolated",
+   "ADV-0027": "worktree-isolated",
+   "ADV-0028": "worktree-isolated",
+   "ADV-0029": "worktree-isolated",
+   "ADV-0035": "local-parallel",
+   "ADV-0041": "local-parallel",
+   "ADV-0045": "local-parallel",
+   "ADV-0080": "cloud-batch",
+   "ADV-0083": "cloud-batch",
+   "ADV-0129": "cloud-batch",
+   "ADV-0135": "cloud-batch",
+   "ARC-0072": "cloud-batch",
+   "ARC-0099": "cloud-batch",
+   "ARC-0105": "cloud-batch",
+   "ARC-0109": "cloud-batch",
+   "AUD-0023": "cloud-batch"
+  },
+  "catalog_default_is_not_a_lane": "defaults.execution_substrate is local-windows-pwsh7, which is not one of the four lanes. The dispatcher reads the per-unit field already present on every work_unit.",
+  "rule": "route(unit) = unit.execution_substrate when honor_declared_substrate",
+  "unknown_substrate": "DispatchError; not remapped to catalog defaults"
+ },
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "IMP-0436 delivered",
+   "live cloud-batch reachability"
+  ],
+  "proof_surface": "Discrete-event dry run of 40 catalog units. No cloud jobs, no git worktrees, and no owner-box processes were spawned. Concurrency is simulated ticks with a real serial start-gate."
+ },
+ "sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+ "serial_lock": {
+  "applies_to": "local-serialized",
+  "enforced_at_start": true,
+  "implementation": "command-center/p2-wave/probes/IMP-0442/dispatcher.py:_can_start refuses a second local-serialized start while one is in flight when serial_lock=True",
+  "max_simultaneous": 1
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0442",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "IMP-0442-mixed-dry-run-serial-flat-at-one",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py"
+  },
+  {
+   "id": "IMP-0442-serial-lock-mutation",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py"
+  }
+ ],
+ "time_series": [
+  {
+   "concurrent": {
+    "cloud-batch": 10,
+    "local-parallel": 10,
+    "local-serialized": 1,
+    "worktree-isolated": 10
+   },
+   "tick": 0
+  },
+  {
+   "concurrent": {
+    "cloud-batch": 0,
+    "local-parallel": 0,
+    "local-serialized": 1,
+    "worktree-isolated": 0
+   },
+   "tick": 8
+  },
+  {
+   "concurrent": {
+    "cloud-batch": 0,
+    "local-parallel": 0,
+    "local-serialized": 0,
+    "worktree-isolated": 0
+   },
+   "tick": 80
+  }
+ ],
+ "time_series_local_serialized": [
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  0
+ ],
+ "title": "Work-unit dispatcher honoring the declared execution substrate",
+ "unit_id": "IMP-0442",
+ "report": {
+  "schema_repair_preserved": [
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+      "executed": false,
+      "note": "Measure runs after this receipt and the per-unit manifest are on disk.",
+      "read_ok": true
+     }
+    ]
+   },
+   {
+    "parent": "tests/0",
+    "key": "peaks",
+    "value": {
+     "cloud-batch": 10,
+     "local-parallel": 10,
+     "local-serialized": 1,
+     "worktree-isolated": 10
+    }
+   },
+   {
+    "parent": "produced_by",
+    "key": "vendor",
+    "value": "cursor"
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0442.json",
+       "raw_output": "ACCEPT:IMP-0442 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "a7843dba3fd7591b0971341889d2d9bc",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py\n      1,\n      0\n    ],\n    \"receipt_id_swaps\": [],\n    \"substrate_source\": \"live WORK-UNIT-CATALOG execution_substrate fields\",\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe1 local-serialized flat at one; others at cap 10\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py\n    \"control_peak_local_serialized\": 1,\n    \"mutant_peak_local_serialized\": 10,\n    \"mutation_detected\": true,\n    \"can_start_armed_refuses_second\": true,\n    \"can_start_disarmed_admits_second\": true,\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe2 serial-lock removal turns the series above one\nartifact command-center/receipts/IMP-0442.json bytes=17031 sha256=42425a86efcdafa1da740f2c18801a138045af1ea0f22379073465b3d8c733d4\nSUCCESS:delivered IMP-0442",
+       "fingerprint": "128a34d72809c48a67ab345733345348",
+       "exit_code": 0
+      }
+     }
+    ]
+   },
+   {
+    "parent": "tests/1",
+    "key": "locked_peak",
+    "value": 1
+   },
+   {
+    "parent": "tests/1",
+    "key": "unlocked_peak",
+    "value": 10
+   },
+   {
+    "parent": "<root>",
+    "key": "produced_by_removed",
+    "value": {
+     "execution_substrate": "worktree-isolated",
+     "model": "grok-4.6",
+     "role": "implementer"
+    }
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0442.json",
+       "raw_output": "ACCEPT:IMP-0442 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "a7843dba3fd7591b0971341889d2d9bc",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py\n      1,\n      0\n    ],\n    \"receipt_id_swaps\": [],\n    \"substrate_source\": \"live WORK-UNIT-CATALOG execution_substrate fields\",\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe1 local-serialized flat at one; others at cap 10\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py\n    \"control_peak_local_serialized\": 1,\n    \"mutant_peak_local_serialized\": 10,\n    \"mutation_detected\": true,\n    \"can_start_armed_refuses_second\": true,\n    \"can_start_disarmed_admits_second\": true,\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe2 serial-lock removal turns the series above one\nartifact command-center/receipts/IMP-0442.json bytes=19655 sha256=166a5e73b277fbf21a9e22746894a042ea167a358ae0760f18079890cf8506a3\nSUCCESS:delivered IMP-0442",
+       "fingerprint": "128a34d72809c48a67ab345733345348",
+       "exit_code": 0
+      }
+     }
+    ]
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0442.json",
+       "raw_output": "ACCEPT:IMP-0442 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "a7843dba3fd7591b0971341889d2d9bc",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py\n      1,\n      0\n    ],\n    \"receipt_id_swaps\": [],\n    \"substrate_source\": \"live WORK-UNIT-CATALOG execution_substrate fields\",\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe1 local-serialized flat at one; others at cap 10\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py\n    \"control_peak_local_serialized\": 1,\n    \"mutant_peak_local_serialized\": 10,\n    \"mutation_detected\": true,\n    \"can_start_armed_refuses_second\": true,\n    \"can_start_disarmed_admits_second\": true,\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe2 serial-lock removal turns the series above one\nartifact command-center/receipts/IMP-0442.json bytes=22464 sha256=d95078164b9095ee71210b519b582acca24e3b894f7032e637b400bd52f81c94\nSUCCESS:delivered IMP-0442",
+       "fingerprint": "128a34d72809c48a67ab345733345348",
+       "exit_code": 0
+      }
+     }
+    ]
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0442.json",
+       "raw_output": "ACCEPT:IMP-0442 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "a7843dba3fd7591b0971341889d2d9bc",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0442.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0442",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe1_mixed_dry_run.py\n      1,\n      0\n    ],\n    \"receipt_id_swaps\": [],\n    \"substrate_source\": \"live WORK-UNIT-CATALOG execution_substrate fields\",\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe1 local-serialized flat at one; others at cap 10\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0442/probe2_serial_lock_mutation.py\n    \"control_peak_local_serialized\": 1,\n    \"mutant_peak_local_serialized\": 10,\n    \"mutation_detected\": true,\n    \"can_start_armed_refuses_second\": true,\n    \"can_start_disarmed_admits_second\": true,\n    \"sentinel\": \"SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED\"\n  }\n  SUCCESS:IMP-0442-probe2 serial-lock removal turns the series above one\nartifact command-center/receipts/IMP-0442.json bytes=24899 sha256=3ed15e0f3d8b79181fb34ad566294fec40589c38498b3abaeb3d1c63a67ea038\nSUCCESS:delivered IMP-0442",
+       "fingerprint": "128a34d72809c48a67ab345733345348",
+       "exit_code": 0
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "schema_version": 1,
+ "timestamps": {
+  "started_at": "2026-10-25T15:42:04Z",
+  "ended_at": "2026-10-26T02:09:13Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0442/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0442",
+  "registered_at": "2026-10-26T02:09:13Z"
+ }
+}

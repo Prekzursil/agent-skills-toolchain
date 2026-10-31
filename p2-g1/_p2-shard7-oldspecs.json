@@ -1,0 +1,545 @@
+{
+ "IMP-0095": {
+  "question_or_target": null,
+  "evidence_claims": [
+   [
+    "Changing one hashable input (sbom_present) flips a stored PASS quality score to STALE via the hash signal while the age signal stays VALID inside the window.",
+    "tools/marketplace/freshness.py:hash_invalidated"
+   ],
+   [
+    "An age-based sweep independently marks a CLEAN vulnerability verdict older than its freshness window as STALE even when no input hash changed; the advisory database is listed as unhashable.",
+    "tools/marketplace/freshness.py:age_sweep"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "fresh-unchanged-stays-valid",
+    "A twin quality score with unchanged inputs and age inside the window stays VALID and still surfaces as PASS in the same probe1 run that marked the mutated sibling STALE.",
+    "known-good-twin"
+   ],
+   [
+    "stale-never-rendered-as-pass",
+    "STALE is not painted as PASS/CLEAN on record, API, or summary surfaces (reviewer obligation).",
+    "surface-enumeration"
+   ]
+  ],
+  "tests": [
+   [
+    "test_input_change_marks_stale",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_verdict_freshness.py::test_input_change_marks_stale"
+   ],
+   [
+    "test_age_alone_marks_stale",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_verdict_freshness.py::test_age_alone_marks_stale"
+   ],
+   [
+    "test_fresh_unchanged_inputs_stay_valid",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_verdict_freshness.py::test_fresh_unchanged_inputs_stay_valid"
+   ],
+   [
+    "named-probe1",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0095/probe1_input_hash.py"
+   ],
+   [
+    "named-probe2",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0095/probe2_age_sweep.py"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/freshness.py",
+   "tools/marketplace/__init__.py",
+   "tools/marketplace/schema/verdict-freshness.schema.json",
+   "tools/marketplace/tests/conftest.py",
+   "tools/marketplace/tests/test_verdict_freshness.py",
+   "command-center/p2-wave/probes/IMP-0095/probe1_input_hash.py",
+   "command-center/p2-wave/probes/IMP-0095/probe2_age_sweep.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0095",
+  "residuals": [
+   "IMP-0094 (quality-score producer) and IMP-0098 (live OSV ingestion) are not delivered in this worktree. Freshness stamps fixture scores and fixture vulnerability verdicts. Wiring those producers to stamp_verdict is their units' work, not a missing decay rule."
+  ]
+ },
+ "IMP-0074": {
+  "question_or_target": null,
+  "evidence_claims": [
+   [
+    "The reference client accepts every recorded success and error fixture.",
+    "tools/marketplace/schema/registry-api.schema.json:definitions"
+   ],
+   [
+    "A strict unknown-field-rejecting client also accepts the fixtures, so the contract does not depend on lenient parsing.",
+    "tools/marketplace/schema/registry-api.schema.json:additionalProperties"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "missing-required-field",
+    "Drop plugin from a valid plugin_response. Both clients must fail.",
+    "mutated-response"
+   ],
+   [
+    "extra-field-discriminates",
+    "Add undocumented_bonus. Strict fails, reference passes.",
+    "mutated-response"
+   ],
+   [
+    "truncated-vs-empty",
+    "limit=2 page is truncated+next_cursor; unmatched search is empty+no cursor.",
+    "pagination"
+   ]
+  ],
+  "tests": [
+   [
+    "reference-conformance",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0074/probe1_reference_client.py"
+   ],
+   [
+    "strict-conformance",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0074/probe2_strict_client.py"
+   ],
+   [
+    "test_api_contract",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_api_contract.py"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/schema/registry-api.schema.json",
+   "tools/marketplace/api.py",
+   "tools/marketplace/clients.py",
+   "tools/marketplace/conformance.py",
+   "tools/marketplace/fixtures/index.json",
+   "tools/marketplace/tests/test_api_contract.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0074",
+  "residuals": [
+   "Live .claude-plugin/marketplace.json is not on this worktree; conformance uses the fixture index. The contract is the API, not a second index file."
+  ]
+ },
+ "IMP-0076": {
+  "question_or_target": null,
+  "evidence_claims": [
+   [
+    "Computed trust levels for the fixture publishers equal the hand-derived millipoint arithmetic in that file, and equal an independent oracle that does not import trust_levels.py.",
+    "tools/marketplace/fixtures/trust_publishers.json"
+   ],
+   [
+    "Inflating downloads, stars, and ratings on fixture alice does not change level, millipoints, component vector, or scoring_input_sha256. Excluded inputs are omitted from the canonical scoring blob, not down-weighted.",
+    "tools/marketplace/trust_levels.py:scoring_input_sha256"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "unrated-empty",
+    "A publisher with published_version_count=0 is UNRATED, never DEFAULT-TRUSTED.",
+    "no-measurable-history"
+   ],
+   [
+    "popularity-gaming",
+    "Downloads/stars/ratings inflation must not move trust. A real conformance drop on near-high must move HIGH→MEDIUM so the detector is not silent in both states.",
+    "excluded-input-invariance"
+   ]
+  ],
+  "tests": [
+   [
+    "test_trust_levels.py",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_trust_levels.py"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/trust_levels.py",
+   "tools/marketplace/schema/trust-levels.schema.json",
+   "tools/marketplace/fixtures/trust_publishers.json",
+   "tools/marketplace/tests/test_trust_levels.py",
+   "command-center/p2-wave/probes/IMP-0076/hand_derive.py",
+   "command-center/p2-wave/probes/IMP-0076/probe1_hand_derived.py",
+   "command-center/p2-wave/probes/IMP-0076/probe2_gaming.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0076",
+  "residuals": [
+   "Owner question Q9 is still OPEN. This unit adopts measurement-only ratings as its computational stance; it does not record an owner signature closing Q9.",
+   "The formula trusts its input measurements. Fabricated conformance or stub signed releases can still yield HIGH."
+  ]
+ },
+ "IMP-0077": {
+  "question_or_target": "Define the on-registry signature record (algorithm, digest, key id, signed timestamp, canonicalisation rules) and implement verification. This defines the FORMAT and the verify function; the trust decision built on it is IMP-0078 and the build-side attestation is IMP-0063.",
+  "evidence_claims": [
+   [
+    "Verification succeeds for a correctly signed fixture (ed25519 over RFC 8785 JCS of the TBS object).",
+    "tools/marketplace/tests/test_signature_format.py::test_valid"
+   ],
+   [
+    "Verification fails for a flipped payload byte, a swapped signature between two packages, and a non-canonical re-encoding of the same semantic record. Unsigned is UNSIGNED, never VALID-by-absence. Unsupported algorithms fail closed.",
+    "tools/marketplace/tests/test_signature_format.py::test_tampered"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "unsigned-package",
+    "unsigned package is reported UNSIGNED, never VALID-by-absence",
+    "known-broken-fixture"
+   ],
+   [
+    "flipped-payload-byte",
+    "one flipped package byte changes the digest; verify fails",
+    "mutation"
+   ],
+   [
+    "swapped-signature",
+    "signature record from package B does not verify for package A",
+    "known-broken-fixture"
+   ],
+   [
+    "non-canonical-reencoding",
+    "pretty-print, unicode-escape, and duplicate-key encodings fail closed",
+    "canonicalisation-confusion"
+   ],
+   [
+    "unsupported-algorithm",
+    "algorithm none / rsa-pss fail closed",
+    "fail-closed"
+   ]
+  ],
+  "tests": [
+   [
+    "test_valid",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_signature_format.py"
+   ],
+   [
+    "test_tampered",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0077/probe1_valid_and_tamper.py"
+   ],
+   [
+    "test_swapped",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0077/probe1_valid_and_tamper.py"
+   ],
+   [
+    "test_non_canonical_reencoding",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0077/probe2_canonicalisation_review.py"
+   ],
+   [
+    "test_unknown_key_id",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0077/probe2_canonicalisation_review.py"
+   ],
+   [
+    "negative-control-unsigned",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0077/probe1_valid_and_tamper.py"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/signature.py",
+   "tools/marketplace/verify.py",
+   "tools/marketplace/schema/signature.schema.json",
+   "tools/marketplace/tests/test_signature_format.py",
+   "tools/marketplace/tests/support.py",
+   "command-center/p2-wave/probes/IMP-0077/probe1_valid_and_tamper.py",
+   "command-center/p2-wave/probes/IMP-0077/probe2_canonicalisation_review.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0077",
+  "residuals": [
+   "IMP-0078 trust policy and IMP-0075 publisher validity windows are not this unit; verify_signature only checks format, canonicalisation, digest binding, and key-id lookup."
+  ]
+ },
+ "IMP-0080": {
+  "question_or_target": "Store and expose, for every published version, the provenance attestation produced at build time (source repo, commit sha, builder, build parameters) and make it queryable, so 'where did this exact artifact come from' is answerable from the registry without re-running a build.",
+  "evidence_claims": [
+   [
+    "The stored provenance for a published version verifies against the artifact digest. hashlib.sha256 of the live bytes equals the stored artifact_digest_sha256; a one-byte flip is rejected.",
+    "tools/marketplace/tests/test_provenance_store.py::test_stored_provenance_verifies_against_artifact"
+   ],
+   [
+    "The referenced commit sha resolves in the source repository and its tree hash matches what the attestation claims. Probe 2 runs git cat-file -t and git rev-parse <commit>^{tree} itself, not the store's verify_against_artifact path.",
+    "command-center/p2-wave/probes/IMP-0080/probe2_commit_tree.py"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "IMP-0080-C1-missing-commit",
+    "A provenance record pointing at a non-existent commit must be rejected at publish time.",
+    "known-broken-fixture"
+   ],
+   [
+    "IMP-0080-C2-empty-query-success",
+    "Query of every published version returns PRESENT or explicit NONE; {} and {ok:true} are rejected as empty success.",
+    "mutation"
+   ],
+   [
+    "IMP-0080-C3-tampered-artifact",
+    "A one-byte flip of the artifact fails digest verification.",
+    "mutation"
+   ]
+  ],
+  "tests": [
+   [
+    "test_stored_provenance_verifies_against_artifact",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_provenance_store.py"
+   ],
+   [
+    "probe1-verify-digest",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0080/probe1_verify_digest.py"
+   ],
+   [
+    "probe2-commit-tree",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0080/probe2_commit_tree.py"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/provenance_store.py",
+   "tools/marketplace/schema/provenance-record.schema.json",
+   "tools/marketplace/tests/test_provenance_store.py",
+   "command-center/p2-wave/probes/IMP-0080/scenario.py",
+   "command-center/p2-wave/probes/IMP-0080/probe1_verify_digest.py",
+   "command-center/p2-wave/probes/IMP-0080/probe2_commit_tree.py",
+   "command-center/p2-wave/probes/IMP-0080/write_receipts.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0080",
+  "residuals": [
+   "IMP-0063 (signed in-toto producer) is not in this worktree; this unit consumes the in-toto Statement / SLSA provenance v1 shape and stores it, it does not sign or rotate keys.",
+   "IMP-0067 index schema / .claude-plugin/marketplace.json is absent here. Pointers attach when an existing index path is supplied; this unit does not create a second index file.",
+   "command-center/schema/receipt.schema.json is absent from this Linux worktree (platform/ likewise). G-1 for this unit is _measure_one_delivered.py, which does not require that schema."
+  ]
+ },
+ "IMP-0085": {
+  "question_or_target": "Filter candidate versions by declared platform and client compatibility during resolution, and when nothing satisfies the constraints, report the exact unmet requirement (e.g. 'requires client >= X, you have Y') instead of an empty result set.",
+  "evidence_claims": [
+   [
+    "For each of Windows/macOS/Linux and client versions 1.2.0 and 3.1.0, the resolver's filtered candidate set equals an independent set-algebra recomputation from the same raw metadata.",
+    "tools/marketplace/compat.py:filter_candidates"
+   ],
+   [
+    "An empty filtered set always carries a non-empty unmet_requirement; linux+0.9.0 reports 'requires client >= 1.0.0, you have 0.9.0'.",
+    "tools/marketplace/compat.py:_aggregate_unmet"
+   ],
+   [
+    "A package with no declared compatibility (missing field or empty object) is treated as unknown, not universally compatible.",
+    "tools/marketplace/compat.py:declared_compat"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "empty-reason-forbidden",
+    "An empty candidate set with an empty unmet_requirement must fail assert_nonempty_reason_on_empty.",
+    "known-broken-fixture"
+   ]
+  ],
+  "tests": [
+   [
+    "test_compat_resolution.py",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_compat_resolution.py"
+   ]
+  ],
+  "artifacts": [
+   "command-center/receipts/IMP-0085.json",
+   "tools/marketplace/compat.py",
+   "tools/marketplace/tests/test_compat_resolution.py",
+   "tools/marketplace/fixtures/compat-index.json",
+   "tools/marketplace/schema/compat.schema.json",
+   "command-center/p2-wave/probes/IMP-0085/independent.py",
+   "command-center/p2-wave/probes/IMP-0085/probe1_resolver_sets.py",
+   "command-center/p2-wave/probes/IMP-0085/probe2_independent_recompute.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0085",
+  "residuals": [
+   "IMP-0083 deterministic SAT resolver and IMP-0008 live `claude --version` negotiation are not re-implemented here; this unit is the compatibility filter the resolver calls, with fail-closed version parsing."
+  ]
+ },
+ "IMP-0087": {
+  "question_or_target": "Implement update so the user sees, before anything changes, the version delta, the changelog entries between the two versions, and the permission diff — and so a permission-widening update requires the explicit consent implemented in IMP-0060.",
+  "evidence_claims": [
+   [
+    "Signal 1 (preview, before write): version 1.0.0→1.2.0, changelog span ['1.1.0', '1.2.0'] with gaps [], permission verdict widen added=['net:connect:api.example'], file changes added=['docs/CHANGE.md'] removed=['hooks/pre.json'] modified=['plugin.json', 'skills/SKILL.md'].",
+    "tools/marketplace/update.py:preview_update"
+   ],
+   [
+    "Signal 2 (post-update disk census, independent of the candidate object): files=['docs/CHANGE.md', 'plugin.json', 'skills/SKILL.md'] permissions=['fs:read:/pkg', 'Read', 'net:connect:api.example'] exact_match_with_preview=True fidelity={'file_count': 3, 'files_match': True, 'permissions': ['fs:read:/pkg', 'Read', 'net:connect:api.example'], 'permissions_match': True}. Lattice verdict=widen agrees with independent set-containment widen on this exact-add pair.",
+    "tools/marketplace/update.py:assert_preview_matches_actual"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "IMP0087-C1",
+    "A widening update without consent must abort with nothing written.",
+    "permission-escalation"
+   ],
+   [
+    "IMP0087-C2",
+    "A changelog gap (missing 1.1.0 between 1.0.0 and 1.2.0) must be reported, not dropped from expected_versions.",
+    "uncontrolled-silence"
+   ],
+   [
+    "IMP0087-C3",
+    "An under-reported preview (dropped expected file) must fail fidelity.",
+    "overclaim"
+   ]
+  ],
+  "tests": [
+   [
+    "test_preview_matches_actual",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_update_preview_fidelity.py::test_preview_matches_actual"
+   ],
+   [
+    "probe1_preview_fidelity",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0087/probe1_preview_fidelity.py"
+   ],
+   [
+    "probe2_negative_controls",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0087/probe2_negative_controls.py"
+   ]
+  ],
+  "artifacts": [
+   "command-center/receipts/IMP-0087.json",
+   "tools/marketplace/update.py",
+   "tools/marketplace/package.py",
+   "tools/plugin/permission_diff.py",
+   "tools/marketplace/tests/test_update_preview_fidelity.py",
+   "command-center/p2-wave/probes/IMP-0087/probe1_preview_fidelity.py",
+   "command-center/p2-wave/probes/IMP-0087/probe2_negative_controls.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0087",
+  "residuals": [
+   "IMP-0086 marketplace install handoff to the Phase-5 plugin installer is absent on this worktree; this unit implements preview+consent+apply against a throwaway dest, not production install placement."
+  ]
+ },
+ "IMP-0090": {
+  "question_or_target": "Add a declared permission block to package metadata and render it at install time as a human-readable list grouped by risk, so a user sees what a package may do before it runs — the registry-side counterpart to the Phase-5 runtime enforcement.",
+  "evidence_claims": [
+   [
+    "The rendered install-time surface lists exactly the declared permissions (set equality). High-risk ids sit under CRITICAL/HIGH headers with !!! / !! markers, not in a flat list.",
+    "tools/marketplace/permission_surface.py"
+   ],
+   [
+    "The runtime enforcement layer, queried separately (no renderer import), reports the same effective set for gated-only packages. ui.notify and telemetry.collect are declared but ungated and are flagged decorative.",
+    "tools/plugin/permission_enforcement.py"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "named-empty-not-blank",
+    "A package declaring nothing renders 'no permissions declared'; a mixed declaration renders PERM lines. Never a blank screen.",
+    "both-states-same-run"
+   ],
+   [
+    "decorative-ungated-flagged",
+    "ui.notify and telemetry.collect are rendered (declared) but flagged decorative because the runtime has no hook.",
+    "enforcement-query"
+   ]
+  ],
+  "tests": [
+   [
+    "test_rendered_set_equals_declared_set",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_permission_surface.py::test_rendered_set_equals_declared_set"
+   ],
+   [
+    "test_declared_set_equals_enforced_set",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_permission_surface.py::test_declared_set_equals_enforced_set"
+   ],
+   [
+    "test_empty_declaration_renders_named_empty_not_blank",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_permission_surface.py::test_empty_declaration_renders_named_empty_not_blank"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/permission_surface.py",
+   "tools/marketplace/permission_catalog.py",
+   "tools/plugin/permission_enforcement.py",
+   "tools/marketplace/schema/permissions.schema.json",
+   "tools/marketplace/tests/test_permission_surface.py",
+   "tools/marketplace/tests/fixtures/declared-mixed.json",
+   "tools/marketplace/tests/fixtures/declared-none.json",
+   "tools/marketplace/tests/fixtures/declared-decorative.json",
+   "command-center/p2-wave/probes/IMP-0090/probe1_rendered_equals_declared.py",
+   "command-center/p2-wave/probes/IMP-0090/probe2_declared_equals_enforced.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0090",
+  "residuals": [
+   "IMP-0059 runtime sandbox is not delivered in this worktree. The enforcement query uses a gated-hook table that IMP-0059 can later replace without changing the query API."
+  ]
+ },
+ "IMP-0093": {
+  "question_or_target": "Validate each package's declared license against the SPDX identifier list, and compute license compatibility across the resolved dependency closure so an incompatible combination is reported at resolve time with the exact offending pair.",
+  "evidence_claims": [
+   [
+    "SPDX identifier validity is checked against the official SPDX License List snapshot 3.25.0 (pinned). MIT is a member; the display name 'MIT License' is not.",
+    "tools/marketplace/data/spdx-identifiers.json"
+   ],
+   [
+    "Each closure pair is looked up in the published compatibility matrix. Apache-2.0|GPL-2.0-only is INCOMPATIBLE and resolve_with_license_gate reports that exact pair. MIT|MPL-2.0 is unlisted, so the verdict is UNKNOWN-NEEDS-REVIEW, compatible=false, owner_route=true.",
+    "tools/marketplace/data/compatibility-matrix.json"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "unknown-pair-not-compatible",
+    "MIT|MPL-2.0 is absent from the matrix; pair_verdict must be UNKNOWN-NEEDS-REVIEW and compatible must be false",
+    "known-broken-fixture"
+   ],
+   [
+    "license-absent-blocks-publication",
+    "a package with no license is LICENSE-ABSENT and publication_gate.blocked is true",
+    "known-broken-fixture"
+   ]
+  ],
+  "tests": [
+   [
+    "test_license",
+    "PYTHONPATH=tools python3 -m unittest marketplace.tests.test_license"
+   ]
+  ],
+  "artifacts": [
+   "tools/marketplace/license.py",
+   "tools/marketplace/spdx.py",
+   "tools/marketplace/compatibility.py",
+   "tools/marketplace/data/spdx-identifiers.json",
+   "tools/marketplace/data/compatibility-matrix.json",
+   "tools/marketplace/tests/test_license.py",
+   "command-center/p2-wave/probes/IMP-0093/probe1_spdx_list.py",
+   "command-center/p2-wave/probes/IMP-0093/probe2_compat_matrix.py",
+   "command-center/p2-wave/probes/IMP-0093/write_receipts.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0093",
+  "residuals": [
+   "The compatibility matrix covers a documented subset of SPDX identifiers; unlisted pairs are UNKNOWN-NEEDS-REVIEW rather than guessed."
+  ]
+ },
+ "IMP-0082": {
+  "question_or_target": "Model declared dependencies (required, optional, peer, dev) with version ranges and detect cycles at publish time, reporting the exact cycle path rather than failing with a recursion error at install time.",
+  "evidence_claims": [
+   [
+    "The primary detector reports the exact closed node sequence of a self-cycle, a two-node cycle, and a four-node cycle, and is silent on an acyclic diamond. The refuse happens at publish (DependencyCycleError.stage=publish), not as RecursionError at install.",
+    "tools/marketplace/dependency.py:detect_cycles"
+   ],
+   [
+    "stdlib graphlib.TopologicalSorter plus an independent Kosaraju SCC pass, run over the same edge list, agree with the primary detector on cycle existence AND membership. optional/peer/dev stay classified distinctly from required.",
+    "tools/marketplace/cycle_ref.py:independent_report"
+   ]
+  ],
+  "negative_controls": [
+   [
+    "acyclic-diamond",
+    "root→left, root→right, left→leaf, right→leaf. Must not be reported as a cycle by the primary detector or graphlib.",
+    "known-acyclic-graph"
+   ]
+  ],
+  "tests": [
+   [
+    "tools/marketplace/tests/test_dependency_graph.py",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_dependency_graph.py"
+   ]
+  ],
+  "artifacts": [
+   "command-center/receipts/IMP-0082.json",
+   "tools/marketplace/dependency.py",
+   "tools/marketplace/cycle_cases.py",
+   "tools/marketplace/cycle_ref.py",
+   "tools/marketplace/schema/dependency.schema.json",
+   "tools/marketplace/tests/test_dependency_graph.py",
+   "tools/marketplace/index_linter.py",
+   "command-center/p2-wave/probes/IMP-0082/probe1_planted_cycles.py",
+   "command-center/p2-wave/probes/IMP-0082/probe2_independent_library.py",
+   "command-center/p2-wave/probes/IMP-0082/emit_receipt.py"
+  ],
+  "sentinel": "SUCCESS:IMP-0082",
+  "residuals": [
+   "IMP-0070 owns range resolution; this unit stores and classifies ranges without solving them. Version-aware cycles across multiple releases of one name are deferred to IMP-0083's resolver."
+  ]
+ }
+}

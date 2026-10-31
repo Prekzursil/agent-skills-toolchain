@@ -1,0 +1,358 @@
+r"""Split the self-declared-BLOCKED Prompt Two units by WHAT REVIEW THEY ACTUALLY DEMAND.
+
+WHY THIS EXISTS. `blocker_census.py` answered "why are they blocked" and its structured pass is
+correct as far as it goes. But its headline line --
+
+    review = sum(n for c, n in structured.items() if "review" in c.lower() or "refut" in c.lower())
+    print(f"  tags naming an independent/cross-vendor REVIEW gate: {review}")
+
+-- sums TAG OCCURRENCES across receipts, then prints the total next to a receipt count. It happens
+to render "51" beside "51 receipts", which reads as "every receipt is review-gated" and is not what
+was computed. A receipt carrying three review tags contributes three. That is counting the document
+instead of the field. This script counts UNITS, once each, and prints both numbers so the
+difference is visible rather than silent.
+
+THE SPLIT THAT MATTERS. A fresh-context Claude agent that did not build the unit satisfies
+"independent review". It does NOT satisfy "independent CROSS-VENDOR review" -- same vendor means
+shared blind spots, which is the exact thing that gate guards. Substituting one for the other
+satisfies the letter and defeats the purpose. So each unit lands in exactly one bucket:
+
+  CROSS_VENDOR  - the receipt's own classification tags, or the catalog's reviewer_requirement,
+                  explicitly say cross-vendor / different-vendor / Codex.
+  ANY_INDEP     - a review gate is named but no vendor constraint is attached anywhere.
+  NO_REVIEW_GATE- blocked for some other reason entirely.
+
+TWO SOURCES, DELIBERATELY. The receipt classification is the unit's SELF-declaration; the catalog
+reviewer_requirement is the demand the program placed on it. They can disagree, and a disagreement
+is the interesting case -- a unit whose receipt says only "independent review" while its catalog
+row demands cross-vendor must be treated as CROSS_VENDOR (the stricter of the two governs). Every
+disagreement is printed.
+
+DETECTOR CONTROL. Both states are exercised in the __main__ block: synthetic receipts that MUST
+classify CROSS_VENDOR and MUST classify ANY_INDEP are run through the same functions before the
+real sweep, and the script exits non-zero if either is misfiled. A classifier that has never been
+shown to discriminate is not a classifier.
+
+ROUND-2 CHANGE (same defect class an auditor CONFIRMED in vendor_satisfiability.py, found here by
+looking for it rather than waiting for it). This script (a) read the WORKTREE, which carries
+sibling lanes' uncommitted edits -- measured: that alone moves the population 52 -> 51 because
+ADV-0041 is BLOCKED in every commit but SUCCESS in the worktree -- and (b) REWROTE its committed
+artifact on every run, so re-running the published command mutated the deliverable it was supposed
+to verify. Now: `--basis committed` (DEFAULT, reads HEAD blobs) and CHECK-only unless `--write`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import re
+from collections import Counter
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+CATALOG = REPO / "command-center" / "WORK-UNIT-CATALOG.json"
+CATALOG_REL = "command-center/WORK-UNIT-CATALOG.json"
+OUT_REL = "command-center/p2-next/REVIEW-GATE-SPLIT.json"
+
+_spec = importlib.util.spec_from_file_location(
+    "_vs_blobs", Path(__file__).with_name("vendor_satisfiability.py")
+)
+_vs = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_vs)
+batch_blobs = _vs.batch_blobs  # one `git cat-file --batch` for the whole tree read
+
+#: A vendor constraint. "cross-vendor" and "different vendor" are explicit; naming Codex/GPT/OpenAI
+#: as the required reviewer is equally a vendor constraint even without the word "cross".
+VENDOR_PAT = re.compile(
+    r"cross[-_ ]?vendor|different\s+vendor|other\s+vendor|separate\s+vendor"
+    r"|\bcodex\b|\bgpt-?5|\bopenai\b|\bgemini\b|cross[-_ ]?model",
+    re.I,
+)
+#: A review gate of any kind, vendor-agnostic.
+REVIEW_PAT = re.compile(
+    r"review|reviewer|refut|self-review-is-not-review|independent\s+(agent|verif)",
+    re.I,
+)
+
+CROSS_VENDOR, ANY_INDEP, NO_GATE = "CROSS_VENDOR", "ANY_INDEP", "NO_REVIEW_GATE"
+
+
+def classification_tags(doc: object) -> list[str]:
+    """Every `classification` entry anywhere in the receipt, as a flat list of strings."""
+    out: list[str] = []
+    if isinstance(doc, dict):
+        c = doc.get("classification")
+        if isinstance(c, list):
+            out += [str(x) for x in c]
+        elif isinstance(c, str):
+            out.append(c)
+        for v in doc.values():
+            out += classification_tags(v)
+    elif isinstance(doc, list):
+        for v in doc:
+            out += classification_tags(v)
+    return out
+
+
+def reason_text(doc: object) -> str:
+    """The receipt's `failure.reason` prose, used ONLY as a tie-breaker and always reported."""
+    if isinstance(doc, dict):
+        f = doc.get("failure")
+        if isinstance(f, dict) and isinstance(f.get("reason"), str):
+            return f["reason"]
+        for v in doc.values():
+            r = reason_text(v)
+            if r:
+                return r
+    elif isinstance(doc, list):
+        for v in doc:
+            r = reason_text(v)
+            if r:
+                return r
+    return ""
+
+
+def classify(
+    tags: list[str], reviewer_requirement: str, reason: str, blocked_on: str = ""
+) -> tuple[str, str]:
+    """Return (bucket, why). The STRICTER of the sources governs.
+
+    ROUND-2: `blocked_on` added as a fourth source. Without it this classifier and the lane's other
+    instrument disagreed on exactly one unit -- BLD-0023, whose tags and catalog requirement carry
+    no vendor constraint but whose own `blocked_on` reads "plus one cross-vendor refuter to
+    re-derive the 1-of-2007 and zero-CI findings from the raw tree rather than from this receipt".
+    Two of my own instruments returning different numbers is a detector failure, so it was resolved
+    from the raw field rather than by preferring either script: blocked_on is the unit's operative
+    statement of what it is waiting for, so it governs, and the bucket is CROSS_VENDOR.
+    """
+    tagblob = " ".join(tags)
+    if VENDOR_PAT.search(tagblob):
+        return CROSS_VENDOR, "receipt tag names a vendor constraint"
+    if VENDOR_PAT.search(reviewer_requirement or ""):
+        return CROSS_VENDOR, "catalog reviewer_requirement names a vendor constraint"
+    if VENDOR_PAT.search(blocked_on or ""):
+        return CROSS_VENDOR, "receipt failure.blocked_on names a vendor constraint"
+    if VENDOR_PAT.search(reason or ""):
+        return CROSS_VENDOR, "receipt reason prose names a vendor constraint"
+    if (
+        REVIEW_PAT.search(tagblob)
+        or REVIEW_PAT.search(reviewer_requirement or "")
+        or REVIEW_PAT.search(blocked_on or "")
+    ):
+        return ANY_INDEP, "review gate named, no vendor constraint anywhere"
+    return NO_GATE, "no review gate found in tags or reviewer_requirement"
+
+
+def _selftest() -> int:
+    """Both-states control. A classifier only counts once it is shown to discriminate."""
+    bad = 0
+    b, _ = classify(["blocked-on-independent-cross-vendor-review"], "", "")
+    if b != CROSS_VENDOR:
+        print(f"FAILED:selftest cross-vendor tag classified {b}")
+        bad += 1
+    b, _ = classify(
+        ["blocked-on-independent-review", "reviewer-absent"],
+        "an independent reviewer",
+        "",
+    )
+    if b != ANY_INDEP:
+        print(f"FAILED:selftest plain-independent tag classified {b}")
+        bad += 1
+    b, _ = classify(
+        ["blocked-on-independent-review"], "an independent Codex reviewer", ""
+    )
+    if b != CROSS_VENDOR:
+        print(f"FAILED:selftest catalog-vendor-requirement classified {b}")
+        bad += 1
+    b, _ = classify(["dependency-unbuilt"], "none", "")
+    if b != NO_GATE:
+        print(f"FAILED:selftest no-gate classified {b}")
+        bad += 1
+    # ROUND-2 regression, both directions: the BLD-0023 shape. A cross-vendor demand that exists
+    # ONLY in blocked_on must classify CROSS_VENDOR...
+    b, _ = classify(
+        ["blocked-on-owner-decision", "blocked-on-independent-review"],
+        "An Anthropic-vendor reviewer samples ten JUSTIFIED verdicts.",
+        "",
+        "owner decisions BS-02; plus one cross-vendor refuter to re-derive the findings.",
+    )
+    if b != CROSS_VENDOR:
+        print(f"FAILED:selftest blocked_on cross-vendor clause classified {b}")
+        bad += 1
+    # ...and the same shape WITHOUT that clause must stay ANY_INDEP, or the new source is just a
+    # blanket upgrade to CROSS_VENDOR and proves nothing.
+    b, _ = classify(
+        ["blocked-on-owner-decision", "blocked-on-independent-review"],
+        "An Anthropic-vendor reviewer samples ten JUSTIFIED verdicts.",
+        "",
+        "owner decisions BS-02, BS-07 and BS-08 remain unanswered.",
+    )
+    if b != ANY_INDEP:
+        print(f"FAILED:selftest blocked_on WITHOUT a vendor clause classified {b}")
+        bad += 1
+    print(f"  selftest: {'PASS' if not bad else 'FAIL'} (6 cases, both directions)")
+    return bad
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--basis", choices=("committed", "worktree"), default="committed")
+    ap.add_argument(
+        "--write",
+        action="store_true",
+        help="regenerate the artifact (default is CHECK-only)",
+    )
+    args = ap.parse_args(argv)
+
+    if _selftest():
+        print("FAILED:split-review-gate selftest did not discriminate")
+        return 1
+
+    if args.basis == "committed":
+        cat_txt = batch_blobs("HEAD", [CATALOG_REL])[CATALOG_REL]
+        if cat_txt is None:
+            print("FAILED:split-review-gate catalog absent at HEAD")
+            return 1
+        doc = json.loads(cat_txt)
+    else:
+        doc = json.loads(CATALOG.read_text(encoding="utf-8"))
+    units = doc.get("work_units") or doc.get("units")
+    print(f"  catalog: {CATALOG.name} ({len(units)} units)  BASIS={args.basis}")
+
+    _paths = [
+        u["output_path"]
+        for u in units
+        if u.get("output_path") and str(u["output_path"]).lower().endswith(".json")
+    ]
+    _blobs = batch_blobs("HEAD", _paths) if args.basis == "committed" else {}
+
+    buckets: dict[str, list[dict]] = {CROSS_VENDOR: [], ANY_INDEP: [], NO_GATE: []}
+    disagreements: list[str] = []
+    tag_occurrences = Counter()
+    missing_receipt = 0
+    states = Counter()
+
+    for u in units:
+        p = u.get("output_path")
+        if not p:
+            continue
+        fp = REPO / p
+        if args.basis == "committed":
+            txt = _blobs.get(p)
+            if txt is None:
+                continue
+        else:
+            if not fp.is_file() or fp.suffix.lower() != ".json":
+                continue
+            txt = fp.read_text(encoding="utf-8")
+        try:
+            rec = json.loads(txt)
+        except Exception:
+            missing_receipt += 1
+            continue
+        state = str(rec.get("state", "")).upper()
+        states[state] += 1
+        if state not in ("BLOCKED", "FAILED"):
+            continue
+
+        tags = classification_tags(rec)
+        for t in tags:
+            tag_occurrences[t] += 1
+        rr = str(u.get("reviewer_requirement") or "")
+        reason = reason_text(rec)
+        f = rec.get("failure")
+        blocked_on = f.get("blocked_on") if isinstance(f, dict) else ""
+        blocked_on = blocked_on if isinstance(blocked_on, str) else ""
+        bucket, why = classify(tags, rr, reason, blocked_on)
+
+        tagblob = " ".join(tags)
+        if VENDOR_PAT.search(rr) and not VENDOR_PAT.search(tagblob):
+            disagreements.append(
+                f"{u['id']}: receipt tags say no vendor constraint, catalog reviewer_requirement does"
+            )
+        if VENDOR_PAT.search(tagblob) and not VENDOR_PAT.search(rr):
+            disagreements.append(
+                f"{u['id']}: receipt tags demand cross-vendor, catalog reviewer_requirement does not"
+            )
+        if VENDOR_PAT.search(blocked_on) and not (
+            VENDOR_PAT.search(tagblob) or VENDOR_PAT.search(rr)
+        ):
+            disagreements.append(
+                f"{u['id']}: ONLY failure.blocked_on demands cross-vendor -- neither the tags nor "
+                f"the catalog requirement do"
+            )
+
+        buckets[bucket].append(
+            {
+                "id": u["id"],
+                "title": u.get("title", "")[:90],
+                "why": why,
+                "tags": tags,
+                "reviewer_requirement": rec_trim(rr),
+                "reason_head": " ".join((reason or "").split())[:300],
+                "output_path": p,
+            }
+        )
+
+    total = sum(len(v) for v in buckets.values())
+    print(f"  receipt states seen: {dict(states.most_common(6))}")
+    print(f"  BLOCKED/FAILED units: {total}")
+    print()
+    print("  ==== THE SPLIT (each unit counted exactly once) ====")
+    for b in (CROSS_VENDOR, ANY_INDEP, NO_GATE):
+        print(f"    {len(buckets[b]):>4}  {b}")
+    print()
+    print(
+        f"  tag OCCURRENCES (what blocker_census summed): {sum(tag_occurrences.values())}"
+    )
+    print(f"  distinct UNITS                              : {total}")
+    print("    ^ these are different quantities; the first is not a unit count")
+    if disagreements:
+        print(f"\n  receipt-vs-catalog disagreements ({len(disagreements)}):")
+        for d in disagreements[:20]:
+            print(f"    {d}")
+
+    out = REPO / OUT_REL
+    text = json.dumps(
+        {
+            "generated_by": "command-center/p2-next/split_review_gate.py",
+            "basis": args.basis,
+            "catalog_units": len(units),
+            "blocked_or_failed": total,
+            "counts": {b: len(v) for b, v in buckets.items()},
+            "tag_occurrences_total": sum(tag_occurrences.values()),
+            "tag_occurrences": dict(tag_occurrences.most_common()),
+            "receipt_vs_catalog_disagreements": disagreements,
+            "buckets": buckets,
+        },
+        indent=2,
+        ensure_ascii=False,
+    )
+    if args.write:
+        out.write_text(text, encoding="utf-8", newline="\n")
+        print(f"\n  WROTE {OUT_REL}")
+    else:
+        cur = out.read_text(encoding="utf-8") if out.is_file() else ""
+        # the committed artifact was written without a trailing newline; compare on content
+        if cur.rstrip("\n") != text.rstrip("\n"):
+            print(
+                f"\n  CHECK-only: {OUT_REL} differs from a fresh {args.basis}-basis computation"
+            )
+            print(
+                "FAILED:split-review-gate artifact drift (pass --write to regenerate)"
+            )
+            return 1
+        print(
+            f"\n  CHECK-only: {OUT_REL} matches a fresh {args.basis}-basis computation"
+        )
+    print("SUCCESS:split-review-gate")
+    return 0
+
+
+def rec_trim(s: str) -> str:
+    return " ".join(s.split())[:240]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

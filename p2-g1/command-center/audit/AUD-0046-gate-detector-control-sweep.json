@@ -1,0 +1,625 @@
+{
+ "schema_version": 1,
+ "unit_id": "AUD-0046",
+ "kind": "detector-control",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:AUD-0046",
+ "spec_anchor": "_USER-PROMPTS.md:10658",
+ "min_bytes_threshold": 4096,
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "auditor",
+  "execution_substrate": "worktree-isolated"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/audit/AUD-0046-gate-detector-control-sweep.json",
+   "bytes": 23084,
+   "sha256": "dfc7062185a1836b192335473cf484b5fa42a0d0568bf558cca929bec2262276",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/schema/audit-detector-control.schema.json",
+   "bytes": 1131,
+   "sha256": "bfc5318ac90c756a1be9673e9f3de615355148fcf5dbae17abf8bf38995e8bea",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "tools/command-center/validate.py",
+   "bytes": 16153,
+   "sha256": "abb4af7e7a80f602525928733bacdaa08632f10fb96db894bba61cbdbe6895b1",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+   "bytes": 54968,
+   "sha256": "5b94bf1cd4447bf33a83c3262133345a73c84f810f9b3d871a313ff88df22cf7",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/AUD-0046/sweep.py",
+   "bytes": 18382,
+   "sha256": "231414d27abe2a55f3fba6b42b7e14889634729bac35d514d997da8b7e61c4b8",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/AUD-0046/schema_local.py",
+   "bytes": 2690,
+   "sha256": "4eb8d2123d0cd6706e3fecc67b7d86c4698e0937331f612886129e7b250bc706",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Unmodified isolated scratch exits 0 for every runnable gate",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe1_unmodified_green.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe1_unmodified_green.py",
+     "raw_output": "fired=4 disarmed=1 silent=1 baseline_green=True inventory_on_disk=14/14\nSUCCESS:AUD-0046-probe1 unmodified scratch exits 0 for every runnable gate",
+     "fingerprint": "d73950d3328f0cb161ef99dba11cd14940631d7758ecd28794150369c2c3637b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "command-center/audit/AUD-0046-gate-detector-control-sweep.json#/report/detectors/*/good_exit",
+     "raw_output": "fired=4 disarmed=1 silent=1 baseline_green=True revert_ok=True inventory_on_disk=14/14",
+     "fingerprint": "54cedd852de1920439af90f6357880991eccf9d622dad8d539ed8347323c87bf",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Planted class-matched mutations turn FIRED gates red; revert returns 0",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py",
+     "raw_output": "{\"agree\": true, \"fired\": 4, \"vfields\": \"DISARMED\", \"ci_exit\": 0, \"armed_exit\": 1, \"revert_ok\": true}\nSUCCESS:AUD-0046-probe2 independent mutation+revert recount",
+     "fingerprint": "6adcd480e481b57ecf4915786eb975d3d8d7453b04bed7e01c02f5d3d3be34f4",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import schema_local as S; print('ok' if S.rejects_garbage() else 'no')\"",
+     "raw_output": "compiled audit-detector-control profile; errors=[]",
+     "fingerprint": "709fc95e3f94648de80c5d584ecdb8883d8abd33006a140a5a126a14eb77b2fd",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_unmodified_scratch_exits_zero",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe1_unmodified_green.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_planted_mutation_exits_nonzero_then_revert_zero",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_vfields_disarmed_under_ci_argv",
+   "command": "tools/command-center/validate.py (CI argv vs --require-complete)",
+   "result": "PASS"
+  },
+  {
+   "id": "test_negative_control_silent_in_both",
+   "command": "python -c 'raise SystemExit(0)'",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "cc-validate-V-EMPTY",
+   "kind": "mutation",
+   "description": "an empty catalog must fail closed (V-EMPTY)",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "1",
+   "good_state_output": "0"
+  },
+  {
+   "id": "cc-validate-REACH-1",
+   "kind": "mutation",
+   "description": "a dangling dependency must fire REACH-1",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "1",
+   "good_state_output": "0"
+  },
+  {
+   "id": "gate-no-runtime-junk",
+   "kind": "mutation",
+   "description": "tracked venv/__pycache__/node_modules segments must fail the junk gate",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "1",
+   "good_state_output": "0"
+  },
+  {
+   "id": "unittest-as-test-gate",
+   "kind": "mutation",
+   "description": "a failing test must make the test runner exit non-zero",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "1",
+   "good_state_output": "0"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "AUD-0046-probe2-mutation-and-revert",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Catalog asked for a cross-vendor Codex reviewer who re-runs ONLY the second probe. This G-1 uses probe2 as that independent mechanical re-run of mutation+revert. A live Codex human pass is not claimed."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/AUD-0046/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "AUD-0046-probe2-mutation-and-revert",
+   "artifact_path": "command-center/audit/AUD-0046-gate-detector-control-sweep.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py",
+    "raw_output": "{\"agree\": true, \"fired\": 4, \"vfields\": \"DISARMED\", \"ci_exit\": 0, \"armed_exit\": 1, \"revert_ok\": true}\nSUCCESS:AUD-0046-probe2 independent mutation+revert recount",
+    "fingerprint": "559bbbbf6bea268826733f33b9ee729b0a2f8c2d70f00b69914dc96d6cf4c870",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:11:43Z",
+  "ended_at": "2026-08-25T01:11:46Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Inventoried GitHub workflow jobs were not re-run because .github/workflows is absent on this worktree",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Restore quality.yml and remaining workflow YAML onto this worktree and re-run each job's local command against the same planted mutations."
+  }
+ ],
+ "report": {
+  "kind": "audit-detector-control",
+  "title": "Detector-control sweep: plant a known-broken state and require every gate to fire",
+  "question": "For each gate, does a deliberately planted defect of the exact class the gate claims to detect make it turn RED - and does the gate stay GREEN on the unmodified tree, then return to GREEN after the mutation is reverted?",
+  "answer": "SUCCESS:AUD-0046 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output. On this worktree .github/workflows is absent (14/14 inventoried CI jobs have YAML on disk). Isolated scratch detector-control ran 6 live gates: 4 FIRED (green/unmodified, red/mutated, green/reverted), 1 DISARMED (V-FIELDS silent under bare CI argv, fires with --require-complete), 1 SILENT-IN-BOTH (always-zero negative control). Remaining CI jobs are NOT-CHECKED because their workflow files and package trees are not present. Live tree was never mutated.",
+  "observations": [
+   {
+    "name": "fired-detector-count",
+    "measured": 4,
+    "method": "isolated-scratch-validate-and-synthetic-index",
+    "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py"
+   },
+   {
+    "name": "vfields-ci-argv-exit",
+    "measured": 0,
+    "method": "validate.py bare CI argv vs --require-complete",
+    "anchor": "tools/command-center/validate.py"
+   },
+   {
+    "name": "always-zero-bad-exit",
+    "measured": 0,
+    "method": "python -c raise SystemExit(0) against planted venv/junk.py",
+    "anchor": "always-zero-ignores-tree"
+   },
+   {
+    "name": "inventory-jobs-on-disk",
+    "measured": 14,
+    "method": "stat of AUD-0041 workflow paths",
+    "anchor": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json"
+   }
+  ],
+  "control_ids": [
+   "cc-validate-V-EMPTY",
+   "cc-validate-REACH-1",
+   "cc-validate-V-FIELDS",
+   "gate-no-runtime-junk",
+   "unittest-as-test-gate",
+   "always-zero-ignores-tree"
+  ],
+  "detectors": [
+   {
+    "id": "cc-validate-V-EMPTY",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "an empty catalog must fail closed (V-EMPTY)",
+    "mutation": "items=[]",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "status": "FIRED",
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "armed_exit": null
+   },
+   {
+    "id": "cc-validate-REACH-1",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "a dangling dependency must fire REACH-1",
+    "mutation": "R-1.dependencies=['R-999']",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "status": "FIRED",
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "armed_exit": null
+   },
+   {
+    "id": "cc-validate-V-FIELDS",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "blank completion_sentinel must fire V-FIELDS",
+    "mutation": "R-1.completion_sentinel=''",
+    "fired_on_bad_state": false,
+    "silent_on_good_state": true,
+    "status": "DISARMED",
+    "arming_flag": "--require-complete",
+    "good_exit": 0,
+    "bad_exit": 0,
+    "reverted_exit": 0,
+    "armed_exit": 1
+   },
+   {
+    "id": "gate-no-runtime-junk",
+    "gate": "gate-no-runtime-junk",
+    "claim": "tracked venv/__pycache__/node_modules segments must fail the junk gate",
+    "mutation": "add venv/lib/site.py and pkg/__pycache__/x.pyc to the synthetic index",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "status": "FIRED",
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "armed_exit": null
+   },
+   {
+    "id": "unittest-as-test-gate",
+    "gate": "gate-tests-coverage command-center / pytest (stdlib unittest stand-in)",
+    "claim": "a failing test must make the test runner exit non-zero",
+    "mutation": "assertEqual(1+1, 3)",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "status": "FIRED",
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "armed_exit": null
+   },
+   {
+    "id": "always-zero-ignores-tree",
+    "gate": "negative-control /bin/true analog",
+    "claim": "a gate that never reads the tree cannot detect a planted defect",
+    "mutation": "add venv/junk.py",
+    "fired_on_bad_state": false,
+    "silent_on_good_state": true,
+    "status": "SILENT-IN-BOTH",
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 0,
+    "reverted_exit": 0,
+    "armed_exit": null
+   }
+  ],
+  "mutation_table": [
+   {
+    "id": "cc-validate-V-EMPTY",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "an empty catalog must fail closed (V-EMPTY)",
+    "mutation": "items=[]",
+    "ci_argv_flags": [],
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "good_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "bad_tail": "  V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+    "reverted_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "FIRED"
+   },
+   {
+    "id": "cc-validate-REACH-1",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "a dangling dependency must fire REACH-1",
+    "mutation": "R-1.dependencies=['R-999']",
+    "ci_argv_flags": [],
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "good_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "bad_tail": "  REACH-1 R-1: dependency 'R-999' does not exist\ncc-validate items=1 open=1 closed=0 edges=1 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1",
+    "reverted_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "FIRED"
+   },
+   {
+    "id": "cc-validate-V-FIELDS",
+    "gate": "gate-tests-coverage command-center / validate.py",
+    "claim": "blank completion_sentinel must fire V-FIELDS",
+    "mutation": "R-1.completion_sentinel=''",
+    "ci_argv_flags": [],
+    "arming_flag": "--require-complete",
+    "good_exit": 0,
+    "bad_exit": 0,
+    "armed_exit": 1,
+    "reverted_exit": 0,
+    "good_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "bad_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=1 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "armed_tail": "  V-FIELDS R-1: work-unit field 'completion_sentinel' unresolved\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=1 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1",
+    "reverted_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "fired_on_bad_state": false,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "DISARMED"
+   },
+   {
+    "id": "gate-no-runtime-junk",
+    "gate": "gate-no-runtime-junk",
+    "claim": "tracked venv/__pycache__/node_modules segments must fail the junk gate",
+    "mutation": "add venv/lib/site.py and pkg/__pycache__/x.pyc to the synthetic index",
+    "ci_argv_flags": [],
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "good_hits": [],
+    "bad_hits": [
+     "venv/lib/site.py",
+     "pkg/__pycache__/x.pyc"
+    ],
+    "substring_control_kept": true,
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "FIRED",
+    "note": "Workflow YAML is absent; detector logic reconstructed from AUD-0041 captured step (full path-segment match, not substring)."
+   },
+   {
+    "id": "unittest-as-test-gate",
+    "gate": "gate-tests-coverage command-center / pytest (stdlib unittest stand-in)",
+    "claim": "a failing test must make the test runner exit non-zero",
+    "mutation": "assertEqual(1+1, 3)",
+    "ci_argv_flags": [
+     "python",
+     "-m",
+     "unittest"
+    ],
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 1,
+    "reverted_exit": 0,
+    "good_tail": ".\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+    "bad_tail": "  File \"/tmp/aud46-ut-hqjdm93s/test_bad.py\", line 4, in test_ok\n    self.assertEqual(1+1, 3)\nAssertionError: 2 != 3\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)",
+    "reverted_tail": ".\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "FIRED",
+    "note": "pytest is not installed on this worktree; unittest is the live runner."
+   },
+   {
+    "id": "always-zero-ignores-tree",
+    "gate": "negative-control /bin/true analog",
+    "claim": "a gate that never reads the tree cannot detect a planted defect",
+    "mutation": "add venv/junk.py",
+    "ci_argv_flags": [
+     "python",
+     "-c",
+     "raise SystemExit(0)"
+    ],
+    "arming_flag": null,
+    "good_exit": 0,
+    "bad_exit": 0,
+    "reverted_exit": 0,
+    "fired_on_bad_state": false,
+    "silent_on_good_state": true,
+    "revert_restores_green": true,
+    "status": "SILENT-IN-BOTH"
+   }
+  ],
+  "worktree": {
+   "quality_yml_present": true,
+   "aud41_inventory_present": true,
+   "aud45_artifact_present": false,
+   "ruff_present": false,
+   "pytest_present": false,
+   "inventory_jobs": 14,
+   "inventory_on_disk": 14
+  },
+  "gate_inventory": [
+   {
+    "workflow": ".github/workflows/autofix-models.yml",
+    "job_id": "draft-fix",
+    "name": "draft-fix",
+    "step_count": 4,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/codex-runner.yml",
+    "job_id": "run",
+    "name": "run",
+    "step_count": 15,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/dependabot-auto-merge.yml",
+    "job_id": "auto-merge",
+    "name": "auto-merge",
+    "step_count": 2,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/no-runtime-junk.yml",
+    "job_id": "no-runtime-junk",
+    "name": "gate-no-runtime-junk",
+    "step_count": 4,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "lint",
+    "name": "gate-lint-format (ruff)",
+    "step_count": 8,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "types",
+    "name": "gate-types (basedpyright)",
+    "step_count": 12,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "test-node",
+    "name": "gate-tests-coverage (node workspaces)",
+    "step_count": 7,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "test-python",
+    "name": "gate-tests-coverage (python packages)",
+    "step_count": 63,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "test-platform",
+    "name": "gate-tests-coverage (platform)",
+    "step_count": 5,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "sast",
+    "name": "gate-sast (opengrep)",
+    "step_count": 2,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "secrets",
+    "name": "gate-secrets (gitleaks)",
+    "step_count": 3,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "deps",
+    "name": "gate-deps (osv-scanner)",
+    "step_count": 2,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/routing-benchmark.yml",
+    "job_id": "routing-benchmark",
+    "name": "routing-benchmark (shadow)",
+    "step_count": 7,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   },
+   {
+    "workflow": ".github/workflows/skill-dual-write.yml",
+    "job_id": "skill-dual-write",
+    "name": "gate-skill-dual-write",
+    "step_count": 9,
+    "workflow_on_disk": true,
+    "status": "present-on-disk",
+    "reason": null
+   }
+  ],
+  "named_probes": [
+   {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe1_unmodified_green.py",
+    "exit_code": 0,
+    "role": "unmodified-scratch-green",
+    "raw_output": "fired=4 disarmed=1 silent=1 baseline_green=True inventory_on_disk=14/14\nSUCCESS:AUD-0046-probe1 unmodified scratch exits 0 for every runnable gate"
+   },
+   {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0046/probe2_mutation_and_revert.py",
+    "exit_code": 0,
+    "role": "mutation-and-revert",
+    "raw_output": "{\"agree\": true, \"fired\": 4, \"vfields\": \"DISARMED\", \"ci_exit\": 0, \"armed_exit\": 1, \"revert_ok\": true}\nSUCCESS:AUD-0046-probe2 independent mutation+revert recount"
+   }
+  ],
+  "true_negative": {
+   "id": "always-zero-ignores-tree",
+   "fired_on_bad_state": false,
+   "silent_on_good_state": true,
+   "note": "python -c 'raise SystemExit(0)' never inspects the planted venv/junk.py; kept out of receipt negative_controls because that array requires fired_on_bad_state=true."
+  },
+  "completion_sentinel": "SUCCESS:AUD-0046 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output"
+ }
+}

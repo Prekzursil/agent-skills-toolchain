@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0022",
+  "id": "IMP-0022",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0022",
+  "completion_sentinel": "SUCCESS:IMP-0022",
+  "title": "Path-casing normalisation and cross-filesystem collision detection",
+  "spec_anchor": "_USER-PROMPTS.md:11016 (path-casing tests)",
+  "min_bytes_threshold": 128,
+  "normalisation": {
+    "unicode_form": "NFC",
+    "case_mapping": "str.casefold",
+    "not": "str.lower",
+    "order": [
+      "NFC",
+      "casefold"
+    ],
+    "separator": "/"
+  },
+  "artifacts": [
+    {
+      "path": "tools/plugin/pathnorm.py",
+      "bytes": 576,
+      "sha256": "c271abfef818c1b5befc998b7e4defaa13ca95e688e6c8e95ad955569a52137c",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "tools/plugin/case_collision.py",
+      "bytes": 7785,
+      "sha256": "886eea71e680398dbf56ba3d33fa493bfc3527c282c79122cee39400aa013907",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/payload_paths.py",
+      "bytes": 1851,
+      "sha256": "a1062750112b8e66ed126c5b9b6647e22d0b9f54bfa5fc9be90cbc884518b36d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/payload-allowlist.json",
+      "bytes": 902,
+      "sha256": "3b4b37671fce27d54c53c139513bbb20e6552f10ca503187eed280719193629f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0022/probe1_set_collision.py",
+      "bytes": 4333,
+      "sha256": "7155b6abcc9fa89df038d16059532a9ff22009d943f7056cf1fa86266b40e82b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0022/probe2_extract_shortfall.py",
+      "bytes": 7101,
+      "sha256": "648a4b01033c064f6d03d6073d31d7ece04c2da060514f2dfea0056898009758",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Signal 1: casefold-collision count over the live payload path set is 0 (payload_paths=10). Grouping key is NFC then str.casefold, not str.lower().",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/pathnorm.py:NORMALISATION",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONPATH=tools python3 -B -m plugin",
+          "raw_output": "payload_paths=10 casefold_collision_count=0 normalisation=NFC+casefold",
+          "fingerprint": "310978c971ba7d5a0fc2db93499f295bd158256d8577dd5f00791a50dc73b8a3",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0022/probe1_set_collision.py",
+          "raw_output": "independent grouping agrees with production; planted README pair fires",
+          "fingerprint": "9e58856668d4b4b2c69e234c84cfe774225369f7f2e14b0f2aac28f18bb72423",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Signal 2: extracting a zip of the planted README.md + readme.md pair onto a case-insensitive overlay yields archive_entry_count=3 extracted_file_count=2 shortfall=1. The same zip of a non-colliding pair has shortfall=0.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/case_collision.py:extract_zip_case_insensitive",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONPATH=tools python3 -B -m plugin --negative-control",
+          "raw_output": "set_collision_count=1 shortfall=1",
+          "fingerprint": "55b0b2a1597a062afd23a55958279f58d8b396d729b0c80d7329c9d49b69d734",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0022/probe2_extract_shortfall.py",
+          "raw_output": "independent os.walk shortfall agrees; reviewer NFC+casefold holds",
+          "fingerprint": "73c0d5a491124a046d72ad09d314573d354cce34a3ec9ed9b037f66cb2e018be",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_no_casefold_collisions_in_payload",
+      "command": "python3 -B tools/plugin/tests/test_case_collision_paths.py::test_no_casefold_collisions_in_payload",
+      "result": "PASS"
+    },
+    {
+      "id": "test_negative_control_readme_pair_fires_both_signals",
+      "command": "python3 -B tools/plugin/tests/test_case_collision_paths.py::test_negative_control_readme_pair_fires_both_signals",
+      "result": "PASS"
+    },
+    {
+      "id": "test_normalisation_is_casefold_not_lower",
+      "command": "python3 -B tools/plugin/tests/test_case_collision_paths.py::test_normalisation_is_casefold_not_lower",
+      "result": "PASS"
+    },
+    {
+      "id": "test_nfc_applied_before_casefold",
+      "command": "python3 -B tools/plugin/tests/test_case_collision_paths.py::test_nfc_applied_before_casefold",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0022-C1-readme-pair",
+      "kind": "known-broken-fixture",
+      "description": "Plant README.md and readme.md. Both the set-collision count and the extract-count shortfall must fire. A detector silent on either signal measures nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "set_collision_count=1 shortfall=1",
+      "good_state_output": "live_payload_collisions=0 clean_shortfall=0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0022-probe2-nfc-casefold-reviewer",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Confirmed the comparison key is NFC then str.casefold, not str.lower(): Straße.md vs STRASSE.md collides under casefold and is silent under lower(); cafe.txt NFC vs NFD collides only when NFC is applied first."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0022/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "IMP-0022"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0022.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0022",
+        "raw_output": "SUCCESS:delivered IMP-0022",
+        "fingerprint": "93486d7fbd95dbdf7bef368f592a203025578cef51434ce9fc3a614eedbae64f",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:45:11Z",
+    "ended_at": "2026-08-25T00:45:11Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "report": {
+    "kind": "path-casing-normalisation",
+    "payload_path_count": 10,
+    "payload_paths": [
+      "tools/plugin/__init__.py",
+      "tools/plugin/cache.py",
+      "tools/plugin/canary.py",
+      "tools/plugin/case_collision.py",
+      "tools/plugin/casefold_paths.py",
+      "tools/plugin/pathnorm.py",
+      "tools/plugin/payload-allowlist.json",
+      "tools/plugin/payload_paths.py",
+      "tools/plugin/redact.py",
+      "tools/plugin/scan_fs.py"
+    ],
+    "casefold_collision_count": 0,
+    "planted_readme_pair": {
+      "set_collision_count": 1,
+      "archive_entry_count": 3,
+      "extracted_file_count": 2,
+      "shortfall": 1
+    },
+    "clean_pair_shortfall": 0,
+    "test_output": "PASS test_no_casefold_collisions_in_payload\nPASS test_negative_control_readme_pair_fires_both_signals\nPASS test_normalisation_is_casefold_not_lower\nPASS test_nfc_applied_before_casefold\nSUCCESS:test_case_collision_paths"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Extraction uses a userspace case-insensitive overlay (os.listdir + NFC+casefold, last writer wins) because this Linux worktree cannot mount a VFAT/NTFS volume. Behaviour matches default Windows/macOS overwrite, not NTFS's exact Unicode folding table.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run extract_shortfall onto a real NTFS or APFS volume and compare shortfall with this overlay."
+    }
+  ],
+  "defects": [],
+  "extensions": {}
+}

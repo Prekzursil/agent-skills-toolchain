@@ -1,0 +1,361 @@
+==================== probe
+{
+ "type": "object",
+ "description": "One measurement. A verdict needs a pair: the SOURCE probe that PRODUCED the claim and a mechanically DIFFERENT VERIFIER probe that CHECKED it. An undeclared source is zero signals, not one.",
+ "properties": {
+  "role": {
+   "type": "string",
+   "enum": [
+    "source",
+    "verifier"
+   ]
+  },
+  "method": {
+   "type": "string",
+   "description": "The mechanism class. Two probes sharing a method are NOT independent - re-running the same query is not a second signal.",
+   "enum": [
+    "command",
+    "file-read",
+    "http",
+    "process-table",
+    "byte-compare",
+    "schema-validate",
+    "static-analysis",
+    "manual-inspection",
+    "test-run",
+    "other"
+   ]
+  },
+  "command": {
+   "type": "string",
+   "description": "Exact command or an anchor of the form path:line. Required so a third party can re-run it.",
+   "minLength": 1,
+   "maxLength": 4096
+  },
+  "raw_output": {
+   "type": "string",
+   "description": "Verbatim output, credential-redacted. A paraphrase is not raw output.",
+   "maxLength": 65536
+  },
+  "fingerprint": {
+   "type": "string",
+   "description": "Stable digest of (method, command). The reducer compares source vs verifier fingerprints; equality is a same-probe-rerun violation.",
+   "minLength": 1,
+   "maxLength": 128
+  },
+  "exit_code": {
+   "type": "integer"
+  }
+ },
+ "required": [
+  "role",
+  "method",
+  "command",
+  "raw_output",
+  "fingerprint"
+ ],
+ "additionalProperties": false
+}
+==================== verdict
+{
+ "type": "string",
+ "description": "The honesty verdict vocabulary. NOT-CHECKED is required when no probe was run and must never be folded into a pass.",
+ "enum": [
+  "CONFIRMED",
+  "REFUTED",
+  "PARTIAL",
+  "NOT-CHECKED",
+  "BLOCKED"
+ ]
+}
+==================== confidence_band
+{
+ "type": "string",
+ "description": "Sherman-Kent / WEP band. A bare hedge with no band is a defect.",
+ "enum": [
+  "almost-certain",
+  "likely",
+  "roughly-even",
+  "unlikely",
+  "remote"
+ ]
+}
+==================== vendor_id
+{
+ "type": "string",
+ "description": "A vendor identity token recognized by platform/registry/VENDOR-REGISTRY.json. GENERATED - do not hand-edit; run platform/lib/vendor_schema_sync.py --emit. This enum exists because DEFECT D1 was a false green: with vendor typed as a bare string, an unrecognized value was structurally valid and the completion predicate then read it as 'a different vendor' purely because it differed, so 10/10 same-vendor alias pairs passed the cross-vendor gate. Canonical ids are preferred (vendor_id_canonical); aliases are accepted here because platform/lib/vendor_identity.py folds them to a canonical id before any distinctness comparison. Only the 12 identities with establishes_distinctness=true can form a cross-vendor pair - a hosting plane (bedrock, vertex, azure) or a placeholder (any, mixed, unassigned, other) resolves to NOT-COMPUTABLE, never to SATISFIED.",
+ "pattern": "^[a-z0-9][a-z0-9+./_-]{0,63}$",
+ "maxLength": 64,
+ "enum": [
+  "aggregator",
+  "alibaba",
+  "alibaba-cloud",
+  "amazon",
+  "amazon-bedrock",
+  "amazon-titan",
+  "amazon-web-services",
+  "anthropic",
+  "anthropic+openai",
+  "anthropic-pbc",
+  "any",
+  "any-vendor",
+  "aws",
+  "aws-bedrock",
+  "aya",
+  "azure",
+  "azure-ai",
+  "azure-openai",
+  "bard",
+  "bedrock",
+  "chatgpt",
+  "claude",
+  "claude-cli",
+  "claude-code",
+  "claudecode",
+  "code-llama",
+  "codellama",
+  "codestral",
+  "codex",
+  "codex-cli",
+  "cohere",
+  "cohere-labs",
+  "command-r",
+  "command-r-plus",
+  "custom",
+  "deepmind",
+  "deepseek",
+  "deepseek-ai",
+  "deepseek-coder",
+  "deepseek-r1",
+  "deepseek-v3",
+  "d
+==================== sha256
+{
+ "type": "string",
+ "description": "Lowercase hex SHA-256 of the artifact bytes as they exist on disk.",
+ "pattern": "^[0-9a-f]{64}$"
+}
+==================== iso_timestamp
+{
+ "type": "string",
+ "format": "date-time",
+ "description": "RFC3339/ISO-8601 instant with an explicit offset or trailing Z. A naive local timestamp is rejected: it is unorderable across the fan-out.",
+ "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+}
+
+
+==== exact per-unit C2 errors (one line each) ====
+--- TST-0223 (21)
+    <root>: 'downstream_consumers' is a required property
+    <root>: 'manifest_registration' is a required property
+    <root>: 'min_bytes_threshold' is a required property
+    <root>: 'negative_controls' is a required property
+    <root>: 'residual_unknowns' is a required property
+    <root>: 'retry' is a required property
+    <root>: 'schema_version' is a required property
+    <root>: 'spec_anchor' is a required property
+    <root>: 'timestamps' is a required property
+    evidence/0: 'anchor' is a required property
+    evidence/0: 'probes' is a required property
+    evidence/0: 'verdict' is a required property
+    evidence/0: Additional properties are not allowed ('kind', 'sample_depths', 'signal', 'widening_attempts' were unexpected)
+    evidence/1: 'anchor' is a required property
+    evidence/1: 'probes' is a required property
+    evidence/1: 'verdict' is a required property
+    evidence/1: Additional properties are not allowed ('call', 'executor_denied_write', 'kind', 'leaked_secret', 'signal' were unexpected)
+    tests/0: 'command' is a required property
+    tests/0: Additional properties are not allowed ('probe' was unexpected)
+    tests/1: 'command' is a required property
+    tests/1: Additional properties are not allowed ('probe' was unexpected)
+--- TST-0227 (8)
+    artifacts/0/role: 'primary-implementation' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0227.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'probe': {'command': 'python3 -B command-center/p2-wave/_measure_one_delivered.py TST-0227', 'fingerprint': 'dec72eae1ba7b9f26d11aecc931bbd2a', 'method': 'command', 'raw_output': 'deferred until after this receipt and per-unit manifest exist', 'role': 'verifier'}, 'read_ok': False}] should not be valid under {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0227.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'probe': {'command': 'python3 -B command-center/p2-wave/_measure_one_delivered.py TST-0227', 'fingerprint': 'dec72eae1ba7b9f26d11aecc931bbd2a', 'method': 'command', 'raw_output': 'deferred until after this receipt and per-unit manifest exist', 'role': 'verifier'}, 'read_ok': False}] should not be valid under {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}
+    evidence/1/probes/1/method: 'filesystem-census' is not one of ['command', 'file-read', 'http', 'process-table', 'byte-compare', 'schema-validate', 'static-analysis', 'manual-inspection', 'test-run', 'other']
+    evidence/3/probes/1/method: 'filesystem-census' is not one of ['command', 'file-read', 'http', 'process-table', 'byte-compare', 'schema-validate', 'static-analysis', 'manual-inspection', 'test-run', 'other']
+    manifest_registration: Additional properties are not allowed ('derivation' was unexpected)
+    negative_controls/0/kind: 'both-states' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    reviewer: Additional properties are not allowed ('bypasses_attempted', 'scope_not_agreement' were unexpected)
+--- TST-0230 (3)
+    evidence/0/probes: [{'role': 'source', 'method': 'test-run', 'command': 'python -B command-center/p2-wave/probes/TST-0230/probe_input_counts.py', 'raw_output': 'TST-0230 NAMED PROBE (a): (a) per-case input byte/item counts recorded in the result\nunit=TST-0230\nstage=deliver\nevidence_requirement_verbatim=two independent signals: (a) per-case input byte/item counts recorded in the result, and (b) the control case\'s timing separation from the empty case\ntests_required_verbatim=["detector control: an intentionally empty case must be FLAGGED, not scored", "regression seed: two benchmarks on this estate measured EMPTY inputs and returned a clean, meaningless green"]\nquestion_or_target_verbatim=Does each benchmark case operate on a non-empty input above a declared floor, so a green cannot be produced by measuring nothing? PASS requires a per-case input-size assertion plus one control case with known non-zero work whose timing must be measurably above noise.\nnamed_probe_verbatim=(a) per-case input byte/item counts recorded in the result\nproduction_subject=platform/lib/foundry/bench.py\nproduction_subject_sha256=84ccf99d61d57e54ebd02ec01faef16a693fbd5b43d32a6c5ae15622a8bcb92e\nknown_b07_surface=true\nb07_exact_catalog_row_count=0\ncase_fields=["id","title","required_capabilities","hazards","work_input","hash_rounds"]\nemitted_count_fields=["input_bytes","input_items","declared_byte_floor","declared_item_floor"]\nbenchmark_calls_case_validate=true\ndefault_case_count=6\nper_case_rows_begin\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c1-wide-fanout-build","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":148,"input_items":10,"validate_problems":[]}\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c2-long-resumable-program","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":128,"input_items":8,"validate_problems":[]}\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c3-adversarial-review","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":106,"input_items":7,"validate_problems":[]}\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c4-untrusted-input-handling","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":126,"input_items":7,"validate_problems":[]}\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c5-irreversible-ship","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":78,"input_items":5,"validate_problems":[]}\nCASE|{"above_declared_floor":true,"actual_outcome":"SCORED","case_id":"c6-repair-until-green","declared_byte_floor":1,"declared_item_floor":1,"emitted_count_fields":["declared_byte_floor","declared_item_floor","input_bytes","input_items"],"emitted_result_has_explicit_input_count":true,"implementation":"platform/lib/foundry/bench.py","input_bytes":90,"input_items":6,"validate_problems":[]}\nper_case_rows_end\ndefault_all_source_nonempty=true\ndefault_all_emitted_rows_record_counts=true\nproduction_declared_floor_field_present=true\nEMPTY-CONTROL|{"input_bytes":0,"input_items":0,"production_outcome":"FLAGGED","reference_outcome":"FLAGGED","test_went_red":false,"validate_problems":["intentional-empty-control: case demands nothing, so it can never discriminate","intentional-empty-control: input_items=0 below declared floor 1","intentional-empty-control: input_bytes=0 below declared floor 1"]}\nEMPTY-CASE-SET|{"input_items":0,"production_gate_ok":false,"production_per_case_rows":0}\nregression_seed_rows_begin\nREGRESSION-SEED|{"case_id":"regression-seed-empty-1","input_bytes":0,"input_items":0,"production_outcome":"FLAGGED","reference_outcome":"FLAGGED"}\nREGRESSION-SEED|{"case_id":"regression-seed-empty-2","input_bytes":0,"input_items":0,"production_outcome":"FLAGGED","reference_outcome":"FLAGGED"}\nregression_seed_rows_end\ncontrol_process_rows_begin\nCONTROL-PROCESS|{"command":"PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B command-center/p2-wave/probes/TST-0230/detector_control.py --mode production-empty","exit_code":0,"mode":"production-empty","record":{"actual_outcome":"FLAGGED","case_id":"intentional-empty-control","declared_byte_floor":1,"declared_item_floor":1,"expected_outcome":"FLAGGED","implementation":"platform/lib/foundry/bench.py","input_bytes":0,"input_items":0,"mode":"production-empty","oracle":"PASS","process_exit_code":0},"stderr":"","stdout":"CONTROL|{\\"actual_outcome\\":\\"FLAGGED\\",\\"case_id\\":\\"intentional-empty-control\\",\\"declared_byte_floor\\":1,\\"declared_item_floor\\":1,\\"expected_outcome\\":\\"FLAGGED\\",\\"implementation\\":\\"platform/lib/foundry/bench.py\\",\\"input_bytes\\":0,\\"input_items\\":0,\\"mode\\":\\"production-empty\\",\\"oracle\\":\\"PASS\\",\\"process_exit_code\\":0}\\n"}\nCONTROL-PROCESS|{"command":"PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B command-center/p2-wave/probes/TST-0230/detector_control.py --mode guard-empty","exit_code":0,"mode":"guard-empty","record":{"actual_outcome":"FLAGGED","case_id":"intentional-empty-control","declared_byte_floor":1,"declared_item_floor":1,"expected_outcome":"FLAGGED","implementation":"production-nonempty-guard","input_bytes":0,"input_items":0,"mode":"guard-empty","oracle":"PASS","process_exit_code":0},"stderr":"","stdout":"CONTROL|{\\"actual_outcome\\":\\"FLAGGED\\",\\"case_id\\":\\"intentional-empty-control\\",\\"declared_byte_floor\\":1,\\"declared_item_floor\\":1,\\"expected_outcome\\":\\"FLAGGED\\",\\"implementation\\":\\"production-nonempty-guard\\",\\"input_bytes\\":0,\\"input_items\\":0,\\"mode\\":\\"guard-empty\\",\\"oracle\\":\\"PASS\\",\\"process_exit_code\\":0}\\n"}\nCONTROL-PROCESS|{"command":"PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B command-center/p2-wave/probes/TST-0230/detector_control.py --mode guard-nonempty","exit_code":0,"mode":"guard-nonempty","record":{"actual_outcome":"SCORED","case_id":"c1-wide-fanout-build","declared_byte_floor":1,"declared_item_floor":1,"expected_outcome":"SCORED","implementation":"platform/lib/foundry/bench.py","input_bytes":148,"input_items":10,"mode":"guard-nonempty","oracle":"PASS","process_exit_code":0},"stderr":"","stdout":"CONTROL|{\\"actual_outcome\\":\\"SCORED\\",\\"case_id\\":\\"c1-wide-fanout-build\\",\\"declared_byte_floor\\":1,\\"declared_item_floor\\":1,\\"expected_outcome\\":\\"SCORED\\",\\"implementation\\":\\"platform/lib/foundry/bench.py\\",\\"input_bytes\\":148,\\"input_items\\":10,\\"mode\\":\\"guard-nonempty\\",\\"oracle\\":\\"PASS\\",\\"process_exit_code\\":0}\\n"}\nCONTROL-PROCESS|{"command":"PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B command-center/p2-wave/probes/TST-0230/detector_control.py --mode mutant-empty","exit_code":1,"mode":"mutant-empty","record":{"actual_outcome":"SCORED","case_id":"intentional-empty-control","declared_byte_floor":1,"declared_item_floor":1,"expected_outcome":"FLAGGED","implementation":"intentional-unguarded-mutant","input_bytes":0,"input_items":0,"mode":"mutant-empty","oracle":"RED","process_exit_code":1},"stderr":"","stdout":"CONTROL|{\\"actual_outcome\\":\\"SCORED\\",\\"case_id\\":\\"intentional-empty-control\\",\\"declared_byte_floor\\":1,\\"declared_item_floor\\":1,\\"expected_outcome\\":\\"FLAGGED\\",\\"implementation\\":\\"intentional-unguarded-mutant\\",\\"input_bytes\\":0,\\"input_items\\":0,\\"mode\\":\\"mutant-empty\\",\\"oracle\\":\\"RED\\",\\"process_exit_code\\":1}\\n"}\ncontrol_process_rows_end\nproduction_empty_control_process_exit_code=0\nmutant_empty_control_process_exit_code=1\nnegative_control_can_go_red=true\ntarget_signal_a_pass=true\nprobe_result=PASS-KNOWN-SURFACE\nSUCCESS:TST-0230-probe-a\nPROBE-A-COMPLETE:TST-0230\n', 'fingerprint': 'b45952a9111aa3d3057c3db10e64abda7026ee880891e36981086b716ee53539', 'exit_code': 0}, {'role': 'source', 'method': 'test-run', 'command': 'python -B command-center/p2-wave/probes/TST-0230/detector_control.py', 'raw_output': 'detector control default suite: production empty FLAGGED, nonempty SCORED, unguarded mutant RED', 'fingerprint': '16a2d53157212a23b75964556200c0957b77509b30383d94960d6d3ae596682e', 'exit_code': 0}] does not contain items matching the given schema
+    evidence/2/probes: [{'role': 'source', 'method': 'schema-validate', 'command': 'python -B command-center/p2-wave/probes/TST-0230/_pack_apply.py', 'raw_output': 'per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path with live LF sha256', 'fingerprint': '56d0e7a394855a38c5cdc77c07188361af32675fa29712319701edf8652ad8a1', 'exit_code': 0}] does not contain items matching the given schema
+    evidence/2/probes: [{'role': 'source', 'method': 'schema-validate', 'command': 'python -B command-center/p2-wave/probes/TST-0230/_pack_apply.py', 'raw_output': 'per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path with live LF sha256', 'fingerprint': '56d0e7a394855a38c5cdc77c07188361af32675fa29712319701edf8652ad8a1', 'exit_code': 0}] is too short
+--- TST-0233 (22)
+    <root>: 'retry' is a required property
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    artifacts/0: Additional properties are not allowed ('notes' was unexpected)
+    downstream_consumers/0: 'probe' is a required property
+    downstream_consumers/0: Additional properties are not allowed ('notes' was unexpected)
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0233.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'notes': 'Measure runs after this receipt is written.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0233.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'notes': 'Measure runs after this receipt is written.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}
+    evidence/0/probes/0: 'fingerprint' is a required property
+    evidence/0/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0233/probe1_stage_padded.py', 'exit_code': 0, 'method': 'command', 'raw_output': '{"alpha_score": 2, "alpha_stages": 2, "complement_plus_noops_verdict": "ACCEPT", "complement_verdict": "ACCEPT", "dynamic_verdict": "REJECT", "padded_class": "fusion accepted because it has more stages (catalog gloss thin)", "padded_score": 2, "padded_stages": 5, "padded_verdict": "REJECT", "probe": "probe1-stage-padded", "unit_id": "TST-0233"}\npadded_rejected=True verdict=REJECT\nnamed_more_stages_class=True class=\'fusion accepted because it has more stages (catalog gloss thin)\' id=\'FC-11334\'\nidentical_behavior_to_alpha=True padded=[[\'case.shared\', True], [\'case.alpha-only\', True], [\'case.beta-only\', False], [\'case.hard\', False]] alpha=[[\'case.shared\', True], [\'case.alpha-only\', True], [\'case.beta-only\', False], [\'case.hard\', False]]\nmore_stages_than_alpha=True padded=5 alpha=2\nscore_ignores_stage_count=True padded_score=2 alpha_score=2\nvanity_metric_would_prefer_padding=True passed+n_stages ranks padded above alpha; gate must not\ncomplement_accepted_despite_more_stages=True verdict=ACCEPT stages=3\ndynamic_pad_of_alpha_rejected=True verdict=REJECT class=\'fusion accepted because it has more stages (catalog gloss thin)\'\ncomplement_plus_noops_still_accepted=True verdict=ACCEPT\nbudget_parity=True budget=16\nindependent_score_matches_matrix=True\nstage_count_helper_agrees=True n=5\nnamed_complement_case_differs_on_good_fusion=True alpha=[{\'workflow_id\': \'wf.alpha\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': False, \'reason\': \'unhandled\', \'handler\': None, \'evidence\': \'\', \'budget_allocated\': 16, \'budget_remaining\': 14, \'stages_visited\': [\'alpha-shared\', \'alpha-own\'], \'n_stages\': 2}] fusion=[{\'workflow_id\': \'fusion.complement\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': True, \'reason\': \'handled\', \'handler\': \'beta-own\', \'evidence\': \'b00c57ba5b4b3c45\', \'budget_allocated\': 16, \'budget_remaining\': 13, \'stages_visited\': [\'alpha-shared\', \'alpha-own\', \'beta-own\'], \'n_stages\': 3}]\nboth_states_discriminate=True\nSUCCESS:TST-0233-probe1 stage-padded fusion rejected; complementary fusion accepted', 'role': 'source'}] does not contain items matching the given schema
+    evidence/0/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0233/probe1_stage_padded.py', 'exit_code': 0, 'method': 'command', 'raw_output': '{"alpha_score": 2, "alpha_stages": 2, "complement_plus_noops_verdict": "ACCEPT", "complement_verdict": "ACCEPT", "dynamic_verdict": "REJECT", "padded_class": "fusion accepted because it has more stages (catalog gloss thin)", "padded_score": 2, "padded_stages": 5, "padded_verdict": "REJECT", "probe": "probe1-stage-padded", "unit_id": "TST-0233"}\npadded_rejected=True verdict=REJECT\nnamed_more_stages_class=True class=\'fusion accepted because it has more stages (catalog gloss thin)\' id=\'FC-11334\'\nidentical_behavior_to_alpha=True padded=[[\'case.shared\', True], [\'case.alpha-only\', True], [\'case.beta-only\', False], [\'case.hard\', False]] alpha=[[\'case.shared\', True], [\'case.alpha-only\', True], [\'case.beta-only\', False], [\'case.hard\', False]]\nmore_stages_than_alpha=True padded=5 alpha=2\nscore_ignores_stage_count=True padded_score=2 alpha_score=2\nvanity_metric_would_prefer_padding=True passed+n_stages ranks padded above alpha; gate must not\ncomplement_accepted_despite_more_stages=True verdict=ACCEPT stages=3\ndynamic_pad_of_alpha_rejected=True verdict=REJECT class=\'fusion accepted because it has more stages (catalog gloss thin)\'\ncomplement_plus_noops_still_accepted=True verdict=ACCEPT\nbudget_parity=True budget=16\nindependent_score_matches_matrix=True\nstage_count_helper_agrees=True n=5\nnamed_complement_case_differs_on_good_fusion=True alpha=[{\'workflow_id\': \'wf.alpha\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': False, \'reason\': \'unhandled\', \'handler\': None, \'evidence\': \'\', \'budget_allocated\': 16, \'budget_remaining\': 14, \'stages_visited\': [\'alpha-shared\', \'alpha-own\'], \'n_stages\': 2}] fusion=[{\'workflow_id\': \'fusion.complement\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': True, \'reason\': \'handled\', \'handler\': \'beta-own\', \'evidence\': \'b00c57ba5b4b3c45\', \'budget_allocated\': 16, \'budget_remaining\': 13, \'stages_visited\': [\'alpha-shared\', \'alpha-own\', \'beta-own\'], \'n_stages\': 3}]\nboth_states_discriminate=True\nSUCCESS:TST-0233-probe1 stage-padded fusion rejected; complementary fusion accepted', 'role': 'source'}] is too short
+    evidence/1/probes/0: 'fingerprint' is a required property
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0233/probe2_worse_than_sources.py', 'exit_code': 0, 'method': 'command', 'raw_output': '{"alpha_named_passed": false, "alpha_score": 2, "beta_score": 1, "complement_verdict": "ACCEPT", "degraded_class": "fused workflow performs worse than every source", "degraded_score": 0, "degraded_verdict": "REJECT", "fusion_named_passed": true, "matrix": {"fusion.degraded": {"n_stages": 2, "outcome_vector": [["case.shared", false], ["case.alpha-only", false], ["case.beta-only", false], ["case.hard", false]], "passed": 0, "score": 0}, "wf.alpha": {"n_stages": 2, "outcome_vector": [["case.shared", true], ["case.alpha-only", true], ["case.beta-only", false], ["case.hard", false]], "passed": 2, "score": 2}, "wf.beta": {"n_stages": 1, "outcome_vector": [["case.shared", false], ["case.alpha-only", false], ["case.beta-only", true], ["case.hard", false]], "passed": 1, "score": 1}}, "named_case": "case.beta-only", "padded_worse_fired": false, "probe": "probe2-worse-than-sources", "unit_id": "TST-0233"}\ndegraded_rejected=True verdict=REJECT\nnamed_worse_class=True class=\'fused workflow performs worse than every source\' id=\'FC-11333\'\nindependent_worse_than_every_source=True fusion=0 alpha=2 beta=1\ngate_score_matches_independent=True\nmatrix_has_every_source=True keys=[\'fusion.degraded\', \'wf.alpha\', \'wf.beta\']\npadded_not_classified_worse=True worse_fired=False class=\'fusion accepted because it has more stages (catalog gloss thin)\'\ncomplement_not_classified_worse=True verdict=ACCEPT\nnamed_case_alpha_fails=True run={\'workflow_id\': \'wf.alpha\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': False, \'reason\': \'unhandled\', \'handler\': None, \'evidence\': \'\', \'budget_allocated\': 16, \'budget_remaining\': 14, \'stages_visited\': [\'alpha-shared\', \'alpha-own\'], \'n_stages\': 2}\nnamed_case_fusion_succeeds=True run={\'workflow_id\': \'fusion.complement\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': True, \'reason\': \'handled\', \'handler\': \'beta-own\', \'evidence\': \'b00c57ba5b4b3c45\', \'budget_allocated\': 16, \'budget_remaining\': 13, \'stages_visited\': [\'alpha-shared\', \'alpha-own\', \'beta-own\'], \'n_stages\': 3}\ncomplement_set_names_beta_only_vs_alpha=True vs_alpha=[{\'case_id\': \'case.beta-only\', \'source_id\': \'wf.alpha\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}]\ncomplement_set_nonempty_vs_beta=True vs_beta=[{\'case_id\': \'case.shared\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}, {\'case_id\': \'case.alpha-only\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}]\nevery_source_qualifies_for_complement=True per_source=[{\'source_id\': \'wf.alpha\', \'source_score\': 2, \'fusion_score\': 3, \'beats\': True, \'complements\': True, \'complement_cases\': [{\'case_id\': \'case.beta-only\', \'source_id\': \'wf.alpha\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}], \'qualifies\': True}, {\'source_id\': \'wf.beta\', \'source_score\': 1, \'fusion_score\': 3, \'beats\': True, \'complements\': True, \'complement_cases\': [{\'case_id\': \'case.shared\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}, {\'case_id\': \'case.alpha-only\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}], \'qualifies\': True}]\nbudget_parity_across_arms=True budget=16\ndegraded_outcomes_all_fail=True vector=[[\'case.shared\', False], [\'case.alpha-only\', False], [\'case.beta-only\', False], [\'case.hard\', False]]\nboth_states_worse_detector=True\nSUCCESS:TST-0233-probe2 degraded fusion rejected; named complementarity case executed and differs', 'role': 'verifier'}] does not contain items matching the given schema
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0233/probe2_worse_than_sources.py', 'exit_code': 0, 'method': 'command', 'raw_output': '{"alpha_named_passed": false, "alpha_score": 2, "beta_score": 1, "complement_verdict": "ACCEPT", "degraded_class": "fused workflow performs worse than every source", "degraded_score": 0, "degraded_verdict": "REJECT", "fusion_named_passed": true, "matrix": {"fusion.degraded": {"n_stages": 2, "outcome_vector": [["case.shared", false], ["case.alpha-only", false], ["case.beta-only", false], ["case.hard", false]], "passed": 0, "score": 0}, "wf.alpha": {"n_stages": 2, "outcome_vector": [["case.shared", true], ["case.alpha-only", true], ["case.beta-only", false], ["case.hard", false]], "passed": 2, "score": 2}, "wf.beta": {"n_stages": 1, "outcome_vector": [["case.shared", false], ["case.alpha-only", false], ["case.beta-only", true], ["case.hard", false]], "passed": 1, "score": 1}}, "named_case": "case.beta-only", "padded_worse_fired": false, "probe": "probe2-worse-than-sources", "unit_id": "TST-0233"}\ndegraded_rejected=True verdict=REJECT\nnamed_worse_class=True class=\'fused workflow performs worse than every source\' id=\'FC-11333\'\nindependent_worse_than_every_source=True fusion=0 alpha=2 beta=1\ngate_score_matches_independent=True\nmatrix_has_every_source=True keys=[\'fusion.degraded\', \'wf.alpha\', \'wf.beta\']\npadded_not_classified_worse=True worse_fired=False class=\'fusion accepted because it has more stages (catalog gloss thin)\'\ncomplement_not_classified_worse=True verdict=ACCEPT\nnamed_case_alpha_fails=True run={\'workflow_id\': \'wf.alpha\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': False, \'reason\': \'unhandled\', \'handler\': None, \'evidence\': \'\', \'budget_allocated\': 16, \'budget_remaining\': 14, \'stages_visited\': [\'alpha-shared\', \'alpha-own\'], \'n_stages\': 2}\nnamed_case_fusion_succeeds=True run={\'workflow_id\': \'fusion.complement\', \'case_id\': \'case.beta-only\', \'family\': \'beta\', \'passed\': True, \'reason\': \'handled\', \'handler\': \'beta-own\', \'evidence\': \'b00c57ba5b4b3c45\', \'budget_allocated\': 16, \'budget_remaining\': 13, \'stages_visited\': [\'alpha-shared\', \'alpha-own\', \'beta-own\'], \'n_stages\': 3}\ncomplement_set_names_beta_only_vs_alpha=True vs_alpha=[{\'case_id\': \'case.beta-only\', \'source_id\': \'wf.alpha\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}]\ncomplement_set_nonempty_vs_beta=True vs_beta=[{\'case_id\': \'case.shared\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}, {\'case_id\': \'case.alpha-only\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}]\nevery_source_qualifies_for_complement=True per_source=[{\'source_id\': \'wf.alpha\', \'source_score\': 2, \'fusion_score\': 3, \'beats\': True, \'complements\': True, \'complement_cases\': [{\'case_id\': \'case.beta-only\', \'source_id\': \'wf.alpha\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}], \'qualifies\': True}, {\'source_id\': \'wf.beta\', \'source_score\': 1, \'fusion_score\': 3, \'beats\': True, \'complements\': True, \'complement_cases\': [{\'case_id\': \'case.shared\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}, {\'case_id\': \'case.alpha-only\', \'source_id\': \'wf.beta\', \'fusion_id\': \'fusion.complement\', \'source_passed\': False, \'fusion_passed\': True}], \'qualifies\': True}]\nbudget_parity_across_arms=True budget=16\ndegraded_outcomes_all_fail=True vector=[[\'case.shared\', False], [\'case.alpha-only\', False], [\'case.beta-only\', False], [\'case.hard\', False]]\nboth_states_worse_detector=True\nSUCCESS:TST-0233-probe2 degraded fusion rejected; named complementarity case executed and differs', 'role': 'verifier'}] is too short
+    manifest_registration: Additional properties are not allowed ('global_unit_manifest_write' was unexpected)
+    negative_controls/0/kind: 'detector-control' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/1/kind: 'false-positive-control' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/2/kind: 'regression-seed' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls: [{'description': 'Submit fusion.padded (alpha handlers plus three noops). Gate must REJECT with FC-11334.', 'fired_on_bad_state': True, 'id': 'stage-padded-identical-behavior', 'kind': 'detector-control', 'silent_on_good_state': True}, {'description': 'fusion.complement has more stages than every source but different behaviour; gate must ACCEPT.', 'fired_on_bad_state': False, 'id': 'complement-more-stages-accepted', 'kind': 'false-positive-control', 'silent_on_good_state': True}, {'description': 'fusion.degraded fails every matched case. Gate must REJECT with FC-11333. fusion.padded must not be classified as this class.', 'fired_on_bad_state': True, 'id': 'degraded-worse-than-every-source', 'kind': 'regression-seed', 'silent_on_good_state': True}] should not be valid under {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}
+    tests/0: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/1: Additional properties are not allowed ('exit_code' was unexpected)
+    timestamps: 'started_at' is a required property
+--- TST-0236 (18)
+    artifacts/0: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/1: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/2: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/3: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/4: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/5: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/6: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    downstream_consumers/0: 'probe' is a required property
+    downstream_consumers/0: Additional properties are not allowed ('note' was unexpected)
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0236.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'note': 'G-1 measure runs after this receipt and the per-unit manifest exist.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0236.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py', 'executed': False, 'note': 'G-1 measure runs after this receipt and the per-unit manifest exist.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}
+    evidence/0/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0236/probe1_three_outcomes.py', 'exit_code': 0, 'fingerprint': 'c4ca56206815e620915403fc87531f12', 'method': 'command', 'raw_output': '{\n  "harmful": {\n    "decision": "REVERT",\n    "hashes_equal": true,\n    "post": "cc21cc8ef1ff7b5c02d22cd6b0d00d8d941435a60a8cbdff240958f77db0ca47",\n    "pre": "cc21cc8ef1ff7b5c02d22cd6b0d00d8d941435a60a8cbdff240958f77db0ca47",\n    "reason": "harmful"\n  },\n  "ledger_rows": 3,\n  "neutral": {\n    "decision": "REVERT",\n    "hashes_equal": true,\n    "post": "cc21cc8ef1ff7b5c02d22cd6b0d00d8d941435a60a8cbdff240958f77db0ca47",\n    "pre": "cc21cc8ef1ff7b5c02d22cd6b0d00d8d941435a60a8cbdff240958f77db0ca47",\n    "produced_by": "agent",\n    "reason": "neutral"\n  },\n  "pass": true,\n  "probe": "probe1-three-outcomes",\n  "unit_id": "TST-0236",\n  "win": {\n    "after_score": 10.0,\n    "before_score": 5.0,\n    "decision": "KEEP",\n    "hashes_equal": false,\n    "post": "8ac9a8e2b9ce3639737374e21bb07db651ecbc7fd4fc884bb0b561c2923cb0ff",\n    "pre": "cc21cc8ef1ff7b5c02d22cd6b0d00d8d941435a60a8cbdff240958f77db0ca47",\n    "reason": "measured-improvement"\n  }\n}\nwin=KEEP neutral=REVERT harmful=REVERT neutral_hash_restored=True harmful_hash_restored=True\nSUCCESS:TST-0236-probe1 three outcomes; revert proven by tree hash', 'role': 'source'}, {'command': 'PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools python3 -B tools/selfimprove/tests/test_retain.py', 'exit_code': 0, 'fingerprint': 'ff5be69e68933df877dc5762fd1a8a50', 'method': 'command', 'raw_output': '4 passed, 0 failed\nSUCCESS:test_retain\ntest_harmful_reverted_including_new_file (__main__.RetainTests.test_harmful_reverted_including_new_file) ... ok\ntest_incomplete_restore_is_visible_to_tree_hash (__main__.RetainTests.test_incomplete_restore_is_visible_to_tree_hash) ... ok\ntest_neutral_agent_change_reverted (__main__.RetainTests.test_neutral_agent_change_reverted) ... ok\ntest_win_kept_hash_moves (__main__.RetainTests.test_win_kept_hash_moves) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.007s\n\nOK', 'role': 'source'}] does not contain items matching the given schema
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0236/probe2_independent_rehash.py', 'exit_code': 0, 'fingerprint': 'a6b6dec4d765a718536475a6015f1dae', 'method': 'command', 'raw_output': '{\n  "gate_vs_independent_equality_agrees": true,\n  "incomplete_restore_detected": true,\n  "keep_all_mutant_neutral_hashes_diverge": true,\n  "pass": true,\n  "probe": "probe2-independent-rehash",\n  "real_harmful_independent_hashes_match": true,\n  "real_neutral_independent_hashes_match": true,\n  "real_win_independent_hashes_diverge": true,\n  "reviewer_id": "TST-0236-probe2-independent-rehash",\n  "unit_id": "TST-0236",\n  "verdict": "PASS"\n}\nkeep_all_mutant_diverges=True real_neutral_restored=True incomplete_restore_detected=True\nSUCCESS:TST-0236-probe2 independent rehash; keep-all mutant would fail', 'role': 'verifier'}] does not contain items matching the given schema
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0236/probe2_independent_rehash.py', 'exit_code': 0, 'fingerprint': 'a6b6dec4d765a718536475a6015f1dae', 'method': 'command', 'raw_output': '{\n  "gate_vs_independent_equality_agrees": true,\n  "incomplete_restore_detected": true,\n  "keep_all_mutant_neutral_hashes_diverge": true,\n  "pass": true,\n  "probe": "probe2-independent-rehash",\n  "real_harmful_independent_hashes_match": true,\n  "real_neutral_independent_hashes_match": true,\n  "real_win_independent_hashes_diverge": true,\n  "reviewer_id": "TST-0236-probe2-independent-rehash",\n  "unit_id": "TST-0236",\n  "verdict": "PASS"\n}\nkeep_all_mutant_diverges=True real_neutral_restored=True incomplete_restore_detected=True\nSUCCESS:TST-0236-probe2 independent rehash; keep-all mutant would fail', 'role': 'verifier'}] is too short
+    manifest_registration: Additional properties are not allowed ('derivation' was unexpected)
+    negative_controls/0/kind: 'both-states' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    profile: 'benchmark_result' does not match '^[a-z0-9][a-z0-9-]*$'
+    reviewer: Additional properties are not allowed ('method', 'scope_not_agreement' were unexpected)
+--- TST-0238 (28)
+    <root>: 'downstream_consumers' is a required property
+    <root>: 'retry' is a required property
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    artifacts/1: 'bytes' is a required property
+    artifacts/1: 'sha256' is a required property
+    artifacts/2: 'bytes' is a required property
+    artifacts/2: 'sha256' is a required property
+    artifacts/3: 'bytes' is a required property
+    artifacts/3: 'sha256' is a required property
+    artifacts/4: 'bytes' is a required property
+    artifacts/4: 'sha256' is a required property
+    artifacts/5: 'bytes' is a required property
+    artifacts/5: 'sha256' is a required property
+    artifacts/6: 'bytes' is a required property
+    artifacts/6: 'sha256' is a required property
+    evidence/0: 'probes' is a required property
+    evidence/0: Additional properties are not allowed ('id', 'injected_shim_count', 'known_spawn', 'production_shim_count' were unexpected)
+    evidence/1: 'probes' is a required property
+    evidence/1: Additional properties are not allowed ('id', 'injected_process_clones', 'proc_stat_delta', 'production_process_clones' were unexpected)
+    manifest_registration: Additional properties are not allowed ('derivation' was unexpected)
+    negative_controls/0/kind: 'detector-control' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/0: Additional properties are not allowed ('grep_mentions' was unexpected)
+    negative_controls/1/kind: 'both-states' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    reviewer: Additional properties are not allowed ('adversarial_refuter', 'starts_from' were unexpected)
+    tests/0: Additional properties are not allowed ('exit_code', 'requirement' were unexpected)
+    tests/1: Additional properties are not allowed ('exit_code', 'requirement' were unexpected)
+    timestamps: 'started_at' is a required property
+--- TST-0243 (3)
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    manifest_registration: Additional properties are not allowed ('derivation' was unexpected)
+--- TST-0245 (22)
+    artifacts/0: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/1: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/2: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    artifacts/3: Additional properties are not allowed ('present', 'receipt_path', 'unit_id' were unexpected)
+    downstream_consumers/0: 'probe' is a required property
+    downstream_consumers/0: Additional properties are not allowed ('note' was unexpected)
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0245.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py TST-0245', 'executed': False, 'note': 'G-1 measure runs after this receipt and the per-unit manifest exist.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}
+    downstream_consumers: [{'artifact_path': 'command-center/receipts/TST-0245.json', 'consumer': 'command-center/p2-wave/_measure_one_delivered.py TST-0245', 'executed': False, 'note': 'G-1 measure runs after this receipt and the per-unit manifest exist.', 'read_ok': False}] should not be valid under {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}
+    evidence/0/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0245/probe1_nocolor_vs_stripped_sgr.py', 'exit_code': 0, 'fingerprint': '21b574c4ed93d9052a9fe284bbe5b3f9', 'method': 'command', 'raw_output': '{"breach_visible_nocolor": true, "breach_visible_stripped": true, "color_only_breach_visible_after_strip": false, "coloured_has_csi": true, "no_color_wins_over_force_color": true, "nocolor_has_csi": false, "nocolor_sha_prefix": "37bfbc2f5ac6cc6f", "pass": true, "probe": "probe1-nocolor-vs-stripped-sgr", "sgr_sequences_coloured": 8, "stripped_equals_nocolor": true, "stripped_sha_prefix": "37bfbc2f5ac6cc6f", "unit_id": "TST-0245"}\nstripped_equals_nocolor=True breach_nocolor=True color_only_hidden=True sgr=8\nSUCCESS:TST-0245-probe1 NO_COLOR equals stripped SGR; breach remains', 'role': 'source'}] does not contain items matching the given schema
+    evidence/0/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0245/probe1_nocolor_vs_stripped_sgr.py', 'exit_code': 0, 'fingerprint': '21b574c4ed93d9052a9fe284bbe5b3f9', 'method': 'command', 'raw_output': '{"breach_visible_nocolor": true, "breach_visible_stripped": true, "color_only_breach_visible_after_strip": false, "coloured_has_csi": true, "no_color_wins_over_force_color": true, "nocolor_has_csi": false, "nocolor_sha_prefix": "37bfbc2f5ac6cc6f", "pass": true, "probe": "probe1-nocolor-vs-stripped-sgr", "sgr_sequences_coloured": 8, "stripped_equals_nocolor": true, "stripped_sha_prefix": "37bfbc2f5ac6cc6f", "unit_id": "TST-0245"}\nstripped_equals_nocolor=True breach_nocolor=True color_only_hidden=True sgr=8\nSUCCESS:TST-0245-probe1 NO_COLOR equals stripped SGR; breach remains', 'role': 'source'}] is too short
+    evidence/0: Additional properties are not allowed ('detail', 'kind' were unexpected)
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0245/probe2_token_enumeration.py', 'exit_code': 0, 'fingerprint': '3c9661532b2f215ba4d030e897842871', 'method': 'command', 'raw_output': '{"cap_fires_on_oversize": true, "coded_elements": [{"cvd_class": "grey", "glyph": "+", "role": "ok", "sgr": "32", "token": "OK"}, {"cvd_class": "yellow", "glyph": "!", "role": "warn", "sgr": "33", "token": "WARN"}, {"cvd_class": "grey", "glyph": "x", "role": "fail", "sgr": "31", "token": "FAIL"}, {"cvd_class": "cyan", "glyph": "i", "role": "info", "sgr": "36", "token": "INFO"}], "color_only_flagged": 4, "cvd_class_count": 3, "cvd_classes": ["cyan", "grey", "yellow"], "oversize_palette_size": 8, "palette_cap": 4, "palette_size": 4, "pass": true, "probe": "probe2-token-enumeration", "sgr_count": 4, "unit_id": "TST-0245", "wire_spans": [{"cvd_class": "grey", "glyph": "x", "inner_prefix": "x FAIL", "sgr": "31", "token": "FAIL"}, {"cvd_class": "grey", "glyph": "+", "inner_prefix": "+ OK", "sgr": "32", "token": "OK"}, {"cvd_class": "yellow", "glyph": "!", "inner_prefix": "! WARN", "sgr": "33", "token": "WARN"}, {"cvd_class": "cyan", "glyph": "i", "inner_prefix": "i INFO", "sgr": "36", "token": "INFO"}]}\npalette=4 cap=4 cvd_classes=3 color_only_flagged=4 oversize=8\nSUCCESS:TST-0245-probe2 every coded element has glyph+token; colour capped', 'role': 'verifier'}] does not contain items matching the given schema
+    evidence/1/probes: [{'command': 'PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0245/probe2_token_enumeration.py', 'exit_code': 0, 'fingerprint': '3c9661532b2f215ba4d030e897842871', 'method': 'command', 'raw_output': '{"cap_fires_on_oversize": true, "coded_elements": [{"cvd_class": "grey", "glyph": "+", "role": "ok", "sgr": "32", "token": "OK"}, {"cvd_class": "yellow", "glyph": "!", "role": "warn", "sgr": "33", "token": "WARN"}, {"cvd_class": "grey", "glyph": "x", "role": "fail", "sgr": "31", "token": "FAIL"}, {"cvd_class": "cyan", "glyph": "i", "role": "info", "sgr": "36", "token": "INFO"}], "color_only_flagged": 4, "cvd_class_count": 3, "cvd_classes": ["cyan", "grey", "yellow"], "oversize_palette_size": 8, "palette_cap": 4, "palette_size": 4, "pass": true, "probe": "probe2-token-enumeration", "sgr_count": 4, "unit_id": "TST-0245", "wire_spans": [{"cvd_class": "grey", "glyph": "x", "inner_prefix": "x FAIL", "sgr": "31", "token": "FAIL"}, {"cvd_class": "grey", "glyph": "+", "inner_prefix": "+ OK", "sgr": "32", "token": "OK"}, {"cvd_class": "yellow", "glyph": "!", "inner_prefix": "! WARN", "sgr": "33", "token": "WARN"}, {"cvd_class": "cyan", "glyph": "i", "inner_prefix": "i INFO", "sgr": "36", "token": "INFO"}]}\npalette=4 cap=4 cvd_classes=3 color_only_flagged=4 oversize=8\nSUCCESS:TST-0245-probe2 every coded element has glyph+token; colour capped', 'role': 'verifier'}] is too short
+    evidence/1: Additional properties are not allowed ('detail', 'kind' were unexpected)
+    manifest_registration: Additional properties are not allowed ('derivation' was unexpected)
+    negative_controls/0/kind: 'color-only-pairing' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/1/kind: 'uncapped-colour-channel' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    reviewer: Additional properties are not allowed ('method', 'started_from' were unexpected)
+    tests/0: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/1: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/2: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/3: Additional properties are not allowed ('exit_code' was unexpected)
+--- TST-0247 (1)
+    <root>: 'downstream_consumers' is a required property
+--- TST-0249 (30)
+    <root>: 'downstream_consumers' is a required property
+    <root>: 'manifest_registration' is a required property
+    <root>: 'residual_unknowns' is a required property
+    <root>: 'retry' is a required property
+    <root>: 'schema_version' is a required property
+    <root>: 'spec_anchor' is a required property
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    artifacts/1/role: 'subject' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/1: 'bytes' is a required property
+    artifacts/1: 'sha256' is a required property
+    artifacts/2: 'bytes' is a required property
+    artifacts/2: 'sha256' is a required property
+    artifacts/3/role: 'regression-seed-input' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/3: 'bytes' is a required property
+    artifacts/3: 'sha256' is a required property
+    evidence/0: 'anchor' is a required property
+    evidence/0: 'claim' is a required property
+    evidence/0: 'probes' is a required property
+    evidence/0: 'verdict' is a required property
+    evidence/0: Additional properties are not allowed ('command', 'detail', 'exit_code', 'id', 'kind' were unexpected)
+    evidence/1: 'anchor' is a required property
+    evidence/1: 'claim' is a required property
+    evidence/1: 'probes' is a required property
+    evidence/1: 'verdict' is a required property
+    evidence/1: Additional properties are not allowed ('byte_count', 'detail', 'hex_preview', 'id', 'kind', 'sha256' were unexpected)
+    negative_controls/0/kind: 'detector-control' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/1/kind: 'regression-seed' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    reviewer: Additional properties are not allowed ('attempt' was unexpected)
+    timestamps: 'started_at' is a required property
+--- TST-0255 (10)
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    artifacts/1/role: 'git-cat-file-resolver' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/1: 'bytes' is a required property
+    artifacts/1: 'sha256' is a required property
+    artifacts/2/role: 'external-classifier' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/2: 'bytes' is a required property
+    artifacts/2: 'sha256' is a required property
+    evidence/0: Additional properties are not allowed ('note', 'signal' were unexpected)
+    evidence/1: Additional properties are not allowed ('signal' was unexpected)
+--- TST-0256 (36)
+    <root>: 'downstream_consumers' is a required property
+    <root>: 'manifest_registration' is a required property
+    <root>: 'retry' is a required property
+    <root>: 'spec_anchor' is a required property
+    <root>: 'timestamps' is a required property
+    artifacts/0: 'bytes' is a required property
+    artifacts/0: 'sha256' is a required property
+    artifacts/1/role: 'guide' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/1: 'bytes' is a required property
+    artifacts/1: 'sha256' is a required property
+    artifacts/2/role: 'migrator' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/2: 'bytes' is a required property
+    artifacts/2: 'sha256' is a required property
+    artifacts/3/role: 'old-layout-fixture' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/3: 'bytes' is a required property
+    artifacts/3: 'sha256' is a required property
+    artifacts/4/role: 'fixture-provenance' is not one of ['primary', 'supporting', 'log', 'fixture', 'control']
+    artifacts/4: 'bytes' is a required property
+    artifacts/4: 'sha256' is a required property
+    evidence/0: 'confidence' is a required property
+    evidence/0: 'probes' is a required property
+    evidence/1: 'confidence' is a required property
+    evidence/1: 'probes' is a required property
+    negative_controls/0/kind: 'both-states-silent-on-good' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/1/kind: 'detector-control' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/1: 'description' is a required property
+    negative_controls/1: Additional properties are not allowed ('mutant_stamp_changes_hash' was unexpected)
+    negative_controls/2/kind: 'fixture-provenance' is not one of ['mutation', 'malformed-input', 'known-broken-fixture', 'absent-input', 'adversarial-payload', 'other']
+    negative_controls/2: 'description' is a required property
+    negative_controls/2: Additional properties are not allowed ('source_root', 'synthesized_from_migration_script' were unexpected)
+    residual_unknowns/0: 'command-center/RUNBOOK.md is absent; this unit measures the layout migration guide rather than a runbook section that does not exist.' is not of type 'object'
+    residual_unknowns/1: 'No git repository at the estate root, so prior-release capture is the ARC-0007 de-facto layout sample rather than git cat-file of a tag.' is not of type 'object'
+    tests/0: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/1: Additional properties are not allowed ('exit_code' was unexpected)
+    tests/2: 'command' is a required property
+    tests/3: 'command' is a required property

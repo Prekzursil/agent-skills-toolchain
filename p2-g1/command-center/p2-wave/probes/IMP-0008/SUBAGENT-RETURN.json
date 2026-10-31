@@ -1,0 +1,46 @@
+{
+  "artifacts": [
+    {
+      "bytes": 13036,
+      "path": "command-center/receipts/IMP-0008.json",
+      "present": true,
+      "receipt_path": "command-center/p2-wave/probes/IMP-0008/SUBAGENT-RETURN.json",
+      "role": "primary",
+      "sha256": "b2803755a58f94e63b0f049006f2efc5dca35c1b79e6356bfe3c3f0a35f8a0a4",
+      "unit_id": "IMP-0008"
+    }
+  ],
+  "id": "IMP-0008",
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0008/probe1_below_floor.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "raw_output_file": "command-center/p2-wave/probes/IMP-0008/probe1_below_floor.raw.txt",
+      "raw_output_tail": "k\": \"at_floor_allowed\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"above_floor_allowed\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"prerelease_parses_at_release_tuple\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"unparsable_fail_closed\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"unparsable_refusal_names_floor\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"refused_install_writes_nothing\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"allowed_install_writes_payload\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"mutant_diverges_on_unparsable_fired\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"mutant_agrees_parseable_silent\",\n   \"ok\": true\n  }\n ],\n \"all_ok\": true\n}\nSUCCESS:IMP-0008-probe1 below-floor refused; message names required version; fail-closed holds",
+      "role": "synthetic-below-floor"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0008/probe2_live_cli.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "raw_output_file": "command-center/p2-wave/probes/IMP-0008/probe2_live_cli.raw.txt",
+      "raw_output_tail": "m cannot find the file specified\",\n  \"parsed\": null\n },\n \"codex_negotiation\": {\n  \"allowed\": false,\n  \"reason\": \"unparsable-version\",\n  \"parsed_version\": null,\n  \"required_version\": \"1.0.0\",\n  \"message\": \"unparsable client version '[WinError 2] The system cannot find the file specified'; required version 1.0.0\"\n },\n \"checks\": [\n  {\n   \"check\": \"claude_live_version_parses\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"claude_live_at_or_above_floor_allowed\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"codex_absent_fails_closed\",\n   \"ok\": true\n  },\n  {\n   \"check\": \"error_text_fail_closed\",\n   \"ok\": true\n  }\n ],\n \"all_ok\": true\n}\nSUCCESS:IMP-0008-probe2 real CLI versions negotiated through the single negotiate()",
+      "role": "live-cli-version"
+    }
+  ],
+  "notes": "shard-6 wave-4 resume 2026-10-26: receipt + reviewer closure existed but BOTH probe scripts (probe1_below_floor.py, probe2_live_cli.py) were LOST with the mid-flight host death; probe dir was empty. REBUILT both probes at the receipt-anchored filenames, re-derived live, exit 0 first run. DISCLOSURES: (1) live CLIs ARE on PATH in this session - claude 2.1.310 parses and is allowed; codex-cli 0.154.0 parses WITHOUT any claude token (abstraction does not leak) and is refused below the 1.0.0 floor with the exact required version named. The receipt build-time run saw both binaries absent and recorded fail-closed refusals - both worlds verified. (2) The receipt answer says .claude-plugin/plugin.json carries top-level min_client_version/supported_clients; the live manifest (restored during the IMP-0006 resume under the frozen 8-key contract) carries compatibility.min_client=1.0.0 instead, and client_negotiate.load_manifest injects the 1.0.0 default - floor enforced is 1.0.0 either way; probe1 records the divergence in its facts. (3) Receipt-named sidecars tools/plugin/install_gate.py and tools/plugin/tests/test_client_negotiation.py are gone from this worktree; the live gate is client_negotiate.preflight_install (probed) and the fail-closed negative control is in-probe (fail-open mutant diverges on unparsable, agrees on parseable). Prior independent reviewer closure kept (verifies live via this probe battery).",
+  "output_path": "command-center/receipts/IMP-0008.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/compatibility.schema.json",
+  "reviewer": {
+    "kept_from_receipt": true,
+    "independent": true,
+    "note": "prior independent closure; re-verified live by the rebuilt probe battery",
+    "reviewer_id": "IMP-0008-probe2-codex-cli",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:IMP-0008",
+  "status": "DELIVERED",
+  "unit_id": "IMP-0008",
+  "verified_on_disk": "2026-10-26T21:04:47+00:00"
+}

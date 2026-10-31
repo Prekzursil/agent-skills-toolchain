@@ -1,0 +1,277 @@
+{
+ "schema_version": 1,
+ "id": "TST-0311",
+ "unit_id": "TST-0311",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0311",
+ "completion_sentinel": "SUCCESS:TST-0311",
+ "title": "Keep an improvement only when the measurement says so, and prove the gate can say no",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0311; _USER-PROMPTS.md:11145-11150 (file absent on this sparse worktree)",
+ "question_or_target": "Implement the decision gate that consumes the B04 paired result and the B07 margin table and emits KEEP, REVERT or INSUFFICIENT-EVIDENCE. The third outcome is the one most implementations omit, and omitting it converts every underpowered run into a KEEP.",
+ "min_bytes_threshold": 2048,
+ "implementation": {
+  "gate": "tools/bench/gate.py:decide",
+  "paired": "tools/bench/paired.py:paired_from_cases",
+  "margin_table": "tools/bench/margin_table.json",
+  "ledger": "tools/bench/decision_ledger.py",
+  "audit": "tools/bench/audit.py:audit_commit_range",
+  "rule": "KEEP requires n >= pre_registered_n, a closed interval, interval.lo >= min_effect (higher-is-better primary), and every secondary within its frozen non-inferiority margin. n below pre_registered_n or a missing interval is INSUFFICIENT-EVIDENCE, never KEEP. A powered non-proof is REVERT."
+ },
+ "inputs_on_this_worktree": {
+  "_USER-PROMPTS.md:11145-11150": "absent; catalog target used as the spec",
+  "tools/bench/": "present; this unit authored the decision-gate slice",
+  "B07 margin table": "tools/bench/margin_table.json frozen_at=2026-08-01T00:00:00Z",
+  "B04 paired result": "tools/bench/paired.py bootstrap percentile interval",
+  "TST-0298 receipt": "absent; paired-interval contract implemented here",
+  "TST-0301 receipt": "absent; frozen margin table authored here as the B07 artifact"
+ },
+ "live_decisions": {
+  "margin_table_id": "b07-material-regression-v1",
+  "margin_table_sha256": "2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8",
+  "frozen_at": "2026-08-01T00:00:00Z",
+  "pre_registered_n": 24,
+  "min_effect": 10.0,
+  "noop": {
+   "outcome": "REVERT",
+   "reason_id": "neutral-or-unproven",
+   "n": 24,
+   "cited_interval": "primary_score delta=0.000000 lo=0.000000 hi=0.000000 n=24 level=0.95"
+  },
+  "underpowered": {
+   "outcome": "INSUFFICIENT-EVIDENCE",
+   "reason_id": "underpowered",
+   "n": 4
+  },
+  "improvement": {
+   "outcome": "KEEP",
+   "reason_id": "proven-improvement",
+   "n": 24,
+   "cited_interval": "primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95",
+   "interval": {
+    "mean": 10.0,
+    "lo": 10.0,
+    "hi": 10.0,
+    "level": 0.95,
+    "n_boot": 2000,
+    "method": "paired-bootstrap-percentile"
+   }
+  },
+  "secondary_regression": {
+   "outcome": "REVERT",
+   "reason_id": "material-regression"
+  },
+  "bypass_audit": {
+   "ok": false,
+   "bypass_ids": [
+    "chg-ghost"
+   ],
+   "findings": [
+    {
+     "change_id": "chg-ghost",
+     "commit_sha": "sha-ghost",
+     "detail": "merged commit has no decision-ledger row (KEEP/REVERT/INSUFFICIENT-EVIDENCE missing)",
+     "kind": "BYPASS"
+    }
+   ]
+  },
+  "three_outcomes_observed": [
+   "INSUFFICIENT-EVIDENCE",
+   "KEEP",
+   "REVERT"
+  ]
+ },
+ "evidence": [
+  {
+   "claim": "Synthetic no-op (n=24 identical before/after): outcome=REVERT reason_id=neutral-or-unproven.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/gate.py:decide",
+   "class": "REVERT",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "4e8ae709fcec5b102778b88421add8d6"
+    },
+    {
+     "role": "verifier",
+     "method": "mutant-underpowered-keep",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "a026b5ad7ab484d9a945c6e4c4f28f35"
+    }
+   ]
+  },
+  {
+   "claim": "Underpowered run (n=4 apparent +30, below pre_registered_n=24): outcome=INSUFFICIENT-EVIDENCE reason_id=underpowered. Not KEEP.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/gate.py:decide underpowered branch",
+   "class": "INSUFFICIENT-EVIDENCE",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "4e8ae709fcec5b102778b88421add8d6"
+    },
+    {
+     "role": "verifier",
+     "method": "mutant-underpowered-keep",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "a026b5ad7ab484d9a945c6e4c4f28f35"
+    }
+   ]
+  },
+  {
+   "claim": "Genuine +10 primary with secondaries inside B07 margins: outcome=KEEP cited_interval=primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/gate.py:decide KEEP cites interval",
+   "class": "KEEP",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "4e8ae709fcec5b102778b88421add8d6"
+    },
+    {
+     "role": "verifier",
+     "method": "mutant-underpowered-keep",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+     "raw_output": "{\"ast_three_outcomes\": true, \"bare_point_estimate\": \"INSUFFICIENT-EVIDENCE\", \"improvement\": {\"cited_interval\": \"primary_score delta=10.000000 lo=10.000000 hi=10.000000 n=24 level=0.95\", \"interval\": {\"hi\": 10.0, \"level\": 0.95, \"lo\": 10.0, \"mean\": 10.0, \"method\": \"paired-bootstrap-percentile\", \"n_boot\": 2000}, \"outcome\": \"KEEP\", \"reason_id\": \"proven-improvement\"}, \"live_underpowered_not_keep\": true, \"margin_table_id\": \"b07-material-regression-v1\", \"margin_table_sha256\": \"2f9c294b74149786134ac946e7b59a1063d6b6e7b6a809be09d6a05e15caecd8\", \"mutant_drop_insufficient_keeps_underpowered\": true, \"mutant_positive_mean_keeps_underpowered\": true, \"noop\": {\"n\": 24, \"outcome\": \"REVERT\", \"reason_id\": \"neutral-or-unproven\"}, \"outcomes\": {\"INSUFFICIENT-EVIDENCE\": true, \"KEEP\": true, \"REVERT\": true}, \"pass\": true, \"post_hoc_override_refused\": true, \"probe\": \"probe1-three-outcomes\", \"secondary_regression\": {\"outcome\": \"REVERT\", \"reason_id\": \"material-regression\"}, \"underpowered\": {\"n\": 4, \"outcome\": \"INSUFFICIENT-EVIDENCE\", \"reason_id\": \"underpowered\"}, \"unit_id\": \"TST-0311\"}\nnoop=REVERT under=INSUFFICIENT-EVIDENCE keep=KEEP regress=REVERT mutants_keep_under=True live_not_keep=True\nSUCCESS:TST-0311-probe1 three outcomes; underpowered is INSUFFICIENT-EVIDENCE",
+     "exit_code": 0,
+     "fingerprint": "a026b5ad7ab484d9a945c6e4c4f28f35"
+    }
+   ]
+  },
+  {
+   "claim": "Planted merge chg-ghost with no ledger row: bypass_ids=['chg-ghost'].",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/audit.py:audit_commit_range",
+   "class": "BYPASS",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe2_bypass_audit.py",
+     "raw_output": "{\"bypass_caught\": true, \"bypass_ids\": [\"chg-ghost\"], \"checked\": 3, \"clean_ok\": true, \"finding_kinds\": [\"BYPASS\", \"UNAUTHORIZED-RETENTION\"], \"findings\": [{\"change_id\": \"chg-ghost\", \"commit_sha\": \"sha-ghost\", \"detail\": \"merged commit has no decision-ledger row (KEEP/REVERT/INSUFFICIENT-EVIDENCE missing)\", \"kind\": \"BYPASS\"}, {\"change_id\": \"chg-revert\", \"commit_sha\": \"sha-revert\", \"detail\": \"change was merged after gate outcome REVERT; only KEEP may be retained\", \"kind\": \"UNAUTHORIZED-RETENTION\", \"outcome\": \"REVERT\"}], \"keep_not_bypass\": true, \"ledger_size\": 3, \"live_disagrees_with_mutant\": true, \"mutant_misses_bypass\": true, \"outcomes_recorded\": {\"INSUFFICIENT-EVIDENCE\": \"INSUFFICIENT-EVIDENCE\", \"KEEP\": \"KEEP\", \"REVERT\": \"REVERT\"}, \"pass\": true, \"probe\": \"probe2-bypass-audit\", \"unit_id\": \"TST-0311\"}\nbypass_ids=['chg-ghost'] kinds=['BYPASS', 'UNAUTHORIZED-RETENTION'] clean_ok=True mutant_misses=True\nSUCCESS:TST-0311-probe2 bypass audit catches merge without gate decision",
+     "exit_code": 0,
+     "fingerprint": "a0f61cadfd1ba038b71b7aa0223e4eb5"
+    },
+    {
+     "role": "verifier",
+     "method": "silent-audit-mutant",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe2_bypass_audit.py",
+     "raw_output": "{\"bypass_caught\": true, \"bypass_ids\": [\"chg-ghost\"], \"checked\": 3, \"clean_ok\": true, \"finding_kinds\": [\"BYPASS\", \"UNAUTHORIZED-RETENTION\"], \"findings\": [{\"change_id\": \"chg-ghost\", \"commit_sha\": \"sha-ghost\", \"detail\": \"merged commit has no decision-ledger row (KEEP/REVERT/INSUFFICIENT-EVIDENCE missing)\", \"kind\": \"BYPASS\"}, {\"change_id\": \"chg-revert\", \"commit_sha\": \"sha-revert\", \"detail\": \"change was merged after gate outcome REVERT; only KEEP may be retained\", \"kind\": \"UNAUTHORIZED-RETENTION\", \"outcome\": \"REVERT\"}], \"keep_not_bypass\": true, \"ledger_size\": 3, \"live_disagrees_with_mutant\": true, \"mutant_misses_bypass\": true, \"outcomes_recorded\": {\"INSUFFICIENT-EVIDENCE\": \"INSUFFICIENT-EVIDENCE\", \"KEEP\": \"KEEP\", \"REVERT\": \"REVERT\"}, \"pass\": true, \"probe\": \"probe2-bypass-audit\", \"unit_id\": \"TST-0311\"}\nbypass_ids=['chg-ghost'] kinds=['BYPASS', 'UNAUTHORIZED-RETENTION'] clean_ok=True mutant_misses=True\nSUCCESS:TST-0311-probe2 bypass audit catches merge without gate decision",
+     "exit_code": 0,
+     "fingerprint": "c7d9a604fe062e1056a8fe45b137c122"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "neutral-change-reverts",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+   "result": "PASS",
+   "requirement": "Neutral change -> REVERT, proven on a synthetic no-op change."
+  },
+  {
+   "id": "underpowered-is-insufficient",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+   "result": "PASS",
+   "requirement": "Underpowered run -> INSUFFICIENT-EVIDENCE, not KEEP."
+  },
+  {
+   "id": "genuine-improvement-keep-cites-interval",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py",
+   "result": "PASS",
+   "requirement": "Genuine improvement -> KEEP with the interval cited."
+  },
+  {
+   "id": "bypass-audit",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe2_bypass_audit.py",
+   "result": "PASS",
+   "requirement": "A change merged without a gate decision is caught by an audit of the commit range against the decision ledger."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "positive-mean-mutant",
+   "kind": "both-states",
+   "description": "A mutant that KEEP's any positive mean accepts the underpowered run; the live gate must not.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "omit-third-outcome-mutant",
+   "kind": "both-states",
+   "description": "Remapping INSUFFICIENT-EVIDENCE to KEEP is the omitted third outcome. Live gate still emits INSUFFICIENT-EVIDENCE.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "silent-audit-mutant",
+   "kind": "both-states",
+   "description": "An audit that always returns ok misses a merge with no ledger row. Live audit flags BYPASS.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "TST-0311-probe2-bypass-audit",
+  "verdict": "PASS",
+  "independent": true,
+  "scope_not_agreement": true,
+  "notes": "Probe2 is a second path: commit-range vs decision ledger, plus a silent-audit mutant. Catalog reviewer_requirement asks for an independent adversarial reviewer in a fresh context; that human pass is residual and is not claimed."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0311/UNIT-ARTIFACT-MANIFEST.json",
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+ },
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "three-outcomes",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe1_three_outcomes.py"
+  },
+  {
+   "id": "probe2",
+   "role": "bypass-audit",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0311/probe2_bypass_audit.py"
+  }
+ ],
+ "cloud_ok": false,
+ "residual_unknowns": [
+  {
+   "id": "human-reviewer-residual",
+   "text": "G-1 named probes are green. A second human in a fresh context has not scored this unit."
+  },
+  {
+   "id": "spec-file-absent",
+   "text": "_USER-PROMPTS.md:11145-11150 is not on this worktree. The gate implements the catalog target: KEEP only when measurement proves help; REVERT when neutral or harmful; INSUFFICIENT-EVIDENCE when the run is underpowered."
+  },
+  {
+   "id": "upstream-receipts-absent",
+   "text": "TST-0298 and TST-0301 receipts are not on this worktree. This unit implements the paired-interval consumer and the frozen B07 margin table rather than importing those receipts."
+  }
+ ],
+ "does_not_claim": [
+  "cloud ok=true is delivery",
+  "global unit_manifest.py --write was run",
+  "a human adversarial reviewer in a fresh context scored PASS",
+  "TST-0298/TST-0301 receipts were present and consumed"
+ ],
+ "defects": [],
+ "ts": "2026-08-25T01:07:25Z"
+}

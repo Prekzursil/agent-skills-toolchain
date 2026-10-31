@@ -1,0 +1,1 @@
+Emit the receipt only after the artifact passes schema validation. Generate the manifest row by hashing the file, then record the hash in the manifest. Verify the receipt parses before you close the unit.

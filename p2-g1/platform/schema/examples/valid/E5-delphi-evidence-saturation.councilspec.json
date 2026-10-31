@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "e5-delphi-evidence-saturation",
+  "preset": "scientific_peer_review",
+  "extends_preset": "forecasting_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Elicit and aggregate expert belief on the failure rate of agentic repair until the evidence saturates.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": ["evidence saturation declared", "or the three-hour elicitation budget is spent"],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.75,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "url", "min_independent_sources": 8 }
+  },
+  "participants": {
+    "selection": {
+      "mode": "automatic",
+      "strategies": ["calibration_ranked", "expertise_ranked", "stratified", "model_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "range",
+      "min": 6,
+      "max": 9
+    },
+    "diversity": { "min_distinct_vendors": 3, "min_distinct_models": 3, "min_distinct_expertise": 5 },
+    "anonymity": { "mode": "double_blind", "reveal_after_round": 3 },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        { "partition_id": "papers", "visible_to": ["panelist-1", "panelist-2"], "sources": ["arxiv", "acl"] },
+        { "partition_id": "telemetry", "visible_to": ["panelist-3"], "sources": ["internal-ledger"] }
+      ]
+    },
+    "roster": [
+      {
+        "participant_id": "panelist-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["program repair"],
+        "role": "scientist",
+        "authority": "voter",
+        "anonymous": true,
+        "context": { "partition_id": "papers" },
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "panelist-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["benchmark methodology"],
+        "role": "statistician",
+        "authority": "voter",
+        "anonymous": true,
+        "context": { "partition_id": "papers" }
+      },
+      {
+        "participant_id": "panelist-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["telemetry analysis"],
+        "role": "forecaster",
+        "authority": "voter",
+        "anonymous": true,
+        "context": { "partition_id": "telemetry" }
+      },
+      {
+        "participant_id": "calibrator-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["calibration", "scoring rules"],
+        "role": "calibrator",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false }
+      }
+    ],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "low_novelty"], "max_recruits": 3 },
+    "duplicate_detection": { "enabled": true, "dimensions": ["model", "vendor", "position_similarity"], "max_similarity": 0.9 }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 8,
+    "prep_time_minutes": 45,
+    "required_artifacts": ["evidence_pack", "prior_art_scan"]
+  },
+  "topology": { "kind": "delphi" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "round-0", "independent": true, "anonymous": true },
+      { "kind": "delphi_round", "stage_id": "round-1", "rounds": 1, "anonymous": true },
+      { "kind": "delphi_round", "stage_id": "round-2", "rounds": 1, "anonymous": true },
+      { "kind": "prediction_confidence", "stage_id": "elicit" },
+      {
+        "kind": "delphi_round",
+        "stage_id": "round-n",
+        "rounds": 4,
+        "anonymous": true,
+        "exit_when": {
+          "any_of": [
+            { "metric": "evidence_saturation", "op": "==", "value": true },
+            { "metric": "no_new_idea_rounds", "op": ">=", "value": 2 }
+          ]
+        }
+      },
+      { "kind": "synthesis", "stage_id": "aggregate" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 3, "max": 8, "divergence_before_convergence": true },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 180,
+    "tokens": 4000000,
+    "tool_calls": 600,
+    "sources": 80,
+    "turns": 48,
+    "min_engagement_turns": 4,
+    "max_inactivity_rounds": 2
+  },
+  "targets": { "evidence_items": 60, "diversity_index": 0.7, "novelty_ratio": 0.4 },
+  "voting": {
+    "method": "bayesian",
+    "belief_aggregation": {
+      "method": "logarithmic_pool",
+      "require_confidence_per_vote": true,
+      "calibration_source": "claude-reflect corrections"
+    },
+    "abstention": { "allowed": true, "counts_toward_quorum": true, "must_justify": true },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false, "suppression_check": true },
+    "irreducible_disagreement_allowed": true
+  },
+  "stopping": {
+    "source_expression": "evidence_saturation == true OR time_minutes >= 180",
+    "expression": {
+      "any_of": [
+        { "metric": "evidence_saturation", "op": "==", "value": true },
+        { "metric": "time_minutes", "op": ">=", "value": 180 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 6, "min_minutes": 20, "min_evidence_items": 20 },
+    "hard_caps": { "max_minutes": 240, "max_tokens": 6000000, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": { "allowed": ["decision", "conditional_decision", "irreducible_disagreement", "minority_report"] },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["recruit_independent_critic", "split_question", "narrow_scope"],
+    "escalation": { "after_attempts": 3, "to": "meta_council" }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "circular_citation", "hallucinated_expertise", "participant_dominance", "premature_convergence", "collusion"],
+    "fast_unanimity_response": ["blind_re_evaluation", "recruit_independent_critic"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "evidence_map",
+      "confidence_trajectory",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "calibration_report",
+      "resumable_state"
+    ]
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact", "retain_days": 180 },
+    "persistence": { "store": "both", "path": "platform/state/councils/e5", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "crps" }
+  },
+  "metadata": {
+    "title": "Delphi elicitation to evidence saturation",
+    "spec_citations": ["_USER-PROMPTS.md:10941", "_USER-PROMPTS.md:10926", "_USER-PROMPTS.md:11180"],
+    "notes": "Spec example 5 of 6: evidence_saturation == true OR time_minutes >= 180. Exercises Delphi topology, double-blind anonymity and information partitioning."
+  }
+}

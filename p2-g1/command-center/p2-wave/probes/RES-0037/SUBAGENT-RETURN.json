@@ -1,0 +1,65 @@
+{
+ "artifacts": [
+  {
+   "bytes": 20678,
+   "exists": true,
+   "path": "command-center/research/RES-0037.json",
+   "role": "primary",
+   "sha256": "a5975a536b291375a0749900e570f6f54467cb768e7bdddf73630ee3ac8267cd",
+   "unit_id": "RES-0037"
+  }
+ ],
+ "id": "RES-0037",
+ "manifest_path": "command-center/p2-wave/probes/RES-0037/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "[PASS] baseline: zero stand-in-token processes before spawning: count=0\n  [PASS] start/stop delta control: exactly +1 exact-token process: delta=1 expected=1\n  [PASS] self-exclusion proof: naive substring WOULD match this probe: self_pid=44956\n  [PASS] exact-token matcher excludes this probe: token_hits=[58364]\n  [PASS] decoy control: naive matcher WOULD count the decoy: decoy=[19984]\n  [PASS] exact-token matcher ignores the decoy: decoy carries the probe filename, not the token\n  [PASS] stdio multiplication: 3 sessions x 2 servers = 6 processes, 1.0/server/session: count=6 per_server_per_session=1.0\n  [PASS] recorded artifact stdio cost agrees (1.0/server/session): recorded=1.0\n  [PASS] stop delta control: count returns to baseline after kills: count=0\n  [PASS] fleet re-measure: live argv-exact count equals the recorded 0: live=0 recorded=0\nSUCCESS:RES-0037-probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "[PASS] stdio children: 3 live, each with a nonzero OS handle count: rows=[(24808, 72), (23208, 72), (40792, 72)]\n  [PASS] HTTP stand-in: one LISTEN socket, owned by its own single process: port=55609 pids=[47108] expected={47108}\n  [PASS] HTTP stand-in adds ZERO extra processes for extra sessions (recorded 0/session): pid=47108 handles=81\n  [PASS] stdio children carry NO LISTEN socket (recorded listen_inodes empty): stdio pids=[24808, 23208, 40792]\n  [PASS] recorded arithmetic re-derived by two mechanics: 23*65=1495, not 2037: python=1495 powershell=1495\n  [PASS] artifact records the corrected product 1495 with equation false: recorded=1495 claimed=2037\nSUCCESS:RES-0037-probe2",
+   "result": "PASS"
+  }
+ ],
+ "notes": "stdio/HTTP process cost re-measured live on the Windows substrate (CIM exact-argv-token counts, start/stop delta, self-exclusion proof, handle counts, netstat LISTEN; 23*65=1495 re-derived by python and powershell). Recorded /proc numbers are the Linux VM run; mechanism reproduced.",
+ "output_path": "command-center/research/RES-0037.json",
+ "output_schema": "command-center/schema/measurement-run.schema.json",
+ "registered": true,
+ "reviewer": {
+  "artifact_level": {
+   "fresh_context": true,
+   "independent": true,
+   "powershell7_vs_git_bash": "NOT-CHECKED",
+   "powershell7_vs_git_bash_reason": "This worktree is Linux; PowerShell 7 vs Git Bash is the catalog's Windows reviewer pair and is not the substrate here.",
+   "reproduced_http_count": 1,
+   "reproduced_stdio_count": 6,
+   "reviewer_id": "RES-0037-probe2-handle-count",
+   "shell": "/bin/ps versus Python /proc walk; POSIX expr versus Python int",
+   "tolerance": 0,
+   "verdict": "PASS"
+  },
+  "independent": false,
+  "pending": "reviewer-absent"
+ },
+ "sentinel": "SUCCESS:RES-0037 in the receipt AND a per-transport process count with a start/stop delta control and a stated proof the probe does not match itself",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-10-25T16:12:43Z",
+ "unit_id": "RES-0037",
+ "shard16_repair": {
+  "date": "2026-10-26",
+  "what": "probe2_handle_count.py check 3 asserted Win32_Process Name == 'python.exe', which encodes the recording session's interpreter binary. This box runs C:\\Python314\\python3.exe, so the literal failed although the artifact claim (one shared HTTP process, zero extra processes per extra session) holds.",
+  "diagnosis_probe": "live spawn under sys.executable reported Name='python3.exe' (Get-CimInstance), confirming substrate drift, not artifact drift",
+  "fix": "check now counts processes whose CommandLine carries the HTTP stand-in token and requires exactly [http.pid] - strictly stronger than the name equality it replaces",
+  "fresh_rerun": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py -> exit 0, all 6 checks PASS; fresh output kept verbatim below",
+  "fresh_output": "  [PASS] stdio children: 3 live, each with a nonzero OS handle count: rows=[(3272, 72), (59580, 72), (60324, 72)]\n  [PASS] HTTP stand-in: one LISTEN socket, owned by its own single process: port=56365 pids=[30500] expected={30500}\n  [PASS] HTTP stand-in adds ZERO extra processes for extra sessions (recorded 0/session): pid=30500 token_procs=[30500] handles=81\n  [PASS] stdio children carry NO LISTEN socket (recorded listen_inodes empty): stdio pids=[3272, 59580, 60324]\n  [PASS] recorded arithmetic re-derived by two mechanics: 23*65=1495, not 2037: python=1495 powershell=1495\n  [PASS] artifact records the corrected product 1495 with equation false: recorded=1495 claimed=2037\nSUCCESS:RES-0037-probe2",
+  "artifact_unchanged": true,
+  "measure_verdict": "SUCCESS:delivered RES-0037"
+ }
+}

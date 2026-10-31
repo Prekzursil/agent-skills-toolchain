@@ -1,0 +1,474 @@
+{
+ "IMP-0430": {
+  "id": "IMP-0430",
+  "catalog_output_path": "command-center/receipts/IMP-0430.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0430:STATE-SESSION-KEYED",
+  "exists": true,
+  "bytes_raw": 22026,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_bleed.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_repo_vs_live.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "246d8e5d1745ce54fe7b8a3f362c63a810112dd8349b51821c90faca7c147287",
+  "sha_post": "246d8e5d1745ce54fe7b8a3f362c63a810112dd8349b51821c90faca7c147287",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "246d8e5d1745ce54fe7b8a3f362c63a810112dd8349b51821c90faca7c147287",
+  "manifest_match": true,
+  "manifest_bytes": 22026,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0430-probe2-repo-versus-live",
+  "receipt_sentinel": "SENTINEL:IMP-0430:STATE-SESSION-KEYED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0435": {
+  "id": "IMP-0435",
+  "catalog_output_path": "command-center/receipts/IMP-0435.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0435:RECEIPT-GATE-BOTH-STATES",
+  "exists": true,
+  "bytes_raw": 17698,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_both_states.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_noop_mode.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "8e7b09bc8a0d4b2aa6d91e19faaa396ca85b4e3abcd227b4de3a73848cb3af1e",
+  "sha_post": "8e7b09bc8a0d4b2aa6d91e19faaa396ca85b4e3abcd227b4de3a73848cb3af1e",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "8e7b09bc8a0d4b2aa6d91e19faaa396ca85b4e3abcd227b4de3a73848cb3af1e",
+  "manifest_match": true,
+  "manifest_bytes": 17698,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0435-probe2-noop-mode",
+  "receipt_sentinel": "SENTINEL:IMP-0435:RECEIPT-GATE-BOTH-STATES",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0437": {
+  "id": "IMP-0437",
+  "catalog_output_path": "command-center/receipts/IMP-0437.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+  "exists": true,
+  "bytes_raw": 12017,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_defaults_deletion.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_single_field_review.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "eb881c0353a0089c98a7ca6d7a4c0e21f49d3e1caafc5ff3de9fef9cf2382d98",
+  "sha_post": "eb881c0353a0089c98a7ca6d7a4c0e21f49d3e1caafc5ff3de9fef9cf2382d98",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "eb881c0353a0089c98a7ca6d7a4c0e21f49d3e1caafc5ff3de9fef9cf2382d98",
+  "manifest_match": true,
+  "manifest_bytes": 12017,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0437-probe2-single-field-review",
+  "receipt_sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0439": {
+  "id": "IMP-0439",
+  "catalog_output_path": "command-center/receipts/IMP-0439.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "exists": true,
+  "bytes_raw": 24758,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_blob_parity.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_independent_show.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "ffcb9d6cf1d02d394b63fa284dffbbb684d4dd4a76696ca8364c6241804959ab",
+  "sha_post": "ffcb9d6cf1d02d394b63fa284dffbbb684d4dd4a76696ca8364c6241804959ab",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "ffcb9d6cf1d02d394b63fa284dffbbb684d4dd4a76696ca8364c6241804959ab",
+  "manifest_match": true,
+  "manifest_bytes": 24758,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0439-probe2-independent-show",
+  "receipt_sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0442": {
+  "id": "IMP-0442",
+  "catalog_output_path": "command-center/receipts/IMP-0442.json",
+  "catalog_schema": "command-center/schema/dispatch-plan.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+  "exists": true,
+  "bytes_raw": 29245,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_mixed_dry_run.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_serial_lock_mutation.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "fdaedb8a5dc6204bf7fb1a84d27322f703762e760cc11235fa4c4a50971f0515",
+  "sha_post": "fdaedb8a5dc6204bf7fb1a84d27322f703762e760cc11235fa4c4a50971f0515",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "fdaedb8a5dc6204bf7fb1a84d27322f703762e760cc11235fa4c4a50971f0515",
+  "manifest_match": true,
+  "manifest_bytes": 29245,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_errors": [
+   "['report']: 'kind' is a required property",
+   "['report']: 'observations' is a required property",
+   "['report']: 'control_ids' is a required property",
+   "['report']: 'kind' is a required property"
+  ],
+  "schema_ok": false,
+  "schema_error_count": 4,
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0442-probe2-serial-lock-mutation",
+  "receipt_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0448": {
+  "id": "IMP-0448",
+  "catalog_output_path": "command-center/receipts/IMP-0448.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0448:RETRY-CLASS-DRIVEN",
+  "exists": true,
+  "bytes_raw": 36852,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_decision_table.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_two_strikes.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "7f1bd2835172976d54cb1895daf487d4185e67ed8a97c58115ee97e562754e89",
+  "sha_post": "7f1bd2835172976d54cb1895daf487d4185e67ed8a97c58115ee97e562754e89",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "7f1bd2835172976d54cb1895daf487d4185e67ed8a97c58115ee97e562754e89",
+  "manifest_match": true,
+  "manifest_bytes": 36852,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0448-probe2-two-strikes-and-text-mutant",
+  "receipt_sentinel": "SENTINEL:IMP-0448:RETRY-CLASS-DRIVEN",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0450": {
+  "id": "IMP-0450",
+  "catalog_output_path": "command-center/receipts/IMP-0450.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE",
+  "exists": true,
+  "bytes_raw": 14604,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_readonly.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_census.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "ca527a6322480fa1b7893d6ba15b0e5a4bce1e13bd3eadeca143f2669e75f864",
+  "sha_post": "ca527a6322480fa1b7893d6ba15b0e5a4bce1e13bd3eadeca143f2669e75f864",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "ca527a6322480fa1b7893d6ba15b0e5a4bce1e13bd3eadeca143f2669e75f864",
+  "manifest_match": true,
+  "manifest_bytes": 14604,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0450-probe2-census",
+  "receipt_sentinel": "SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0460": {
+  "id": "IMP-0460",
+  "catalog_output_path": "command-center/receipts/IMP-0460.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0460:HOOKS-LOAD-VERIFIED",
+  "exists": true,
+  "bytes_raw": 17691,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_declared_vs_observed.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_both_states.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "16744e04249481ea262f44c401b369567a12bdf49d763dbd9f2cadce1e237f01",
+  "sha_post": "16744e04249481ea262f44c401b369567a12bdf49d763dbd9f2cadce1e237f01",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "16744e04249481ea262f44c401b369567a12bdf49d763dbd9f2cadce1e237f01",
+  "manifest_match": true,
+  "manifest_bytes": 17691,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0460-probe2-both-states",
+  "receipt_sentinel": "SENTINEL:IMP-0460:HOOKS-LOAD-VERIFIED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0466": {
+  "id": "IMP-0466",
+  "catalog_output_path": "command-center/receipts/IMP-0466.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0466:PATHCONV-ARGUMENT-SCOPED",
+  "exists": true,
+  "bytes_raw": 24783,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_both_directions.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_global_suppression.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "3d9b6d8161f7a65dbb6b4f2a0c8faa548f42de628dffae4b28d2f1f9b9878860",
+  "sha_post": "3d9b6d8161f7a65dbb6b4f2a0c8faa548f42de628dffae4b28d2f1f9b9878860",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "3d9b6d8161f7a65dbb6b4f2a0c8faa548f42de628dffae4b28d2f1f9b9878860",
+  "manifest_match": true,
+  "manifest_bytes": 24783,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0466-probe2-global-suppression",
+  "receipt_sentinel": "SENTINEL:IMP-0466:PATHCONV-ARGUMENT-SCOPED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0467": {
+  "id": "IMP-0467",
+  "catalog_output_path": "command-center/receipts/IMP-0467.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+  "exists": true,
+  "bytes_raw": 15635,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_reserved_enum.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_longpath_noswallow.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "050a5d16b6154ac4076cefe9d3d6cb09666bfd3d94719fc033771283921069ae",
+  "sha_post": "050a5d16b6154ac4076cefe9d3d6cb09666bfd3d94719fc033771283921069ae",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "050a5d16b6154ac4076cefe9d3d6cb09666bfd3d94719fc033771283921069ae",
+  "manifest_match": true,
+  "manifest_bytes": 15635,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0467-probe2-longpath-noswallow",
+  "receipt_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0468": {
+  "id": "IMP-0468",
+  "catalog_output_path": "command-center/receipts/IMP-0468.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0468:CASE-COLLISION-SCANNED",
+  "exists": true,
+  "bytes_raw": 16139,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_planted_nested.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_non_case_receipt.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "fd5f5fc14db8326216a74658be05f1abd4b6d105449c47b89b2c72d8378c8e56",
+  "sha_post": "fd5f5fc14db8326216a74658be05f1abd4b6d105449c47b89b2c72d8378c8e56",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "fd5f5fc14db8326216a74658be05f1abd4b6d105449c47b89b2c72d8378c8e56",
+  "manifest_match": true,
+  "manifest_bytes": 16139,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0468-probe2-non-case-and-live-rescan",
+  "receipt_sentinel": "SENTINEL:IMP-0468:CASE-COLLISION-SCANNED",
+  "sentinel_matches_catalog": true
+ },
+ "IMP-0470": {
+  "id": "IMP-0470",
+  "catalog_output_path": "command-center/receipts/IMP-0470.json",
+  "catalog_schema": "command-center/schema/receipt.schema.json",
+  "catalog_sentinel": "SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+  "exists": true,
+  "bytes_raw": 15218,
+  "parses": true,
+  "state": "SUCCESS",
+  "probes": [
+   {
+    "probe": "probe1_both_corpora.py",
+    "rc": 0
+   },
+   {
+    "probe": "probe2_confusion_refute.py",
+    "rc": 0
+   }
+  ],
+  "probes_ok": true,
+  "sha_pre": "e5bf2ac9567f27714559faa246d41a9423c01fb913a181102f21afe49b4d8a8a",
+  "sha_post": "e5bf2ac9567f27714559faa246d41a9423c01fb913a181102f21afe49b4d8a8a",
+  "artifact_mutated_by_probes": false,
+  "manifest_present": true,
+  "manifest_rows": 1,
+  "manifest_sha": "e5bf2ac9567f27714559faa246d41a9423c01fb913a181102f21afe49b4d8a8a",
+  "manifest_match": true,
+  "manifest_bytes": 15218,
+  "manifest_receipt_state": "SUCCESS",
+  "schema_ok": null,
+  "schema_errors": [
+   "validator-build error: PointerToNowhere: '/$defs/unit_id' does not exist within {'type': 'object', 'properties': {'schema_version': {'type': 'integer', 'const': 1}, 'unit_id': {'$ref': '#/$defs/unit_id'}, 'state': {'$ref': '#/$defs/terminal_state'}, 'disposition': {'$ref': '#/$defs/disposition'}, 'sentinel': {'$ref': '#/$defs/sentinel'}, 'profile': {'type': 'string', 'description': 'Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.', 'maxLength': 128, 'pattern': '^[a-z0-9][a-z0-9-]*$'}, 'spec_anchor': {'type': 'string', 'description': 'Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.', 'minLength': 3, 'maxLength': 1024}, 'min_bytes_threshold': {'type': 'integer', 'description': \"The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.\", 'minimum': 1}, 'artifacts': {'type': 'array', 'minItems': 1, 'maxItems': 512, 'items': {'$ref': '#/$defs/artifact'}}, 'evidence': {'type': 'array', 'description': 'Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.', 'minItems': 1, 'maxItems': 256, 'items': {'$ref': '#/$defs/evidence_item'}}, 'tests': {'type': 'array', 'maxItems': 4096, 'items': {'$ref': '#/$defs/test_result'}}, 'negative_controls': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/negative_control'}}, 'reviewer': {'$ref': '#/$defs/reviewer'}, 'defects': {'type': 'array', 'maxItems': 512, 'items': {'$ref': '#/$defs/defect'}}, 'manifest_registration': {'$ref': '#/$defs/manifest_registration'}, 'downstream_consumers': {'type': 'array', 'maxItems': 128, 'items': {'$ref': '#/$defs/downstream_consumer'}}, 'timestamps': {'$ref': '#/$defs/timestamps'}, 'retry': {'$ref': '#/$defs/retry'}, 'failure': {'$ref': '#/$defs/failure'}, 'residual_unknowns': {'type': 'array', 'maxItems': 256, 'items': {'$ref': '#/$defs/residual_unknown'}}, 'produced_by': {'type': 'object', 'properties': {'vendor': {'$ref': '#/$defs/vendor_id'}, 'model': {'type': 'string', 'maxLength': 128}, 'role': {'type': 'string', 'maxLength': 128}, 'execution_substrate': {'type': 'string', 'maxLength': 128}}, 'required': ['vendor', 'model'], 'additionalProperties': False}, 'report': {'type': 'object', 'description': 'Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.', 'minProperties': 1}, 'extensions': {'type': 'object', 'description': 'The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here.'}}, 'required': ['schema_version', 'unit_id', 'state', 'sentinel', 'spec_anchor', 'min_bytes_threshold', 'artifacts', 'evidence', 'timestamps', 'retry'], 'additionalProperties': True, 'allOf': [{'$comment': 'Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.', 'if': {'properties': {'state': {'const': 'SUCCESS'}}, 'required': ['state']}, 'then': {'required': ['tests', 'negative_controls', 'reviewer', 'manifest_registration', 'downstream_consumers', 'residual_unknowns'], 'properties': {'sentinel': {'$comment': 'A SUCCESS receipt may not carry a FAILED sentinel.', 'pattern': '^(?:SUCCESS:|SENTINEL:)'}, 'evidence': {'$comment': 'Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.', 'minItems': 2}, 'tests': {'minItems': 1, 'not': {'contains': {'properties': {'result': {'enum': ['FAIL', 'ERROR', 'SKIP', 'NOT-RUN']}}, 'required': ['result']}}}, 'negative_controls': {'$comment': 'Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'fired_on_bad_state': {'const': False}}, 'required': ['fired_on_bad_state']}}}, {'not': {'contains': {'properties': {'silent_on_good_state': {'const': False}}, 'required': ['silent_on_good_state']}}}]}, 'reviewer': {'properties': {'verdict': {'const': 'PASS'}, 'independent': {'const': True}}, 'required': ['verdict', 'independent']}, 'manifest_registration': {'properties': {'registered': {'const': True}}, 'required': ['registered']}, 'downstream_consumers': {'$comment': 'Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.', 'minItems': 1, 'allOf': [{'not': {'contains': {'properties': {'executed': {'const': False}}, 'required': ['executed']}}}, {'not': {'contains': {'properties': {'read_ok': {'const': False}}, 'required': ['read_ok']}}}]}, 'defects': {'not': {'contains': {'allOf': [{'properties': {'severity': {'enum': ['P0', 'P1']}}, 'required': ['severity']}, {'properties': {'status': {'const': 'open'}}, 'required': ['status']}]}}}}}}, {'$comment': 'Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.', 'if': {'properties': {'state': {'enum': ['FAILED', 'BLOCKED', 'SEVERED', 'TIMEOUT']}}, 'required': ['state']}, 'then': {'required': ['failure']}}, {'$comment': 'A FAILED sentinel and a SUCCESS state are mutually exclusive.', 'if': {'properties': {'sentinel': {'pattern': '^FAILED:'}}, 'required': ['sentinel']}, 'then': {'properties': {'state': {'not': {'const': 'SUCCESS'}}}}}, {'$comment': 'SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.', 'if': {'properties': {'state': {'enum': ['SUPERSEDED', 'DROPPED-BY-OWNER']}}, 'required': ['state']}, 'then': {'required': ['disposition']}}]}"
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer_independent": true,
+  "reviewer_id": "IMP-0470-probe2-confusion-refute",
+  "receipt_sentinel": "SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+  "sentinel_matches_catalog": true
+ }
+}

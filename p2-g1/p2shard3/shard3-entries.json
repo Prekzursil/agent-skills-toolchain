@@ -1,0 +1,587 @@
+{
+ "BLD-0001": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "corpus-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0001",
+  "dependencies": [
+   "B01",
+   "B02"
+  ],
+  "evidence_requirement": "Cite the exact transcript glob and the number of tool_use records parsed. The extractor script path and its sha256 go in the receipt so the ledger is reproducible. DETECTOR CONTROL IS MANDATORY: seed one KNOWN-READ file (any path cited file:line by an existing receipt) and prove it is absent from the unread set, and seed one KNOWN-UNREAD sentinel path and prove it appears. A low or zero unread count with no control is a detector failure, not a clean bill.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal",
+   "use-vs-mention",
+   "non-portable"
+  ],
+  "id": "BLD-0001",
+  "inputs": [
+   "~/.claude/projects/**/*.jsonl (session + subagent transcripts for this program)",
+   "`git ls-files` at the program HEAD of C:/Users/Prekzursil/source/ast-integrate",
+   "command-center/ARTIFACT-MANIFEST.json",
+   "command-center/PROGRAM-CHARTER.md (the declared scope statement)"
+  ],
+  "output_path": "command-center/receipts/BLD-0001.json",
+  "output_schema": "command-center/schema/blindspot-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which files inside the program's declared scope did NO agent ever open? Build a read-ledger by extracting every Read/Grep/Glob/Bash-cat tool_use input path from the session JSONL transcripts for the whole Prompt Two program, normalise each to a repo-relative path, and set-difference the ledger against `git ls-files` at the program HEAD. Emit an unread-file register carrying a criticality weight (executable > schema > CI config > doc > fixture) and a per-file reason code (out-of-scope | never-routed | oversized | unreadable-form).  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "No blind retry: re-running the same extractor is not a second signal. A disagreeing second extractor is a detector defect - fix and re-run once; a second disagreement escalates with both outputs attached.",
+  "reviewer_requirement": "One independent reviewer who re-derives the unread count with a mechanically different extractor (jq over the JSONL rather than the Python parser) and must agree within 1% or the discrepancy blocks.",
+  "tests_required": [
+   "Control (known-present): a file cited file:line in an existing receipt must NOT appear in the unread set.",
+   "Control (known-absent): a planted sentinel path present in git but touched by nobody must appear in the unread set.",
+   "Path-form collapse: the same file reached as C:/..., /c/..., .\\rel\\path and repo-relative must produce exactly ONE ledger entry.",
+   "Determinism: two runs over the same frozen transcript set must emit byte-identical registers."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Never-read file census derived from the transcript read-ledger",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0002": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "graph-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0002",
+  "dependencies": [
+   "B02",
+   "B07"
+  ],
+  "evidence_requirement": "State the entry-point set explicitly and cite each source at file:line - an incomplete entry-point set manufactures false unreachability, which is the dangerous direction here (it invites deletion). Every unreachable verdict must survive a dynamic-import search (importlib, __import__, entry_points, plugin discovery by glob) before it is reported.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "data-loss-risk",
+   "overclaim"
+  ],
+  "id": "BLD-0002",
+  "inputs": [
+   "the shipped package tree produced by B07",
+   "plugin manifest + hook manifest + MCP tool registrations (entry-point declarations)",
+   "the CI workflow files (the commands CI actually invokes)",
+   "coverage.xml from the B08 suite run (for the covered-but-unreachable cross-check)"
+  ],
+  "output_path": "command-center/receipts/BLD-0002.json",
+  "output_schema": "command-center/schema/reachability-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which shipped modules and public functions are unreachable from ANY declared entry point? Build a static import/call graph over the shipped package, mark entry points from the plugin manifest commands, the hook manifest registrations, the MCP tool exports, the workflow stage registry and the CI invocation lines, compute reachability, and emit the unreachable set. This is orthogonal to line coverage: code can be imported and covered by a test yet be reachable from no user-facing entry point at all.  SCOPE BOUNDARY: AUD-0032 censuses unreferenced modules and dead code. This unit consumes that receipt and contributes ENTRY-POINT reachability, which is a different question - a module can be referenced by a test and still be reachable from no CLI command, hook registration or MCP export. Report only the delta.  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "Two strikes then pivot: a second false-positive class means the graph builder is wrong; switch to a runtime import-trace before a third static attempt.",
+  "reviewer_requirement": "One independent reviewer who attempts to reach three sampled 'unreachable' symbols from a real CLI invocation before sign-off.",
+  "tests_required": [
+   "Control: a deliberately orphaned module planted in a scratch copy must be reported unreachable.",
+   "Control (false-positive guard): a module reachable ONLY through a hook manifest entry must NOT be reported - this proves the entry-point set includes hooks.",
+   "Control (dynamic import): a module loaded only via importlib.import_module(name_from_config) must NOT be reported unreachable.",
+   "Cross-check: every file that is covered by tests but unreachable from an entry point must be individually explained in the register."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Unreachable-code census by import-graph reachability from declared entry points",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0006": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "conformance-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0006",
+  "dependencies": [
+   "B07",
+   "B08",
+   "B09"
+  ],
+  "evidence_requirement": "A RUN cell without a client version string is downgraded to NEVER-RUN. 'The plugin installed cleanly' is not evidence that the client loaded it - the named failure class is 'plugin appears installed but hooks are unloaded', so a RUN cell must cite an observation from INSIDE the client (a hook firing, a command resolving), not an installer exit code.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "BLD-0006",
+  "inputs": [
+   "the compatibility matrix produced in Phase 4",
+   "the conformance suite from B08",
+   "installed client versions on this box (read-only probe)",
+   "command-center/receipts/** (the evidence anchors)"
+  ],
+  "output_path": "command-center/receipts/BLD-0006.json",
+  "output_schema": "command-center/schema/coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which supported host client was never exercised end-to-end? Enumerate the declared client set (Claude Code, Codex CLI, Antigravity/agy, and any generic MCP host named in the compatibility matrix) crossed with the conformance suite, and mark every cell RUN / NEVER-RUN / NOT-APPLICABLE. A cell may be marked RUN only when a receipt exists that names the client VERSION under which it ran.  SCOPE BOUNDARY: TST-0049 executes the compatibility-matrix conformance tests and ARC-0095 defines how an untested cell is represented. This unit contributes the EVIDENCE-QUALITY audit of the filled matrix: a cell may read RUN only on an observation from inside the client, never on an installer exit code.  [Phase 13 question answered: what clients were never tested]",
+  "retry_policy": "No retry on an absent client: report NOT-CHECKED with the exact install step that would enable the probe.",
+  "reviewer_requirement": "One independent reviewer who re-runs one RUN cell on a client the original agent did not use.",
+  "tests_required": [
+   "Both-states: deliberately corrupt the plugin manifest and prove every RUN cell's probe turns red on that client - a probe that passes against a broken manifest measures nothing.",
+   "Control: a cell whose only evidence is an installer exit code must fail validation.",
+   "Control: an absent client must classify NOT-CHECKED, never PASS and never NOT-APPLICABLE."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Host-client coverage matrix with a version-stamped evidence anchor per cell",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0010": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0010",
+  "dependencies": [
+   "B07",
+   "B08"
+  ],
+  "evidence_requirement": "Report the exact environment triple (codepage, locale, TZ) for every run, and the console encoding actually in effect - not the one requested.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "non-portable",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "BLD-0010",
+  "inputs": [
+   "every datetime, sort, print/console-emit and timestamped-filename site in shipped code",
+   "the smoke test set from B08",
+   "the event ledger writer (timestamps are its primary key surface)"
+  ],
+  "output_path": "command-center/receipts/BLD-0010.json",
+  "output_schema": "command-center/schema/coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: what breaks outside en-US / UTF-8 / UTC? Enumerate every site that formats or parses a date, sorts strings, prints to a console, or embeds a timestamp in a filename, then run the smoke set under a non-UTF8 codepage (cp1252), a non-English locale, and a non-UTC timezone that crosses a DST boundary.  [Phase 13 question answered: what platforms were never tested]",
+  "retry_policy": "Two strikes then pivot: after two environment-setup failures, containerise the locale run rather than mutating the live session environment a third time.",
+  "reviewer_requirement": "One independent reviewer who repeats the DST case with the opposite (spring-forward) boundary.",
+  "tests_required": [
+   "cp1252 console with PYTHONIOENCODING unset: no shipped CLI banner or error message may raise UnicodeEncodeError.",
+   "DST fall-back: two ledger entries written at the repeated 01:30 local hour must remain deterministically ordered.",
+   "Negative control: introducing a naive datetime.now() into a timestamp path must make the suite RED - if it stays green the suite does not test this.",
+   "Locale sort: a list sorted for display must be stable under a non-English collation or must declare an explicit locale-independent key."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Locale, codepage and timezone blind spots",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0023": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "test-governance-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0023",
+  "dependencies": [
+   "B07",
+   "B08"
+  ],
+  "evidence_requirement": "Each suppression is cited at path:line with its surrounding construct, and classified JUSTIFIED (reason + expiry present) or UNACCOUNTED. A count with no per-item citation is not accepted.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "use-vs-mention",
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "BLD-0023",
+  "inputs": [
+   "all test files, CI workflow files, shell/PowerShell scripts and shipped code",
+   "the CI run history (which suppressions are load-bearing today)"
+  ],
+  "output_path": "command-center/receipts/BLD-0023.json",
+  "output_schema": "command-center/schema/blindspot-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: where does the tree convert a failure into a pass? Enumerate every suppression construct - skip/xfail/skipif, `continue-on-error: true`, `|| true`, a redirect of stderr on a checked command, bare `except: pass`, `-ErrorAction SilentlyContinue`, warning filters, `--exit-zero`-style flags - and record for each whether it carries a documented reason and an expiry, or is unaccounted.  SCOPE BOUNDARY: AUD-0055 censuses skip and xfail markers with reason validity. This unit consumes that receipt and is the superset over NON-test suppression constructs: continue-on-error, || true, bare except: pass, -ErrorAction SilentlyContinue and warning filters.  [Phase 13 question answered: what failures were normalized away]",
+  "retry_policy": "Two strikes then pivot from regex to per-language AST scanning before a third attempt.",
+  "reviewer_requirement": "An Anthropic-vendor reviewer samples ten JUSTIFIED verdicts and checks the stated reason is falsifiable rather than decorative.",
+  "tests_required": [
+   "Control: plant a `|| true` in a scratch copy of a CI step and prove it is reported.",
+   "Use-vs-mention control: the literal string `continue-on-error` inside documentation or inside THIS unit's own description must not be counted as a suppression.",
+   "Control: a `-ErrorAction SilentlyContinue` in PowerShell must be caught - the census must cover non-Python surfaces."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Suppressed-failure construct census across code, tests, CI and scripts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0024": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "defect-archaeologist",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0024",
+  "dependencies": [
+   "B02",
+   "B08"
+  ],
+  "evidence_requirement": "Re-running the identical command is a valid re-probe only when the tree SHA differs; otherwise use a mechanically different runner. The baseline used `python -m pytest` rather than CI's console script, so it is a broken detector for packaging and import-path regressions BY CONSTRUCTION - the re-verification must close that gap explicitly.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "stale-premise",
+   "green-not-live",
+   "single-signal"
+  ],
+  "id": "BLD-0024",
+  "inputs": [
+   "command-center/BASELINE-SNAPSHOT.json and _baseline_tests_out.json",
+   "the current test suite at program HEAD",
+   "the CI console-script entry point (the runner the baseline did NOT use)"
+  ],
+  "output_path": "command-center/receipts/BLD-0024.json",
+  "output_schema": "command-center/schema/triage-revalidation.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: does every past 'not a real regression' triage still hold? Each dismissal is a dated claim that decays. Re-run each previously dismissed failure and re-check its stated reason: the Phase 0 baseline's eight failures triage as three Windows-CRLF artifacts, four a sibling agent's transient TDD red phase, and one POSIX-only - and a triage that rests on a sibling's transient state is only valid while that state is unchanged.  [Phase 13 question answered: what failures were normalized away]",
+  "retry_policy": "Two strikes then pivot: after two inconclusive re-runs on the same failure, isolate it in a clean clone rather than re-running in the shared tree.",
+  "reviewer_requirement": "One independent reviewer who reproduces two dismissals from raw source without reading the original triage text.",
+  "tests_required": [
+   "Falsification: a 'Windows CRLF only' dismissal must be falsified by running the same test on LF-normalised bytes and observing green; if it stays red the dismissal was wrong.",
+   "Control: a dismissal whose reason cannot be falsified by ANY experiment is downgraded to UNVERIFIED and re-queued.",
+   "Runner control: at least one dismissed failure must be re-run through the CI console script to prove the runner difference is exercised."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Re-verification of previously dismissed failures (a triage is a dated claim)",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0031": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "calibration-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0031",
+  "dependencies": [
+   "B09",
+   "B10",
+   "B12"
+  ],
+  "evidence_requirement": "Each finding quotes the hedged sentence. A band attached to a PAST measured fact is a category error and is reported in a separate class from a missing band.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "overclaim",
+   "use-vs-mention",
+   "detector-failure"
+  ],
+  "id": "BLD-0031",
+  "inputs": [
+   "every lane report and receipt narrative",
+   "command-center/CLAIM-REGISTRY.json",
+   "AGENTS.md 7 (the confidence lexicon)"
+  ],
+  "output_path": "command-center/receipts/BLD-0031.json",
+  "output_schema": "command-center/schema/tag-position-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which forward-looking claim ships with no calibrated confidence band, or carries a band with no paired evidence anchor? Extract claims in the predictive or uncertain register from all program reports, check each for a Sherman-Kent band (almost-certain / likely / roughly-even / unlikely / remote) and a paired evidence tag, and report bare hedges such as 'should work', 'looks fine' and 'likely fine'.  SCOPE BOUNDARY: ADV-0108 audits unsupported certainty, comparing a stated band against its evidence. This unit contributes the MISSING-band population - claims carrying no band at all - which a band-versus-evidence audit structurally cannot see.  [Phase 13 question answered: what unknowns remain]",
+  "retry_policy": "Two strikes then pivot from lexicon matching to modality tagging before a third attempt.",
+  "reviewer_requirement": "One independent reviewer who re-scores twenty sampled claims blind and must agree within two on the flagged count.",
+  "tests_required": [
+   "Control: 'should work' with no band must be caught.",
+   "Control: 'likely (55-80%), measured at path:line' must pass unflagged.",
+   "Control: a past-tense measured fact carrying a probability band must be reported as a category error, not as compliant."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Confidence-band and evidence-tag audit over every forward-looking claim",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0037": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "corpus-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0037",
+  "dependencies": [
+   "B01",
+   "B02"
+  ],
+  "evidence_requirement": "A CONTRADICTS finding cites the note permalink AND the program claim at path:line. An UNCONSULTED finding must show the note is topically relevant, not merely that it exists - relevance is demonstrated by the query that retrieved it.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "recall-failure",
+   "stale-premise",
+   "contradiction"
+  ],
+  "id": "BLD-0037",
+  "inputs": [
+   "the basic-memory vault (semantic notes)",
+   "the event ledger (objective turn history)",
+   "every program artifact's citation set"
+  ],
+  "output_path": "command-center/receipts/BLD-0037.json",
+  "output_schema": "command-center/schema/contradiction-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which durable memory note or ledger entry contradicts, or already answers, a current program premise - and was never consulted? Query the semantic memory vault and the event ledger with the program's own topic set, then diff the retrieved set against the notes actually cited in program artifacts. The estate's measured dominant failure is RECALL rather than detection: seven load-bearing claims in one session were confidently wrong while the correct answer sat unread on disk.  SCOPE BOUNDARY: ADV-0018 sweeps the memory vault for contradictions against measured truth. This unit contributes the UNCONSULTED set - topically relevant notes that no program artifact ever cited - which a contradiction sweep does not measure.  [Phase 13 question answered: what existing work was ignored]",
+  "retry_policy": "Two strikes then pivot: after two empty recall runs, widen from keyword to topic/permalink browsing rather than re-running the same query a third time.",
+  "reviewer_requirement": "One independent reviewer who runs three of their own recall queries and reports any relevant note the author's query set missed.",
+  "tests_required": [
+   "Control: a known-relevant note (the squash-merge branch-reporting finding, or the git-archive CRLF finding) must be retrieved by the topic query set - a query set that misses it is under-powered.",
+   "Control: a superseded note carrying a superseded_by pointer must be classified STALE, not treated as current truth.",
+   "Control: a note whose content contradicts a live claim must surface with BOTH anchors, not as a bare mention."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Recall audit: durable memory that pre-answers or contradicts a live program premise",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "mcp__basic-memory__search_notes",
+   "mcp__basic-memory__read_note",
+   "mcp__basic-memory__recent_activity"
+  ]
+ },
+ "BLD-0041": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "test-governance-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0041",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Each finding cites the test at path:line and the reason class. For the empty-input class, report the measured input size at runtime, not the fixture's declared intent.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "BLD-0041",
+  "inputs": [
+   "every test file in the program",
+   "benchmark fixtures and their input sizes",
+   "coverage data for assertion-line reachability"
+  ],
+  "output_path": "command-center/receipts/BLD-0041.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which passing test cannot fail? Statically audit every test for: no assertion at all; an assertion on a literal; `assert True`; a loop body that never executes because its collection is empty; an empty parametrize list; and a benchmark whose fixture measures zero items. The estate measured two benchmarks that ran on EMPTY inputs and returned a clean, meaningless green.  SCOPE BOUNDARY: TST-0105 builds the benchmark non-empty-input control. This unit contributes the tree-wide tautological-test census in which the empty-input benchmark is one class.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot from regex to AST inspection of assert nodes before a third attempt.",
+  "reviewer_requirement": "An Anthropic-vendor reviewer samples ten flagged tests and confirms each genuinely cannot fail.",
+  "tests_required": [
+   "Control: an assertion-free test planted in a scratch copy must be caught.",
+   "Control: a test whose only assertion sits inside a branch that is never taken must be caught by executing under coverage and observing the assert line uncovered.",
+   "Control: a benchmark fed a zero-length input must be caught by the runtime input-size probe, not by reading the fixture name.",
+   "Negative control: a well-formed test with a real assertion must not be flagged."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Tautological and empty-input test census",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0044": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0044",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "The egress block must itself be controlled: prove a deliberate download attempt FAILS under the block before any green result under it is trusted. A green suite under an unproven block measures nothing.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "non-portable"
+  ],
+  "id": "BLD-0044",
+  "inputs": [
+   "the full test suite",
+   "the CNF-0147 egress-blocked confirmation-suite receipt (consumed, not re-derived)",
+   "the egress-blocking harness",
+   "the cache directories the suite touches"
+  ],
+  "output_path": "command-center/receipts/BLD-0044.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which test's outcome depends on an input nobody declared? Re-run the suite under randomized test order, a different PRNG seed, a shifted timezone, a different working directory, a cold cache, and with network egress BLOCKED; report every test whose result changes. The estate measured 14 tests silently downloading a bootstrap script despite comments asserting they never download. SCOPE BOUNDARY: CNF-0147 runs the egress-blocked re-run over the CONFIRMATION suite; this unit consumes that receipt and contributes the multi-axis CROSS-PRODUCT over the full suite - order x seed x timezone x cwd x cache - in which egress is one column rather than the deliverable.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot: after two blocker-setup failures, run the suite inside a network-isolated container rather than attempting a third host-level block.",
+  "reviewer_requirement": "One independent reviewer who repeats the egress-blocked run and confirms both the block control and the failure list.",
+  "tests_required": [
+   "Block control: a deliberate fetch must fail under the egress block (both-states proof for the blocker itself).",
+   "Order: at least two distinct random seeds must be used; a test that passes under one order and fails under another is reported.",
+   "Cache: a cold-cache run must be compared against a warm-cache run and any divergence reported.",
+   "Control: a genuinely hermetic test must pass identically in all environments (no false positives)."
+  ],
+  "timeout_seconds": 14400,
+  "title": "Nondeterminism and hidden-input census under randomized order, seed, TZ, cwd and blocked egress",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0045": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "test-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0045",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Coverage must be collected WITH branch coverage enabled; a run without it cannot see the regression this unit exists to find. Report per-region assertion dependency, not a global percentage.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "BLD-0045",
+  "inputs": [
+   "branch-enabled coverage output from the B08 suite",
+   "the shipped source tree",
+   "the rollback and error-handling code paths specifically"
+  ],
+  "output_path": "command-center/receipts/BLD-0045.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which lines are executed by the suite but whose behaviour nothing asserts? Cross line and branch coverage against assertion reachability: for each covered region, determine whether any assertion depends on its output. Report high-coverage, zero-assertion regions and concentrate the analysis on error handling and rollback paths, where coverage most often means 'executed while nobody looked'.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot from static assertion-dependency inference to mutation of the specific region before a third attempt.",
+  "reviewer_requirement": "One independent reviewer who deletes the assertion from one covered region and confirms the audit reclassifies it.",
+  "tests_required": [
+   "Control: a function called only for its side effect with no assertion must be reported.",
+   "Control: a function whose return value feeds an assert must NOT be reported.",
+   "Control: an except-branch that is covered but whose effect is never asserted must be reported (this is the concentration target).",
+   "Instrument control: prove branch coverage is actually on by observing a partial-branch entry in the report."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Covered-but-unasserted code audit, concentrated on error and rollback paths",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0051": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "privacy-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0051",
+  "dependencies": [
+   "B07",
+   "B10"
+  ],
+  "evidence_requirement": "accounts.json is a live rotation pool: never stage it, never modify it. A finding names the variable, the scope and the evidence, and hands rotation back to the owner - the owner handles credential lifecycle personally. A zero-entropy prefix may be shown; the remainder may not.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "credential-exposure",
+   "detector-failure",
+   "data-loss-risk"
+  ],
+  "id": "BLD-0051",
+  "inputs": [
+   "every artifact writer in the program",
+   "the credential source inventory (names and scopes only)",
+   "the redaction implementation and its call sites"
+  ],
+  "output_path": "command-center/receipts/BLD-0051.json",
+  "output_schema": "command-center/schema/secret-egress-map.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: by what path could a credential reach an artifact, log, receipt, event, package or cloud image? Map every writer (receipt emitters, event ledger, monitors, package builders, cloud job submitters, rollback backups, transcript exporters) against every credential source (environment variables, auth files, account pools, keychain/DPAPI entries, MCP configs) and mark the paths lacking redaction. READ-ONLY: report presence, byte length and scope only - never print a value, never rotate, never unset.  SCOPE BOUNDARY: IMP-0061 enforces the injected-environment credential boundary; ADV-0040 and AUD-0078 scan existing artifacts for secrets and PII. This unit contributes the WRITER-by-SOURCE egress MAP - which writer could carry which credential source - which scanning finished artifacts cannot show.  [Phase 13 question answered: what threat actor was not modeled]",
+  "retry_policy": "No retry that touches a real credential. A blocked probe is reported NOT-CHECKED with the reason.",
+  "reviewer_requirement": "One independent reviewer who greps the emitted artifacts for the synthetic token and for high-entropy strings before sign-off.",
+  "tests_required": [
+   "Redaction: a synthetic fake token planted in a scratch input must be removed from every writer's output.",
+   "Shape control: the JSON-embedded form {\"password\": ...} and a camelCase variant must also be caught - both shapes have bypassed a redactor on this estate before.",
+   "Live-path control: prove the redactor is ON in the SHIPPED path, not only in the test harness, by observing it in a real emitted artifact.",
+   "Safety control: prove the unit wrote no credential value into its own receipt."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Secret-egress surface map, read-only, with rotation handed back to the owner",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ }
+}

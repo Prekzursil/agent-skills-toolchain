@@ -1,0 +1,624 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0176",
+ "title": "A failed fetch is not cached as a permanent absence",
+ "question_or_target": "Is a transient fetch failure negatively cached with a SHORT ttl and clearly distinguished from a genuine absence? PASS requires a retry after the negative-ttl to hit the network again; an empty result that reports OK is the failure being tested.",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0176",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0176",
+ "min_bytes_threshold": 1024,
+ "output_path": "command-center/receipts/TST-0176.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+ "completion_sentinel": "SUCCESS:TST-0176",
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+   "bytes": 2726,
+   "sha256": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+   "bytes": 2738,
+   "sha256": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/receipts/TST-0176.json",
+   "bytes": 24882,
+   "sha256": "8e78dd9f8da0143a1035d2bab883d80ecb917a1ae8e5df9ce6fef8237d1a1b1e",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0176/SUBAGENT-RETURN.json",
+   "bytes": 2894,
+   "sha256": "8f587be111dfc66899637bf019bccd822e42d956840a0000112071c05729fd26",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json",
+   "bytes": 1391,
+   "sha256": "c24519ef02952ea9ac0aca83745c9b271966adbe153746f51ed163a0ccc23064",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Independent reviewer verified the artifact at command-center/receipts/TST-0176.json exists on disk (24882 LF-normalized bytes), parses as JSON, carried the builder terminal state=BLOCKED with failure.classification=[reviewer-absent] and reviewer=null (no self-certification) at review time, and its report.kind=cache_report matches the catalog output_schema pin.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0176.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "python -I -c json.load(command-center/receipts/TST-0176.json)",
+     "raw_output": "parsed OK; builder state=BLOCKED; classification=[reviewer-absent]; reviewer=null",
+     "fingerprint": "w3s22-parse:TST-0176:8e78dd9f8da0143a"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+     "raw_output": "SUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True",
+     "exit_code": 0,
+     "fingerprint": "w3s22-probe1-live:TST-0176:rc0"
+    }
+   ]
+  },
+  {
+   "claim": "Independent reviewer re-ran both named probes live for 3 rounds each under the ambient environment; all exited 0 with the unit SUCCESS sentinel (probe1_negative_ttl.py=3/3 rounds rc0; probe2_genuine_404.py=3/3 rounds rc0); live sentinels match the builder-recorded raw_output lines (consistent=True).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0176/",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py ; python -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+     "raw_output": "SUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True | SUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True",
+     "exit_code": 0,
+     "fingerprint": "w3s22-rerun:TST-0176:3x2rc0"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare live SUCCESS sentinel lines against SUBAGENT-RETURN.json named_probes[].raw_output",
+     "raw_output": "sentinel-consistency=True",
+     "fingerprint": "w3s22-sentinel-cmp:TST-0176"
+    }
+   ]
+  },
+  {
+   "claim": "UNIT-ARTIFACT-MANIFEST.json registered command-center/receipts/TST-0176.json with a sha256 row matching the live artifact (CRLF normalized to LF before hashing; program digest mode sha256+length over LF-normalized bytes). Reviewer recomputed the digest independently.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "byte-compare",
+     "command": "hashlib.sha256(bytes(command-center/receipts/TST-0176.json).replace(CRLF, LF))",
+     "raw_output": "live LF-normalized sha256=8e78dd9f8da0143a1035d2bab883d80ecb917a1ae8e5df9ce6fef8237d1a1b1e",
+     "fingerprint": "w3s22-lfsha:TST-0176:8e78dd9f8da0143a"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "json.load(command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json) artifacts[path==command-center/receipts/TST-0176.json].sha256",
+     "raw_output": "manifest row sha256=8e78dd9f8da0143a1035d2bab883d80ecb917a1ae8e5df9ce6fef8237d1a1b1e",
+     "fingerprint": "w3s22-manrow-read:TST-0176"
+    }
+   ]
+  },
+  {
+   "claim": "The closure receipt validates against BOTH the program gate (platform/schema/receipt.schema.json $defs/receipt_core, 0 errors) and the catalog output_schema pointer (command-center/schema/receipt.schema.json#/$defs/cache_report, 0 errors via the platform schema resolver), and the 12-condition completion predicate evaluates COMPLETE with filesystem verification on.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "platform/lib/receipt_schema_gate.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "receipt_schema_gate.validate_receipt + schema_resolver.validate_artifact(profile pointer)",
+     "raw_output": "0 errors (receipt_core) + 0 errors (catalog profile)",
+     "fingerprint": "w3s22-schemacore:TST-0176"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0176.json",
+     "raw_output": "admission ACCEPT on the closure and REJECT naming the reviewer rule on the independent-flipped mutation copy",
+     "exit_code": 0,
+     "fingerprint": "w3s22-admission-cmd:TST-0176"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "t1-probe1_negative_ttl",
+   "name": "probe1_negative_ttl",
+   "command": "python -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+   "result": "PASS",
+   "output_tail": "25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+  },
+  {
+   "id": "t2-probe2_genuine_404",
+   "name": "probe2_genuine_404",
+   "command": "python -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+   "result": "PASS",
+   "output_tail": "ty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "empty-ok-defect",
+   "kind": "other",
+   "description": "The seeded empty-OK cache returns None with no error on a failed fetch; the probe asserts this broken shape is observable (fetched once, reported None) so a silent-OK cache cannot pass as correct.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "broken_semantics_result=null fetch_happened=true empty_ok_defect_present=true",
+   "good_state_output": "real cache raises TransientFetchError / NotFoundError with typed negative entries"
+  },
+  {
+   "id": "MUT-TST-0176-reviewer-independent-flip",
+   "kind": "mutation",
+   "description": "Independent-reviewer mutation control: reviewer.independent flipped to false on a COMPLETE copy of the SUCCESS closure receipt (identical in every other field); receipt_validate.py must REJECT naming the reviewer rule (receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true) while accepting the unmutated closure.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "REJECT:TST-0176 C2 schema-invalid (1): reviewer/independent: True was expected",
+   "good_state_output": "ACCEPT:TST-0176 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "w3-shard22-independent-reviewer-20261026",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude-code",
+  "reviewed_at": "2026-10-26T04:31:57Z",
+  "notes": "Wave-3 shard-22 independent reviewer closure. Reviewer did not build this unit; re-derived every contract check live in a fresh context: artifact predicate on the builder BLOCKED pointer, both named probes re-run for 3 stability rounds each (all exit 0, SUCCESS sentinels match the builder record), manifest sha256 recomputed (CRLF-to-LF digest mode), receipt_core + catalog output_schema validation, 12-condition predicate COMPLETE, and a reviewer mutation control (receipt_core must reject a copy whose reviewer.independent is false). Receipt rewritten from the builder BLOCKED pointer into receipt-core shape; the original builder document is preserved verbatim under extensions.builder_receipt_original. The receipt self-row is role=supporting and carries the PRE-closure builder bytes sha256; the authoritative post-closure registration is the UNIT-ARTIFACT-MANIFEST row, refreshed by the reviewer to the final closure bytes (see extensions.reviewer_manifest_refresh)."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+   "artifact_path": "command-center/receipts/TST-0176.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0176.json",
+    "raw_output": "ACCEPT:TST-0176 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "exit_code": 0,
+    "fingerprint": "w3s22-validate:TST-0176:rc0"
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "timestamps": {
+  "started_at": "2026-10-26T04:31:54Z",
+  "ended_at": "2026-10-26T04:31:57Z",
+  "duration_seconds": 3
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "report": {
+  "kind": "cache_report",
+  "observations": [
+   {
+    "name": "artifact_lf_bytes",
+    "measured": 24882,
+    "method": "digest_lf",
+    "anchor": "command-center/receipts/TST-0176.json"
+   },
+   {
+    "name": "named_probes_live_rounds",
+    "measured": "3x2 all rc0",
+    "method": "subprocess re-run, ambient env",
+    "anchor": "command-center/p2-wave/probes/TST-0176/"
+   },
+   {
+    "name": "manifest_lf_sha_match",
+    "measured": true,
+    "method": "sha256 CRLF-normalized byte-compare",
+    "anchor": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json"
+   },
+   {
+    "name": "schema_dual_validation",
+    "measured": "receipt_core+profile 0 errors",
+    "method": "receipt_schema_gate + schema_resolver",
+    "anchor": "platform/schema/receipt.schema.json"
+   }
+  ],
+  "control_ids": [
+   "empty-ok-defect",
+   "MUT-TST-0176-reviewer-independent-flip"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "wave3-shard22-builder",
+  "execution_substrate": "local-windows-pwsh7"
+ },
+ "extensions": {
+  "reviewer_shard": "wave3-shard22",
+  "builder_receipt_original": {
+   "schema_version": 1,
+   "report_kind": "cache_report",
+   "unit_id": "TST-0176",
+   "id": "TST-0176",
+   "state": "BLOCKED",
+   "sentinel": "FAILED:TST-0176 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent. Artifact completion sentinel on file: SUCCESS:TST-0176",
+   "completion_sentinel": "SUCCESS:TST-0176",
+   "completion_marker": "UNIT-COMPLETE:TST-0176",
+   "title": "A failed fetch is not cached as a permanent absence",
+   "question": "Is a transient fetch failure negatively cached with a SHORT ttl and clearly distinguished from a genuine absence? PASS requires a retry after the negative-ttl to hit the network again; an empty result that reports OK is the failure being tested.",
+   "question_or_target": "Is a transient fetch failure negatively cached with a SHORT ttl and clearly distinguished from a genuine absence? PASS requires a retry after the negative-ttl to hit the network again; an empty result that reports OK is the failure being tested.",
+   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0176",
+   "output_path": "command-center/receipts/TST-0176.json",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+   "output_schema_present": true,
+   "min_bytes_threshold": 128,
+   "registered": true,
+   "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+   },
+   "timestamps": {
+    "started_at": "2026-10-26T02:14:59Z",
+    "ended_at": "2026-10-26T02:14:59Z"
+   },
+   "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt"
+   },
+   "failure": {
+    "classification": [
+     "reviewer-absent"
+    ],
+    "reason": "Build and live probes complete; state is BLOCKED only because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true. The prior builder attempt died mid-flight and left a receipt claiming SUCCESS with probe-named reviewer entries and NO probe files on disk; this rebuild replaced the fabricated probe records with real probe files, real runs and real outputs. Only the independent reviewer closes."
+   },
+   "reviewer": null,
+   "builder": {
+    "shard": "wave3-shard22-builder",
+    "role": "cache-integrity-tester",
+    "resume_of": "prior builder attempt died mid-flight (host session ended); receipts existed without probe files"
+   },
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+    "role": "probe1 negative-ttl",
+    "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+    "exit_code": 0,
+    "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+    "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+    "role": "probe2 genuine-404",
+    "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+    "exit_code": 0,
+    "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+    "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+   },
+   "tests": [
+    {
+     "id": "TST-0176-PROBE1",
+     "name": "probe1 negative-ttl",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "after_ttl_retry": {
+      "network_calls_observed": 1,
+      "retry_hit_network": true
+     },
+     "entry": {
+      "kind": "negative-transient",
+      "short_ttl_s": 0.25,
+      "ttl": 0.25
+     },
+     "fetch_calls_total": 2,
+     "first_failure": "connection reset by peer (fixture)",
+     "second_attempt": {
+      "network_calls_during_ttl": 1,
+      "network_quiet_during_ttl": true
+     },
+     "transient_distinguished_from_absence": true
+    },
+    {
+     "id": "TST-0176-PROBE2",
+     "name": "probe2 genuine-404",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "fetch_calls_total": 1,
+     "genuine_entry": {
+      "full_ttl_s": 5.0,
+      "kind": "negative-genuine",
+      "ttl": 5.0
+     },
+     "regression_seed": {
+      "broken_semantics_result": null,
+      "empty_ok_defect_present": true,
+      "fetch_happened": true,
+      "note": "the detector proves it can see the empty-OK shape before declaring the real cache correct",
+      "seed": "an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)"
+     },
+     "stays_cached_across_transient_window": true
+    }
+   ],
+   "negative_controls": [
+    {
+     "id": "empty-ok-defect",
+     "kind": "regression-seed",
+     "description": "The seeded empty-OK cache returns None with no error on a failed fetch; the probe asserts this broken shape is observable (fetched once, reported None) so a silent-OK cache cannot pass as correct.",
+     "fired_on_bad_state": true,
+     "silent_on_good_state": true,
+     "bad_state_output": "broken_semantics_result=null fetch_happened=true empty_ok_defect_present=true",
+     "good_state_output": "real cache raises TransientFetchError / NotFoundError with typed negative entries"
+    }
+   ],
+   "evidence": [
+    {
+     "id": "E-transient-short-ttl-retried",
+     "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:NegativeCache.get",
+     "claim": "A transient fetch failure is negatively cached as kind=negative-transient with a SHORT ttl (0.25s); while the entry is live the retry makes zero network calls; after the ttl expires the very next get() hits the network again (fetch counter +1).",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+      "role": "probe1 negative-ttl",
+      "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+      "exit_code": 0,
+      "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+      "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+      "role": "probe2 genuine-404",
+      "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+      "exit_code": 0,
+      "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+      "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+       "role": "probe1 negative-ttl",
+       "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+       "exit_code": 0,
+       "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+       "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+       "role": "probe2 genuine-404",
+       "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+       "exit_code": 0,
+       "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+       "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+      }
+     ]
+    },
+    {
+     "id": "E-genuine-404-full-ttl",
+     "anchor": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py:main",
+     "claim": "A genuine absence (404 fixture) is negatively cached as kind=negative-genuine for its FULL ttl (5.0s) and stays cached across two SHORT-ttl windows without refetching; the recorded type distinguishes it from a transient blip.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+      "role": "probe2 genuine-404",
+      "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+      "exit_code": 0,
+      "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+      "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+     },
+     "verifier_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+      "role": "probe1 negative-ttl",
+      "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+      "exit_code": 0,
+      "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+      "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+     },
+     "probes": [
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+       "role": "probe2 genuine-404",
+       "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+       "exit_code": 0,
+       "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+       "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+      },
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+       "role": "probe1 negative-ttl",
+       "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+       "exit_code": 0,
+       "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+       "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+      }
+     ]
+    },
+    {
+     "id": "E-empty-ok-seed",
+     "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:broken_get",
+     "claim": "Regression seed: the broken semantics (empty result reported OK on a failed fetch, measured on this estate with a fixture-local fetch) are detectable - the probe reproduces the empty-OK shape and asserts on it before trusting the real cache.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+      "role": "probe1 negative-ttl",
+      "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+      "exit_code": 0,
+      "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+      "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+      "role": "probe2 genuine-404",
+      "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+      "exit_code": 0,
+      "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+      "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+       "role": "probe1 negative-ttl",
+       "fingerprint": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+       "exit_code": 0,
+       "live_result_digest": "8897052d16c0fa27c14c0a3d73cbef5158674c9164587fad2408a8d26cecf17c",
+       "raw_output": "{\"after_ttl_retry\": {\"network_calls_observed\": 1, \"retry_hit_network\": true}, \"entry\": {\"kind\": \"negative-transient\", \"short_ttl_s\": 0.25, \"ttl\": 0.25}, \"fetch_calls_total\": 2, \"first_failure\": \"connection reset by peer (fixture)\", \"pass\": true, \"probe\": \"probe1-negative-ttl\", \"second_attempt\": {\"network_calls_during_ttl\": 1, \"network_quiet_during_ttl\": true}, \"transient_distinguished_from_absence\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe1 kind=negative-transient ttl=0.25s quiet-during-ttl=True retry-hits-network=True"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+       "role": "probe2 genuine-404",
+       "fingerprint": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+       "exit_code": 0,
+       "live_result_digest": "68438b0a724af5b020a8b9b8a03563e2f904b7f4c0c8a8593786af23ad9e8de0",
+       "raw_output": "{\"fetch_calls_total\": 1, \"genuine_entry\": {\"full_ttl_s\": 5.0, \"kind\": \"negative-genuine\", \"ttl\": 5.0}, \"pass\": true, \"probe\": \"probe2-genuine-404\", \"regression_seed\": {\"broken_semantics_result\": null, \"empty_ok_defect_present\": true, \"fetch_happened\": true, \"note\": \"the detector proves it can see the empty-OK shape before declaring the real cache correct\", \"seed\": \"an EMPTY cache reporting OK, measured on this estate (fixture-local fetch)\"}, \"stays_cached_across_transient_window\": true, \"unit_id\": \"TST-0176\"}\nSUCCESS:TST-0176-probe2 genuine-404-ttl=5.0s still_cached=True empty-OK-seed-detected=True"
+      }
+     ]
+    }
+   ],
+   "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0176/negative_cache.py",
+    "entry_types": [
+     "positive",
+     "negative-transient",
+     "negative-genuine"
+    ],
+    "ttls": {
+     "positive": 60.0,
+     "negative-transient": 0.25,
+     "negative-genuine": 5.0
+    },
+    "network_signal": "injectable fetch callable with a call counter; no live network in the fixture (measured locally on this estate)",
+    "signals": {
+     "a": "second attempt's observed network call (fetch counter delta while live vs after ttl)",
+     "b": "entry recorded kind + ttl compared across transient vs genuine classes"
+    }
+   },
+   "downstream_consumers": [
+    {
+     "artifact_path": "command-center/receipts/TST-0176.json",
+     "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+     "executed": false,
+     "read_ok": true,
+     "probe": {
+      "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0176",
+      "method": "command",
+      "role": "verifier",
+      "note": "run by the independent reviewer after closing state=SUCCESS (a BLOCKED receipt is not self-delivering by design)"
+     }
+    }
+   ],
+   "residual_unknowns": [
+    {
+     "claim": "The measured layer is the probe-local typed-TTL fetch cache the unit demands; if production grows a persistent negative cache, the same two probes re-bind to its get/fetch seam.",
+     "settling_experiment": "Re-point NegativeCache.get calls at the production cache seam and re-run both probes.",
+     "verdict": "NOT-CHECKED"
+    }
+   ],
+   "defects": [],
+   "artifacts": [
+    {
+     "unit_id": "TST-0176",
+     "path": "command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py",
+     "bytes": 2726,
+     "sha256": "0c0018aafcf432a68ce3349bd5f6791f023c43ce6af91d24c1d9646e644a23d6",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0176/SUBAGENT-RETURN.json"
+    },
+    {
+     "unit_id": "TST-0176",
+     "path": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py",
+     "bytes": 2738,
+     "sha256": "31c64ed9e33ced9f1523f6d1b4fb10e320d35735ba03ab6e02a47b5c78036280",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0176/SUBAGENT-RETURN.json"
+    }
+   ],
+   "report": {
+    "kind": "cache_report",
+    "observations": [
+     {
+      "name": "transient negative entry type + ttl",
+      "measured": "kind=negative-transient ttl=0.25s",
+      "method": "entry inspection after a fixture fetch raising TransientFetchError",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py"
+     },
+     {
+      "name": "network calls during live negative ttl",
+      "measured": "0 calls while live; 1 call immediately after ttl expiry",
+      "method": "fetch call-counter deltas around get() calls",
+      "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:NegativeCache.get"
+     },
+     {
+      "name": "genuine 404 ttl",
+      "measured": "kind=negative-genuine ttl=5.0s; still cached across 0.55s window",
+      "method": "entry inspection + refetch-counter probe after 2x transient windows",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py"
+     }
+    ],
+    "control_ids": [
+     "TST-0176-PROBE1",
+     "TST-0176-PROBE2",
+     "empty-ok-defect"
+    ]
+   },
+   "notes": "G-1 for TST-0176: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (receipt claimed SUCCESS with probe-named reviewer entries and no probe files on disk). Owner-gated: no (owner_approval_required=false)."
+  },
+  "reviewer_probe_stability": {
+   "rounds": 3,
+   "per_script": {
+    "probe1_negative_ttl.py": "3/3 rc0",
+    "probe2_genuine_404.py": "3/3 rc0"
+   }
+  },
+  "reviewer_manifest_refresh": {
+   "why": "closure rewrites the receipt bytes, so the manifest receipt row is refreshed post-final-write to the closure bytes; the pre-closure builder digest is preserved here",
+   "pre_closure_sha256": "8e78dd9f8da0143a1035d2bab883d80ecb917a1ae8e5df9ce6fef8237d1a1b1e",
+   "pre_closure_bytes": 24882,
+   "digest_mode": "sha256 over CRLF-normalized-to-LF bytes"
+  }
+ }
+}

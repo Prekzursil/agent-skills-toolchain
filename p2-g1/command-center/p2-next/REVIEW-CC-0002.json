@@ -1,0 +1,67 @@
+{
+  "unit": "CC-0002",
+  "mutants": [
+    {
+      "name": "m5-sentinel-belongs-to-a-different-real-unit",
+      "path": "command-center/p2-next/_mutants/m5-sentinel-belongs-to-a-different-real-unit.json",
+      "rationale": "parseable, SCHEMA-VALID sentinel, unit_id is a REAL catalog unit -- but the sentinel binds to a DIFFERENT real unit. This is the copy-paste receipt, and C4 is the one admit() condition no author mutant reaches (m1 deletes the sentinel and dies at C2; m3 rewrites the sentinel to match its own forged id).",
+      "expected": "REJECT",
+      "expected_condition": "C4",
+      "observed": "REJECT",
+      "observed_condition": "C4",
+      "reason": "C4 sentinel does not embed the unit id: 'SENTINEL:AUD-0006:BLOCKED-ON-INDEPENDENT-REVIEW copy-pasted from another unit'",
+      "as_expected": true
+    },
+    {
+      "name": "m5b-sentinel-other-unit-SUCCESS-family",
+      "path": "command-center/p2-next/_mutants/m5b-sentinel-other-unit-SUCCESS-family.json",
+      "rationale": "the same attack in the other sentinel family (1,911 of 2,007 catalogued sentinels are bare SUCCESS:<ID>), so C4 is shown to hold for both grammars, not just one.",
+      "expected": "REJECT",
+      "expected_condition": "C4",
+      "observed": "REJECT",
+      "observed_condition": "C4",
+      "reason": "C4 sentinel does not embed the unit id: 'SUCCESS:AUD-0006'",
+      "as_expected": true
+    },
+    {
+      "name": "m6-sentinel-superstring-of-the-unit-id",
+      "path": "command-center/p2-next/_mutants/m6-sentinel-superstring-of-the-unit-id.json",
+      "rationale": "C4 binds by SUBSTRING (`uid not in sentinel`), which in isolation would admit a sentinel naming a longer id that merely CONTAINS the real one. Probing whether the schema's fixed-width id pattern closes that hole. Survey: 0 catalog ids are a strict prefix of another.",
+      "expected": "REJECT",
+      "expected_condition": "",
+      "observed": "REJECT",
+      "observed_condition": "C2",
+      "reason": "C2 schema-invalid (1): sentinel: 'SUCCESS:TST-03340' does not match '^(?:(?:SUCCESS|FAILED):[A-Z][A-Z0-9]*-[0-9]{4}(?:[\\\\s:].*)?|SENTINEL:[A-Z]",
+      "as_expected": true
+    },
+    {
+      "name": "m7-artifact-claims-a-nonexistent-file-exists",
+      "path": "command-center/p2-next/_mutants/m7-artifact-claims-a-nonexistent-file-exists.json",
+      "rationale": "asserts exists=true, bytes=999999 and a fabricated sha256 for a path that is not on disk. receipt_validate's docstring scopes it to ADMISSION -- well-formedness, not truthfulness -- so acceptance here is IN SCOPE for this module; recorded because 'a gate that reads a claim is not a gate' and no layer in the substrate currently re-derives artifact metadata.",
+      "expected": "ACCEPT",
+      "expected_condition": "",
+      "observed": "ACCEPT",
+      "observed_condition": "C1",
+      "reason": "C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds",
+      "as_expected": true
+    }
+  ],
+  "findings": [],
+  "control_golden_accepted": true,
+  "catalog_prefix_pairs": 0,
+  "shipped_selftest_rc": 0,
+  "observations": [
+    {
+      "kind": "substring-binding-is-closed-upstream",
+      "note": "C4's substring test would in isolation admit a superstring id, but the schema's fixed-width id pattern ^[A-Z][A-Z0-9]*-[0-9]{4}$ rejects such a sentinel at C2, and 0 real catalog ids are a strict prefix of another. Not a hole; recorded so a future schema relaxation knows it is load-bearing."
+    },
+    {
+      "kind": "artifact-metadata-never-re-derived",
+      "defect": "a receipt may assert exists=true, a fabricated sha256 and a fabricated byte count for a path that is not on disk, and the substrate admits it",
+      "in_scope_for_this_module": false,
+      "why_not_a_CC-0002_refutation": "receipt_validate.py's own docstring scopes it to ADMISSION and says completion is receipt_schema_gate layer 2; neither layer claims to re-derive artifacts. This is a substrate GAP to file, not a broken promise.",
+      "suggested_owner": "a new condition C5, or an artifact-verifier unit"
+    }
+  ],
+  "verdict": "PASS"
+}

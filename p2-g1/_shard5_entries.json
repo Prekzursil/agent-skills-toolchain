@@ -1,0 +1,564 @@
+{
+ "CNF-0173": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "independent-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0173",
+  "dependencies": [
+   "B07",
+   "CNF-0172"
+  ],
+  "evidence_requirement": "Name the specific control that fired and the observable it produced. 'The council behaved sensibly' is not evidence; cite the emitted re-evaluation round or the recruited critic's identity.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "false-pass",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "CNF-0173",
+  "inputs": [
+   "the council runtime and its anti-failure controls",
+   "_USER-PROMPTS.md:10944, 11227-11244",
+   "a confirmer-authored scenario set (new, not reused)"
+  ],
+  "output_path": "command-center/receipts/CNF-0173.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: does suspiciously fast unanimity actually trigger blind re-evaluation, forced dissent or independent-critic recruitment (spec:10944) when the scenario is written by someone who did not build the detector? Author a fresh unanimity scenario, run it, and observe which control fires. A control that only fires on its author's fixture is fitted to the fixture.",
+  "retry_policy": "Cross-vendor dispatch: blocking foreground only, never --background. On win-arg-limit retry ONCE with --ignore-user-config and prompt-by-file. On exit 0 with a missing or unparsable output file classify severed-stream and do NOT retry into a verdict. Never convert a vendor-side 429/529 into a REFUTED.",
+  "reviewer_requirement": "One Anthropic-side reviewer who authors a third scenario and reports whether the control generalises.",
+  "tests_required": [
+   "Both-states: a genuinely deliberated consensus must NOT trigger the control (no false positive).",
+   "Trigger sensitivity: sweep the unanimity speed and report where the control starts firing.",
+   "Role collapse: a scenario where all participants argue identically must be detected separately from fast unanimity.",
+   "Idea-count gaming: a 100-idea target satisfied by trivial wording variants must be caught by the novelty control."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Reproduce the anti-sycophancy trigger from a confirmer-authored scenario, not the implementer's fixture",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "mcp__codex__codex",
+   "mcp__codex__codex-reply"
+  ]
+ },
+ "CNF-0177": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "independent-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0177",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Report recall and precision with the task list attached, plus the token volume injected per task. Prove the held-out set is genuinely held out by showing it was authored after the router index was frozen and never committed to the tuning corpus.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "false-pass"
+  ],
+  "id": "CNF-0177",
+  "inputs": [
+   "the capability router and its index",
+   "the installed skill/plugin/workflow inventory",
+   "_USER-PROMPTS.md:10948-10963, 11330-11331",
+   "a held-out task set authored for this unit"
+  ],
+  "output_path": "command-center/receipts/CNF-0177.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: does the router select the right capability on tasks it was not tuned against, and does it flood context when it is unsure? Author a held-out task set as the confirmer, measure selection recall, precision, and injected-token volume, and specifically probe spec:11330 - the router failing to select an INSTALLED skill.",
+  "retry_policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run and may never be re-run in the hope of a CONFIRMED. Retry is permitted ONLY for an infrastructure fault (severed stream, quota, crashed runner) and the retry must be recorded in the confirmation record with its cause. Two strikes on the same error-fingerprint then pivot per AGENTS.md 4b.",
+  "reviewer_requirement": "One reviewer who authors ten adversarial tasks designed to make the router over-select.",
+  "tests_required": [
+   "Known-present control: a task with an exactly matching installed skill must select it.",
+   "Known-absent control: a task with no matching capability must produce the declared fallback, not a confident wrong pick.",
+   "Flooding: assert top-k injection stays within the declared budget on ambiguous tasks.",
+   "Both-states: uninstalling a skill must change the router's selection for its task."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Evaluate the capability router on a held-out task set the implementer never saw",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0178": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reproduction-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0178",
+  "dependencies": [
+   "B07",
+   "CNF-0146"
+  ],
+  "evidence_requirement": "Attach the before and after filesystem manifests (path, size, hash) for each lifecycle step. The repository must not be present on the machine path during the run; assert that explicitly.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "partial-artifact",
+   "detector-failure",
+   "environment-dependent"
+  ],
+  "id": "CNF-0178",
+  "inputs": [
+   "the published marketplace registry and package",
+   "a clean profile with seeded user data",
+   "_USER-PROMPTS.md:10844-10871, 11347"
+  ],
+  "output_path": "command-center/receipts/CNF-0178.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: can install, update, rollback and uninstall be reproduced using only the published registry artifact - no repository, no developer environment - and does uninstall provably leave user data intact? Spec:11347 names 'rollback removes existing commands or user data' as a required failure class, so the proof must be a filesystem diff, not an assertion.",
+  "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+  "reviewer_requirement": "One reviewer who repeats install-and-uninstall with a different seeded data set.",
+  "tests_required": [
+   "Known-broken control: a package that deletes a seeded user file must be caught by the differ.",
+   "Both-states: a healthy uninstall must leave every seeded user file byte-identical.",
+   "Repo-absence: assert no repository checkout is reachable from the install path.",
+   "Rollback: after rollback the previous version's behaviour must be reproduced, not merely its version string."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Marketplace lifecycle reproduced from the PUBLISHED artifact only, with a filesystem differ on user data",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0180": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reproduction-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0180",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Publish per-run distributions with n, median and spread, the input sizes, and the machine state before each run. Assert non-empty inputs explicitly - a benchmark whose inputs were empty produced a meaningless green on this estate and was believed.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "environment-dependent",
+   "overclaim",
+   "detector-failure",
+   "nondeterminism"
+  ],
+  "id": "CNF-0180",
+  "inputs": [
+   "the benchmark harness and its recorded results",
+   "the claimed latency and overhead figures",
+   "_USER-PROMPTS.md:11021-11022"
+  ],
+  "output_path": "command-center/receipts/CNF-0180.json",
+  "output_schema": "command-center/schema/confirmation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: do the claimed latency and overhead numbers survive a cold machine, a randomized run order, and a non-empty input set? Benchmarks on this estate have returned clean greens over EMPTY inputs, and warm-state measurements systematically flatter the second thing measured. Re-measure independently with the confounds removed and report distributions, not single numbers.",
+  "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+  "reviewer_requirement": "One reviewer who re-runs the two most consequential measurements on a different day.",
+  "tests_required": [
+   "Empty-input control: assert every benchmark case has non-zero input size; a zero must fail the run.",
+   "Order control: randomize run order and confirm the ranking is stable.",
+   "Cold-state control: measure once cold and once warm and report both.",
+   "Known-broken control: inject a deliberate 20 percent slowdown and confirm the harness detects it."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Re-measure latency and overhead from cold machine state with randomized ordering",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNF-0188": {
+  "_source_slice_file": "CNF-2.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "program-confirmer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:CNF-0188",
+  "dependencies": [
+   "B09"
+  ],
+  "evidence_requirement": "Publish both counts per floor with the extraction rule for each, and the reconciliation for any disagreement. Guard each pair of regexes by proving each is SILENT on the other's item type, and cross-check that disjoint categories sum to the file's total heading count.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "single-signal"
+  ],
+  "id": "CNF-0188",
+  "inputs": [
+   "command-center/PROMPT-ONE-FLOOR-AUDIT.json (the prior count - to be independently re-derived)",
+   "the option universe, workflow catalog, blueprint set, protocol and preset registries",
+   "_USER-PROMPTS.md:11393-11396 (the floors)"
+  ],
+  "output_path": "command-center/receipts/CNF-0188.json",
+  "output_schema": "command-center/schema/program-gate-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "11",
+  "question_or_target": "Question: do the program's numeric floors hold under an INDEPENDENT counter - at least 160 workflow candidates, 96 blueprints, 48 council protocols, 64 presets, and the option and architecture counts? Re-implement each counter with a different extraction path (JSON side versus Markdown side, different anchors) and require agreement; where the two disagree, resolve from raw source rather than picking the larger number. A prior pass got the council floor wrong by taking the max of two lists that should have been summed as two separate fields.",
+  "retry_policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame, and record that the frame was frozen at a stated commit.",
+  "reviewer_requirement": "One reviewer who writes a third extractor for the floor with the largest disagreement.",
+  "tests_required": [
+   "Disjointness: protocol ids and preset ids must intersect to the empty set (computed, not assumed).",
+   "Sum check: category counts must equal the independently measured total, so nothing is double-counted or unaccounted.",
+   "Known-present control: a hand-picked item must be found by both extractors.",
+   "Known-absent control: a sentinel string that exists nowhere must return zero from both."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Recount every numeric floor with a mechanically different extractor and escalate disagreement",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "CNL-0076": {
+  "_source_slice_file": "CNL-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "feedback_opus_not_sonnet_subagents - Opus for substantive design units",
+   "model": "opus",
+   "role": "council-systems-designer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:CNL-0076",
+  "dependencies": [
+   "CNL-0010"
+  ],
+  "evidence_requirement": "two mechanically independent signals per rules/common/single-signal-verification.md: each load-bearing claim cites a file:line or a reproducible command plus its verbatim output, and the second signal must use a DIFFERENT mechanism (different shell, different data field, different measurement) than the first.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "spec-underspecified",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "CNL-0076",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json"
+  ],
+  "output_path": "command-center/design/council/CNL-0076-stopping-expression-runtime-evaluation-semantics.schema.json",
+  "output_schema": "command-center/schema/councilspec.v2.schema.json",
+  "owner_approval_required": false,
+  "phase": "2C",
+  "question_or_target": "At what cadence is a stopping expression evaluated (mid-turn, end-of-turn, end-of-round), must it be side-effect free, and what happens when a predicate becomes true and then false again before the round ends?",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same hypothesis, enumerate >=2 alternative mechanisms before a 3rd attempt (AGENTS.md 4b). Max 3 attempts, then emit FAILED:<id> with the diagnostic tail.",
+  "reviewer_requirement": "one reviewer who re-derives the result mechanically from the fixtures (independent recount / re-tabulation), not by reading the author's argument; a disagreement in the number blocks the unit.",
+  "tests_required": [
+   "a flapping-predicate fixture must produce a deterministic outcome",
+   "an expression with a side effect must be REJECTED, proving purity is enforced not assumed",
+   "negative control recorded verbatim: state what the check does on the state it is meant to reject"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Stopping-expression runtime evaluation semantics",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0003": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Pure pattern-classification with a fixture-provable oracle.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0003",
+  "dependencies": [
+   "IMP-0001"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the scanner's own exit code and named-path report against a fixture tree; (2) an out-of-band `du`/file-count census of the same tree computed by a different script, proving the scanner saw every path (detector control: it must find a KNOWN-PRESENT planted item before any 'clean' verdict is trusted).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "packaging-bloat",
+   "detector-failure",
+   "uncontrolled-silence"
+  ],
+  "id": "IMP-0003",
+  "inputs": [
+   "_USER-PROMPTS.md:10842",
+   "_USER-PROMPTS.md:11307 (package accidentally includes .git or huge unrelated files)",
+   "tools/plugin/payload-allowlist.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0003.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a pre-emit scanner that fails the build when the staging tree contains any of: a .git directory or gitlink, node_modules, __pycache__, *.log, transcript/session JSONL, an OS cache directory, or any single file above a configured byte ceiling. Distinct from IMP-0004: this classifies by PATH ROLE, not by content entropy.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must plant a forbidden path the implementer did not anticipate (their choice) and confirm the scanner fires.",
+  "tests_required": [
+   "tools/plugin/tests/test_forbidden_content.py (one case per forbidden class)",
+   "NEGATIVE CONTROL: an empty staging tree must produce 'clean' AND the same run must report the planted-item control as FOUND, so silence is never the only signal",
+   "MUTATION: delete the .git rule and assert the suite goes red"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Forbidden-content scanner for the staged payload",
+  "tool_permissions": [
+   "Read",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0013": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Windows-specific; must run on the owner's box.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0013",
+  "dependencies": [
+   "IMP-0012"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) `Get-Command <tool>` resolves and the adapter launches it; (2) the same tool probed from Git Bash `command -v`, with the DISAGREEMENT recorded rather than hidden \u2014 a tool visible to only one shell is a finding the adapter must handle, not a test to skip.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "path-rewrite-corruption",
+   "detector-failure"
+  ],
+  "id": "IMP-0013",
+  "inputs": [
+   "release/platforms/windows/ (existing configs at HEAD)",
+   "rules/common/single-signal-verification.md (mon-on-PATH case: which vs Get-Command)",
+   "_USER-PROMPTS.md:10831"
+  ],
+  "output_path": "command-center/receipts/IMP-0013.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement release/platforms/windows launch logic that resolves tools through `Get-Command` (which sees .cmd/.bat shims) rather than a POSIX `which`, spawns via argv arrays, and never depends on the Git-Bash view of PATH.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer verifies no code path shells out through Git Bash for a Windows launch.",
+  "tests_required": [
+   "release/platforms/windows/tests/test_launch_adapter.ps1",
+   "NEGATIVE CONTROL: point the adapter at a non-existent tool and assert a named, actionable error (not a stack trace)",
+   "case: a .cmd shim resolves where a POSIX which would miss it"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Windows launch adapter (pwsh7 primary, .cmd shim resolution)",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "PowerShell",
+   "Bash"
+  ]
+ },
+ "IMP-0014": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "Must correctly choose BLOCKED over a fabricated pass when the substrate is absent.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0014",
+  "dependencies": [
+   "IMP-0012"
+  ],
+  "evidence_requirement": "TWO independent signals of EXECUTION on a real macOS host (a CI runner or a hosted mac), e.g. `uname -s` = Darwin from inside the launched process AND the adapter's own resolved interpreter path. If neither can be obtained, the receipt must carry BLOCKED plus two independent probes proving no macOS substrate is reachable (e.g. the runner catalogue and a failed provisioning attempt).",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "dependency-blocked",
+   "overclaim",
+   "green-not-live"
+  ],
+  "id": "IMP-0014",
+  "inputs": [
+   "release/platforms/macos/README.md (README-only at HEAD)",
+   "_USER-PROMPTS.md:10831",
+   "_USER-PROMPTS.md:10997 (cross-platform tests)"
+  ],
+  "output_path": "command-center/receipts/IMP-0014.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement release/platforms/macos launch logic (zsh default shell, `xattr -d com.apple.quarantine` handling for downloaded artifacts, BSD-vs-GNU coreutils flag differences). If no macOS execution substrate is available on this estate, the unit must terminate as BLOCKED with a two-signal proof of the missing prerequisite (spec:11400) \u2014 it must NOT emit a green based on code review alone.",
+  "retry_policy": "no silent retry: a missing substrate is BLOCKED on the first attempt, not retried into a pass",
+  "reviewer_requirement": "Reviewer must reject any receipt whose evidence is source inspection rather than Darwin execution.",
+  "tests_required": [
+   "release/platforms/macos/tests/test_launch_adapter.sh executed ON Darwin",
+   "NEGATIVE CONTROL: quarantined fixture must fail to launch before the xattr step and succeed after"
+  ],
+  "timeout_seconds": 3600,
+  "title": "macOS launch adapter with quarantine-attribute handling",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "IMP-0018": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "The failure mode is estate-proven and the threshold choice needs judgement about transport layers.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0018",
+  "dependencies": [
+   "IMP-0012"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a 40,000-character payload round-trips successfully through the marshaller (child process reports the received byte count); (2) the SAME payload passed inline reproduces the OS-level failure, proving the control is real and the fix is what changed the outcome.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "arg-length-overflow",
+   "detector-failure"
+  ],
+  "id": "IMP-0018",
+  "inputs": [
+   "rules/common/cross-vendor-dispatch.md#3 (payload_len=34472 -> os error 206)",
+   "_USER-PROMPTS.md:11312 (command-line length overflow)"
+  ],
+  "output_path": "command-center/receipts/IMP-0018.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a marshalling layer that writes any argument payload above a conservative threshold to a temp file and passes the PATH, because Windows CreateProcess caps the command line at 32,767 characters and an over-limit invocation dies with OS error 206 before any code runs.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must confirm the temp file is created with restrictive permissions and deleted on every exit path.",
+  "tests_required": [
+   "tools/plugin/tests/test_arg_marshalling.py::test_over_limit_payload_round_trips",
+   "NEGATIVE CONTROL (both-states): the inline path must FAIL in the same test run",
+   "temp-file cleanup assertion, including on the failure path"
+  ],
+  "timeout_seconds": 1800,
+  "title": "File-based argument marshalling for payloads near the command-line limit",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0020": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "rationale": "The correct scoping is argument-aware and command-aware; a naive implementation reproduces the measured data-loss.",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0020",
+  "dependencies": [
+   "IMP-0019"
+  ],
+  "evidence_requirement": "TWO independent signals in BOTH directions: (1) a revision argument `origin/main:path/to/file` survives unconverted; (2) a genuine POSIX path argument `/c/Users/...` IS still converted and the operation it feeds actually happens (verified by the resulting file existing, not by exit code). A guard that passes only direction (1) is the measured regression.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "path-rewrite-corruption",
+   "uncontrolled-silence",
+   "detector-failure"
+  ],
+  "id": "IMP-0020",
+  "inputs": [
+   "rules/common/windows-shell.md#1 and #11 (global suppression inverts the problem)",
+   "_USER-PROMPTS.md:11309 (PowerShell/Git Bash path rewriting)"
+  ],
+  "output_path": "command-center/receipts/IMP-0020.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement a guard that applies MSYS_NO_PATHCONV=1 ONLY around arguments that are git revisions/pathspecs, never globally \u2014 a global suppression was measured to silently break a legitimate `/c/Users/...` clone argument, producing a false 'nothing happened' across every downstream probe.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer must run both directions from Git Bash, not only from pwsh7 where the trap does not exist.",
+  "tests_required": [
+   "tools/plugin/tests/test_pathconv_guard.py (revision arg preserved; path arg converted; both in one run)",
+   "NEGATIVE CONTROL: global suppression mode must break the path-arg case, proving the test discriminates"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Argument-scoped path-conversion guard for MSYS environments",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0022": {
+  "_source_slice_file": "IMP-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.x-codex",
+   "rationale": "Exact set-collision algorithm over a path list.",
+   "role": "implementer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0022",
+  "dependencies": [
+   "IMP-0001",
+   "IMP-0021"
+  ],
+  "evidence_requirement": "TWO independent signals: (1) casefold-collision count computed over the payload path set; (2) an actual extraction of the artifact onto a case-insensitive filesystem, comparing the extracted file count against the archive entry count \u2014 a collision shows up as a shortfall.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "case-collision-loss",
+   "data-loss",
+   "detector-failure"
+  ],
+  "id": "IMP-0022",
+  "inputs": [
+   "_USER-PROMPTS.md:11016 (path-casing tests)",
+   "tools/plugin/payload-allowlist.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0022.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Detect at build time any two payload paths that differ only by case (legal on Linux, colliding on Windows/macOS default filesystems) and normalise path comparison to a documented casefold so a deploy on a case-insensitive filesystem cannot silently overwrite a sibling file.",
+  "retry_policy": "two-strikes-then-pivot",
+  "reviewer_requirement": "Reviewer confirms the normalisation is casefold, not lower(), and that Unicode NFC normalisation is applied first.",
+  "tests_required": [
+   "tools/plugin/tests/test_case_collision_paths.py::test_no_casefold_collisions_in_payload",
+   "NEGATIVE CONTROL: plant README.md and readme.md and assert both the set check and the extraction-count check fire"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Path-casing normalisation and cross-filesystem collision detection",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ }
+}

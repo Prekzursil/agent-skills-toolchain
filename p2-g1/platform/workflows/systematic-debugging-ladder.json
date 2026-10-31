@@ -1,0 +1,480 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "systematic-debugging-ladder",
+  "name": "Systematic debugging ladder: reproduce, then run the cheapest DISCRIMINATING probe first",
+  "description": "Blueprint 44 of 96 (BP-DBG-01). Reproduce, isolate and EXPLAIN a defect before any fix is proposed. Two mechanisms are bound together that neither source has on its own: reproduce-before-fix, and probe ORDERING by cost-to-discrimination ratio. A hypothesis with no discriminating probe is not admitted as a hypothesis, and the loop carries the two-strikes pivot - after the second failure on the same hypothesis it stops and enumerates at least two alternatives instead of grinding. When the defect cannot be reproduced the work is explicitly reclassified as instrumentation rather than fixed on a guess.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["debugging", "reproduce-first", "probe-ordering", "two-strikes"],
+  "flagship": false,
+
+  "params": {
+    "symptom": {
+      "type": "string",
+      "required": true,
+      "min_length": 15,
+      "description": "The observed behaviour, stated as an observation rather than as a diagnosis"
+    },
+    "repro_attempt": {
+      "type": "string",
+      "description": "What has already been tried to reproduce it, so the ladder does not repeat a failed route"
+    },
+    "environment": {
+      "type": "object",
+      "description": "The environment the symptom was observed in - shell, OS, interpreter, line endings",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shell": { "type": "string", "enum": ["pwsh", "git-bash", "wsl", "cmd"] },
+          "os": { "type": "string" },
+          "interpreter": { "type": "string" },
+          "line_endings": { "type": "string", "enum": ["crlf", "lf", "mixed", "unknown"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "max_probe_budget": {
+      "type": "integer",
+      "default": 12,
+      "minimum": 1,
+      "maximum": 64,
+      "description": "Probes are ordered by cost/discrimination; the budget bounds the ladder, not the ordering"
+    },
+    "parallel_probes_allowed": {
+      "type": "boolean",
+      "default": false,
+      "description": "S3b: only when hypotheses are MUTUALLY INDEPENDENT - dependent probes contaminate each other"
+    }
+  },
+
+  "roles": {
+    "investigator": {
+      "description": "Reproduces, enumerates hypotheses with a discriminating probe each, and explains the mechanism. Proposes no fix before an explanation exists.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Bash:python", "Bash:pytest", "Bash:git"],
+      "speaking_rights": "always"
+    },
+    "rival-hypothesis-generator": {
+      "description": "Supplies the competing explanation for every candidate root cause, plus the experiment that would discriminate between them",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "mcp__codex__codex"],
+      "speaking_rights": "rebuttal-only"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:python", "Bash:pytest", "Bash:git", "mcp__codex__codex"],
+    "deny": ["Edit", "Write", "WebFetch"],
+    "network": "none",
+    "write_paths": ["command-center/debug/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"]
+  },
+
+  "model_routing": {
+    "strategy": "escalating",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == rival-hypothesis-generator",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "a rival explanation from the same vendor inherits the same blind spot that produced the first one"
+      }
+    ],
+    "escalation": {
+      "on": ["low-confidence", "failure"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "max" },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "reproduced-deterministically": {
+      "predicate": "custom-expression",
+      "expression": "repro_attempts >= 3 AND repro_successes == repro_attempts",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "every-hypothesis-has-a-probe": {
+      "predicate": "custom-expression",
+      "expression": "hypotheses_without_discriminating_probe == 0 AND rival_explanation_present == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "explanation-before-fix": {
+      "predicate": "custom-expression",
+      "expression": "mechanism_explained == true AND fix_proposed_before_explanation == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "reproduce",
+      "title": "S0 REPRODUCE deterministically - three of three, or say non-deterministic",
+      "kind": "task",
+      "role": "investigator",
+      "timeout_seconds": 3600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "CNF-0018",
+        "title": "Reproduce the symptom deterministically in a disposable environment at the observed commit",
+        "phase": "11",
+        "question_or_target": "Reproduce the symptom at least three times in a disposable environment pinned to the observed commit and environment, and report the success ratio honestly. A 2-of-3 reproduction is reported as NON-DETERMINISTIC, not rounded up to reproduced.",
+        "inputs": ["params.symptom", "params.repro_attempt", "params.environment"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "investigator",
+          "basis": "reproduction is the step every later claim rests on"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:python", "Bash:pytest", "Bash:git"],
+        "execution_substrate": "disposable-container",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/debug/reproduction.json",
+        "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+        "evidence_requirement": "the exact command, the pinned commit sha, and the raw output of every attempt including the failures - three attempts recorded, not one attempt asserted three times",
+        "tests_required": [
+          "a heisenbug must be reported as non-deterministic with its measured ratio, never as a confident reproduction",
+          "both-states control: the same command at a commit BEFORE the defect was introduced must NOT reproduce it; if it reproduces everywhere the harness is measuring something else",
+          "the environment fields actually used must be echoed back - a reproduction that ignores line_endings on this platform is not reproducing the reported case"
+        ],
+        "reviewer_requirement": "an independent reviewer who runs the recorded command in their own disposable environment and reports their own ratio",
+        "completion_sentinel": "SUCCESS:CNF-0018 emitted only when reproduction.json exists, parses, and records at least three attempts with raw output and an honest success ratio; otherwise FAILED:CNF-0018 <reason>",
+        "retry_policy": "two strikes then pivot: after two failed reproduction routes, enumerate at least two alternative routes (different shell, different commit, different fixture) before a third attempt",
+        "failure_classification": ["not-reproducible", "environment-mismatch", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/debug/reproduction.json",
+          "schema_ref": "command-center/schema/reproduction-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CNF-0018",
+          "consumers": ["repro-gate", "enumerate-hypotheses"]
+        }
+      ]
+    },
+    {
+      "id": "repro-gate",
+      "title": "Not reproducible is a valid outcome: the work becomes instrumentation, and that is recorded",
+      "kind": "gate",
+      "depends_on": ["reproduce"],
+      "gate_ref": "reproduced-deterministically"
+    },
+    {
+      "id": "enumerate-hypotheses",
+      "title": "S1 ENUMERATE hypotheses, each with a rival explanation and a discriminating probe",
+      "kind": "task",
+      "role": "rival-hypothesis-generator",
+      "depends_on": ["repro-gate"],
+      "work_unit_ref": "SYN-0003",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/debug/hypotheses.json",
+          "schema_ref": "command-center/schema/rival-hypothesis.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SYN-0003",
+          "consumers": ["hypothesis-gate", "order-probes"]
+        }
+      ]
+    },
+    {
+      "id": "hypothesis-gate",
+      "title": "A hypothesis with no discriminating probe is not a hypothesis",
+      "kind": "gate",
+      "depends_on": ["enumerate-hypotheses"],
+      "gate_ref": "every-hypothesis-has-a-probe"
+    },
+    {
+      "id": "order-probes",
+      "title": "S2 ORDER probes by cost-to-discrimination ratio - cheapest DISCRIMINATING probe first",
+      "kind": "task",
+      "role": "investigator",
+      "depends_on": ["hypothesis-gate"],
+      "work_unit_ref": "RES-0174",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/debug/probe-order.json",
+          "schema_ref": "command-center/schema/intervention-ranking.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-0174",
+          "consumers": ["probe-ladder"]
+        }
+      ]
+    },
+    {
+      "id": "probe-ladder",
+      "title": "S3 PROBE down the ordered ladder until exactly one hypothesis survives",
+      "kind": "loop",
+      "depends_on": ["order-probes"],
+      "loop_var": "rung",
+      "body": [
+        {
+          "id": "run-next-probe",
+          "title": "Run the next probe on the ladder and record what it eliminated",
+          "kind": "task",
+          "role": "investigator",
+          "work_unit_ref": "ADV-0012",
+          "timeout_seconds": 1800
+        },
+        {
+          "id": "parallel-probe-batch",
+          "title": "S3b OPTIONAL - probe mutually INDEPENDENT hypotheses concurrently",
+          "kind": "fanout",
+          "depends_on": ["run-next-probe"],
+          "when": "parallel_probes_allowed == true",
+          "over": {
+            "source": "artifact",
+            "ref": "command-center/debug/probe-order.json",
+            "item_var": "independent_probe",
+            "key_field": "probe_id"
+          },
+          "max_concurrency": 4,
+          "max_items": 64,
+          "on_item_failure": "continue",
+          "body": [
+            {
+              "id": "one-independent-probe",
+              "title": "One probe whose result cannot be contaminated by a sibling probe",
+              "kind": "task",
+              "role": "investigator",
+              "work_unit_ref": "ADV-0012",
+              "timeout_seconds": 1200
+            }
+          ],
+          "barrier": {
+            "mode": "quorum",
+            "quorum": 0.75,
+            "on_partial": "proceed-degraded",
+            "verify_artifact_exists": true
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 12,
+        "min_iterations": 1,
+        "converged_when": "surviving_hypotheses == 1 AND probes_run <= max_probe_budget",
+        "no_progress_rounds": 2,
+        "metrics": [
+          { "name": "surviving_hypotheses", "direction": "decrease", "target": 1 },
+          { "name": "probes_run", "direction": "increase" },
+          { "name": "discrimination_yield", "direction": "stabilize", "epsilon": 0.05 }
+        ],
+        "on_no_convergence": "escalate"
+      }
+    },
+    {
+      "id": "explain-mechanism",
+      "title": "S4 EXPLAIN the mechanism, THEN propose the fix - never the other way round",
+      "kind": "task",
+      "role": "investigator",
+      "depends_on": ["probe-ladder"],
+      "work_unit_ref": "ADV-0110",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/debug/root-cause.json",
+          "schema_ref": "command-center/schema/root-cause-graph.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0110",
+          "consumers": ["explanation-gate"]
+        }
+      ]
+    },
+    {
+      "id": "explanation-gate",
+      "title": "No fix proposal may predate the explanation it claims to be based on",
+      "kind": "gate",
+      "depends_on": ["explain-mechanism"],
+      "gate_ref": "explanation-before-fix"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "root-cause-explained",
+      "expression": "mechanism_explained == true AND surviving_hypotheses == 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "repro_successes >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "two-strikes-escalation",
+      "expression": {
+        "all": [
+          "same_hypothesis_failures >= 2",
+          "alternatives_enumerated >= 2"
+        ]
+      },
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "not-reproducible-becomes-instrumentation",
+      "expression": "repro_successes == 0 AND instrumentation_plan_recorded == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": ["probe-transient", "environment-mismatch"],
+    "no_retry_on": ["not-reproducible", "owner-blocked"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "explain-mechanism"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["not-reproducible", "no-discriminating-probe", "detector-failure"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/debug/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/systematic-debugging-ladder",
+    "granularity": "stage",
+    "idempotency_key_from": ["workflow_id", "stage_id", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 21600,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/systematic-debugging-ladder.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "timings"],
+    "forbid_nondeterministic_sources": ["filesystem-order"],
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "stage",
+    "read_only": true,
+    "invalidate_on": ["commit-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "graph"],
+    "plan_artifact": "command-center/dry-run/systematic-debugging-ladder-plan.json",
+    "forbid_tools": ["Bash:python", "Bash:pytest", "Bash:git", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "wallclock_seconds": { "min": 600, "expected": 5400, "max": 21600 },
+    "tokens": { "min": 80000, "expected": 500000, "max": 2000000 },
+    "tool_calls": { "expected": 120, "max": 600 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only investigation: Edit and Write are DENIED by tool policy, so the ladder cannot change the code it is diagnosing",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/systematic-debugging-ladder.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "superpowers:systematic-debugging",
+        "relation": "COMPOSE",
+        "license": "third-party-plugin",
+        "credit": "superpowers"
+      },
+      {
+        "source": "skills/simplest-probe-first",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DBG-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["superpowers:systematic-debugging@as-shipped"]
+  },
+
+  "outputs": {
+    "root-cause": {
+      "path": "command-center/debug/root-cause.json",
+      "schema_ref": "command-center/schema/root-cause-graph.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/CLAIM-REGISTRY.json"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "Symptom: a shell script that passes `bash -n` locally fails in CI with `syntax error near unexpected token`.",
+      "s0": "reproduced 3/3 by running the script under the CI interpreter rather than the local one; the local interpreter reproduces 0/3, which is itself the first discriminating datum",
+      "s1": "hypotheses: (H1) CRLF line endings, (H2) an interpreter version difference, (H3) a missing coreutil, (H4) an environment variable. Each carries a rival explanation and a probe",
+      "s2_ordering": "H1's probe is `file` plus a byte dump - seconds, and it separates H1 from H2/H3/H4 outright. H2's probe needs a matrix build - minutes. H1 goes first on cost-to-discrimination, not on how plausible it feels",
+      "s3": "the byte dump shows CRLF; H1 survives, H2-H4 are eliminated by one cheap probe. probes_run = 1 against a budget of 12",
+      "two_strikes_case": "on a sibling bug, the first hypothesis failed twice. no_progress_rounds=2 fires, the loop stops, and two alternative approaches are enumerated before any third attempt - the anti-grind control",
+      "non_deterministic_case": "a heisenbug reproducing 1/3 exits through not-reproducible-becomes-instrumentation with emit-partial: the deliverable is instrumentation, and no root cause is claimed"
+    },
+    "distinctive_mechanism": "probe ORDERING by cost-to-discrimination is a first-class stage that gates the loop, and Edit/Write are denied so no fix can be applied before the explanation exists",
+    "contraindications": [
+      "NOT when the fix is obvious AND cheap to revert - the ladder costs more than the fix",
+      "NOT when the symptom is 'nothing happened' - validate the INSTRUMENT first with the both-states control blueprint",
+      "NOT for a defect already reproduced and explained - start at the fix"
+    ],
+    "not_a_duplicate_because": "the both-states blueprint validates the INSTRUMENT; this finds the defect once the instrument is trusted, and its defining artifact is an ordered probe ladder rather than a fixture pair."
+  }
+}

@@ -1,0 +1,1804 @@
+{
+ "unit_id": "WFA-0044",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0044",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0044-workflow-ir-spec.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  },
+  {
+   "id": "T-PROBES",
+   "name": "named probes",
+   "command": "probe1+probe2",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0044 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0044-workflow-ir-spec.json",
+     "raw_output": "bytes=31360 sha256=1ee9ccad79543065d0dee7792a6ea7a6a40a6dffde87e795648fcd2b526c93d2",
+     "fingerprint": "f251c8a44dc6d9f3040a48a2b883e179",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0044",
+     "raw_output": "schema-check",
+     "fingerprint": "b2636d8a96e0558407760c09ae26c4e9",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0044 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0044",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0044",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "ab32dbd2c48a81febbd34809efd0d2de",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0044",
+     "raw_output": "schema-valid",
+     "fingerprint": "cb508055dd5626ab7d5527a2e54f528e",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+   "bytes": 31360,
+   "sha256": "1ee9ccad79543065d0dee7792a6ea7a6a40a6dffde87e795648fcd2b526c93d2",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "record_type": "WorkflowIR",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "not_a_runtime": true,
+   "title": "Specify the vendor-neutral workflow IR that every acquired workflow is translated into",
+   "question": "Implementation target: a typed intermediate representation able to express stages, roles, gates, tool policy, fan-out and barriers, loops with convergence rules, human checkpoints, retries, resume, stopping expressions and lineage - expressive enough to round-trip the 10 saved Claude Code workflows losslessly, and explicitly NOT a second execution runtime.",
+   "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "output_schema_declared": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/WorkflowIR",
+   "output_schema_on_disk": false,
+   "output_schema_fallback": "command-center/p2-wave/probes/WFA-0044/workflow_ir.schema.json",
+   "schema_pack_note": "WFA-0001's wfa-schema-pack.json is absent on this worktree. This record is a WorkflowIR document validated against the local WFA-0044 schema which still requires source_anchor on every node.",
+   "constructs": {
+    "stage": "ordered named phase; maps from phase() and blueprint stg",
+    "role": "participant binding on an agent or stage",
+    "gate": "blocking or advisory predicate; downgrade to advisory is a defect",
+    "tool_policy": "allow/deny tool sets; not a shell runtime",
+    "fanout": "parallel dispatch with explicit width; maps from parallel()",
+    "barrier": "join; filter(Boolean) is join=filter_boolean",
+    "loop": "iteration with a named convergence rule and max_iters",
+    "checkpoint": "human checkpoint; IR records it, does not prompt a human",
+    "retry": "typed retry bound to a failure family",
+    "resume": "resume key; IR does not perform resume",
+    "stop": "Boolean AND/OR/NOT stopping expression tree",
+    "lineage": "origin/parent anchors so translation is not anonymous",
+    "agent": "one agent() site; dispatch is blocking unless flagged fire_and_forget",
+    "schema_fanin": "schema-typed fan-in on a child or join",
+    "lossy": "inexpressible construct; required instead of silent drop",
+    "workflow": "root; every other node is reachable from it"
+   },
+   "stopping_expression_grammar": {
+    "ops": [
+     "eq",
+     "gte",
+     "lte",
+     "and",
+     "or",
+     "not"
+    ],
+    "leaf": {
+     "left": "metric-or-field",
+     "right": "literal"
+    },
+    "examples": [
+     {
+      "op": "or",
+      "args": [
+       {
+        "op": "eq",
+        "left": "evidence_saturation",
+        "right": true
+       },
+       {
+        "op": "gte",
+        "left": "time_minutes",
+        "right": 180
+       }
+      ],
+      "source_anchor": "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md:10941"
+     }
+    ]
+   },
+   "dialect_map": {
+    "agent({...})": "agent + optional role/tool_policy/gate/retry/checkpoint/resume/lineage",
+    "agent(\"...\")": "agent.form=string plus lossy args-as-string",
+    "parallel([...])": "fanout.width = child count",
+    "phase(name, fn)": "stage.name",
+    "loop({convergence,max_iters}, fn)": "loop",
+    "stop({expr})": "stop",
+    ".filter(Boolean)": "barrier.join=filter_boolean",
+    "Date.now()": "lossy Date.now; not an IR clock",
+    "background:true": "agent.dispatch=fire_and_forget plus lossy fire-and-forget"
+   },
+   "blueprint_45_field_map": {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.json (absent on this worktree)",
+    "catalog_note": "45-field schema, topo/stg/dag/gates/stop fields",
+    "topo": "edges between stage/fanout/barrier nodes",
+    "stg": "stage",
+    "dag": "nodes+edges",
+    "gates": "gate",
+    "stop": "stop",
+    "unmapped_native_keys": "recorded in the lossy-field ledger; library file is not on disk so keys are not enumerated from records"
+   },
+   "prior_art": {
+    "agentspec": "tools/agentspec/agentspec/spec.py FanOut/Barrier/Pipeline/Subworkflow/WorkUnit",
+    "relation": "agentspec is a typed Workflow for this estate's runtime. WFA-0044 IR is the vendor-neutral translation target and must not import or execute agentspec.",
+    "source_anchor": "tools/agentspec/agentspec/spec.py:78"
+   },
+   "nodes": [
+    {
+     "id": "wfa-0044:workflow:0",
+     "kind": "workflow",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94620",
+     "filename": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+     "stem": "WFA-0044-workflow-ir-spec",
+     "title": "vendor-neutral workflow IR"
+    },
+    {
+     "id": "wfa-0044:kind:stage",
+     "kind": "stage",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind stage"
+    },
+    {
+     "id": "wfa-0044:kind:role",
+     "kind": "role",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind role"
+    },
+    {
+     "id": "wfa-0044:kind:gate",
+     "kind": "gate",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind gate"
+    },
+    {
+     "id": "wfa-0044:kind:tool_policy",
+     "kind": "tool_policy",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind tool_policy"
+    },
+    {
+     "id": "wfa-0044:kind:fanout",
+     "kind": "fanout",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind fanout"
+    },
+    {
+     "id": "wfa-0044:kind:barrier",
+     "kind": "barrier",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind barrier"
+    },
+    {
+     "id": "wfa-0044:kind:loop",
+     "kind": "loop",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:14863",
+     "documents": "IR node kind loop"
+    },
+    {
+     "id": "wfa-0044:kind:checkpoint",
+     "kind": "checkpoint",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:14863",
+     "documents": "IR node kind checkpoint"
+    },
+    {
+     "id": "wfa-0044:kind:retry",
+     "kind": "retry",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind retry"
+    },
+    {
+     "id": "wfa-0044:kind:resume",
+     "kind": "resume",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind resume"
+    },
+    {
+     "id": "wfa-0044:kind:stop",
+     "kind": "stop",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind stop"
+    },
+    {
+     "id": "wfa-0044:kind:lineage",
+     "kind": "lineage",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+     "documents": "IR node kind lineage"
+    },
+    {
+     "id": "wfa-0044:kind:agent",
+     "kind": "agent",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:48304",
+     "documents": "IR node kind agent"
+    },
+    {
+     "id": "wfa-0044:kind:schema_fanin",
+     "kind": "schema_fanin",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94677",
+     "documents": "IR node kind schema_fanin"
+    },
+    {
+     "id": "wfa-0044:kind:lossy",
+     "kind": "lossy",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94635",
+     "documents": "IR node kind lossy"
+    },
+    {
+     "id": "wfa-0044:lint:not-runtime",
+     "kind": "lossy",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94636",
+     "code": "no-runtime-entrypoint",
+     "reason": "IR library exposes parse/render/validate only"
+    },
+    {
+     "id": "wfa-0044:corpus:agentic-repair-reliability",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js:1",
+     "corpus_file": "agentic-repair-reliability.js",
+     "n_nodes": 5,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:bc-stage-compendium-enrichment",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js:1",
+     "corpus_file": "bc-stage-compendium-enrichment.js",
+     "n_nodes": 10,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:codex-auth-research-fanout",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs:1",
+     "corpus_file": "codex-auth-research-fanout.mjs",
+     "n_nodes": 12,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:design-gate",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs:1",
+     "corpus_file": "design-gate.mjs",
+     "n_nodes": 5,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:dialect-args-as-string",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js:1",
+     "corpus_file": "dialect-args-as-string.js",
+     "n_nodes": 3,
+     "lossy": [
+      "args-as-string"
+     ],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:dialect-clock-and-background",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js:1",
+     "corpus_file": "dialect-clock-and-background.js",
+     "n_nodes": 5,
+     "lossy": [
+      "Date.now",
+      "fire-and-forget"
+     ],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:dialect-human-checkpoint-lineage",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js:1",
+     "corpus_file": "dialect-human-checkpoint-lineage.js",
+     "n_nodes": 5,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:dialect-tool-policy-resume",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js:1",
+     "corpus_file": "dialect-tool-policy-resume.js",
+     "n_nodes": 5,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:harness-self-improve-sweep",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js:1",
+     "corpus_file": "harness-self-improve-sweep.js",
+     "n_nodes": 5,
+     "lossy": [],
+     "origin": "dialect-standin"
+    },
+    {
+     "id": "wfa-0044:corpus:plan-gate",
+     "kind": "lineage",
+     "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs:1",
+     "corpus_file": "plan-gate.mjs",
+     "n_nodes": 6,
+     "lossy": [],
+     "origin": "dialect-standin"
+    }
+   ],
+   "edges": [
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:stage",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:role",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:gate",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:tool_policy",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:fanout",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:barrier",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:loop",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:checkpoint",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:retry",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:resume",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:stop",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:lineage",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:agent",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:schema_fanin",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:kind:lossy",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:lint:not-runtime",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:agentic-repair-reliability",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:bc-stage-compendium-enrichment",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:codex-auth-research-fanout",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:design-gate",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:dialect-args-as-string",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:dialect-clock-and-background",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:dialect-human-checkpoint-lineage",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:dialect-tool-policy-resume",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:harness-self-improve-sweep",
+     "rel": "specifies"
+    },
+    {
+     "from": "wfa-0044:workflow:0",
+     "to": "wfa-0044:corpus:plan-gate",
+     "rel": "specifies"
+    }
+   ],
+   "lossy_field_ledger": [
+    {
+     "code": "Date.now",
+     "construct": "Date.now()",
+     "disposition": "recorded",
+     "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+     "reason": "wall-clock is a banned non-determinism source; IR has no time primitive"
+    },
+    {
+     "code": "args-as-string",
+     "construct": "agent(string)",
+     "disposition": "recorded",
+     "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+     "reason": "args-as-string is a known saved-workflow defect; prompt is kept, form is flagged"
+    },
+    {
+     "code": "fire-and-forget",
+     "construct": "background/fire-and-forget agent",
+     "disposition": "recorded",
+     "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+     "reason": "must be flagged, not normalised into a blocking call"
+    },
+    {
+     "code": "live-body-unavailable",
+     "construct": "live:~/.claude/workflows 10 saved workflow bodies",
+     "disposition": "live-absent",
+     "witness": [
+      {
+       "path": "/root/.claude/workflows",
+       "present": false,
+       "n_js_mjs": 0,
+       "names": []
+      },
+      {
+       "path": "/root/.claude/workflows",
+       "present": false,
+       "n_js_mjs": 0,
+       "names": []
+      },
+      {
+       "path": "/home/Prekzursil/.claude/workflows",
+       "present": false,
+       "n_js_mjs": 0,
+       "names": []
+      },
+      {
+       "path": "/opt/p2/ast-integrate/workflows",
+       "present": true,
+       "n_js_mjs": 1,
+       "names": [
+        "rtv-pdr.js"
+       ]
+      }
+     ],
+     "reason": "This Linux worktree has no ~/.claude/workflows corpus. Round-trip is proven on 10 dialect stand-ins named after the harvest/catalog filenames that are known. Remaining live filenames are UNKNOWN because 08-WORKFLOW-CANDIDATE-REGISTRY.json is also absent."
+    },
+    {
+     "code": "arbitrary-js",
+     "construct": "closures, statements, and expressions outside the dialect",
+     "disposition": "unmapped",
+     "witness": "command-center/p2-wave/probes/WFA-0044/ir.py",
+     "reason": "IR is not a JS runtime; leftover syntax is lossy, not executed"
+    },
+    {
+     "code": "blueprint-native-45",
+     "construct": "09-WORKFLOW-BLUEPRINT-LIBRARY.json native 45-field keys",
+     "disposition": "unmapped",
+     "witness": "command-center/WORK-UNIT-CATALOG.json",
+     "reason": "library file absent; topo/stg/dag/gates/stop are mapped by name, other native keys cannot be enumerated here"
+    }
+   ],
+   "corpus": {
+    "source": "dialect-standin",
+    "directory": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows",
+    "absolute": "/opt/p2/ast-integrate/command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows",
+    "live_hits": [
+     {
+      "path": "/root/.claude/workflows",
+      "present": false,
+      "n_js_mjs": 0,
+      "names": []
+     },
+     {
+      "path": "/root/.claude/workflows",
+      "present": false,
+      "n_js_mjs": 0,
+      "names": []
+     },
+     {
+      "path": "/home/Prekzursil/.claude/workflows",
+      "present": false,
+      "n_js_mjs": 0,
+      "names": []
+     },
+     {
+      "path": "/opt/p2/ast-integrate/workflows",
+      "present": true,
+      "n_js_mjs": 1,
+      "names": [
+       "rtv-pdr.js"
+      ]
+     }
+    ],
+    "files": [
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+     "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs"
+    ],
+    "names": [
+     "agentic-repair-reliability.js",
+     "bc-stage-compendium-enrichment.js",
+     "codex-auth-research-fanout.mjs",
+     "design-gate.mjs",
+     "dialect-args-as-string.js",
+     "dialect-clock-and-background.js",
+     "dialect-human-checkpoint-lineage.js",
+     "dialect-tool-policy-resume.js",
+     "harness-self-improve-sweep.js",
+     "plan-gate.mjs"
+    ],
+    "n": 10,
+    "harvest_named": [
+     "agentic-repair-reliability.js",
+     "bc-stage-compendium-enrichment.js",
+     "codex-auth-research-fanout.mjs",
+     "design-gate.mjs",
+     "harness-self-improve-sweep.js",
+     "plan-gate.mjs"
+    ],
+    "note": "WFA-0007/WFA-0042 harvest sampled five wf-saved-* ids; catalog WFA-0045 names plan-gate.mjs and design-gate.mjs. Remaining live filenames are UNKNOWN because 08-WORKFLOW-CANDIDATE-REGISTRY.json and live ~/.claude/workflows are absent on this worktree."
+   },
+   "round_trip": {
+    "n": 10,
+    "files": [
+     {
+      "id": "agentic-repair-reliability",
+      "filename": "agentic-repair-reliability.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+      "n_constructs": 1,
+      "n_nodes": 5,
+      "kinds": [
+       "loop"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "bc-stage-compendium-enrichment",
+      "filename": "bc-stage-compendium-enrichment.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+      "n_constructs": 3,
+      "n_nodes": 10,
+      "kinds": [
+       "stage",
+       "stage",
+       "stage"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "codex-auth-research-fanout",
+      "filename": "codex-auth-research-fanout.mjs",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+      "n_constructs": 2,
+      "n_nodes": 12,
+      "kinds": [
+       "fanout",
+       "barrier"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "design-gate",
+      "filename": "design-gate.mjs",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+      "n_constructs": 1,
+      "n_nodes": 5,
+      "kinds": [
+       "stage"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "dialect-args-as-string",
+      "filename": "dialect-args-as-string.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+      "n_constructs": 2,
+      "n_nodes": 3,
+      "kinds": [
+       "agent",
+       "lossy"
+      ],
+      "lossy": [
+       "args-as-string"
+      ],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "dialect-clock-and-background",
+      "filename": "dialect-clock-and-background.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+      "n_constructs": 3,
+      "n_nodes": 5,
+      "kinds": [
+       "agent",
+       "lossy",
+       "lossy"
+      ],
+      "lossy": [
+       "Date.now",
+       "fire-and-forget"
+      ],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "dialect-human-checkpoint-lineage",
+      "filename": "dialect-human-checkpoint-lineage.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+      "n_constructs": 1,
+      "n_nodes": 5,
+      "kinds": [
+       "agent"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "dialect-tool-policy-resume",
+      "filename": "dialect-tool-policy-resume.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+      "n_constructs": 1,
+      "n_nodes": 5,
+      "kinds": [
+       "agent"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "harness-self-improve-sweep",
+      "filename": "harness-self-improve-sweep.js",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+      "n_constructs": 2,
+      "n_nodes": 5,
+      "kinds": [
+       "loop",
+       "stop"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     },
+     {
+      "id": "plan-gate",
+      "filename": "plan-gate.mjs",
+      "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs",
+      "n_constructs": 1,
+      "n_nodes": 6,
+      "kinds": [
+       "stage"
+      ],
+      "lossy": [],
+      "field_by_field": "PASS"
+     }
+    ],
+    "equivalence": "semantic field-by-field after canonical render, not byte-identical JS"
+   },
+   "exemplars": [
+    {
+     "id": "agentic-repair-reliability",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": []
+    },
+    {
+     "id": "bc-stage-compendium-enrichment",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 10,
+     "n_edges": 9,
+     "lossy_codes": []
+    },
+    {
+     "id": "codex-auth-research-fanout",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 12,
+     "n_edges": 11,
+     "lossy_codes": []
+    },
+    {
+     "id": "design-gate",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": []
+    },
+    {
+     "id": "dialect-args-as-string",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 3,
+     "n_edges": 2,
+     "lossy_codes": [
+      "args-as-string"
+     ]
+    },
+    {
+     "id": "dialect-clock-and-background",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": [
+      "Date.now",
+      "fire-and-forget"
+     ]
+    },
+    {
+     "id": "dialect-human-checkpoint-lineage",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": []
+    },
+    {
+     "id": "dialect-tool-policy-resume",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": []
+    },
+    {
+     "id": "harness-self-improve-sweep",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 5,
+     "n_edges": 4,
+     "lossy_codes": []
+    },
+    {
+     "id": "plan-gate",
+     "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs",
+     "ir_version": "wfa-ir-1",
+     "execution_semantics": "none",
+     "n_nodes": 6,
+     "n_edges": 5,
+     "lossy_codes": []
+    }
+   ],
+   "ir_only_sidecars": [
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/agentic-repair-reliability.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/bc-stage-compendium-enrichment.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/codex-auth-research-fanout.mjs.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/design-gate.mjs.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-args-as-string.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-clock-and-background.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-human-checkpoint-lineage.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-tool-policy-resume.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/harness-self-improve-sweep.js.ir.json",
+    "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/plan-gate.mjs.ir.json"
+   ],
+   "runtime_lint": {
+    "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/WFA-0044/ir.py",
+    "main_guard": false,
+    "banned_funcs": [],
+    "ok": true,
+    "note": "IR library must not define a runtime entrypoint"
+   },
+   "held_out_for_probe2": [
+    "design-gate.mjs",
+    "codex-auth-research-fanout.mjs"
+   ],
+   "ts": "2026-08-25T00:58:39Z",
+   "SUCCESS:WFA-0044": true
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0044",
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0044/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0044"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0044-workflow-ir-spec.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "376e6f3f26b88af0c479527c0a4d46f3",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "WorkflowIR",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 31360,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0044-workflow-ir-spec.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "record_type": "WorkflowIR",
+ "ir_version": "wfa-ir-1",
+ "execution_semantics": "none",
+ "not_a_runtime": true,
+ "title": "Specify the vendor-neutral workflow IR that every acquired workflow is translated into",
+ "question": "Implementation target: a typed intermediate representation able to express stages, roles, gates, tool policy, fan-out and barriers, loops with convergence rules, human checkpoints, retries, resume, stopping expressions and lineage - expressive enough to round-trip the 10 saved Claude Code workflows losslessly, and explicitly NOT a second execution runtime.",
+ "catalog_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+ "output_schema_declared": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/WorkflowIR",
+ "output_schema_on_disk": false,
+ "output_schema_fallback": "command-center/p2-wave/probes/WFA-0044/workflow_ir.schema.json",
+ "schema_pack_note": "WFA-0001's wfa-schema-pack.json is absent on this worktree. This record is a WorkflowIR document validated against the local WFA-0044 schema which still requires source_anchor on every node.",
+ "constructs": {
+  "stage": "ordered named phase; maps from phase() and blueprint stg",
+  "role": "participant binding on an agent or stage",
+  "gate": "blocking or advisory predicate; downgrade to advisory is a defect",
+  "tool_policy": "allow/deny tool sets; not a shell runtime",
+  "fanout": "parallel dispatch with explicit width; maps from parallel()",
+  "barrier": "join; filter(Boolean) is join=filter_boolean",
+  "loop": "iteration with a named convergence rule and max_iters",
+  "checkpoint": "human checkpoint; IR records it, does not prompt a human",
+  "retry": "typed retry bound to a failure family",
+  "resume": "resume key; IR does not perform resume",
+  "stop": "Boolean AND/OR/NOT stopping expression tree",
+  "lineage": "origin/parent anchors so translation is not anonymous",
+  "agent": "one agent() site; dispatch is blocking unless flagged fire_and_forget",
+  "schema_fanin": "schema-typed fan-in on a child or join",
+  "lossy": "inexpressible construct; required instead of silent drop",
+  "workflow": "root; every other node is reachable from it"
+ },
+ "stopping_expression_grammar": {
+  "ops": [
+   "eq",
+   "gte",
+   "lte",
+   "and",
+   "or",
+   "not"
+  ],
+  "leaf": {
+   "left": "metric-or-field",
+   "right": "literal"
+  },
+  "examples": [
+   {
+    "op": "or",
+    "args": [
+     {
+      "op": "eq",
+      "left": "evidence_saturation",
+      "right": true
+     },
+     {
+      "op": "gte",
+      "left": "time_minutes",
+      "right": 180
+     }
+    ],
+    "source_anchor": "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md:10941"
+   }
+  ]
+ },
+ "dialect_map": {
+  "agent({...})": "agent + optional role/tool_policy/gate/retry/checkpoint/resume/lineage",
+  "agent(\"...\")": "agent.form=string plus lossy args-as-string",
+  "parallel([...])": "fanout.width = child count",
+  "phase(name, fn)": "stage.name",
+  "loop({convergence,max_iters}, fn)": "loop",
+  "stop({expr})": "stop",
+  ".filter(Boolean)": "barrier.join=filter_boolean",
+  "Date.now()": "lossy Date.now; not an IR clock",
+  "background:true": "agent.dispatch=fire_and_forget plus lossy fire-and-forget"
+ },
+ "blueprint_45_field_map": {
+  "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.json (absent on this worktree)",
+  "catalog_note": "45-field schema, topo/stg/dag/gates/stop fields",
+  "topo": "edges between stage/fanout/barrier nodes",
+  "stg": "stage",
+  "dag": "nodes+edges",
+  "gates": "gate",
+  "stop": "stop",
+  "unmapped_native_keys": "recorded in the lossy-field ledger; library file is not on disk so keys are not enumerated from records"
+ },
+ "prior_art": {
+  "agentspec": "tools/agentspec/agentspec/spec.py FanOut/Barrier/Pipeline/Subworkflow/WorkUnit",
+  "relation": "agentspec is a typed Workflow for this estate's runtime. WFA-0044 IR is the vendor-neutral translation target and must not import or execute agentspec.",
+  "source_anchor": "tools/agentspec/agentspec/spec.py:78"
+ },
+ "nodes": [
+  {
+   "id": "wfa-0044:workflow:0",
+   "kind": "workflow",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94620",
+   "filename": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+   "stem": "WFA-0044-workflow-ir-spec",
+   "title": "vendor-neutral workflow IR"
+  },
+  {
+   "id": "wfa-0044:kind:stage",
+   "kind": "stage",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind stage"
+  },
+  {
+   "id": "wfa-0044:kind:role",
+   "kind": "role",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind role"
+  },
+  {
+   "id": "wfa-0044:kind:gate",
+   "kind": "gate",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind gate"
+  },
+  {
+   "id": "wfa-0044:kind:tool_policy",
+   "kind": "tool_policy",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind tool_policy"
+  },
+  {
+   "id": "wfa-0044:kind:fanout",
+   "kind": "fanout",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind fanout"
+  },
+  {
+   "id": "wfa-0044:kind:barrier",
+   "kind": "barrier",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind barrier"
+  },
+  {
+   "id": "wfa-0044:kind:loop",
+   "kind": "loop",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:14863",
+   "documents": "IR node kind loop"
+  },
+  {
+   "id": "wfa-0044:kind:checkpoint",
+   "kind": "checkpoint",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:14863",
+   "documents": "IR node kind checkpoint"
+  },
+  {
+   "id": "wfa-0044:kind:retry",
+   "kind": "retry",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind retry"
+  },
+  {
+   "id": "wfa-0044:kind:resume",
+   "kind": "resume",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind resume"
+  },
+  {
+   "id": "wfa-0044:kind:stop",
+   "kind": "stop",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind stop"
+  },
+  {
+   "id": "wfa-0044:kind:lineage",
+   "kind": "lineage",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94631",
+   "documents": "IR node kind lineage"
+  },
+  {
+   "id": "wfa-0044:kind:agent",
+   "kind": "agent",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:48304",
+   "documents": "IR node kind agent"
+  },
+  {
+   "id": "wfa-0044:kind:schema_fanin",
+   "kind": "schema_fanin",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94677",
+   "documents": "IR node kind schema_fanin"
+  },
+  {
+   "id": "wfa-0044:kind:lossy",
+   "kind": "lossy",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94635",
+   "documents": "IR node kind lossy"
+  },
+  {
+   "id": "wfa-0044:lint:not-runtime",
+   "kind": "lossy",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json:94636",
+   "code": "no-runtime-entrypoint",
+   "reason": "IR library exposes parse/render/validate only"
+  },
+  {
+   "id": "wfa-0044:corpus:agentic-repair-reliability",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js:1",
+   "corpus_file": "agentic-repair-reliability.js",
+   "n_nodes": 5,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:bc-stage-compendium-enrichment",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js:1",
+   "corpus_file": "bc-stage-compendium-enrichment.js",
+   "n_nodes": 10,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:codex-auth-research-fanout",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs:1",
+   "corpus_file": "codex-auth-research-fanout.mjs",
+   "n_nodes": 12,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:design-gate",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs:1",
+   "corpus_file": "design-gate.mjs",
+   "n_nodes": 5,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:dialect-args-as-string",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js:1",
+   "corpus_file": "dialect-args-as-string.js",
+   "n_nodes": 3,
+   "lossy": [
+    "args-as-string"
+   ],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:dialect-clock-and-background",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js:1",
+   "corpus_file": "dialect-clock-and-background.js",
+   "n_nodes": 5,
+   "lossy": [
+    "Date.now",
+    "fire-and-forget"
+   ],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:dialect-human-checkpoint-lineage",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js:1",
+   "corpus_file": "dialect-human-checkpoint-lineage.js",
+   "n_nodes": 5,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:dialect-tool-policy-resume",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js:1",
+   "corpus_file": "dialect-tool-policy-resume.js",
+   "n_nodes": 5,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:harness-self-improve-sweep",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js:1",
+   "corpus_file": "harness-self-improve-sweep.js",
+   "n_nodes": 5,
+   "lossy": [],
+   "origin": "dialect-standin"
+  },
+  {
+   "id": "wfa-0044:corpus:plan-gate",
+   "kind": "lineage",
+   "source_anchor": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs:1",
+   "corpus_file": "plan-gate.mjs",
+   "n_nodes": 6,
+   "lossy": [],
+   "origin": "dialect-standin"
+  }
+ ],
+ "edges": [
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:stage",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:role",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:gate",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:tool_policy",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:fanout",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:barrier",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:loop",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:checkpoint",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:retry",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:resume",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:stop",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:lineage",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:agent",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:schema_fanin",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:kind:lossy",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:lint:not-runtime",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:agentic-repair-reliability",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:bc-stage-compendium-enrichment",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:codex-auth-research-fanout",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:design-gate",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:dialect-args-as-string",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:dialect-clock-and-background",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:dialect-human-checkpoint-lineage",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:dialect-tool-policy-resume",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:harness-self-improve-sweep",
+   "rel": "specifies"
+  },
+  {
+   "from": "wfa-0044:workflow:0",
+   "to": "wfa-0044:corpus:plan-gate",
+   "rel": "specifies"
+  }
+ ],
+ "lossy_field_ledger": [
+  {
+   "code": "Date.now",
+   "construct": "Date.now()",
+   "disposition": "recorded",
+   "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+   "reason": "wall-clock is a banned non-determinism source; IR has no time primitive"
+  },
+  {
+   "code": "args-as-string",
+   "construct": "agent(string)",
+   "disposition": "recorded",
+   "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+   "reason": "args-as-string is a known saved-workflow defect; prompt is kept, form is flagged"
+  },
+  {
+   "code": "fire-and-forget",
+   "construct": "background/fire-and-forget agent",
+   "disposition": "recorded",
+   "witness": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+   "reason": "must be flagged, not normalised into a blocking call"
+  },
+  {
+   "code": "live-body-unavailable",
+   "construct": "live:~/.claude/workflows 10 saved workflow bodies",
+   "disposition": "live-absent",
+   "witness": [
+    {
+     "path": "/root/.claude/workflows",
+     "present": false,
+     "n_js_mjs": 0,
+     "names": []
+    },
+    {
+     "path": "/root/.claude/workflows",
+     "present": false,
+     "n_js_mjs": 0,
+     "names": []
+    },
+    {
+     "path": "/home/Prekzursil/.claude/workflows",
+     "present": false,
+     "n_js_mjs": 0,
+     "names": []
+    },
+    {
+     "path": "/opt/p2/ast-integrate/workflows",
+     "present": true,
+     "n_js_mjs": 1,
+     "names": [
+      "rtv-pdr.js"
+     ]
+    }
+   ],
+   "reason": "This Linux worktree has no ~/.claude/workflows corpus. Round-trip is proven on 10 dialect stand-ins named after the harvest/catalog filenames that are known. Remaining live filenames are UNKNOWN because 08-WORKFLOW-CANDIDATE-REGISTRY.json is also absent."
+  },
+  {
+   "code": "arbitrary-js",
+   "construct": "closures, statements, and expressions outside the dialect",
+   "disposition": "unmapped",
+   "witness": "command-center/p2-wave/probes/WFA-0044/ir.py",
+   "reason": "IR is not a JS runtime; leftover syntax is lossy, not executed"
+  },
+  {
+   "code": "blueprint-native-45",
+   "construct": "09-WORKFLOW-BLUEPRINT-LIBRARY.json native 45-field keys",
+   "disposition": "unmapped",
+   "witness": "command-center/WORK-UNIT-CATALOG.json",
+   "reason": "library file absent; topo/stg/dag/gates/stop are mapped by name, other native keys cannot be enumerated here"
+  }
+ ],
+ "corpus": {
+  "source": "dialect-standin",
+  "directory": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows",
+  "absolute": "/opt/p2/ast-integrate/command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows",
+  "live_hits": [
+   {
+    "path": "/root/.claude/workflows",
+    "present": false,
+    "n_js_mjs": 0,
+    "names": []
+   },
+   {
+    "path": "/root/.claude/workflows",
+    "present": false,
+    "n_js_mjs": 0,
+    "names": []
+   },
+   {
+    "path": "/home/Prekzursil/.claude/workflows",
+    "present": false,
+    "n_js_mjs": 0,
+    "names": []
+   },
+   {
+    "path": "/opt/p2/ast-integrate/workflows",
+    "present": true,
+    "n_js_mjs": 1,
+    "names": [
+     "rtv-pdr.js"
+    ]
+   }
+  ],
+  "files": [
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+   "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs"
+  ],
+  "names": [
+   "agentic-repair-reliability.js",
+   "bc-stage-compendium-enrichment.js",
+   "codex-auth-research-fanout.mjs",
+   "design-gate.mjs",
+   "dialect-args-as-string.js",
+   "dialect-clock-and-background.js",
+   "dialect-human-checkpoint-lineage.js",
+   "dialect-tool-policy-resume.js",
+   "harness-self-improve-sweep.js",
+   "plan-gate.mjs"
+  ],
+  "n": 10,
+  "harvest_named": [
+   "agentic-repair-reliability.js",
+   "bc-stage-compendium-enrichment.js",
+   "codex-auth-research-fanout.mjs",
+   "design-gate.mjs",
+   "harness-self-improve-sweep.js",
+   "plan-gate.mjs"
+  ],
+  "note": "WFA-0007/WFA-0042 harvest sampled five wf-saved-* ids; catalog WFA-0045 names plan-gate.mjs and design-gate.mjs. Remaining live filenames are UNKNOWN because 08-WORKFLOW-CANDIDATE-REGISTRY.json and live ~/.claude/workflows are absent on this worktree."
+ },
+ "round_trip": {
+  "n": 10,
+  "files": [
+   {
+    "id": "agentic-repair-reliability",
+    "filename": "agentic-repair-reliability.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+    "n_constructs": 1,
+    "n_nodes": 5,
+    "kinds": [
+     "loop"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "bc-stage-compendium-enrichment",
+    "filename": "bc-stage-compendium-enrichment.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+    "n_constructs": 3,
+    "n_nodes": 10,
+    "kinds": [
+     "stage",
+     "stage",
+     "stage"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "codex-auth-research-fanout",
+    "filename": "codex-auth-research-fanout.mjs",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+    "n_constructs": 2,
+    "n_nodes": 12,
+    "kinds": [
+     "fanout",
+     "barrier"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "design-gate",
+    "filename": "design-gate.mjs",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+    "n_constructs": 1,
+    "n_nodes": 5,
+    "kinds": [
+     "stage"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "dialect-args-as-string",
+    "filename": "dialect-args-as-string.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+    "n_constructs": 2,
+    "n_nodes": 3,
+    "kinds": [
+     "agent",
+     "lossy"
+    ],
+    "lossy": [
+     "args-as-string"
+    ],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "dialect-clock-and-background",
+    "filename": "dialect-clock-and-background.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+    "n_constructs": 3,
+    "n_nodes": 5,
+    "kinds": [
+     "agent",
+     "lossy",
+     "lossy"
+    ],
+    "lossy": [
+     "Date.now",
+     "fire-and-forget"
+    ],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "dialect-human-checkpoint-lineage",
+    "filename": "dialect-human-checkpoint-lineage.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+    "n_constructs": 1,
+    "n_nodes": 5,
+    "kinds": [
+     "agent"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "dialect-tool-policy-resume",
+    "filename": "dialect-tool-policy-resume.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+    "n_constructs": 1,
+    "n_nodes": 5,
+    "kinds": [
+     "agent"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "harness-self-improve-sweep",
+    "filename": "harness-self-improve-sweep.js",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+    "n_constructs": 2,
+    "n_nodes": 5,
+    "kinds": [
+     "loop",
+     "stop"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   },
+   {
+    "id": "plan-gate",
+    "filename": "plan-gate.mjs",
+    "path": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs",
+    "n_constructs": 1,
+    "n_nodes": 6,
+    "kinds": [
+     "stage"
+    ],
+    "lossy": [],
+    "field_by_field": "PASS"
+   }
+  ],
+  "equivalence": "semantic field-by-field after canonical render, not byte-identical JS"
+ },
+ "exemplars": [
+  {
+   "id": "agentic-repair-reliability",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/agentic-repair-reliability.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": []
+  },
+  {
+   "id": "bc-stage-compendium-enrichment",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/bc-stage-compendium-enrichment.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 10,
+   "n_edges": 9,
+   "lossy_codes": []
+  },
+  {
+   "id": "codex-auth-research-fanout",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/codex-auth-research-fanout.mjs",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 12,
+   "n_edges": 11,
+   "lossy_codes": []
+  },
+  {
+   "id": "design-gate",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/design-gate.mjs",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": []
+  },
+  {
+   "id": "dialect-args-as-string",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-args-as-string.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 3,
+   "n_edges": 2,
+   "lossy_codes": [
+    "args-as-string"
+   ]
+  },
+  {
+   "id": "dialect-clock-and-background",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-clock-and-background.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": [
+    "Date.now",
+    "fire-and-forget"
+   ]
+  },
+  {
+   "id": "dialect-human-checkpoint-lineage",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-human-checkpoint-lineage.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": []
+  },
+  {
+   "id": "dialect-tool-policy-resume",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/dialect-tool-policy-resume.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": []
+  },
+  {
+   "id": "harness-self-improve-sweep",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/harness-self-improve-sweep.js",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 5,
+   "n_edges": 4,
+   "lossy_codes": []
+  },
+  {
+   "id": "plan-gate",
+   "filename": "command-center/p2-wave/probes/WFA-0044/fixtures/saved-workflows/plan-gate.mjs",
+   "ir_version": "wfa-ir-1",
+   "execution_semantics": "none",
+   "n_nodes": 6,
+   "n_edges": 5,
+   "lossy_codes": []
+  }
+ ],
+ "ir_only_sidecars": [
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/agentic-repair-reliability.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/bc-stage-compendium-enrichment.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/codex-auth-research-fanout.mjs.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/design-gate.mjs.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-args-as-string.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-clock-and-background.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-human-checkpoint-lineage.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/dialect-tool-policy-resume.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/harness-self-improve-sweep.js.ir.json",
+  "command-center/p2-wave/probes/WFA-0044/fixtures/ir-only/plan-gate.mjs.ir.json"
+ ],
+ "runtime_lint": {
+  "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/WFA-0044/ir.py",
+  "main_guard": false,
+  "banned_funcs": [],
+  "ok": true,
+  "note": "IR library must not define a runtime entrypoint"
+ },
+ "held_out_for_probe2": [
+  "design-gate.mjs",
+  "codex-auth-research-fanout.mjs"
+ ],
+ "ts": "2026-08-25T00:58:39Z",
+ "SUCCESS:WFA-0044": true
+}

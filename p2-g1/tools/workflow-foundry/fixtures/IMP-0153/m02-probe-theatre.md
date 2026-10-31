@@ -1,0 +1,1 @@
+Writing the probe after the fix is probe theatre. The failure mode is familiar: the probe validates the fix instead of the claim, and the green exit code is a forgone conclusion. Do not mistake an exit code for a measurement.

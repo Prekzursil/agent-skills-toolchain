@@ -1,0 +1,943 @@
+{
+ "evidence": [
+  {
+   "claim": "CNF-0021 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0021-version-parity.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0021-version-parity.json",
+     "raw_output": "bytes=18534 sha256=aaaf951dbab2522d5eea2a0c76c60616a45dbf446423b768600f4fba858eb1ca",
+     "fingerprint": "b50f8d71536792f8585b08b4716322ad",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0021",
+     "raw_output": "schema-check",
+     "fingerprint": "e57b0a1fadc225461038450ff173147a",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0021 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0021",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0021",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "7f1d473751fce57ec2e3f195f07efedb",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0021",
+     "raw_output": "schema-valid",
+     "fingerprint": "f040623de4428780ff50a0f46af5f8c2",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "report": {
+  "kind": "environment-manifest",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0021/fixtures/identical_bytes.py",
+    "measured": false,
+    "method": "invoke ruff 0.15.17 and ruff 0.15.22 check+format --check on the same fixture",
+    "name": "ruff-pinned-vs-ambient-on-identical-bytes"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0021/resolver.ps1",
+    "measured": true,
+    "method": "plant dummytool.cmd; pwsh PATHEXT walk vs shutil.which",
+    "name": "cmd-shim-powershell-sees-posix-misses"
+   }
+  ],
+  "control_ids": [
+   "dual-version-identical-bytes",
+   "cmd-shim-pathext-vs-posix-which"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0021",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0021-version-parity.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "CNF-0021",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Ambient host PATH has no ruff (PowerShell Get-Command and POSIX which both empty). CI pins ruff 0.15.17 (quality.yml via AUD-0041). The estate-documented local is 0.15.22. Both binaries were invoked on identical fixture bytes sha256=2bc42d4b5dd52759221e0a030047b4d49c3dca44daae62855066618fc1cfc60c (85 bytes). Pinned verdicts=['FINDINGS', 'FINDINGS']; ambient verdicts=['FINDINGS', 'FINDINGS']; verdicts_differ=False. Tools whose versions disagree with a CI pin: ['ruff', 'basedpyright', 'python3', 'gitleaks']. Tools whose formatter/linter verdict changed: none on this corpus. basedpyright pin 1.39.8 is unresolved locally (NOT-RUN). quality.yml gitleaks pin is an unexpanded env var (missing-pin). Python CI pin 3.11 vs host 3.12.3. Resolver is pwsh PATHEXT-aware; POSIX which is contrast-only. SUCCESS:CNF-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and at least one tool was run at both the pinned and the ambient version on identical bytes and both verdicts are recorded. Any other terminal state is FAILED:CNF-0021 <classification> with the diagnostic tail attached.",
+   "claim_under_test": "Local reproduction uses the same formatter/linter versions as CI; where versions differ, record whether the verdict on identical bytes changes.",
+   "cmd_shim_control": {
+    "pass": true,
+    "posix_misses_cmd_shim": true,
+    "posix_which_dummytool": null,
+    "powershell_resolved": true,
+    "powershell_sees_cmd_shim": true,
+    "powershell_source": "/tmp/cnf0021-shim-y2ru1xl4/dummytool.cmd",
+    "shim_basename": "dummytool.cmd"
+   },
+   "completion_sentinel": "SUCCESS:CNF-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and at least one tool was run at both the pinned and the ambient version on identical bytes and both verdicts are recorded. Any other terminal state is FAILED:CNF-0021 <classification> with the diagnostic tail attached.",
+   "disagreeing_tools": [
+    "ruff",
+    "basedpyright",
+    "python3",
+    "gitleaks"
+   ],
+   "dual_version_runs": [
+    {
+     "ambient": {
+      "checks": [
+       {
+        "exit_code": 1,
+        "name": "ruff check",
+        "stderr_tail": "",
+        "stdout_tail": "/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:1: E401 [*] Multiple imports on one line\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:8: F401 [*] `os` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:11: F401 [*] `sys` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:2:21: F401 [*] `pathlib.Path` imported but unused\nFound 4 errors.\n[*] 4 fixable with the `--fix` option.",
+        "verdict": "FINDINGS"
+       },
+       {
+        "exit_code": 1,
+        "name": "ruff format --check",
+        "stderr_tail": "",
+        "stdout_tail": "Would reformat: /tmp/cnf0021-bytes-8x9w4img/identical_bytes.py\n1 file would be reformatted",
+        "verdict": "FINDINGS"
+       }
+      ],
+      "invocation": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+      "version_verbatim": "ruff 0.15.22"
+     },
+     "ambient_check_verdicts": [
+      "FINDINGS",
+      "FINDINGS"
+     ],
+     "identical_bytes": true,
+     "input_bytes": 85,
+     "input_path": "command-center/p2-wave/probes/CNF-0021/fixtures/identical_bytes.py",
+     "input_sha256": "2bc42d4b5dd52759221e0a030047b4d49c3dca44daae62855066618fc1cfc60c",
+     "pinned": {
+      "checks": [
+       {
+        "exit_code": 1,
+        "name": "ruff check",
+        "stderr_tail": "",
+        "stdout_tail": "/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:1: E401 [*] Multiple imports on one line\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:8: F401 [*] `os` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:11: F401 [*] `sys` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:2:21: F401 [*] `pathlib.Path` imported but unused\nFound 4 errors.\n[*] 4 fixable with the `--fix` option.",
+        "verdict": "FINDINGS"
+       },
+       {
+        "exit_code": 1,
+        "name": "ruff format --check",
+        "stderr_tail": "",
+        "stdout_tail": "Would reformat: /tmp/cnf0021-bytes-8x9w4img/identical_bytes.py\n1 file would be reformatted",
+        "verdict": "FINDINGS"
+       }
+      ],
+      "invocation": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.17/ruff",
+      "version_verbatim": "ruff 0.15.17"
+     },
+     "pinned_check_verdicts": [
+      "FINDINGS",
+      "FINDINGS"
+     ],
+     "tool": "ruff",
+     "verdicts_differ": false
+    }
+   ],
+   "host": {
+    "ci_workflows_present": true,
+    "cnf0010_artifact_present": false,
+    "code_page": null,
+    "cwd": "/opt/p2/ast-integrate",
+    "git_core_autocrlf": null,
+    "kernel": "#136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+    "locale": [
+     "C",
+     "UTF-8"
+    ],
+    "os": "Linux",
+    "os_release": "6.8.0-136-generic",
+    "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+    "python_executable": "/usr/bin/python3",
+    "python_version_verbatim": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+   },
+   "pin_inventory": [
+    {
+     "ci_pin": "present",
+     "kind": "tree",
+     "source": "worktree stat of .github/workflows",
+     "tool": ".github/workflows",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "bf7454d06d71f1098171f2acdf0cd4708d7b5920",
+     "kind": "action-sha",
+     "source": ".github/workflows/codex-runner.yml uses step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920",
+     "tool": "step-security/harden-runner",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "kind": "action-sha",
+     "source": ".github/workflows/codex-runner.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "tool": "actions/checkout",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "820762786026740c76f36085b0efc47a31fe5020",
+     "kind": "action-sha",
+     "source": ".github/workflows/codex-runner.yml uses actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+     "tool": "actions/setup-node",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "kind": "action-sha",
+     "source": ".github/workflows/codex-runner.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "tool": "actions/setup-python",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "0.144.1",
+     "kind": "npm-pin",
+     "source": ".github/workflows/codex-runner.yml npm @openai/codex@0.144.1",
+     "tool": "@openai/codex",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "8.21.2",
+     "kind": "tarball-pin",
+     "source": ".github/workflows/codex-runner.yml V=8.21.2 gitleaks tarball",
+     "tool": "gitleaks",
+     "version_sensitive_baseline": true
+    },
+    {
+     "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "kind": "action-sha",
+     "source": ".github/workflows/no-runtime-junk.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "tool": "actions/checkout",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "kind": "action-sha",
+     "source": ".github/workflows/no-runtime-junk.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "tool": "actions/setup-python",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "kind": "action-sha",
+     "source": ".github/workflows/quality.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "tool": "actions/checkout",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "kind": "action-sha",
+     "source": ".github/workflows/quality.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "tool": "actions/setup-python",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "0.15.17",
+     "kind": "pip-pin",
+     "source": ".github/workflows/quality.yml pip-style ruff==0.15.17",
+     "tool": "ruff",
+     "version_sensitive_baseline": true
+    },
+    {
+     "ci_pin": "1.39.8",
+     "kind": "pip-pin",
+     "source": ".github/workflows/quality.yml pip-style basedpyright==1.39.8",
+     "tool": "basedpyright",
+     "version_sensitive_baseline": true
+    },
+    {
+     "ci_pin": "820762786026740c76f36085b0efc47a31fe5020",
+     "kind": "action-sha",
+     "source": ".github/workflows/quality.yml uses actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+     "tool": "actions/setup-node",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "8.3.3",
+     "kind": "pip-pin",
+     "source": ".github/workflows/quality.yml pip-style pytest==8.3.3",
+     "tool": "pytest",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "4.25.1",
+     "kind": "pip-pin",
+     "source": ".github/workflows/quality.yml pip-style jsonschema==4.25.1",
+     "tool": "jsonschema",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+     "kind": "action-sha",
+     "source": ".github/workflows/quality.yml uses gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+     "tool": "gitleaks/gitleaks-action",
+     "version_sensitive_baseline": true
+    },
+    {
+     "ci_pin": "9a498708959aeaef5ef730655706c5a1df1edbc2",
+     "kind": "action-sha",
+     "source": ".github/workflows/quality.yml uses google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2",
+     "tool": "google/osv-scanner-action/osv-scanner-action",
+     "version_sensitive_baseline": true
+    },
+    {
+     "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "kind": "action-sha",
+     "source": ".github/workflows/routing-benchmark.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "tool": "actions/checkout",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "kind": "action-sha",
+     "source": ".github/workflows/routing-benchmark.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "tool": "actions/setup-python",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "8.4.2",
+     "kind": "pip-pin",
+     "source": ".github/workflows/routing-benchmark.yml pip-style pytest==8.4.2",
+     "tool": "pytest",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "kind": "action-sha",
+     "source": ".github/workflows/skill-dual-write.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "tool": "actions/checkout",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "kind": "action-sha",
+     "source": ".github/workflows/skill-dual-write.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "tool": "actions/setup-python",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": "8.4.2",
+     "kind": "pip-pin",
+     "source": ".github/workflows/skill-dual-write.yml pip-style pytest==8.4.2",
+     "tool": "pytest",
+     "version_sensitive_baseline": false
+    },
+    {
+     "ci_pin": null,
+     "kind": "missing-pin",
+     "source": ".github/workflows/quality.yml gate-secrets uses ${GITLEAKS_VERSION}/${GITLEAKS_SHA256} which AUD-0041 did not expand — missing-pin finding",
+     "tool": "gitleaks",
+     "version_sensitive_baseline": true
+    }
+   ],
+   "question": "Is the local reproduction using the same tool versions as CI? Re-run every version-sensitive baseline check with the CI-pinned version invoked explicitly, and answer: for which tools does the ambient local version disagree with the pin, and does any verdict change as a result? The measured precedent is a formatter differing between 0.15.17 and 0.15.22 on identical bytes.",
+   "resolver": {
+    "engine": "pwsh-windows-pathext",
+    "host_resolution": {
+     "host_ruff_resolved": false,
+     "posix_which_ruff": null,
+     "powershell": {
+      "git": {
+       "engine": "pwsh-windows-pathext",
+       "name": "git",
+       "posix_which_used": false,
+       "resolved": true,
+       "source": "/usr/bin/git",
+       "version_verbatim": "git version 2.43.0"
+      },
+      "python3": {
+       "engine": "pwsh-windows-pathext",
+       "name": "python3",
+       "posix_which_used": false,
+       "resolved": true,
+       "source": "/usr/bin/python3",
+       "version_verbatim": "Python 3.12.3"
+      },
+      "ruff": {
+       "engine": "pwsh-windows-pathext",
+       "name": "ruff",
+       "posix_which_used": false,
+       "resolved": false,
+       "source": null,
+       "version_verbatim": null
+      }
+     }
+    },
+    "measurement_ambient": {
+     "extra_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22",
+     "posix_which_ruff": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+     "powershell": {
+      "engine": "pwsh-windows-pathext",
+      "name": "ruff",
+      "posix_which_used": false,
+      "resolved": true,
+      "source": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+      "version_verbatim": "ruff 0.15.22"
+     }
+    },
+    "method": "pwsh -File resolver.ps1: PATHEXT-aware PATH walk plus Get-Command; never POSIX which for the primary verdict",
+    "posix_which_used": false,
+    "pwsh_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/pwsh/pwsh"
+   },
+   "tools": [
+    {
+     "ambient_source_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+     "ambient_verdict": "ruff check=FINDINGS(rc=1); ruff format --check=FINDINGS(rc=1)",
+     "ambient_version": "ruff 0.15.22",
+     "ambient_version_verbatim": "ruff 0.15.22",
+     "ci_pin": "0.15.17",
+     "ci_pin_source": ".github/workflows/quality.yml pip-style ruff==0.15.17",
+     "host_path_resolved": false,
+     "host_path_version": null,
+     "pinned_verdict": "ruff check=FINDINGS(rc=1); ruff format --check=FINDINGS(rc=1)",
+     "pinned_version_verbatim": "ruff 0.15.17",
+     "tool": "ruff",
+     "verdicts_differ": false,
+     "versions_disagree": true
+    },
+    {
+     "ambient_source_path": null,
+     "ambient_verdict": "NOT-RUN",
+     "ambient_version": null,
+     "ci_pin": "1.39.8",
+     "ci_pin_source": ".github/workflows/quality.yml pip-style basedpyright==1.39.8",
+     "host_path_resolved": false,
+     "host_path_version": null,
+     "note": "binary absent on this host; dual-run limited to ruff (named precedent)",
+     "pinned_verdict": "NOT-RUN",
+     "tool": "basedpyright",
+     "verdicts_differ": false,
+     "versions_disagree": true
+    },
+    {
+     "ambient_source_path": "/usr/bin/python3",
+     "ambient_verdict": "NOT-A-FORMATTER",
+     "ambient_version": "Python 3.12.3",
+     "ci_pin": "3.11 (actions/setup-python in quality.yml)",
+     "ci_pin_source": ".github/workflows/quality.yml setup-python python-version=3.11",
+     "host_path_resolved": true,
+     "pinned_verdict": "NOT-A-FORMATTER",
+     "tool": "python3",
+     "verdicts_differ": false,
+     "versions_disagree": true
+    },
+    {
+     "ambient_source_path": "/usr/bin/git",
+     "ambient_verdict": "NOT-A-FORMATTER",
+     "ambient_version": "git version 2.43.0",
+     "ci_pin": null,
+     "ci_pin_source": "not an explicit quality.yml formatter pin",
+     "host_path_resolved": true,
+     "pinned_verdict": "NOT-A-FORMATTER",
+     "tool": "git",
+     "verdicts_differ": false,
+     "versions_disagree": false
+    },
+    {
+     "ambient_verdict": "NOT-RUN",
+     "ambient_version": null,
+     "ci_pin": null,
+     "ci_pin_source": ".github/workflows/quality.yml gate-secrets uses ${GITLEAKS_VERSION}/${GITLEAKS_SHA256} which AUD-0041 did not expand — missing-pin finding",
+     "host_path_resolved": false,
+     "note": "quality.yml pin is an unexpanded env var — missing-pin finding",
+     "pinned_verdict": "NOT-RUN",
+     "tool": "gitleaks",
+     "verdicts_differ": false,
+     "versions_disagree": true
+    }
+   ],
+   "verdict_changing_tools": [],
+   "windows_shell_8b": "Pin parity: invoke the CI-pinned binary explicitly rather than the PATH shim. CRLF vs blob is a separate confounder; this dual-run hashes LF-normalized fixture bytes and hands the same file to both versions."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0021",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0021-version-parity.json",
+   "bytes": 18534,
+   "sha256": "aaaf951dbab2522d5eea2a0c76c60616a45dbf446423b768600f4fba858eb1ca",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0021/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0021"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0021-version-parity.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0021-version-parity.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "aa6fcdbdfe78299a49db3419211bf40c",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Ambient host PATH has no ruff (PowerShell Get-Command and POSIX which both empty). CI pins ruff 0.15.17 (quality.yml via AUD-0041). The estate-documented local is 0.15.22. Both binaries were invoked on identical fixture bytes sha256=2bc42d4b5dd52759221e0a030047b4d49c3dca44daae62855066618fc1cfc60c (85 bytes). Pinned verdicts=['FINDINGS', 'FINDINGS']; ambient verdicts=['FINDINGS', 'FINDINGS']; verdicts_differ=False. Tools whose versions disagree with a CI pin: ['ruff', 'basedpyright', 'python3', 'gitleaks']. Tools whose formatter/linter verdict changed: none on this corpus. basedpyright pin 1.39.8 is unresolved locally (NOT-RUN). quality.yml gitleaks pin is an unexpanded env var (missing-pin). Python CI pin 3.11 vs host 3.12.3. Resolver is pwsh PATHEXT-aware; POSIX which is contrast-only. SUCCESS:CNF-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and at least one tool was run at both the pinned and the ambient version on identical bytes and both verdicts are recorded. Any other terminal state is FAILED:CNF-0021 <classification> with the diagnostic tail attached.",
+ "claim_under_test": "Local reproduction uses the same formatter/linter versions as CI; where versions differ, record whether the verdict on identical bytes changes.",
+ "cmd_shim_control": {
+  "pass": true,
+  "posix_misses_cmd_shim": true,
+  "posix_which_dummytool": null,
+  "powershell_resolved": true,
+  "powershell_sees_cmd_shim": true,
+  "powershell_source": "/tmp/cnf0021-shim-y2ru1xl4/dummytool.cmd",
+  "shim_basename": "dummytool.cmd"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and at least one tool was run at both the pinned and the ambient version on identical bytes and both verdicts are recorded. Any other terminal state is FAILED:CNF-0021 <classification> with the diagnostic tail attached.",
+ "disagreeing_tools": [
+  "ruff",
+  "basedpyright",
+  "python3",
+  "gitleaks"
+ ],
+ "dual_version_runs": [
+  {
+   "ambient": {
+    "checks": [
+     {
+      "exit_code": 1,
+      "name": "ruff check",
+      "stderr_tail": "",
+      "stdout_tail": "/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:1: E401 [*] Multiple imports on one line\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:8: F401 [*] `os` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:11: F401 [*] `sys` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:2:21: F401 [*] `pathlib.Path` imported but unused\nFound 4 errors.\n[*] 4 fixable with the `--fix` option.",
+      "verdict": "FINDINGS"
+     },
+     {
+      "exit_code": 1,
+      "name": "ruff format --check",
+      "stderr_tail": "",
+      "stdout_tail": "Would reformat: /tmp/cnf0021-bytes-8x9w4img/identical_bytes.py\n1 file would be reformatted",
+      "verdict": "FINDINGS"
+     }
+    ],
+    "invocation": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+    "version_verbatim": "ruff 0.15.22"
+   },
+   "ambient_check_verdicts": [
+    "FINDINGS",
+    "FINDINGS"
+   ],
+   "identical_bytes": true,
+   "input_bytes": 85,
+   "input_path": "command-center/p2-wave/probes/CNF-0021/fixtures/identical_bytes.py",
+   "input_sha256": "2bc42d4b5dd52759221e0a030047b4d49c3dca44daae62855066618fc1cfc60c",
+   "pinned": {
+    "checks": [
+     {
+      "exit_code": 1,
+      "name": "ruff check",
+      "stderr_tail": "",
+      "stdout_tail": "/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:1: E401 [*] Multiple imports on one line\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:8: F401 [*] `os` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:1:11: F401 [*] `sys` imported but unused\n/tmp/cnf0021-bytes-8x9w4img/identical_bytes.py:2:21: F401 [*] `pathlib.Path` imported but unused\nFound 4 errors.\n[*] 4 fixable with the `--fix` option.",
+      "verdict": "FINDINGS"
+     },
+     {
+      "exit_code": 1,
+      "name": "ruff format --check",
+      "stderr_tail": "",
+      "stdout_tail": "Would reformat: /tmp/cnf0021-bytes-8x9w4img/identical_bytes.py\n1 file would be reformatted",
+      "verdict": "FINDINGS"
+     }
+    ],
+    "invocation": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.17/ruff",
+    "version_verbatim": "ruff 0.15.17"
+   },
+   "pinned_check_verdicts": [
+    "FINDINGS",
+    "FINDINGS"
+   ],
+   "tool": "ruff",
+   "verdicts_differ": false
+  }
+ ],
+ "host": {
+  "ci_workflows_present": true,
+  "cnf0010_artifact_present": false,
+  "code_page": null,
+  "cwd": "/opt/p2/ast-integrate",
+  "git_core_autocrlf": null,
+  "kernel": "#136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+  "locale": [
+   "C",
+   "UTF-8"
+  ],
+  "os": "Linux",
+  "os_release": "6.8.0-136-generic",
+  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+  "python_executable": "/usr/bin/python3",
+  "python_version_verbatim": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+ },
+ "pin_inventory": [
+  {
+   "ci_pin": "present",
+   "kind": "tree",
+   "source": "worktree stat of .github/workflows",
+   "tool": ".github/workflows",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "bf7454d06d71f1098171f2acdf0cd4708d7b5920",
+   "kind": "action-sha",
+   "source": ".github/workflows/codex-runner.yml uses step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920",
+   "tool": "step-security/harden-runner",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "kind": "action-sha",
+   "source": ".github/workflows/codex-runner.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "tool": "actions/checkout",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "820762786026740c76f36085b0efc47a31fe5020",
+   "kind": "action-sha",
+   "source": ".github/workflows/codex-runner.yml uses actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+   "tool": "actions/setup-node",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "kind": "action-sha",
+   "source": ".github/workflows/codex-runner.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "tool": "actions/setup-python",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "0.144.1",
+   "kind": "npm-pin",
+   "source": ".github/workflows/codex-runner.yml npm @openai/codex@0.144.1",
+   "tool": "@openai/codex",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "8.21.2",
+   "kind": "tarball-pin",
+   "source": ".github/workflows/codex-runner.yml V=8.21.2 gitleaks tarball",
+   "tool": "gitleaks",
+   "version_sensitive_baseline": true
+  },
+  {
+   "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "kind": "action-sha",
+   "source": ".github/workflows/no-runtime-junk.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "tool": "actions/checkout",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "kind": "action-sha",
+   "source": ".github/workflows/no-runtime-junk.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "tool": "actions/setup-python",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "kind": "action-sha",
+   "source": ".github/workflows/quality.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "tool": "actions/checkout",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "kind": "action-sha",
+   "source": ".github/workflows/quality.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "tool": "actions/setup-python",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "0.15.17",
+   "kind": "pip-pin",
+   "source": ".github/workflows/quality.yml pip-style ruff==0.15.17",
+   "tool": "ruff",
+   "version_sensitive_baseline": true
+  },
+  {
+   "ci_pin": "1.39.8",
+   "kind": "pip-pin",
+   "source": ".github/workflows/quality.yml pip-style basedpyright==1.39.8",
+   "tool": "basedpyright",
+   "version_sensitive_baseline": true
+  },
+  {
+   "ci_pin": "820762786026740c76f36085b0efc47a31fe5020",
+   "kind": "action-sha",
+   "source": ".github/workflows/quality.yml uses actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+   "tool": "actions/setup-node",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "8.3.3",
+   "kind": "pip-pin",
+   "source": ".github/workflows/quality.yml pip-style pytest==8.3.3",
+   "tool": "pytest",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "4.25.1",
+   "kind": "pip-pin",
+   "source": ".github/workflows/quality.yml pip-style jsonschema==4.25.1",
+   "tool": "jsonschema",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+   "kind": "action-sha",
+   "source": ".github/workflows/quality.yml uses gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+   "tool": "gitleaks/gitleaks-action",
+   "version_sensitive_baseline": true
+  },
+  {
+   "ci_pin": "9a498708959aeaef5ef730655706c5a1df1edbc2",
+   "kind": "action-sha",
+   "source": ".github/workflows/quality.yml uses google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2",
+   "tool": "google/osv-scanner-action/osv-scanner-action",
+   "version_sensitive_baseline": true
+  },
+  {
+   "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "kind": "action-sha",
+   "source": ".github/workflows/routing-benchmark.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "tool": "actions/checkout",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "kind": "action-sha",
+   "source": ".github/workflows/routing-benchmark.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "tool": "actions/setup-python",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "8.4.2",
+   "kind": "pip-pin",
+   "source": ".github/workflows/routing-benchmark.yml pip-style pytest==8.4.2",
+   "tool": "pytest",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "kind": "action-sha",
+   "source": ".github/workflows/skill-dual-write.yml uses actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+   "tool": "actions/checkout",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "kind": "action-sha",
+   "source": ".github/workflows/skill-dual-write.yml uses actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+   "tool": "actions/setup-python",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": "8.4.2",
+   "kind": "pip-pin",
+   "source": ".github/workflows/skill-dual-write.yml pip-style pytest==8.4.2",
+   "tool": "pytest",
+   "version_sensitive_baseline": false
+  },
+  {
+   "ci_pin": null,
+   "kind": "missing-pin",
+   "source": ".github/workflows/quality.yml gate-secrets uses ${GITLEAKS_VERSION}/${GITLEAKS_SHA256} which AUD-0041 did not expand — missing-pin finding",
+   "tool": "gitleaks",
+   "version_sensitive_baseline": true
+  }
+ ],
+ "question": "Is the local reproduction using the same tool versions as CI? Re-run every version-sensitive baseline check with the CI-pinned version invoked explicitly, and answer: for which tools does the ambient local version disagree with the pin, and does any verdict change as a result? The measured precedent is a formatter differing between 0.15.17 and 0.15.22 on identical bytes.",
+ "resolver": {
+  "engine": "pwsh-windows-pathext",
+  "host_resolution": {
+   "host_ruff_resolved": false,
+   "posix_which_ruff": null,
+   "powershell": {
+    "git": {
+     "engine": "pwsh-windows-pathext",
+     "name": "git",
+     "posix_which_used": false,
+     "resolved": true,
+     "source": "/usr/bin/git",
+     "version_verbatim": "git version 2.43.0"
+    },
+    "python3": {
+     "engine": "pwsh-windows-pathext",
+     "name": "python3",
+     "posix_which_used": false,
+     "resolved": true,
+     "source": "/usr/bin/python3",
+     "version_verbatim": "Python 3.12.3"
+    },
+    "ruff": {
+     "engine": "pwsh-windows-pathext",
+     "name": "ruff",
+     "posix_which_used": false,
+     "resolved": false,
+     "source": null,
+     "version_verbatim": null
+    }
+   }
+  },
+  "measurement_ambient": {
+   "extra_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22",
+   "posix_which_ruff": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+   "powershell": {
+    "engine": "pwsh-windows-pathext",
+    "name": "ruff",
+    "posix_which_used": false,
+    "resolved": true,
+    "source": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+    "version_verbatim": "ruff 0.15.22"
+   }
+  },
+  "method": "pwsh -File resolver.ps1: PATHEXT-aware PATH walk plus Get-Command; never POSIX which for the primary verdict",
+  "posix_which_used": false,
+  "pwsh_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/pwsh/pwsh"
+ },
+ "tools": [
+  {
+   "ambient_source_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0021/tools/ruff-0.15.22/ruff",
+   "ambient_verdict": "ruff check=FINDINGS(rc=1); ruff format --check=FINDINGS(rc=1)",
+   "ambient_version": "ruff 0.15.22",
+   "ambient_version_verbatim": "ruff 0.15.22",
+   "ci_pin": "0.15.17",
+   "ci_pin_source": ".github/workflows/quality.yml pip-style ruff==0.15.17",
+   "host_path_resolved": false,
+   "host_path_version": null,
+   "pinned_verdict": "ruff check=FINDINGS(rc=1); ruff format --check=FINDINGS(rc=1)",
+   "pinned_version_verbatim": "ruff 0.15.17",
+   "tool": "ruff",
+   "verdicts_differ": false,
+   "versions_disagree": true
+  },
+  {
+   "ambient_source_path": null,
+   "ambient_verdict": "NOT-RUN",
+   "ambient_version": null,
+   "ci_pin": "1.39.8",
+   "ci_pin_source": ".github/workflows/quality.yml pip-style basedpyright==1.39.8",
+   "host_path_resolved": false,
+   "host_path_version": null,
+   "note": "binary absent on this host; dual-run limited to ruff (named precedent)",
+   "pinned_verdict": "NOT-RUN",
+   "tool": "basedpyright",
+   "verdicts_differ": false,
+   "versions_disagree": true
+  },
+  {
+   "ambient_source_path": "/usr/bin/python3",
+   "ambient_verdict": "NOT-A-FORMATTER",
+   "ambient_version": "Python 3.12.3",
+   "ci_pin": "3.11 (actions/setup-python in quality.yml)",
+   "ci_pin_source": ".github/workflows/quality.yml setup-python python-version=3.11",
+   "host_path_resolved": true,
+   "pinned_verdict": "NOT-A-FORMATTER",
+   "tool": "python3",
+   "verdicts_differ": false,
+   "versions_disagree": true
+  },
+  {
+   "ambient_source_path": "/usr/bin/git",
+   "ambient_verdict": "NOT-A-FORMATTER",
+   "ambient_version": "git version 2.43.0",
+   "ci_pin": null,
+   "ci_pin_source": "not an explicit quality.yml formatter pin",
+   "host_path_resolved": true,
+   "pinned_verdict": "NOT-A-FORMATTER",
+   "tool": "git",
+   "verdicts_differ": false,
+   "versions_disagree": false
+  },
+  {
+   "ambient_verdict": "NOT-RUN",
+   "ambient_version": null,
+   "ci_pin": null,
+   "ci_pin_source": ".github/workflows/quality.yml gate-secrets uses ${GITLEAKS_VERSION}/${GITLEAKS_SHA256} which AUD-0041 did not expand — missing-pin finding",
+   "host_path_resolved": false,
+   "note": "quality.yml pin is an unexpanded env var — missing-pin finding",
+   "pinned_verdict": "NOT-RUN",
+   "tool": "gitleaks",
+   "verdicts_differ": false,
+   "versions_disagree": true
+  }
+ ],
+ "verdict_changing_tools": [],
+ "windows_shell_8b": "Pin parity: invoke the CI-pinned binary explicitly rather than the PATH shim. CRLF vs blob is a separate confounder; this dual-run hashes LF-normalized fixture bytes and hands the same file to both versions."
+}

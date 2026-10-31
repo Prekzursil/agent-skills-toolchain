@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h64-skill-adoption-vs-build",
+  "preset": "product_strategy_council",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Choose between adopting, adapting and building a capability, with the existing prior art fully enumerated BEFORE any build option is scored.",
+    "charter": "MANDATE. The ordering is the rule: prior art is enumerated first, and only then may a build option be scored. Score the build first and every subsequent comparison is anchored on it - the team has already imagined the thing, so adoption starts the race behind. Enumeration must include the option nobody enjoys proposing: that a native feature already covers the need and the correct action is to ENABLE something rather than author a new file. Candidates are compared pairwise so 'adopt beats build' is a recorded comparison rather than a mood, and the owner breaks a genuine tie because adopt-versus-build is ultimately a question about what the owner wants to maintain.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "prior art enumerated and timestamped before any build option is scored",
+      "the enable-a-native-feature option is explicitly considered and dispositioned",
+      "at least three sources gathered during enumeration",
+      "every pairwise comparison recorded, with the owner breaking ties"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "score a build option before prior art is enumerated",
+        "declare a capability absent without searching for it",
+        "author a new file where enabling an existing feature suffices"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "expertise_ranked", "stakeholder_balanced"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 6, "min": 6, "max": 6 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 5 },
+    "roster": [
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - enforces enumerate-before-score",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["prior-art search", "anchoring effects"],
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max",
+        "context": {
+          "briefing": "Block any scoring of a build option until enumeration is closed. Before anyone declares a capability missing, make them search for it - the dominant measured failure is recall, not detection: the thing was already built and simply unread."
+        }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - what building actually costs",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["implementation cost", "maintenance burden"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true }
+      },
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst - total cost including the catalogue tax",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["total cost of ownership", "context budgets"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true }
+      },
+      {
+        "participant_id": "architect",
+        "display_name": "Architect - fit with what already exists",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["system fit", "interface design"],
+        "role": "architect",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true }
+      },
+      {
+        "participant_id": "critic",
+        "display_name": "Critic - argues for the option the room likes least",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["steelmanning", "falsification"],
+        "role": "devils_advocate",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false },
+        "context": {
+          "briefing": "Steelman the least popular option, especially 'enable what exists and write nothing'. If the room converges fast on building, that is your cue, not your consensus."
+        }
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative - breaks ties, owns the maintenance",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["maintenance appetite", "estate policy"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["dominance", "role_collapse"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": ["prior_art_scan", "position_memo"]
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": { "pairing": "round_robin", "comparisons_per_pair": 1, "aggregation": "copeland" }
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "enumerate-prior-art", "custom_name": "enumerate prior art and native features BEFORE any build option is scored", "rounds": 1 },
+      { "kind": "steelman_before_rebuttal", "stage_id": "steelman-each-option", "rounds": 1 },
+      { "kind": "custom", "stage_id": "pairwise-score", "custom_name": "pairwise comparison of adopt / adapt / build / enable-existing", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "ranking", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 4, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 20, "sources": 6 },
+  "targets": { "evidence_items": 6, "categories": 4 },
+  "voting": {
+    "method": "condorcet",
+    "quorum": { "min_voters": 5, "min_fraction": 0.8, "on_failure": "extend_rounds" },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "custom:prior_art_enumerated_before_scoring == true AND custom:native_feature_option_dispositioned == true AND sources_gathered >= 3",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:prior_art_enumerated_before_scoring", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:native_feature_option_dispositioned", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "sources_gathered", "op": ">=", "value": 3 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "if the ranking selects build, a time-boxed spike proves the adopt option genuinely fails first"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2 },
+    "resolution": ["narrow_scope", "split_question", "blind_re_evaluation", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "instant_unanimity",
+      "premature_convergence",
+      "echo_chamber",
+      "participant_dominance",
+      "lost_dissent",
+      "weak_synthesis",
+      "missing_expertise"
+    ],
+    "fast_unanimity_response": ["forced_dissent", "strongest_counterexample", "blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "option_cards",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["starting a build"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h64", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Skill adoption versus build (advisory, owner tie-break)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H64", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P37,P28"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2091", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H64 `skill-adoption-vs-build`, global ordinal 64, tier standard, protocols P37/P28, 6 seats, 2 rounds, default binding ADVISORY, OWNER-DECISION YES. This is the LAST design-derived preset in lane build/preset-4; ordinals 65-72 of the doc (C-H65..C-H72) fall outside the program's 64-preset budget and are NOT built by any lane - reported, not silently dropped. || EDITABLE DIALS: (1) prior_art_scope -> the enumerate-prior-art stage, preparation.min_sources (3) and the sources_gathered stopping clause; widening the scope is cheap and is where this council earns its keep. Secondary dials: budgets.time_minutes (45), topology.tournament.aggregation (copeland), voting.tie_break (owner), consensus.threshold (0.7). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `pairwise_then_owner` -> topology.kind `pairwise_tournament` (round_robin, copeland) plus voting.method `condorcet` with tie_break `owner`; the pairwise half is topology and the owner half is the tie-break. roles `methodologist` -> custom:methodologist as chair, `implementer` -> custom:implementer, `cost_analyst` -> custom:cost_analyst, `architect` -> architect (enum), `critic` -> devils_advocate (enum, chosen over `critic` because the seat is briefed to steelman the least popular option rather than attack the leading one), `owner_rep` -> custom:owner_rep (kind human, vendor human, authority owner). Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision. `evidence standard: assertion_with_pointer` -> anchor_style `any` with citation_required true and min_independent_sources 2. || A DELIBERATE ADDITION BEYOND THE DESIGN: consensus.fast_unanimity_is_suspicious is TRUE here even though the design row says anti-sycophancy off. Fast agreement to BUILD is the specific pathology this council exists to interrupt - it is the enjoyable option and the room converges on it early - so the fast-unanimity response is armed with forced_dissent and blind_re_evaluation. If that is unwanted, this is the field to flip. || CUSTOM METRICS AND THEIR PRODUCERS: custom:prior_art_enumerated_before_scoring (boolean; produced by the chair, and the ORDERING is part of the claim - enumeration timestamps must precede the first build score) and custom:native_feature_option_dispositioned (boolean; produced by the pairwise-score stage, requiring the enable-existing option to be explicitly accepted or rejected with a reason). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. Two SEM-012 WARNs are expected and non-blocking. || WHY sources_gathered >= 3 IS THE THIRD CLAUSE: it is the registry metric that makes 'we looked' checkable. An enumeration claiming completeness on one source is a recollection, not a search."
+  }
+}

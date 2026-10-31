@@ -1,0 +1,597 @@
+{
+ "IMP-0229": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0229",
+  "dependencies": [
+   "IMP-0141"
+  ],
+  "evidence_requirement": "Two signals: (1) a bit-flipped entry is detected on read (hash mismatch) and refetched; (2) a clean entry is served from cache with a measured hit (counter, not inference).",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "IMP-0229",
+  "inputs": [
+   "IMP-0141 cache key",
+   "_USER-PROMPTS.md:11013,11305"
+  ],
+  "output_path": "command-center/receipts/IMP-0229.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: a content-addressed store behind the cache key, with integrity verification on read and an explicit corrupted-entry path. Acceptance: a corrupted entry is detected on read and refetched, never served - 'corrupted-cache tests' and 'stale cache masks a fixed package' are both named failure classes.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "bit-flipped entry detected and refetched (both-states with a clean entry)",
+   "cache hit and miss counters are measured, and a stale entry never masks a fixed artifact"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Implement the content-addressed artifact cache backend",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "IMP-0261": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0261",
+  "dependencies": [
+   "B05",
+   "B06"
+  ],
+  "evidence_requirement": "1) validator exit status over all 72 presets and 58 protocols; 2) an independent jsonschema CLI over the same inputs agreeing item-for-item.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0261",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0261.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-schema-artifact (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/schema/councilspec.schema.json covering all 13 sections measured in 11-COUNCIL-SPECIFICATION.schema.json (charter, participants, roles, engagement, budgets, evidence, voting, stopping, outcomes, integrity, artifacts, execution, meta) plus tools/council/validate.py. Falsifiable question: do all 72 presets in 12-COUNCIL-PROTOCOLS-AND-PRESETS.json validate unchanged, and does an unknown section key fail closed?",
+  "retry_policy": "no automatic retry on schema-invalid or contract-violation - the contract is frozen by B06; fix the spec via versioned migration or escalate to the owner",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: 72/72 presets and 58/58 protocols validate",
+   "negative control: unknown section key must FAIL (strict-parser class, spec 11302)",
+   "negative control: a preset missing a stopping rule must FAIL"
+  ],
+  "timeout_seconds": 3600,
+  "title": "CouncilSpec JSON Schema and versioned validator",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0264": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "runtime-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0264",
+  "dependencies": [
+   "IMP-0262"
+  ],
+  "evidence_requirement": "1) an event-count invariant: turns_recorded == turns_executed across a full council; 2) a call-graph check that no topology module writes participant output directly.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0264",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0264.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-kernel-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/kernel.py owning rounds, turn order, turn length, response obligations and the single event loop every topology and protocol plugs into. Falsifiable question: can any topology advance a round without the kernel recording a turn event, i.e. is there a bypass path?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: turn ordering, turn timeout, obligation enforcement",
+   "invariant: event count equals executed turns",
+   "negative control: add a direct-write bypass in a test topology and assert the call-graph check FIRES"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Council runtime kernel: round scheduler and turn state machine",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0269": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0269",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) a probe result attached to each seated expert; 2) an unseated-claimant list proving the probe can reject.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0269",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244"
+  ],
+  "output_path": "command-center/receipts/IMP-0269.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/select_expertise.py matching task tags to declared expertise AND verifying the claim against a demonstrated-competence probe before seating. Falsifiable question: can a participant that merely asserts expertise be seated as the domain authority without passing the probe (the hallucinated-expertise class, spec 11241)?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: tag matching precision/recall on a labelled fixture",
+   "negative control: a bogus expertise claim must be rejected by the probe"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Expertise-ranked selector with claimed-vs-demonstrated verification",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0270": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0270",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) two runs with the same recorded seed producing identical rosters; 2) a chi-square check that stratum proportions match the requested strata.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0270",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0270.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/select_random.py providing uniform and stratified sampling whose seed is recorded in the run artifact. Falsifiable question: can a run be reproduced seat-for-seat from the recorded seed alone?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: reproducibility from seed",
+   "statistical: stratum proportion check over 1000 draws",
+   "negative control: unseeded RNG must break the reproducibility test"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Random and stratified samplers with a recorded deterministic seed",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0271": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0271",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) an unfilled-class report present in the run artifact; 2) a per-class seat census compared against the requested balance.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0271",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0271.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/select_stakeholder.py which seats declared stakeholder classes to a target balance and reports any class it could not fill. Falsifiable question: when a stakeholder class cannot be filled, does the council proceed silently under-represented?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: balance arithmetic across 5 class mixes",
+   "negative control: suppress the unfilled report and assert the census check FAILS"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Stakeholder-balanced selector",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0272": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0272",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) a solver unit test over infeasible and feasible constraint sets; 2) a waiver record present in the artifact whenever diversity < requested, checked mechanically.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0272",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244"
+  ],
+  "output_path": "command-center/receipts/IMP-0272.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/diversity.py enforcing minimum vendor/model diversity as a hard constraint with an explicit waiver record when it cannot be met. Falsifiable question: when only one vendor is reachable, does the council run anyway while REPORTING that its independence assumption is void?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: feasible/infeasible constraint matrix",
+   "negative control: remove the waiver emission and assert the artifact check FAILS"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Model and vendor diversity constraint solver",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0273": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0273",
+  "dependencies": [
+   "IMP-0265",
+   "IMP-0294"
+  ],
+  "evidence_requirement": "1) first-round position-spread metric, paired vs unpaired, on the same 10 questions; 2) a manual read of 3 transcripts confirming the refuter actually opposed rather than agreed.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0273",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0273.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/select_adversarial.py which deliberately seats opposed positions or a dedicated refuter against each proposer. Falsifiable question: does the pairing measurably increase first-round position spread compared with an unpaired council on the same question?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "experiment: spread comparison across 10 matched questions",
+   "negative control: a refuter that agrees with everything must be flagged by the spread metric"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Adversarial-pairing selector",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0274": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0274",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) a context diff between a recruited seat and an original seat; 2) an independence check comparing the recruit's first output against the running consensus.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0274",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0274.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/elastic.py so seat count grows within min/max when coverage or expertise gaps are detected mid-run. Falsifiable question: does a recruited participant receive the same information partition as an original seat, or does it inherit the existing consensus and therefore add no independence?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: scale-up trigger conditions",
+   "negative control: feed the recruit the consensus transcript and assert the independence check FIRES"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Elastic scaling and dynamic mid-run recruitment",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0275": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0275",
+  "dependencies": [
+   "IMP-0265",
+   "IMP-0288"
+  ],
+  "evidence_requirement": "1) an artifact census before and after eviction showing prior contributions retained; 2) the vote tally recomputed with the documented eviction rule and compared to the recorded tally.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0275",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0275.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/participants/replace.py evicting a participant that breaches max inactivity or fails repeatedly, preserving its prior contributions in the record. Falsifiable question: does eviction ever delete or orphan an evicted participant's earlier votes and ideas?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: eviction triggers and quorum recomputation",
+   "negative control: drop the evicted member's ideas and assert the census FAILS"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Participant replacement and eviction on inactivity or failure",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0279": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0279",
+  "dependencies": [
+   "IMP-0265"
+  ],
+  "evidence_requirement": "1) effective-voice count on an all-identical roster; 2) inter-participant output similarity on the same roster corroborating the config-level verdict.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0279",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0279.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-integrity-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/integrity/dupes.py flagging seats whose effective configuration (vendor, model, system prompt, tools, context) makes them one voice. Falsifiable question: does a council of 8 seats that are 8 copies of one configuration report an effective independence count of 1?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: effective-voice counting",
+   "negative control: a genuinely diverse roster must report >1, so the detector is not constant-firing"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Duplicate-participant detector",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "IMP-0303": {
+  "_source_slice_file": "IMP-3.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0303",
+  "dependencies": [
+   "IMP-0301"
+  ],
+  "evidence_requirement": "1) a divergence report across all four methods on every recorded ballot set; 2) textbook fixtures with known winners verifying each method independently.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim",
+   "detector-failure",
+   "dependency-blocked"
+  ],
+  "id": "IMP-0303",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10915-10946",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10746-10767",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11172-11244",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.schema.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0303.json",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-vote-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "owner_approval_required": false,
+  "phase": "7A",
+  "question_or_target": "Implement tools/council/vote/ballots.py covering ranked-choice, pairwise/Condorcet, score and approval with a shared ballot type. Falsifiable question: on the same ballots, do the four methods ever elect different winners, and is that divergence surfaced to the owner instead of hidden behind a default method?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the module and starts from the tests, not the author's summary",
+  "tests_required": [
+   "unit: each method against a published worked example",
+   "invariant: method divergence is reported, never silently resolved",
+   "negative control: a constructed Condorcet cycle must be reported as such"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Ordinal and cardinal ballot engine: ranked-choice, Condorcet, score and approval",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ }
+}

@@ -1,0 +1,1528 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1108,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/research-registry.schema.json",
+   "role": "supporting",
+   "sha256": "a1929362c7b63a9dbe55f3a11b282137c9398df03a96667c69e3dcae63a180c5"
+  },
+  {
+   "bytes": 5442,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/independence.py",
+   "role": "supporting",
+   "sha256": "0d6f1b685a07145682d3d3ee9d942903f20a85a25f63a62a63f4b10b5f6ff488"
+  },
+  {
+   "bytes": 1918,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/schema_local.py",
+   "role": "supporting",
+   "sha256": "85b8d4d10694ab7becaaa294489d1fd673b38254d2f6377d50b29add3bc380a8"
+  },
+  {
+   "bytes": 3127,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/probe1_independence.py",
+   "role": "supporting",
+   "sha256": "def891873fe4718ec63fc34d6918867f2670439d9f632d753d402561ebbab1b4"
+  },
+  {
+   "bytes": 4424,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/probe2_collapse_control.py",
+   "role": "supporting",
+   "sha256": "714e457d826a4a65c50e3389974b4dacd495a8e3fff072aaae6bf4c644202333"
+  },
+  {
+   "bytes": 1209,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/fixtures/hn-search-collapse.json",
+   "role": "supporting",
+   "sha256": "339a24b29720e90afb47419bb3574ceec2f2f2ad84dc5ea7723051377d16aa49"
+  },
+  {
+   "bytes": 9661,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0115/snapshots/captures.json",
+   "role": "supporting",
+   "sha256": "1424707b22fdad13b0f0fb0a2969f34a2845e76bc2d71bfc6fa3d31c6220e76d"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/research/RES-0115.json",
+   "consumer": "jsonschema Draft202012Validator disk-ref store",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "Draft202012Validator(command-center/schema/research-registry.schema.json) with disk $ref store",
+    "exit_code": 0,
+    "fingerprint": "c278524c71158f0b524e2d81f5c78ecf",
+    "method": "schema-validate",
+    "raw_output": "iter_errors empty; garbage objects rejected",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0115/independence.py",
+   "claim": "Independence collapse is recorded and recomputed for every multi-reporter row; at least one apparent multi-report collapses to a single independent reporter.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/RES-0115/independence.py collapse_reporters on failure_register",
+     "exit_code": 0,
+     "fingerprint": "fdd12577ab31582d7058ab3fd6805115",
+     "method": "static-analysis",
+     "raw_output": "multi=5 collapses=['F-HN-CONTEXT-MODE-MCP-INTERCEPT', 'F-MCP-STDOUT-POLLUTION', 'F-MCP-STDERR-AS-ERROR', 'F-HOOK-USER-CONSENT-BYPASS'] treated_as_real=[]",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0115/probe1_independence.py",
+     "exit_code": 0,
+     "fingerprint": "931b06b2e23214c2994b22baf29d0ad6",
+     "method": "test-run",
+     "raw_output": "hn_fx=collapsed-to-one pair_fx=independent",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "https://code.claude.com/docs/en/hooks",
+   "claim": "Claude Code has no PostToolUse path for MCP tools.",
+   "confidence": "likely",
+   "probes": [
+    {
+     "command": "file-read command-center/p2-wave/probes/RES-0115/snapshots/e14f60788bb3.bin",
+     "exit_code": 0,
+     "fingerprint": "28ef334b16506091ad6e306186b89e44",
+     "method": "file-read",
+     "raw_output": "Confirmed: context-mode cannot intercept MCP tool responses",
+     "role": "source"
+    },
+    {
+     "command": "file-read command-center/p2-wave/probes/RES-0115/snapshots/20106b0f3bee.bin",
+     "exit_code": 0,
+     "fingerprint": "9923a9b6b1209ce68ef2b922329d8874",
+     "method": "schema-validate",
+     "raw_output": "MCP server tools appear as regular tools in tool events (PostToolUse)",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "RES-0115",
+  "manifest_path": "command-center/p2-wave/probes/RES-0115/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "fixture-hn-search-three-urls verdict=collapsed-to-one independent=1",
+   "description": "Three HN permalinks plus ancestors of one empirical comment must collapse to one reporter; two distinct GitHub openers must stay independent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "fixture-independent-pair verdict=independent independent=2",
+   "id": "NC-HN-SEARCH-COLLAPSE",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "iter_errors nonempty on garbage objects",
+   "description": "Disk-resolved research-registry schema must reject {}, an unrelated blob, and a long string object, and accept this receipt.",
+   "fired_on_bad_state": true,
+   "good_state_output": "iter_errors empty on this receipt",
+   "id": "NC-SCHEMA-GARBAGE",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "ecosystem-cartographer",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": {
+   "collapse_to_one_count": 4,
+   "collapse_to_one_ids": [
+    "F-HN-CONTEXT-MODE-MCP-INTERCEPT",
+    "F-MCP-STDOUT-POLLUTION",
+    "F-MCP-STDERR-AS-ERROR",
+    "F-HOOK-USER-CONSENT-BYPASS"
+   ],
+   "summary": "In this 2026-08-24 sample, recurring operational failures that practitioners discuss in public forums almost always already appear in the vendor issue tracker or in the MCP spec. After independence collapse, zero rows met the forum-only treat-as-real bar. The required collapse-to-one control is F-HN-CONTEXT-MODE-MCP-INTERCEPT (three search permalinks plus the empirical comment collapse to one reporter). Closest forum-only candidate F-HOOK-USER-CONSENT-BYPASS also collapsed to one reporter via a quote-reply.",
+   "threshold": 2,
+   "treated_as_real_count": 0,
+   "treated_as_real_ids": []
+  },
+  "captures_path": "command-center/p2-wave/probes/RES-0115/snapshots/captures.json",
+  "claims": [
+   {
+    "claim": "Treat a forum failure as real only at independent_reporter_count >= 2 after collapse, and only if it is absent from vendor docs and the vendor tracker.",
+    "id": "C-threshold",
+    "strongest_caveat": "The integer 2 is a policy choice recorded here, not a measured natural law.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim": "This sample contains zero failures that are both forum-only and above the independent-reporter threshold.",
+    "id": "C-zero-forum-only",
+    "strongest_caveat": "Sample is not an exhaustive crawl of Reddit (search rail returned no Reddit hits).",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim": "Three HN permalinks that search engines present as the same MCP-intercept failure collapse to one empirical reporter.",
+    "id": "C-hn-collapse",
+    "strongest_caveat": "The search-engine snippet attached the descendant comment text to ancestor URLs.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "claim": "Claude Code has no PostToolUse path for MCP tools.",
+    "id": "C-posttooluse-mcp",
+    "strongest_caveat": "Vendor hooks docs fetched 2026-08-24 state MCP tools appear in PostToolUse.",
+    "verdict": "REFUTED"
+   }
+  ],
+  "collapse_to_one_documented": true,
+  "completion_sentinel": "SUCCESS:RES-0115 in the receipt AND a failure register with an independent-reporter count and at least one documented collapse to one",
+  "control_ids": [
+   "NC-HN-SEARCH-COLLAPSE",
+   "NC-SCHEMA-GARBAGE"
+  ],
+  "failure_register": [
+   {
+    "claims_note": "CONTROL: apparent multi-report collapsed to one empirical reporter. The surviving claim is REFUTED against today's hooks documentation.",
+    "classification": "collapsed-search-hits",
+    "collapse_control": true,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "hacker-news",
+    "id": "F-HN-CONTEXT-MODE-MCP-INTERCEPT",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "hn-47202616"
+       ],
+       "root": "hn-47202616"
+      }
+     ],
+     "dropped": [
+      {
+       "id": "hn-47193064",
+       "reason": "role:thread-container"
+      },
+      {
+       "id": "hn-47200274",
+       "reason": "role:search-index-ancestor"
+      },
+      {
+       "id": "hn-47201789",
+       "reason": "role:search-index-ancestor"
+      }
+     ],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "A web-search hit list treated three HN permalinks as three reports of the same operational failure. All three URLs are the Show HN thread 47193064 plus ancestor comments of a single empirical comment (47202616) by re5i5tor.",
+    "rails": [
+     {
+      "bytes": 5103,
+      "claim": "One empirical HN comment states the intercept failure.",
+      "fetch_timestamp": "2026-08-24T18:47:19Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Confirmed: context-mode cannot intercept MCP tool responses",
+      "sha256": "658a5bc15da3469f35646061051ba3e9bbe045259957958f7c0dca6685fab8a5",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/e14f60788bb3.bin",
+      "url": "https://news.ycombinator.com/item?id=47202616",
+      "url_reachable": true
+     },
+     {
+      "bytes": 2650692,
+      "claim": "Vendor hooks docs contradict the HN intercept claim.",
+      "fetch_timestamp": "2026-08-24T18:47:26Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP</a> server tools appear as regular tools in tool events",
+      "sha256": "1dcb596f0043b1d5f80a4240ea12c36fe49352b34aa0ade5bb45e1d08ddfa18f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/20106b0f3bee.bin",
+      "url": "https://code.claude.com/docs/en/hooks",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 4,
+    "reporters": [
+     {
+      "author_id": "mksglu",
+      "id": "hn-47193064",
+      "role": "thread-container",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47193064"
+     },
+     {
+      "author_id": "mksglu",
+      "id": "hn-47200274",
+      "role": "search-index-ancestor",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47200274"
+     },
+     {
+      "author_id": "re5i5tor",
+      "id": "hn-47201789",
+      "parent_id": "hn-47200274",
+      "role": "search-index-ancestor",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47201789"
+     },
+     {
+      "author_id": "re5i5tor",
+      "id": "hn-47202616",
+      "parent_id": "hn-47201789",
+      "role": "empirical",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47202616"
+     }
+    ],
+    "strongest_caveat": "Current vendor hooks docs state MCP server tools appear as regular tools in PreToolUse/PostToolUse. The 2026-03 HN empirical claim is version-skewed or overstated; it is also a single independent reporter after collapse.",
+    "title": "Apparent multi-URL HN report that Claude Code PostToolUse cannot intercept MCP tool responses",
+    "treated_as_real": false,
+    "vendor_doc_present": true,
+    "vendor_doc_urls": [
+     "https://code.claude.com/docs/en/hooks"
+    ],
+    "vendor_tracker_present": false,
+    "vendor_tracker_urls": []
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-MCP-CONNECTED-NO-TOOLS",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-12164"
+       ],
+       "root": "gh-12164"
+      },
+      {
+       "members": [
+        "gh-44074"
+       ],
+       "root": "gh-44074"
+      },
+      {
+       "members": [
+        "gh-5241"
+       ],
+       "root": "gh-5241"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 3,
+    "mechanism": "Client health/list path reports Connected while tool registration or enablement does not surface mcp__* tools. Multiple GitHub issue openers describe the same symptom with distinct local setups.",
+    "rails": [
+     {
+      "bytes": 305970,
+      "claim": "Vendor tracker contains the connected-but-no-tools failure.",
+      "fetch_timestamp": "2026-08-24T18:47:20Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP servers connect successfully but tools are not exposed",
+      "sha256": "84c86ea73dde35d972f02a84082969b320df374151364289c2901061d4075363",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/2833719d1614.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/12164",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 3,
+    "reporters": [
+     {
+      "author_id": "UnholyKingfish",
+      "id": "gh-5241",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/5241"
+     },
+     {
+      "author_id": "github-issue-44074-opener",
+      "duplicate_of": "gh-42442",
+      "id": "gh-44074",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/44074"
+     },
+     {
+      "author_id": "github-issue-12164-opener",
+      "id": "gh-12164",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/12164"
+     }
+    ],
+    "strongest_caveat": "Independent-opener count is computed from issue numbers, not a sockpuppet audit. #44074 is labelled duplicate of #42442 (not fetched here) so the raw trio overstates uniqueness of the filing, not of the symptom. Excluded from the forum-only class because it lives in the vendor issue tracker.",
+    "title": "MCP servers show Connected / health-ok but expose zero tools to the model",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/5241",
+     "https://github.com/anthropics/claude-code/issues/44074",
+     "https://github.com/anthropics/claude-code/issues/12164"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-doc-shared-primitive",
+    "collapse_control": false,
+    "evidence_tier": "E1",
+    "exclusion": "vendor-present",
+    "forum_class": "independent-blogs",
+    "id": "F-MCP-STDOUT-POLLUTION",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "blog-devto-stdio",
+        "blog-startdebug-hang"
+       ],
+       "root": "blog-devto-stdio"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "blog-devto-stdio",
+       "b": "blog-startdebug-hang",
+       "primitive_id": "mcp-stdio-stdout-exclusivity",
+       "rule": "shared-primitive"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "stdout is the protocol channel. Non-JSON bytes (console.log, print, npx progress, startup banners) corrupt framing. Two practitioner blogs restate the same MCP-spec primitive.",
+    "rails": [
+     {
+      "bytes": 329294,
+      "claim": "MCP spec forbids non-protocol stdout.",
+      "fetch_timestamp": "2026-08-24T18:47:45Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MUST NOT</strong> write anything to its <code>stdout</code>",
+      "sha256": "7958e4fea5ebab3e6caceb3f266a5bfd26798cfd6407035cbe345bf3adb62ed1",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/e6010872db33.bin",
+      "url": "https://modelcontextprotocol.io/specification/2025-03-26/basic/transports",
+      "url_reachable": true
+     },
+     {
+      "bytes": 137816,
+      "claim": "Practitioner blog restates the spec primitive.",
+      "fetch_timestamp": "2026-08-24T18:47:28Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Never print debug logs to stdout",
+      "sha256": "8e5ff0f18f0d0518e0e6ba5e48ccca510d11537c61562d5d383e46df93c92e96",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/89a0b0484b3e.bin",
+      "url": "https://dev.to/yuelinghuashu/mcp-stdio-protocols-3-hidden-traps-when-all-unit-tests-pass-but-the-mcp-server-wont-respond-53l6",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "yuelinghuashu",
+      "id": "blog-devto-stdio",
+      "primitive_id": "mcp-stdio-stdout-exclusivity",
+      "role": "blog",
+      "url": "https://dev.to/yuelinghuashu/mcp-stdio-protocols-3-hidden-traps-when-all-unit-tests-pass-but-the-mcp-server-wont-respond-53l6"
+     },
+     {
+      "author_id": "marius-bughiu",
+      "id": "blog-startdebug-hang",
+      "primitive_id": "mcp-stdio-stdout-exclusivity",
+      "role": "blog",
+      "url": "https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"
+     }
+    ],
+    "strongest_caveat": "The blogs look like independent operational war-stories. They share the MCP spec stdout-exclusivity primitive, so they are ONE signal. The spec itself is vendor documentation.",
+    "title": "Stdio MCP servers that write logs or banners to stdout fail the JSON-RPC handshake",
+    "treated_as_real": false,
+    "vendor_doc_present": true,
+    "vendor_doc_urls": [
+     "https://modelcontextprotocol.io/specification/2025-03-26/basic/transports"
+    ],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/47635"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "blog-citing-github",
+    "id": "F-MCP-STDERR-AS-ERROR",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "blog-startdebug-stderr",
+        "gh-17653"
+       ],
+       "root": "blog-startdebug-stderr"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "blog-startdebug-stderr",
+       "b": "gh-17653",
+       "rule": "quotes"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Host logs every stderr line at [ERROR] and inflates a failed-server count. Cosmetic if /mcp still lists tools.",
+    "rails": [
+     {
+      "bytes": 296911,
+      "claim": "Vendor tracker contains the stderr-as-error failure.",
+      "fetch_timestamp": "2026-08-24T18:47:22Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP servers incorrectly shown as 'failed'",
+      "sha256": "944c7fe1e23010cab95c08eb872dca9e60036a9e8c1d3ace18ad907f6011c997",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/510786f22ea8.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/17653",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "marius-bughiu",
+      "id": "blog-startdebug-stderr",
+      "quotes_ids": [
+       "gh-17653"
+      ],
+      "role": "blog",
+      "url": "https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"
+     },
+     {
+      "author_id": "github-issue-17653-opener",
+      "id": "gh-17653",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/17653"
+     }
+    ],
+    "strongest_caveat": "The blog cites #17653. After the quotes edge, this is one reporter plus a vendor-tracker filing \u2014 excluded from the forum-only class.",
+    "title": "Claude Code counts MCP stderr banners as server failures while tools still work",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/17653"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E3",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-community-forum",
+    "id": "F-CURSOR-AGENT-SHELL-HANG",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "cursor-forum-149288"
+       ],
+       "root": "cursor-forum-149288"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Agent LocalShellStreamExecutor execute span starts and never completes. Recurring on the vendor community forum with staff acknowledgement.",
+    "rails": [
+     {
+      "bytes": 46116,
+      "claim": "Cursor community forum is the vendor tracker for this hang.",
+      "fetch_timestamp": "2026-08-24T18:47:30Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Tool calling stuck in both the IDE and cursor-agent",
+      "sha256": "33661f0f4693ba43cbf8bcf120eeb1df348c2fc2c584471bc14b2bb4586bbb5f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/46f8b7cf9a17.bin",
+      "url": "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "cursor-forum-149288-opener",
+      "id": "cursor-forum-149288",
+      "role": "vendor-issue",
+      "url": "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288"
+     }
+    ],
+    "strongest_caveat": "forum.cursor.com is classified as the vendor issue tracker, not an independent practitioner forum. A single thread opener is also below the reporter threshold.",
+    "title": "Cursor agent Shell/tool calls hang while the integrated terminal works",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-PATH-SHADOW-CLAUDE",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-33251"
+       ],
+       "root": "gh-33251"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "which/type -a claude returns more than one path; the earlier PATH entry keeps serving an old version after npm/brew upgrade.",
+    "rails": [
+     {
+      "bytes": 274146,
+      "claim": "Vendor tracker contains PATH-shadowing of claude binaries.",
+      "fetch_timestamp": "2026-08-24T18:47:24Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "/usr/local/bin/claude shadows newer version",
+      "sha256": "9583a8c06389f55113f0a36be5d9385bf52a5891252da2433b1c396267518cf9",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/b12284ed9bc7.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/33251",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "github-issue-33251-opener",
+      "id": "gh-33251",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/33251"
+     }
+    ],
+    "strongest_caveat": "Install-path confusion is documented in practitioner blogs AND in the vendor tracker (#33251). Single fetched opener plus vendor presence: not forum-only.",
+    "title": "Multiple claude binaries on PATH (npm vs Homebrew vs native) make updates appear to no-op",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/33251"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-GIT-CRED-PROMPT-FREEZE",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-45857"
+       ],
+       "root": "gh-45857"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "git subprocess inherits the TTY; GIT_TERMINAL_PROMPT is not set to 0 for plugin fetches, so a username prompt captures all keystrokes.",
+    "rails": [
+     {
+      "bytes": 278159,
+      "claim": "Vendor tracker contains the git-credential TUI freeze.",
+      "fetch_timestamp": "2026-08-24T18:47:25Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Terminal becomes unresponsive when plugin installation",
+      "sha256": "48980a539245375f9682f36bba362890482eaa7164f9c50f8716be9cfd77256f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/8dab35e6a78c.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/45857",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "github-issue-45857-opener",
+      "id": "gh-45857",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/45857"
+     }
+    ],
+    "strongest_caveat": "One opener in the vendor tracker. Recurring as a class of TTY-stealing subprocesses, but this instance is not forum-only.",
+    "title": "Git HTTPS credential prompts steal stdin and freeze the Claude Code TUI during plugin clone",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/45857"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "below-threshold",
+    "collapse_control": false,
+    "evidence_tier": "E3",
+    "exclusion": "below-threshold",
+    "forum_class": "hacker-news",
+    "id": "F-HOOK-USER-CONSENT-BYPASS",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "hn-46417111",
+        "hn-tenuo-reply"
+       ],
+       "root": "hn-tenuo-reply"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "hn-tenuo-reply",
+       "b": "hn-46417111",
+       "rule": "quotes"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Hooks influence the tool loop; they do not remove OS file authority. A user consent after a hook error is a second path that retries the same Read.",
+    "rails": [
+     {
+      "bytes": 6477,
+      "claim": "One first-person HN report of hook-then-permission retry.",
+      "fetch_timestamp": "2026-08-24T18:47:19Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "The hook was effectively bypassed via user consent",
+      "sha256": "71d5886cb08b1805ccbf53a2238b1d919b2a3476867b6665853845656633bec0",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/0fce03ef87d8.bin",
+      "url": "https://news.ycombinator.com/item?id=46417111",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "peanutlife",
+      "id": "hn-46417111",
+      "role": "empirical",
+      "url": "https://news.ycombinator.com/item?id=46417111"
+     },
+     {
+      "author_id": "tenuo-author",
+      "id": "hn-tenuo-reply",
+      "quotes_ids": [
+       "hn-46417111"
+      ],
+      "role": "quote-reply",
+      "url": "https://news.ycombinator.com/item?id=46417111"
+     }
+    ],
+    "strongest_caveat": "Closest forum-only candidate in this sample. The second voice quotes the first anecdote, so independent_reporter_count is 1. Below the treat-as-real threshold. Also not shown to be absent from every vendor surface forever \u2014 absence here is a negative search of code.claude.com hooks/permissions pages for this exact 'user yes retries after hook deny' story, not a proof of impossibility.",
+    "title": "PreToolUse hook deny followed by a user 'yes' on the permission prompt retries the blocked Read and succeeds",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": false,
+    "vendor_tracker_urls": []
+   }
+  ],
+  "fixture_controls": {
+   "hn_search": "collapsed-to-one",
+   "independent_pair": "independent",
+   "quote_collapse": "collapsed-to-one",
+   "shared_primitive": "collapsed-to-one"
+  },
+  "independence_of_sources_asserted_explicitly": true,
+  "kind": "research-registry",
+  "methodology": {
+   "forum_class": [
+    "hacker-news",
+    "independent-blogs",
+    "dev.to",
+    "third-party-github-not-the-vendor"
+   ],
+   "negative_search_caveat": "Vendor-absence is a dated negative search of the named doc and tracker URLs, not a proof that a filing does not exist under a different title.",
+   "treat_as_real_rule": "A failure may be treated as real only when independent_reporter_count >= 2 after independence collapse AND vendor_doc_present is false AND vendor_tracker_present is false. Shared-primitive restatements are one signal (05-ECO section 6 npm/PyPI/Homebrew OIDC example). Reporters quoting one another are one reporter.",
+   "treat_as_real_threshold": 2,
+   "vendor_docs": [
+    "code.claude.com",
+    "modelcontextprotocol.io specification"
+   ],
+   "vendor_issue_tracker": [
+    "github.com/anthropics/claude-code",
+    "forum.cursor.com"
+   ]
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0115/independence.py",
+    "measured": 0,
+    "method": "static-analysis",
+    "name": "treated_as_real_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0115/independence.py",
+    "measured": 4,
+    "method": "static-analysis",
+    "name": "collapse_to_one_count"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0115",
+    "measured": 2,
+    "method": "static-analysis",
+    "name": "treat_as_real_threshold"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/RES-0115/independence.py",
+    "measured": 5,
+    "method": "static-analysis",
+    "name": "multi_reporter_rows_with_independence_check"
+   }
+  ],
+  "produced_at": "2026-08-25T01:01:55Z",
+  "question": "What recurring operational failures do practitioners report in public forums that appear in no vendor documentation or issue tracker, and how many independent reporters does each failure have before it may be treated as real?",
+  "quoting_reporters_count_as_one": true,
+  "register": [
+   {
+    "claims_note": "CONTROL: apparent multi-report collapsed to one empirical reporter. The surviving claim is REFUTED against today's hooks documentation.",
+    "classification": "collapsed-search-hits",
+    "collapse_control": true,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "hacker-news",
+    "id": "F-HN-CONTEXT-MODE-MCP-INTERCEPT",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "hn-47202616"
+       ],
+       "root": "hn-47202616"
+      }
+     ],
+     "dropped": [
+      {
+       "id": "hn-47193064",
+       "reason": "role:thread-container"
+      },
+      {
+       "id": "hn-47200274",
+       "reason": "role:search-index-ancestor"
+      },
+      {
+       "id": "hn-47201789",
+       "reason": "role:search-index-ancestor"
+      }
+     ],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "A web-search hit list treated three HN permalinks as three reports of the same operational failure. All three URLs are the Show HN thread 47193064 plus ancestor comments of a single empirical comment (47202616) by re5i5tor.",
+    "rails": [
+     {
+      "bytes": 5103,
+      "claim": "One empirical HN comment states the intercept failure.",
+      "fetch_timestamp": "2026-08-24T18:47:19Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Confirmed: context-mode cannot intercept MCP tool responses",
+      "sha256": "658a5bc15da3469f35646061051ba3e9bbe045259957958f7c0dca6685fab8a5",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/e14f60788bb3.bin",
+      "url": "https://news.ycombinator.com/item?id=47202616",
+      "url_reachable": true
+     },
+     {
+      "bytes": 2650692,
+      "claim": "Vendor hooks docs contradict the HN intercept claim.",
+      "fetch_timestamp": "2026-08-24T18:47:26Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP</a> server tools appear as regular tools in tool events",
+      "sha256": "1dcb596f0043b1d5f80a4240ea12c36fe49352b34aa0ade5bb45e1d08ddfa18f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/20106b0f3bee.bin",
+      "url": "https://code.claude.com/docs/en/hooks",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 4,
+    "reporters": [
+     {
+      "author_id": "mksglu",
+      "id": "hn-47193064",
+      "role": "thread-container",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47193064"
+     },
+     {
+      "author_id": "mksglu",
+      "id": "hn-47200274",
+      "role": "search-index-ancestor",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47200274"
+     },
+     {
+      "author_id": "re5i5tor",
+      "id": "hn-47201789",
+      "parent_id": "hn-47200274",
+      "role": "search-index-ancestor",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47201789"
+     },
+     {
+      "author_id": "re5i5tor",
+      "id": "hn-47202616",
+      "parent_id": "hn-47201789",
+      "role": "empirical",
+      "thread_id": "47193064",
+      "url": "https://news.ycombinator.com/item?id=47202616"
+     }
+    ],
+    "strongest_caveat": "Current vendor hooks docs state MCP server tools appear as regular tools in PreToolUse/PostToolUse. The 2026-03 HN empirical claim is version-skewed or overstated; it is also a single independent reporter after collapse.",
+    "title": "Apparent multi-URL HN report that Claude Code PostToolUse cannot intercept MCP tool responses",
+    "treated_as_real": false,
+    "vendor_doc_present": true,
+    "vendor_doc_urls": [
+     "https://code.claude.com/docs/en/hooks"
+    ],
+    "vendor_tracker_present": false,
+    "vendor_tracker_urls": []
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-MCP-CONNECTED-NO-TOOLS",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-12164"
+       ],
+       "root": "gh-12164"
+      },
+      {
+       "members": [
+        "gh-44074"
+       ],
+       "root": "gh-44074"
+      },
+      {
+       "members": [
+        "gh-5241"
+       ],
+       "root": "gh-5241"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 3,
+    "mechanism": "Client health/list path reports Connected while tool registration or enablement does not surface mcp__* tools. Multiple GitHub issue openers describe the same symptom with distinct local setups.",
+    "rails": [
+     {
+      "bytes": 305970,
+      "claim": "Vendor tracker contains the connected-but-no-tools failure.",
+      "fetch_timestamp": "2026-08-24T18:47:20Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP servers connect successfully but tools are not exposed",
+      "sha256": "84c86ea73dde35d972f02a84082969b320df374151364289c2901061d4075363",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/2833719d1614.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/12164",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 3,
+    "reporters": [
+     {
+      "author_id": "UnholyKingfish",
+      "id": "gh-5241",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/5241"
+     },
+     {
+      "author_id": "github-issue-44074-opener",
+      "duplicate_of": "gh-42442",
+      "id": "gh-44074",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/44074"
+     },
+     {
+      "author_id": "github-issue-12164-opener",
+      "id": "gh-12164",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/12164"
+     }
+    ],
+    "strongest_caveat": "Independent-opener count is computed from issue numbers, not a sockpuppet audit. #44074 is labelled duplicate of #42442 (not fetched here) so the raw trio overstates uniqueness of the filing, not of the symptom. Excluded from the forum-only class because it lives in the vendor issue tracker.",
+    "title": "MCP servers show Connected / health-ok but expose zero tools to the model",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/5241",
+     "https://github.com/anthropics/claude-code/issues/44074",
+     "https://github.com/anthropics/claude-code/issues/12164"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-doc-shared-primitive",
+    "collapse_control": false,
+    "evidence_tier": "E1",
+    "exclusion": "vendor-present",
+    "forum_class": "independent-blogs",
+    "id": "F-MCP-STDOUT-POLLUTION",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "blog-devto-stdio",
+        "blog-startdebug-hang"
+       ],
+       "root": "blog-devto-stdio"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "blog-devto-stdio",
+       "b": "blog-startdebug-hang",
+       "primitive_id": "mcp-stdio-stdout-exclusivity",
+       "rule": "shared-primitive"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "stdout is the protocol channel. Non-JSON bytes (console.log, print, npx progress, startup banners) corrupt framing. Two practitioner blogs restate the same MCP-spec primitive.",
+    "rails": [
+     {
+      "bytes": 329294,
+      "claim": "MCP spec forbids non-protocol stdout.",
+      "fetch_timestamp": "2026-08-24T18:47:45Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MUST NOT</strong> write anything to its <code>stdout</code>",
+      "sha256": "7958e4fea5ebab3e6caceb3f266a5bfd26798cfd6407035cbe345bf3adb62ed1",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/e6010872db33.bin",
+      "url": "https://modelcontextprotocol.io/specification/2025-03-26/basic/transports",
+      "url_reachable": true
+     },
+     {
+      "bytes": 137816,
+      "claim": "Practitioner blog restates the spec primitive.",
+      "fetch_timestamp": "2026-08-24T18:47:28Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Never print debug logs to stdout",
+      "sha256": "8e5ff0f18f0d0518e0e6ba5e48ccca510d11537c61562d5d383e46df93c92e96",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/89a0b0484b3e.bin",
+      "url": "https://dev.to/yuelinghuashu/mcp-stdio-protocols-3-hidden-traps-when-all-unit-tests-pass-but-the-mcp-server-wont-respond-53l6",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "yuelinghuashu",
+      "id": "blog-devto-stdio",
+      "primitive_id": "mcp-stdio-stdout-exclusivity",
+      "role": "blog",
+      "url": "https://dev.to/yuelinghuashu/mcp-stdio-protocols-3-hidden-traps-when-all-unit-tests-pass-but-the-mcp-server-wont-respond-53l6"
+     },
+     {
+      "author_id": "marius-bughiu",
+      "id": "blog-startdebug-hang",
+      "primitive_id": "mcp-stdio-stdout-exclusivity",
+      "role": "blog",
+      "url": "https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"
+     }
+    ],
+    "strongest_caveat": "The blogs look like independent operational war-stories. They share the MCP spec stdout-exclusivity primitive, so they are ONE signal. The spec itself is vendor documentation.",
+    "title": "Stdio MCP servers that write logs or banners to stdout fail the JSON-RPC handshake",
+    "treated_as_real": false,
+    "vendor_doc_present": true,
+    "vendor_doc_urls": [
+     "https://modelcontextprotocol.io/specification/2025-03-26/basic/transports"
+    ],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/47635"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "blog-citing-github",
+    "id": "F-MCP-STDERR-AS-ERROR",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "blog-startdebug-stderr",
+        "gh-17653"
+       ],
+       "root": "blog-startdebug-stderr"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "blog-startdebug-stderr",
+       "b": "gh-17653",
+       "rule": "quotes"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Host logs every stderr line at [ERROR] and inflates a failed-server count. Cosmetic if /mcp still lists tools.",
+    "rails": [
+     {
+      "bytes": 296911,
+      "claim": "Vendor tracker contains the stderr-as-error failure.",
+      "fetch_timestamp": "2026-08-24T18:47:22Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "MCP servers incorrectly shown as 'failed'",
+      "sha256": "944c7fe1e23010cab95c08eb872dca9e60036a9e8c1d3ace18ad907f6011c997",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/510786f22ea8.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/17653",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "marius-bughiu",
+      "id": "blog-startdebug-stderr",
+      "quotes_ids": [
+       "gh-17653"
+      ],
+      "role": "blog",
+      "url": "https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"
+     },
+     {
+      "author_id": "github-issue-17653-opener",
+      "id": "gh-17653",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/17653"
+     }
+    ],
+    "strongest_caveat": "The blog cites #17653. After the quotes edge, this is one reporter plus a vendor-tracker filing \u2014 excluded from the forum-only class.",
+    "title": "Claude Code counts MCP stderr banners as server failures while tools still work",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/17653"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E3",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-community-forum",
+    "id": "F-CURSOR-AGENT-SHELL-HANG",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "cursor-forum-149288"
+       ],
+       "root": "cursor-forum-149288"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Agent LocalShellStreamExecutor execute span starts and never completes. Recurring on the vendor community forum with staff acknowledgement.",
+    "rails": [
+     {
+      "bytes": 46116,
+      "claim": "Cursor community forum is the vendor tracker for this hang.",
+      "fetch_timestamp": "2026-08-24T18:47:30Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Tool calling stuck in both the IDE and cursor-agent",
+      "sha256": "33661f0f4693ba43cbf8bcf120eeb1df348c2fc2c584471bc14b2bb4586bbb5f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/46f8b7cf9a17.bin",
+      "url": "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "cursor-forum-149288-opener",
+      "id": "cursor-forum-149288",
+      "role": "vendor-issue",
+      "url": "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288"
+     }
+    ],
+    "strongest_caveat": "forum.cursor.com is classified as the vendor issue tracker, not an independent practitioner forum. A single thread opener is also below the reporter threshold.",
+    "title": "Cursor agent Shell/tool calls hang while the integrated terminal works",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://forum.cursor.com/t/tool-calling-stuck-in-both-the-ide-and-cursor-agent/149288"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-PATH-SHADOW-CLAUDE",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-33251"
+       ],
+       "root": "gh-33251"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "which/type -a claude returns more than one path; the earlier PATH entry keeps serving an old version after npm/brew upgrade.",
+    "rails": [
+     {
+      "bytes": 274146,
+      "claim": "Vendor tracker contains PATH-shadowing of claude binaries.",
+      "fetch_timestamp": "2026-08-24T18:47:24Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "/usr/local/bin/claude shadows newer version",
+      "sha256": "9583a8c06389f55113f0a36be5d9385bf52a5891252da2433b1c396267518cf9",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/b12284ed9bc7.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/33251",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "github-issue-33251-opener",
+      "id": "gh-33251",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/33251"
+     }
+    ],
+    "strongest_caveat": "Install-path confusion is documented in practitioner blogs AND in the vendor tracker (#33251). Single fetched opener plus vendor presence: not forum-only.",
+    "title": "Multiple claude binaries on PATH (npm vs Homebrew vs native) make updates appear to no-op",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/33251"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "excluded-vendor-tracker",
+    "collapse_control": false,
+    "evidence_tier": "E2",
+    "exclusion": "vendor-present",
+    "forum_class": "vendor-github-issues",
+    "id": "F-GIT-CRED-PROMPT-FREEZE",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "gh-45857"
+       ],
+       "root": "gh-45857"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [],
+     "verdict": "independent"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "git subprocess inherits the TTY; GIT_TERMINAL_PROMPT is not set to 0 for plugin fetches, so a username prompt captures all keystrokes.",
+    "rails": [
+     {
+      "bytes": 278159,
+      "claim": "Vendor tracker contains the git-credential TUI freeze.",
+      "fetch_timestamp": "2026-08-24T18:47:25Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "Terminal becomes unresponsive when plugin installation",
+      "sha256": "48980a539245375f9682f36bba362890482eaa7164f9c50f8716be9cfd77256f",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/8dab35e6a78c.bin",
+      "url": "https://github.com/anthropics/claude-code/issues/45857",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 1,
+    "reporters": [
+     {
+      "author_id": "github-issue-45857-opener",
+      "id": "gh-45857",
+      "role": "vendor-issue",
+      "url": "https://github.com/anthropics/claude-code/issues/45857"
+     }
+    ],
+    "strongest_caveat": "One opener in the vendor tracker. Recurring as a class of TTY-stealing subprocesses, but this instance is not forum-only.",
+    "title": "Git HTTPS credential prompts steal stdin and freeze the Claude Code TUI during plugin clone",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": true,
+    "vendor_tracker_urls": [
+     "https://github.com/anthropics/claude-code/issues/45857"
+    ]
+   },
+   {
+    "claims_note": "",
+    "classification": "below-threshold",
+    "collapse_control": false,
+    "evidence_tier": "E3",
+    "exclusion": "below-threshold",
+    "forum_class": "hacker-news",
+    "id": "F-HOOK-USER-CONSENT-BYPASS",
+    "independence_check": {
+     "components": [
+      {
+       "members": [
+        "hn-46417111",
+        "hn-tenuo-reply"
+       ],
+       "root": "hn-tenuo-reply"
+      }
+     ],
+     "dropped": [],
+     "method": "union-find over author_id, quotes_ids, duplicate_of, shared primitive_id; drop thread-container and search-index-ancestor roles",
+     "performed": true,
+     "threshold": 2,
+     "unions": [
+      {
+       "a": "hn-tenuo-reply",
+       "b": "hn-46417111",
+       "rule": "quotes"
+      }
+     ],
+     "verdict": "collapsed-to-one"
+    },
+    "independent_reporter_count": 1,
+    "mechanism": "Hooks influence the tool loop; they do not remove OS file authority. A user consent after a hook error is a second path that retries the same Read.",
+    "rails": [
+     {
+      "bytes": 6477,
+      "claim": "One first-person HN report of hook-then-permission retry.",
+      "fetch_timestamp": "2026-08-24T18:47:19Z",
+      "http_status": 200,
+      "quote_present": true,
+      "quoted_span": "The hook was effectively bypassed via user consent",
+      "sha256": "71d5886cb08b1805ccbf53a2238b1d919b2a3476867b6665853845656633bec0",
+      "snapshot": "command-center/p2-wave/probes/RES-0115/snapshots/0fce03ef87d8.bin",
+      "url": "https://news.ycombinator.com/item?id=46417111",
+      "url_reachable": true
+     }
+    ],
+    "raw_reporter_count": 2,
+    "reporters": [
+     {
+      "author_id": "peanutlife",
+      "id": "hn-46417111",
+      "role": "empirical",
+      "url": "https://news.ycombinator.com/item?id=46417111"
+     },
+     {
+      "author_id": "tenuo-author",
+      "id": "hn-tenuo-reply",
+      "quotes_ids": [
+       "hn-46417111"
+      ],
+      "role": "quote-reply",
+      "url": "https://news.ycombinator.com/item?id=46417111"
+     }
+    ],
+    "strongest_caveat": "Closest forum-only candidate in this sample. The second voice quotes the first anecdote, so independent_reporter_count is 1. Below the treat-as-real threshold. Also not shown to be absent from every vendor surface forever \u2014 absence here is a negative search of code.claude.com hooks/permissions pages for this exact 'user yes retries after hook deny' story, not a proof of impossibility.",
+    "title": "PreToolUse hook deny followed by a user 'yes' on the permission prompt retries the blocked Read and succeeds",
+    "treated_as_real": false,
+    "vendor_doc_present": false,
+    "vendor_doc_urls": [],
+    "vendor_tracker_present": false,
+    "vendor_tracker_urls": []
+   }
+  ],
+  "shared_primitive_counts_as_one_signal": true,
+  "title": "Mine practitioner forums for failure reports that no vendor documentation contains"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Vendor-absence is a dated negative search of the named doc and tracker URLs, not a proof that a filing does not exist under a different title.",
+   "settling_experiment": "Re-run the named-doc and tracker search after a version bump of the vendor client, and sockpuppet-audit GitHub opener identities.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "on HTTP 429 or a quota rejection, back off exponentially and rotate to a different search rail (Exa -> Tavily -> Firecrawl -> SearXNG); never lower the evidence bar to finish inside a quota window; 3 rail rotations then park as dependency-blocked"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Defaulted every 'forum-only and real' claim to REFUTED. No row survived that default. Collapse control and independence bookkeeping are CONFIRMED by re-running the union-find. Strongest surviving caveat: vendor-absence is a negative search, and GitHub opener identities were not sockpuppet-audited.",
+  "reviewer_id": "RES-0115-adversarial-refuter",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:RES-0115 in the receipt AND a failure register with an independent-reporter count and at least one documented collapse to one",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0115",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0115/probe1_independence.py",
+   "id": "independence-check-on-multi-reporter-rows",
+   "name": "recompute independence counts on every multi-reporter row",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0115/probe2_collapse_control.py",
+   "id": "collapse-to-one-control",
+   "name": "document at least one collapse-to-one plus overclaim guard",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:55Z",
+  "started_at": "2026-08-25T01:01:55Z"
+ },
+ "unit_id": "RES-0115"
+}

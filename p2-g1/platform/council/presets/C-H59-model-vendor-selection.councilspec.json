@@ -1,0 +1,249 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h59-model-vendor-selection",
+  "preset": "benchmark_results_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Select a model or vendor for a workload by comparing candidates pairwise on MEASURED quality, cost and latency - never on asserted reputation.",
+    "charter": "MANDATE. No vendor choice on vibes. Each axis - quality, cost, latency - must be measured on this workload and cited as a run, and a candidate with an unmeasured axis is not comparable, it is unranked. Candidates are compared pairwise so the ranking is transitive and inspectable rather than a single beauty-contest score. The council seats one generalist from each of two vendors deliberately, so a vendor's own advocate is in the room and cross-vendor disagreement is cheap to surface. Fast unanimity here IS suspicious: agreeing quickly about which vendor is better, before three axes have been measured, is the signature of shared priors rather than shared evidence, and it triggers a blind re-evaluation.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "quality, cost and latency each measured on this workload, with the run cited",
+      "every pairwise comparison recorded, not just the winner",
+      "at least three executable measurement runs passed",
+      "fast unanimity triggers a blind re-evaluation rather than an early stop"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "rank a candidate on an unmeasured axis",
+        "cite a public benchmark in place of a run on this workload"
+      ],
+      "deadline_minutes": 60
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "vendor_diverse", "model_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 6, "min": 6, "max": 6 },
+    "diversity": { "min_distinct_vendors": 3, "min_distinct_models": 3, "min_distinct_expertise": 4, "max_share_per_vendor": 0.5 },
+    "roster": [
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst - measures cost per unit of the workload",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["token accounting", "unit economics"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - guards measured-not-asserted",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["benchmark design", "measurement validity"],
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max",
+        "context": {
+          "briefing": "Reject any axis backed by a public leaderboard instead of a run on this workload. Declare what produced each number and what checked it; an undeclared source probe is zero signals, not one."
+        }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - runs the workload against each candidate",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["harness plumbing", "latency measurement"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security - data handling and egress per vendor",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["data residency", "egress surface"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      },
+      {
+        "participant_id": "generalist-openai",
+        "display_name": "Generalist seat, OpenAI vendor - argues its own candidate honestly",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["general reasoning", "self-advocacy under evidence rules"],
+        "role": "domain_expert",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "conflicts": [{ "kind": "vendor_interest", "detail": "is a candidate vendor's model", "recused": false }],
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      },
+      {
+        "participant_id": "generalist-anthropic",
+        "display_name": "Generalist seat, Anthropic vendor - argues its own candidate honestly",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["general reasoning", "self-advocacy under evidence rules"],
+        "role": "domain_expert",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "conflicts": [{ "kind": "vendor_interest", "detail": "is a candidate vendor's model", "recused": false }],
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["dominance", "hallucinated_expertise"], "preserve_prior_positions": true },
+    "duplicate_detection": { "enabled": true, "dimensions": ["model", "vendor"], "max_similarity": 0.9 }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["benchmark_baseline", "evidence_pack", "position_memo"]
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": { "pairing": "round_robin", "comparisons_per_pair": 2, "aggregation": "bradley_terry" }
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-priors", "rounds": 1, "independent": true },
+      { "kind": "custom", "stage_id": "measure-three-axes", "custom_name": "measure quality, cost and latency on THIS workload", "rounds": 1 },
+      { "kind": "custom", "stage_id": "pairwise-compare", "custom_name": "pairwise candidate comparison on measured axes", "rounds": 2 },
+      { "kind": "synthesis", "stage_id": "ranking", "rounds": 1 }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 12, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 60, "turns": 24, "experiments": 12 },
+  "targets": { "evidence_items": 9, "objections": 2 },
+  "voting": {
+    "method": "condorcet",
+    "quorum": { "min_voters": 5, "min_fraction": 0.8, "on_failure": "extend_rounds" },
+    "veto": { "holders": ["security"], "scope": "safety_only", "must_justify": true, "overridable_by_owner": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "custom:quality_measured == true AND custom:cost_measured == true AND custom:latency_measured == true AND experiments_passed >= 3",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:quality_measured", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:cost_measured", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:latency_measured", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "experiments_passed", "op": ">=", "value": 3 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 2
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 60, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": ["the selected candidate is re-measured on the real workload volume"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2 },
+    "resolution": ["run_experiment", "blind_re_evaluation", "rotate_roles", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "instant_unanimity",
+      "sycophancy",
+      "echo_chamber",
+      "evidence_free_majority",
+      "strategic_voting",
+      "hidden_conflict_of_interest",
+      "collusion",
+      "consensus_failing_executable_tests"
+    ],
+    "fast_unanimity_response": ["blind_re_evaluation", "strongest_counterexample", "recruit_independent_critic"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "option_cards",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["switching the production vendor"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h59", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Model / vendor selection jury (advisory)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H59", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P37,P54"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2013", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H59 `model-vendor-selection`, global ordinal 59, tier standard, protocols P37/P54, 6 seats, 2 rounds, default binding ADVISORY, anti-sycophancy fast_unanimity->blind_reeval, OWNER-DECISION NO. || EDITABLE DIALS: (1) candidates -> participants.roster generalist seats plus the pairwise-compare stage; add one generalist seat per candidate vendor so each candidate has an advocate under evidence rules. (2) axes -> the three custom:*_measured clauses in stopping.expression and the measure-three-axes stage; if you add a fourth axis, add a fourth clause or the axis is decorative. Secondary dials: topology.tournament.comparisons_per_pair (2), voting.quorum.min_voters (5), budgets.time_minutes (60), diversity.max_share_per_vendor (0.5). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `pairwise_condorcet` -> topology.kind `pairwise_tournament` (round_robin, bradley_terry) plus voting.method `condorcet` and consensus.measure `pairwise_agreement`. roles `cost_analyst` -> custom:cost_analyst, `methodologist` -> custom:methodologist as chair, `implementer` -> custom:implementer, `security` -> security_reviewer (enum) with a safety-only veto, `generalist@codex` and `generalist@claude` -> two domain_expert seats distinguished by the `vendor` field; the schema's role pattern forbids an @ so the vendor cannot live in the role name, and each carries an explicit vendor_interest conflict disclosure. `anti-sycophancy: fast_unanimity->blind_reeval` is the one design row in this lane that is ON: consensus.fast_unanimity_is_suspicious true plus anti_failure.fast_unanimity_response ['blind_re_evaluation','strongest_counterexample','recruit_independent_critic']. speaking_order `lowest_confidence_first` is chosen for the same reason - it stops the most confident seat from anchoring the room. `evidence standard: executable_receipt` -> anchor_style `command_output` plus outputs.receipt_schema. || CUSTOM METRICS AND THEIR PRODUCERS: custom:quality_measured, custom:cost_measured, custom:latency_measured (all boolean; each produced by the measure-three-axes stage and true only when the number came from a run on THIS workload, with the command cited). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. Three SEM-012 WARNs are expected and non-blocking. || WHY experiments_passed >= 3 IS THE FOURTH CLAUSE: three booleans can be asserted; the registry metric cannot be non-zero unless the run executed something three times. It is the clause that converts 'we measured it' from a claim into a receipt."
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file:///C:/Users/Prekzursil/source/ast-integrate/command-center/schema/confirmation-receipt.schema.json",
+  "title": "Confirmation receipt (CNF-0001)",
+  "$comment": "CNF-0001 authored this schema. It is the catalog output_path, not a generated shim. SUCCESS:CNF-0001 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all six negative fixtures exited non-zero and the positive fixture exited zero in the same invocation. Any other terminal state is FAILED:CNF-0001 <classification> with the diagnostic tail attached. Measured hole closed here: a receipt with verdict=CONFIRMED and an EMPTY source_probe must not pass. An absent source is zero signals, not one; comparing it to a verifier is the claim_gate.py empty-source hole (an absent source normalises to empty strings that any verifier trivially differs from).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "claim_id",
+    "confirmer",
+    "source_probe",
+    "verifier_probe",
+    "verbatim_probe_output",
+    "verdict",
+    "residual"
+  ],
+  "$defs": {
+    "nonEmptyIdentity": {
+      "not": {
+        "anyOf": [
+          { "const": "" },
+          { "type": "string", "maxLength": 0 },
+          { "type": "object", "maxProperties": 0 }
+        ]
+      },
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1 },
+            "vendor": { "type": "string", "minLength": 1 },
+            "role": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "probeFingerprint": {
+      "description": "A producing or checking measurement. Empty string and empty object are forbidden because they are zero signals. JSON Schema cannot compare source_probe against verifier_probe; the validator CLI names same-probe-rerun.",
+      "not": {
+        "anyOf": [
+          { "const": "" },
+          { "type": "string", "maxLength": 0 },
+          { "type": "object", "maxProperties": 0 }
+        ]
+      },
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "tool": { "type": "string", "minLength": 1 },
+            "engine": { "type": "string", "minLength": 1 },
+            "shell": { "type": "string", "minLength": 1 },
+            "field": { "type": "string", "minLength": 1 },
+            "kind": { "type": "string", "minLength": 1 },
+            "id": { "type": "string", "minLength": 1 },
+            "command": { "type": "string", "minLength": 1 },
+            "fingerprint": { "type": ["string", "array", "object"] }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confirmer": {
+      "$ref": "#/$defs/nonEmptyIdentity"
+    },
+    "source_probe": {
+      "$ref": "#/$defs/probeFingerprint"
+    },
+    "verifier_probe": {
+      "$ref": "#/$defs/probeFingerprint"
+    },
+    "verbatim_probe_output": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "CONFIRMED",
+        "REFUTED",
+        "PARTIAL",
+        "NOT-CHECKED",
+        "BLOCKED"
+      ]
+    },
+    "residual": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -1,0 +1,948 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-brn-01-two-peer-cross-vendor-idea-fanout",
+  "name": "Two-Peer Cross-Vendor Idea Fan-out",
+  "description": "Generate ideas from two INDEPENDENT cross-vendor peers plus the host, then synthesise. Independence of failure modes is the point, not headcount: no peer ever sees another peer's output. The machinery that makes it work is a DISPATCH CONTRACT, because the measured failure was the adapter, not the vendor - three cross-vendor agents once produced zero artifacts while their coding quality was never exercised. So: the prompt travels BY FILE (an inline prompt blows the Windows command-line limit), the dispatch BLOCKS, and a result is accepted only on an AND-gate of exit code zero AND a non-empty output file AND a schema-valid parse. A result containing a background receipt string is rejected outright, and a repair loop retries an argument-limit failure exactly once with a scoped configuration before giving up terminally.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "cross-vendor",
+    "dispatch-contract",
+    "and-gate"
+  ],
+  "flagship": true,
+  "params": {
+    "prompt": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "The idea-generation prompt; written to a FILE before dispatch"
+    },
+    "n_peers": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 2,
+      "maximum": 4,
+      "description": "At least two: one peer cannot be cross-checked for independence"
+    },
+    "peer_models": {
+      "type": "array",
+      "required": true,
+      "min_items": 2,
+      "max_items": 4,
+      "items": {
+        "type": "string",
+        "min_length": 3
+      },
+      "description": "One entry per peer thread; distinct entries give model spread as well as vendor spread"
+    },
+    "output_schema_ref": {
+      "type": "path",
+      "default": "command-center/schema/synthesis-candidate.schema.json",
+      "description": "The schema each peer result must validate against for the AND-gate to pass"
+    },
+    "dispatch_timeout_seconds": {
+      "type": "integer",
+      "default": 1800,
+      "minimum": 300,
+      "maximum": 3600,
+      "description": "An explicit timeout is mandatory: the silent default is what a fire-and-forget dispatch was once rationalised to escape"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/brainstorm/bp-brn-01",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "prompt-marshaller": {
+      "description": "Writes the prompt to a FILE and records its byte count; an inline prompt above the OS command-line limit fails the dispatch outright",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "cross-vendor-peer": {
+      "description": "One fresh-context peer thread. Blocking dispatch, prompt by file, and NO sight of any sibling peer's output - that blindness is the independence being bought",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "mcp__codex__codex",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "min_participants": 2,
+      "max_participants": 4,
+      "speaking_rights": "always"
+    },
+    "dispatch-auditor": {
+      "description": "Applies the AND-gate: exit code zero AND a non-empty output file AND a schema-valid parse. Exit zero alone is SEVERED, not success",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "host-synthesiser": {
+      "description": "Merges the peer outputs and marks every idea that only ONE peer produced, because that is where the cross-vendor value shows up",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/brainstorm/**)",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write(platform/**)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/brainstorm/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'cross-vendor-peer'",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the whole point is a vendor whose failure modes are not the host's"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "failure",
+        "timeout"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "dispatch-and-gate": {
+      "predicate": "custom-expression",
+      "expression": "peer_results_total > 0 AND peer_results_exit_zero_and_nonempty_and_schema_valid == peer_results_total AND receipt_string_results == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "independence-preserved": {
+      "predicate": "custom-expression",
+      "expression": "peers_that_saw_a_sibling_output == 0 AND peers_returning_terminal_state == peer_results_total",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "marshal-prompt",
+      "title": "Write the prompt to a FILE and record its byte count",
+      "kind": "task",
+      "role": "prompt-marshaller",
+      "checkpoint": true,
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPB-0101",
+        "title": "Marshal the prompt to a file, never inline, and record its size",
+        "phase": "2B",
+        "question_or_target": "Write the prompt to a file under the artifact root and record its byte count and hash. An inline prompt above the OS command-line limit produces a hard argument-length error; the file route has no such ceiling.",
+        "inputs": [
+          "params.prompt",
+          "params.output_schema_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "prompt-marshaller",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/brainstorm/bp-brn-01/prompt-file.json",
+        "output_schema": "command-center/schema/handoff-package.schema.json",
+        "evidence_requirement": "the record carries the prompt file path, byte count and hash, plus the schema reference each peer must satisfy",
+        "tests_required": [
+          "a prompt larger than the OS command-line limit must be handled by the file route and succeed, not fail with an argument-length error",
+          "the recorded byte count must match the file on disk"
+        ],
+        "reviewer_requirement": "the dispatch auditor reads the recorded hash and confirms every peer received the same prompt",
+        "completion_sentinel": "SUCCESS:BPB-0101 emitted only when the prompt file exists, is non-empty, and its recorded hash matches the bytes on disk; otherwise FAILED:BPB-0101 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "prompt-unwritable",
+          "win-arg-limit"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "prompt-by-file-marshalling"
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-01/prompt-file.json",
+          "schema_ref": "command-center/schema/handoff-package.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPB-0101",
+          "consumers": [
+            "dispatch-peers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dispatch-peers",
+      "title": "Dispatch the peers in parallel, BLOCKING, each blind to the others",
+      "kind": "fanout",
+      "depends_on": [
+        "marshal-prompt"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "peer_models",
+        "item_var": "peer_model",
+        "key_field": "peer_model"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 0,
+      "max_items": 4,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "dispatch-peer",
+          "title": "One blocking cross-vendor peer thread",
+          "kind": "task",
+          "role": "cross-vendor-peer",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "BPB-0102",
+            "title": "Run one fresh-context peer to completion and write its result to a file",
+            "phase": "2B",
+            "question_or_target": "Dispatch one peer with the prompt file, a scoped configuration and an explicit timeout, and BLOCK until it finishes. Never background the call, never return a job id, and never treat a progress stream as a result. Write the peer's output to its own file.",
+            "inputs": [
+              "command-center/brainstorm/bp-brn-01/prompt-file.json",
+              "params.dispatch_timeout_seconds"
+            ],
+            "dependencies": [
+              "BPB-0101"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "role": "cross-vendor-peer",
+              "basis": "a genuinely independent vendor: the value is uncorrelated failure modes, not extra headcount"
+            },
+            "tool_permissions": [
+              "mcp__codex__codex",
+              "Write(command-center/brainstorm/**)"
+            ],
+            "execution_substrate": "cross-vendor-codex",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/brainstorm/bp-brn-01/peers/peer-result.json",
+            "output_schema": "command-center/schema/synthesis-candidate.schema.json",
+            "evidence_requirement": "the dispatch record carries the exit code, the output file path, its byte count, and the elapsed wall-clock time - a turn count is not evidence a call blocked",
+            "tests_required": [
+              "MANDATORY: a killed peer must produce a terminal FAILED marker with the diagnostic tail, never silence and never a job id",
+              "a result string containing a background receipt must be rejected by the auditor rather than parsed as ideas",
+              "the recorded wall-clock time must be consistent with a blocking call"
+            ],
+            "reviewer_requirement": "the dispatch auditor applies the AND-gate; this peer never self-certifies",
+            "completion_sentinel": "SUCCESS:BPB-0102 emitted only when the peer wrote a non-empty output file AND exited zero, or a terminal FAILED marker exists with its diagnostic tail; otherwise FAILED:BPB-0102 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: on an argument-limit failure retry ONCE with a scoped configuration, then fail terminally",
+            "failure_classification": [
+              "win-arg-limit",
+              "severed-stream",
+              "codex-exit-nonzero",
+              "timeout"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "blocking-file-prompt-peer-dispatch"
+          },
+          "produces": [
+            {
+              "path": "command-center/brainstorm/bp-brn-01/peers/peer-result.json",
+              "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPB-0102",
+              "consumers": [
+                "audit-dispatch"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-degraded",
+        "require_stages": [
+          "dispatch-peer"
+        ],
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "task-[0-9a-f]{6,}"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "audit-dispatch",
+      "title": "AND-gate every peer result: exit zero AND non-empty file AND schema-valid",
+      "kind": "task",
+      "depends_on": [
+        "dispatch-peers"
+      ],
+      "role": "dispatch-auditor",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "work_unit": {
+        "id": "BPB-0103",
+        "title": "Compute the three-signal AND-gate per peer and classify every failure",
+        "phase": "2B",
+        "question_or_target": "For each peer compute all three signals: exit code zero, a non-empty output file that exists, and a schema-valid parse. Only all three together are SUCCESS. Exit zero with no parseable file is SEVERED. Classify each failure into its taxonomy class.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-01/peers/peer-result.json",
+          "params.output_schema_ref"
+        ],
+        "dependencies": [
+          "BPB-0102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "dispatch-auditor",
+          "basis": "three mechanical checks; a model opinion about whether a dispatch succeeded is what let a progress stream be reported as an answer"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/brainstorm/bp-brn-01/dispatch-audit.json",
+        "output_schema": "command-center/schema/conformance-report.schema.json",
+        "evidence_requirement": "per peer: all three signal values individually plus the AND result and the failure class; an aggregate verdict without the three components is not the gate",
+        "tests_required": [
+          "MANDATORY both-states: exit zero with an EMPTY output file must be SEVERED, and the same peer with a valid file must be SUCCESS",
+          "a result whose text matches a background-receipt pattern must be rejected outright",
+          "a schema-invalid but non-empty file must be schema-invalid, not SUCCESS"
+        ],
+        "reviewer_requirement": "the synthesiser consumes only peers this audit marked SUCCESS",
+        "completion_sentinel": "SUCCESS:BPB-0103 emitted only when every peer has all three signals recorded plus an AND verdict and, where failing, a taxonomy class; otherwise FAILED:BPB-0103 <failure-class> <reason>",
+        "retry_policy": "none: re-running a deterministic audit over unchanged files cannot change the verdict",
+        "failure_classification": [
+          "severed-stream",
+          "schema-invalid",
+          "receipt-not-result"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "three-signal-and-gate"
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-01/dispatch-audit.json",
+          "schema_ref": "command-center/schema/conformance-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPB-0103",
+          "consumers": [
+            "and-gate",
+            "repair-dispatch",
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "and-gate",
+      "title": "No peer result is accepted on exit code alone",
+      "kind": "gate",
+      "depends_on": [
+        "audit-dispatch"
+      ],
+      "gate_ref": "dispatch-and-gate"
+    },
+    {
+      "id": "repair-dispatch",
+      "title": "Repair a failed dispatch once, with an INDEPENDENT verify",
+      "kind": "repair_loop",
+      "depends_on": [
+        "and-gate"
+      ],
+      "target": [
+        "dispatch-peers"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "win-arg-limit",
+        "severed-stream",
+        "codex-exit-nonzero",
+        "timeout"
+      ],
+      "escalate_to": "synthesise",
+      "require_root_cause": true,
+      "diagnose": {
+        "id": "diagnose-dispatch",
+        "title": "Name the failure class from the audit, not from the stream",
+        "kind": "task",
+        "role": "dispatch-auditor",
+        "timeout_seconds": 600,
+        "work_unit": {
+          "id": "BPB-0104",
+          "title": "Classify the dispatch failure from the recorded signals and state the root cause",
+          "phase": "2B",
+          "question_or_target": "Read the audit and name the root cause per failed peer: an argument-limit failure, a severed stream, a non-zero exit, or a timeout. The taxonomy class determines the repair, so a guess here is a wasted retry.",
+          "inputs": [
+            "command-center/brainstorm/bp-brn-01/dispatch-audit.json"
+          ],
+          "dependencies": [
+            "BPB-0103"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "none-deterministic-script",
+            "vendor": "mixed",
+            "role": "dispatch-auditor",
+            "basis": "classification from recorded signals"
+          },
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/brainstorm/**)"
+          ],
+          "execution_substrate": "local-single",
+          "timeout_seconds": 600,
+          "output_path": "command-center/brainstorm/bp-brn-01/dispatch-diagnosis.json",
+          "output_schema": "command-center/schema/root-cause-graph.schema.json",
+          "evidence_requirement": "each diagnosis cites the recorded signal that established it (exit code, byte count, elapsed time, error text)",
+          "tests_required": [
+            "an argument-limit failure must be distinguished from a severed stream: they take different repairs",
+            "a diagnosis with no citing signal must be rejected"
+          ],
+          "reviewer_requirement": "the verify gate is independent of this diagnosis and re-checks the AND-gate from scratch",
+          "completion_sentinel": "SUCCESS:BPB-0104 emitted only when every failed peer has a root cause citing the signal that established it; otherwise FAILED:BPB-0104 <failure-class> <reason>",
+          "retry_policy": "none: classification over unchanged records is deterministic",
+          "failure_classification": [
+            "diagnosis-ambiguous"
+          ],
+          "owner_approval_required": false,
+          "mechanism": "signal-cited-failure-classification"
+        },
+        "produces": [
+          {
+            "path": "command-center/brainstorm/bp-brn-01/dispatch-diagnosis.json",
+            "schema_ref": "command-center/schema/root-cause-graph.schema.json",
+            "min_bytes": 128,
+            "register_in_manifest": true,
+            "sentinel": "SUCCESS:BPB-0104",
+            "consumers": [
+              "apply-scoped-retry"
+            ]
+          }
+        ]
+      },
+      "repair": {
+        "id": "apply-scoped-retry",
+        "title": "Retry ONCE with a scoped configuration, per the diagnosed class",
+        "kind": "task",
+        "role": "cross-vendor-peer",
+        "timeout_seconds": 3600,
+        "work_unit": {
+          "id": "BPB-0105",
+          "title": "Re-dispatch the failed peer once with the repair its class prescribes",
+          "phase": "2B",
+          "question_or_target": "Re-dispatch each failed peer exactly once with the class-specific repair: an argument-limit failure gets a scoped configuration that drops the ambient tool inventory; a severed stream gets a fresh thread. Two strikes on the same fingerprint means stop, not try harder.",
+          "inputs": [
+            "command-center/brainstorm/bp-brn-01/dispatch-diagnosis.json",
+            "command-center/brainstorm/bp-brn-01/prompt-file.json"
+          ],
+          "dependencies": [
+            "BPB-0104"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "gpt-5-codex",
+            "vendor": "openai",
+            "role": "cross-vendor-peer",
+            "basis": "the repair is class-specific; a blind retry is what two-strikes forbids"
+          },
+          "tool_permissions": [
+            "mcp__codex__codex",
+            "Write(command-center/brainstorm/**)"
+          ],
+          "execution_substrate": "cross-vendor-codex",
+          "timeout_seconds": 3600,
+          "output_path": "command-center/brainstorm/bp-brn-01/peers/peer-retry.json",
+          "output_schema": "command-center/schema/synthesis-candidate.schema.json",
+          "evidence_requirement": "the retry records the repair applied, the new exit code, the new byte count and the elapsed time",
+          "tests_required": [
+            "the retry must be attempted at most ONCE per peer - a third attempt on the same fingerprint is the anti-grind violation this bounds",
+            "a retry that fails again must produce a terminal FAILED marker, never silence"
+          ],
+          "reviewer_requirement": "the verify stage re-applies the full AND-gate; a retry does not self-certify",
+          "completion_sentinel": "SUCCESS:BPB-0105 emitted only when each failed peer has exactly one retry recorded, ending in SUCCESS or a terminal FAILED marker; otherwise FAILED:BPB-0105 <failure-class> <reason>",
+          "retry_policy": "none at this level: the repair loop itself is the bounded retry, capped at two attempts",
+          "failure_classification": [
+            "win-arg-limit",
+            "severed-stream",
+            "codex-exit-nonzero",
+            "timeout"
+          ],
+          "owner_approval_required": false,
+          "mechanism": "class-specific-single-retry"
+        },
+        "produces": [
+          {
+            "path": "command-center/brainstorm/bp-brn-01/peers/peer-retry.json",
+            "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+            "min_bytes": 128,
+            "register_in_manifest": true,
+            "sentinel": "SUCCESS:BPB-0105",
+            "consumers": [
+              "verify-dispatch"
+            ]
+          }
+        ]
+      },
+      "verify": {
+        "id": "verify-dispatch",
+        "title": "Independent verify: re-apply the AND-gate from scratch",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "retried_peers_exit_zero_and_nonempty_and_schema_valid == retried_peers_total AND receipt_string_results == 0",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "independence-gate",
+      "title": "No peer saw a sibling's output; every peer ended in a terminal state",
+      "kind": "gate",
+      "depends_on": [
+        "repair-dispatch"
+      ],
+      "gate_ref": "independence-preserved"
+    },
+    {
+      "id": "synthesise",
+      "title": "Merge the peer ideas and mark what only ONE peer produced",
+      "kind": "task",
+      "depends_on": [
+        "independence-gate"
+      ],
+      "role": "host-synthesiser",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPB-0106",
+        "title": "Emit merged ideas, disagreements, and the novel-to-one-peer set",
+        "phase": "2B",
+        "question_or_target": "Merge the SUCCESS peer outputs plus the host's own ideas into three explicit sets: merged (more than one peer), disagreements, and novel-to-one-peer. The third set is where cross-vendor independence pays, so it is never folded into the first.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-01/peers/peer-result.json",
+          "command-center/brainstorm/bp-brn-01/peers/peer-retry.json",
+          "command-center/brainstorm/bp-brn-01/dispatch-audit.json"
+        ],
+        "dependencies": [
+          "BPB-0102",
+          "BPB-0103"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "host-synthesiser",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/brainstorm/bp-brn-01/synthesis.json",
+        "output_schema": "command-center/schema/synthesis-candidate.schema.json",
+        "evidence_requirement": "every idea names the peer or peers that produced it; the novel-to-one-peer set states which peer, so the independence value is measurable",
+        "tests_required": [
+          "an idea produced by exactly one peer must appear in novel-to-one-peer, not in merged",
+          "if only one peer returned SUCCESS the synthesis must state the loss of independence explicitly rather than presenting one peer as consensus"
+        ],
+        "reviewer_requirement": "one independent reviewer checks no idea in merged is attributed to a single peer",
+        "completion_sentinel": "SUCCESS:BPB-0106 emitted only when the synthesis exists, parses, and every idea carries its peer attribution with the three sets kept separate; otherwise FAILED:BPB-0106 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failures emit the raw peer outputs plus the blocking reason",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact",
+          "independence-lost"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "novel-to-one-peer-synthesis"
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-01/synthesis.json",
+          "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPB-0106",
+          "consumers": [
+            "command-center/DECISION-LOG.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-peers-terminal",
+      "expression": "peers_returning_terminal_state == peer_results_total",
+      "applies_to": "workflow",
+      "minimum_conditions": "peer_results_total >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "independence-lost",
+      "expression": "peers_with_success_verdict <= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "win-arg-limit",
+      "severed-stream",
+      "timeout"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "synthesise"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "win-arg-limit",
+      "severed-stream",
+      "codex-exit-nonzero",
+      "timeout",
+      "receipt-not-result"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "synthesise",
+    "quarantine_path": "command-center/brainstorm/bp-brn-01/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/brainstorm/bp-brn-01/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "replay_source": "artifact-cache",
+    "verify": "none"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/brainstorm/bp-brn-01/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__codex__codex",
+      "Bash:python",
+      "Write(command-center/brainstorm/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.3,
+      "expected": 1.5,
+      "max": 5.0
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 1500,
+      "max": 4200
+    },
+    "tokens": {
+      "min": 40000,
+      "expected": 200000,
+      "max": 700000
+    },
+    "tool_calls": {
+      "expected": 20,
+      "max": 120
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/brainstorm/bp-brn-01/**; peers run in their own vendor sandbox with an explicitly set policy",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-brn-01.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "07f465f3:.agents/skills/codex-brainstorm",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner (undeployed skill: the 2-peer fan-out and synthesis shape)"
+      },
+      {
+        "source": "07f465f3:.agents/skills/codex-invoke",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner (the canonical scoped dispatch that keeps the call inside the OS argument limit)"
+      },
+      {
+        "source": "rules/common/cross-vendor-dispatch.md",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "measured: three cross-vendor agents produced ZERO artifacts because of the ADAPTER, not the vendor"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-BRN-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "07f465f3:.agents/skills/codex-brainstorm"
+    ]
+  },
+  "outputs": {
+    "synthesis": {
+      "path": "command-center/brainstorm/bp-brn-01/synthesis.json",
+      "schema_ref": "command-center/schema/synthesis-candidate.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/DECISION-LOG.json"
+      ]
+    },
+    "dispatch-audit": {
+      "path": "command-center/brainstorm/bp-brn-01/dispatch-audit.json",
+      "schema_ref": "command-center/schema/conformance-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "synthesise"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-BRN-01",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 693
+    },
+    "acquisition_route_from_card": "REPAIR",
+    "mechanism_signature": [
+      "prompt-by-file-marshalling",
+      "blocking-dispatch-never-backgrounded",
+      "three-signal-and-gate",
+      "receipt-string-rejection",
+      "class-specific-single-retry-repair-loop",
+      "novel-to-one-peer-synthesis"
+    ],
+    "contraindications": [
+      "NOT when the answer needs repo grounding: the peers are fresh-context by design",
+      "NOT for a decision - that is a council",
+      "NOT when the question is already well-specified enough to just answer"
+    ],
+    "the_measured_adapter_failure": "Three cross-vendor agents once produced ZERO production artifacts against sixteen files, and the vendor's coding quality was never actually exercised - the failure was entirely in the ADAPTER. Hence: prompt by file (an inline prompt exceeded the OS command-line limit and killed both real attempts), blocking dispatch (a backgrounded job's result is unreachable because its record carries no session id), and an AND-gate (one agent forwarded a progress stream as its terminal answer while its own job record still read running).",
+    "unverified": [
+      "UNVERIFIED post-repair; settling experiment = five dispatches requiring five non-empty schema-valid output files, and one deliberately oversized prompt that must succeed via the file route."
+    ],
+    "worked_example": {
+      "name": "two-peer idea fan-out on a harness design question",
+      "params": {
+        "prompt": "Enumerate mechanisms that would make an agent completion claim falsifiable without adding a new runtime.",
+        "n_peers": 2,
+        "peer_models": [
+          "gpt-5-codex",
+          "gpt-5-codex-mini"
+        ],
+        "dispatch_timeout_seconds": 1800
+      },
+      "expected_stage_order": [
+        "marshal-prompt",
+        "dispatch-peers",
+        "audit-dispatch",
+        "and-gate",
+        "repair-dispatch",
+        "independence-gate",
+        "synthesise"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 4,
+      "expected_gate_ids": [
+        "and-gate",
+        "verify-dispatch",
+        "independence-gate"
+      ],
+      "expected_repair_targets": [
+        "dispatch-peers"
+      ],
+      "acceptance": [
+        "a prompt above the OS command-line limit succeeds via the file route",
+        "a killed peer produces a terminal FAILED marker, never silence",
+        "exit zero with an empty output file is SEVERED, not SUCCESS",
+        "an idea produced by exactly one peer lands in novel-to-one-peer"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "all-peers-terminal",
+          "why": "the floor keeps a single-peer run from reading as a completed two-peer fan-out",
+          "fires_on": {
+            "peers_returning_terminal_state": 2,
+            "peer_results_total": 2,
+            "peers_with_success_verdict": 2
+          },
+          "does_not_fire_on": {
+            "peers_returning_terminal_state": 1,
+            "peer_results_total": 1,
+            "peers_with_success_verdict": 1
+          }
+        },
+        {
+          "rule": "independence-lost",
+          "why": "one surviving peer is not consensus and the run must say so rather than present it as agreement",
+          "fires_on": {
+            "peers_returning_terminal_state": 2,
+            "peer_results_total": 2,
+            "peers_with_success_verdict": 1
+          },
+          "does_not_fire_on": {
+            "peers_returning_terminal_state": 2,
+            "peer_results_total": 2,
+            "peers_with_success_verdict": 2
+          }
+        }
+      ]
+    }
+  }
+}

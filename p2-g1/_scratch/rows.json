@@ -1,0 +1,550 @@
+{
+ "IMP-0153": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0153",
+  "dependencies": [
+   "IMP-0150"
+  ],
+  "evidence_requirement": "Two signals: (1) a hand-labelled 30-doc control set scores precision/recall as NUMBERS; (2) a mention-only control document yields zero candidates.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0153",
+  "inputs": [
+   "docs/",
+   "guides/",
+   "harness-sota-2026-07-18-corpus/",
+   "tools/harness-corpus"
+  ],
+  "output_path": "command-center/receipts/IMP-0153.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: mine prose corpora (docs/, guides/, harness corpora, prompt transcripts) for described-but-never-implemented workflows. Acceptance: the extractor distinguishes USE from MENTION - a document that describes a workflow to criticize it must not be harvested as a candidate. This estate has hit use-vs-mention roughly eight times in one session, usually inside the probe itself.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "mention-only control yields 0 candidates; use control yields >=1 (both-states)",
+   "precision and recall reported as computed numbers on the labelled control set"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Build the discovery adapter for documentation, papers and session transcripts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash",
+   "WebSearch",
+   "WebFetch"
+  ]
+ },
+ "IMP-0155": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0155",
+  "dependencies": [
+   "IMP-0154"
+  ],
+  "evidence_requirement": "Two signals: (1) re-fetch from the record reproduces the recorded hash for 10/10 sampled candidates; (2) a record with a mutated ref fails the re-fetch (detector fires on the broken state).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "IMP-0155",
+  "inputs": [
+   "IMP-0154 output",
+   "_USER-PROMPTS.md:11152-11170 (Workflow Foundry required production behavior)"
+  ],
+  "output_path": "command-center/receipts/IMP-0155.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: every candidate carries a provenance record sufficient to re-fetch it independently. Acceptance: a second agent, given only the provenance record, re-fetches the identical bytes - proven by an actual re-fetch, not by asserting the fields are present.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "10/10 sampled provenance records re-fetch to the recorded hash",
+   "mutated-ref record must fail re-fetch (both-states control)"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Implement the provenance record: source, ref, retrieval time, hash, retrieval method",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0166": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0166",
+  "dependencies": [
+   "IMP-0165"
+  ],
+  "evidence_requirement": "Two signals: (1) 6/6 named expressions parse and evaluate on synthetic states; (2) an inexpressible rule yields UNKNOWN-NEEDS-PROBE, asserted by id.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim"
+  ],
+  "id": "IMP-0166",
+  "inputs": [
+   "_USER-PROMPTS.md:10937-10942",
+   "_USER-PROMPTS.md:10760 (composable stopping rules)"
+  ],
+  "output_path": "command-center/receipts/IMP-0166.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: turn each candidate's stop rule into a typed predicate tree supporting ANY/ALL/NOT and weighted logic. Acceptance: the six executable stopping expressions the spec names (10937-10942) all parse and evaluate, and a rule that cannot be expressed is recorded as UNKNOWN-NEEDS-PROBE rather than approximated.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "6/6 spec-named stopping expressions parse and evaluate",
+   "inexpressible rule is flagged, never approximated (both-states)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Extract gates and stopping rules into composable Boolean predicates",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0167": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0167",
+  "dependencies": [
+   "IMP-0136",
+   "IMP-0165"
+  ],
+  "evidence_requirement": "Two signals: (1) a candidate requiring an absent tool is BLOCKED at import with the capability named; (2) the grantable twin imports clean.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "dependency-blocked",
+   "detector-failure"
+  ],
+  "id": "IMP-0167",
+  "inputs": [
+   "IMP-0136 output",
+   "IMP-0165 output"
+  ],
+  "output_path": "command-center/receipts/IMP-0167.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: derive each candidate's tool requirements and reconcile them with the per-unit permission declaration. Acceptance: a candidate needing a tool the host cannot grant is marked BLOCKED with the exact missing capability named - not silently imported to fail later at dispatch.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "absent-tool candidate BLOCKED with the capability named (both-states control)",
+   "reconciliation is a subset check, computed - not a substring match on prose"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Extract tool requirements and reconcile them against the permission model",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0171": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0171",
+  "dependencies": [
+   "IMP-0170"
+  ],
+  "evidence_requirement": "Two signals: (1) planted-mutant bands reported as numbers; (2) a known distinct pair scores in the low band (control against a false-positive detector).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0171",
+  "inputs": [
+   "command-center/PROMPT-ONE-FLOOR-AUDIT.md (the same instrument, same scoping caveat)"
+  ],
+  "output_path": "command-center/receipts/IMP-0171.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: a token-Jaccard near-duplicate scan over candidate text, with its sensitivity CALIBRATED by planted mutants (exact rename, paraphrase, one-parameter fork, full rewrite). Acceptance: the report states the band each mutant class lands in, and explicitly scopes the verdict to LEXICAL similarity - a full semantic rewrite is NOT detectable by this instrument and the artifact must say so.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "planted mutant classes land in reported bands (calibration, not adjectives)",
+   "known-distinct control pair scores low (false-positive control)"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Implement the lexical near-duplicate detector with a planted-mutant control",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0172": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0172",
+  "dependencies": [
+   "IMP-0170"
+  ],
+  "evidence_requirement": "Two signals: (1) a both-sides-unique fixture is classified DIVERGED, not one-sided; (2) the diff is antisymmetric: diff(a,b) reversed equals diff(b,a) (computed).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0172",
+  "inputs": [
+   "IMP-0170 output",
+   "rules/common/fan-out-contract.md (C4)"
+  ],
+  "output_path": "command-center/receipts/IMP-0172.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: align two workflows stage-by-stage and emit a typed diff (added/removed/changed stage, role, gate, tool). Acceptance: the diff is DIRECTIONAL and reports both sides' unique content, because a one-directional read cannot see two-directional divergence - the measured failure mode that produced 31 data-loss-pointing misclassifications on this estate.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "both-sides-unique fixture classified DIVERGED (the exact measured blind spot)",
+   "antisymmetry check computed over the fixture matrix"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Implement semantic diff of two workflows over aligned stages, roles and gates",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0182": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0182",
+  "dependencies": [
+   "IMP-0174",
+   "IMP-0175"
+  ],
+  "evidence_requirement": "Two signals: (1) contract-mismatch fixture refused; (2) a valid splice runs end to end on the fake rail and its plan differs from both parents (proving it is not silently one parent).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "schema-invalid",
+   "overclaim"
+  ],
+  "id": "IMP-0182",
+  "inputs": [
+   "_USER-PROMPTS.md:10737,11161",
+   "IMP-0175 output"
+  ],
+  "output_path": "command-center/receipts/IMP-0182.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: implement the stage-splice strategy - replace one workflow's stage with a better-performing stage from another, preserving the surrounding contract. Acceptance: the spliced stage's input/output contract is checked against its neighbours BEFORE the fusion is emitted; a contract mismatch is a refusal.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "contract mismatch refused (both-states: matching contract accepted)",
+   "spliced plan differs from BOTH parents (computed, guards against no-op fusion)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Implement stage-splice fusion",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0194": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0194",
+  "dependencies": [
+   "IMP-0144",
+   "IMP-0178"
+  ],
+  "evidence_requirement": "Two signals: (1) trace replay outcome equality; (2) the cited gap is absent from a fresh gap-finder run (re-measured, not asserted).",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "overclaim",
+   "green-not-live"
+  ],
+  "id": "IMP-0194",
+  "inputs": [
+   "IMP-0144 output (replay log)",
+   "IMP-0178 output (gap finder)"
+  ],
+  "output_path": "command-center/receipts/IMP-0194.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: synthesize a workflow from (a) a recorded successful ad-hoc execution trace, or (b) a coverage gap computed by the gap finder. Acceptance: a trace-derived workflow REPLAYS the trace's outcome on the same inputs, and a gap-derived workflow closes the specific gap it cites - each verified by re-running the gap finder afterwards and showing that gap absent.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "trace-derived workflow reproduces the trace outcome",
+   "gap-derived workflow removes the cited gap on re-measurement (both-states)"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Implement workflow generation from an execution trace or a measured benchmark gap",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0195": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0195",
+  "dependencies": [
+   "IMP-0129",
+   "IMP-0130",
+   "IMP-0132"
+  ],
+  "evidence_requirement": "Two signals: (1) an unreachable-barrier fixture is rejected while the reachable twin passes; (2) the reachability set is computed by graph traversal and cross-checked against an independent topological sort (two derivations of the same set).",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "schema-invalid",
+   "detector-failure"
+  ],
+  "id": "IMP-0195",
+  "inputs": [
+   "tools/agentspec/agentspec/validate.py (barrier-awaits-unknown)",
+   "IMP-0129..IMP-0132 node types"
+  ],
+  "output_path": "command-center/receipts/IMP-0195.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: a static pass over a validated Workflow that reports unreachable nodes, orphan barriers (awaiting something no path produces) and units no node ever schedules. Acceptance: a workflow whose barrier awaits a unit outside every path is REJECTED before dispatch - today validate.py catches barrier-awaits-unknown but not barrier-awaits-unreachable, which is a different defect.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "unreachable barrier rejected; reachable twin accepted (both-states)",
+   "traversal-derived and topological-sort-derived reachable sets are equal"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Implement static validation: reachability, orphan nodes, unreachable barriers",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0198": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0198",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Two signals: (1) partition membership is a pure function of the case hash (recomputed independently); (2) a development run that touches a held-out case is detected by an access log assertion.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "IMP-0198",
+  "inputs": [
+   "tools/agentspec/agentspec/evals/rows.py",
+   "_USER-PROMPTS.md:10741 (matched benchmark cases)"
+  ],
+  "output_path": "command-center/receipts/IMP-0198.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: build the case corpus workflows are benchmarked on - stratified by difficulty, with a held-out slice never shown during workflow development. Acceptance: the held-out slice is enforced mechanically (a hash-partition, not a convention) so a workflow cannot be tuned on it.",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "held-out partition is hash-determined and reproducible",
+   "touching a held-out case during development is detected (detector fires)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Construct the matched benchmark case corpus with difficulty stratification",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0202": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "integrator",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0202",
+  "dependencies": [
+   "IMP-0197"
+  ],
+  "evidence_requirement": "Two signals: (1) a summary-only confirmation is rejected; (2) an artifact-citing confirmation passes and its cited paths are proven to exist by Test-Path before the digest is read.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "IMP-0202",
+  "inputs": [
+   "_USER-PROMPTS.md:11028-11041 (independent confirmation)",
+   "_USER-PROMPTS.md:10646"
+  ],
+  "output_path": "command-center/receipts/IMP-0202.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: before certification, a fresh reviewer that did NOT author the workflow reproduces the benchmark claim from raw sources. Acceptance: the confirmation record must cite the raw artifacts it read; a confirmation that only cites the author's summary is rejected by the gate - a digest is a claim, not a receipt (10646).",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "cross-vendor reviewer (Codex) - independence is the point of the unit",
+  "tests_required": [
+   "summary-only confirmation rejected (both-states)",
+   "every cited artifact path is existence-checked before the digest is accepted"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Wire the independent-confirmation hook into the certification path",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ },
+ "IMP-0204": {
+  "_source_slice_file": "IMP-2.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0204",
+  "dependencies": [
+   "IMP-0203"
+  ],
+  "evidence_requirement": "Two signals: (1) a retired id still resolves and returns the successor; (2) a consumer pinned to the retired id still executes (no hard break) while emitting the warning.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "dependency-blocked",
+   "overclaim"
+  ],
+  "id": "IMP-0204",
+  "inputs": [
+   "_USER-PROMPTS.md:11347",
+   "IMP-0203 output"
+  ],
+  "output_path": "command-center/receipts/IMP-0204.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "7",
+  "question_or_target": "Target: retire a workflow by SUPERSESSION (naming the replacement and the migration) or DEPRECATION (naming the reason and the removal date), never by deletion. Acceptance: a retired workflow remains resolvable and its consumers get a typed warning with the successor id - silent removal breaks the 'rollback removes existing commands or user data' failure class (11347).",
+  "retry_policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); a win-arg-limit failure retries once with --ignore-user-config and a prompt file, never inline argv",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context",
+  "tests_required": [
+   "retired id resolves to successor; pinned consumer still runs (both-states)",
+   "deletion attempt on a referenced workflow is refused"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Implement deprecation and supersession records for retired workflows",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ]
+ }
+}

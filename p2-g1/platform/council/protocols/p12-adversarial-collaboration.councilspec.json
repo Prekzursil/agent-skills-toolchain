@@ -1,0 +1,428 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p12-adversarial-collaboration",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Convert an entrenched two-party disagreement into a runnable discriminating test, and record what it settled and what it did not.",
+    "charter": "Adversarial collaboration (Kahneman / Mellers). The disagreeing seats jointly pre-register the probe whose result they both agree would settle it, run or specify it, then co-author ONE document.",
+    "risk_tier": "high",
+    "desired_output": "specification",
+    "success_criteria": [
+      "the discriminating probe was written down before either side saw a result",
+      "both seats signed the same document",
+      "the document separates what was settled from what remains open"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4,
+      "min": 4,
+      "max": 4
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "party-one",
+        "display_name": "Party 1 (holds position A)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "the contested claim"
+        ],
+        "role": "proposer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "party-two",
+        "display_name": "Party 2 (holds position B)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "the contested claim"
+        ],
+        "role": "critic",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "mediator",
+        "display_name": "Mediator (owns the pre-registration record)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "mediation",
+          "pre-registration"
+        ],
+        "role": "mediator",
+        "authority": "chair",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "probe-runner",
+        "display_name": "Probe runner (executes the agreed probe)",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "experiment execution",
+          "both-states testing"
+        ],
+        "role": "verifier",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo",
+      "evidence_pack"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "state-positions",
+        "independent": true,
+        "participants": [
+          "party-one",
+          "party-two"
+        ]
+      },
+      {
+        "kind": "negotiation",
+        "stage_id": "preregister",
+        "rounds": 2,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "novel_ideas_per_round": 1
+        },
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "custom:probe_preregistered",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "mediator pre-registration record"
+            },
+            {
+              "metric": "proof_of_impossibility",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "run-probe",
+        "custom_name": "run_preregistered_discriminating_probe",
+        "participants": [
+          "probe-runner"
+        ]
+      },
+      {
+        "kind": "mediation",
+        "stage_id": "co-author",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "joint-document"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 7,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 700
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 5,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 180,
+    "tool_calls": 220,
+    "sources": 25,
+    "experiments": 5,
+    "turns": 32,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 10,
+    "novelty_ratio": 0.5,
+    "objections": 6,
+    "counterexamples": 3,
+    "evidence_items": 16,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.82,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "quorum": {
+      "min_voters": 2,
+      "on_failure": "no_decision"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "custom:probe_preregistered",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "mediator pre-registration record"
+            },
+            {
+              "metric": "experiments_run",
+              "op": ">=",
+              "value": 1
+            },
+            {
+              "metric": "custom:jointly_owned_document",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "mediator co-authorship signature block"
+            },
+            {
+              "metric": "every_objection_addressed",
+              "op": "==",
+              "value": true
+            }
+          ]
+        },
+        {
+          "metric": "proof_of_impossibility",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 2,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": {
+      "max_rounds": 7,
+      "max_minutes": 180,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the pre-registered probe is executed in CI and its result is attached to the joint document"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "narrow_scope",
+      "split_question",
+      "recruit_independent_critic",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "circular_debate",
+      "endless_debate",
+      "lost_dissent",
+      "weak_synthesis",
+      "sycophancy",
+      "consensus_failing_executable_tests"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_graph",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "resumable_state",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 180,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P12 adversarial collaboration",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:276",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:289"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P12",
+      "Kahneman / Mellers adversarial collaboration"
+    ],
+    "notes": "ADVERSARIAL. The output is a JOINTLY OWNED document plus a pre-registered discriminating test - every other adversarial protocol here produces separate products and a third-party verdict. The card's stated valid failure ('no probe can be agreed') is encoded as an allowed terminal outcome, proof_of_impossibility, not swept up as a deadlock.\n\nanti-failure controls, each mapped to the field implementing it:\n  circular_debate -> the disagreement is converted into a pre-registered discriminating probe; the pre-registration stage will not exit until custom:probe_preregistered == true, so the council cannot loop on restated positions\n  endless_debate -> stopping.expression's second branch accepts proof_of_impossibility - if no probe can be agreed, that is a valid terminal outcome rather than another round\n  lost_dissent -> the output is a JOINTLY OWNED document that must state what was settled AND what remains; consensus.minority_report=required and dissent_policy.preserve_verbatim\n  weak_synthesis -> voting.method=consent_no_objection means neither side can be overruled into a synthesis it does not own, and custom:jointly_owned_document == true is a closing precondition\n  sycophancy -> the probe is registered BEFORE either side sees a result (protocol.experiments.required_before_decision) so neither party can retrofit agreement to the outcome\n  consensus_failing_executable_tests -> experiments.runner=ci with experiments_run >= 1 in the stopping rule; the settlement is a run, not a concession"
+  }
+}

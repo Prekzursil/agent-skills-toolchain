@@ -1,0 +1,660 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "crv.differential-change-review-with-history",
+  "name": "Differential change review with git history",
+  "description": "Review what a change INTRODUCES relative to its own history, so a vulnerability that exists only because of the delta is not normalised away by a whole-file read. The review surface is the THREE-DOT diff (base...head): a two-dot diff folds in working-tree noise, which is how an untracked credential file appears to be 'in the PR' when it is not, and a stale branch turns the surface into a mass deletion.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "code-review",
+    "differential",
+    "git-history",
+    "delta-scoped"
+  ],
+  "flagship": false,
+  "params": {
+    "base_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The merge base side, e.g. origin/main",
+      "examples": [
+        "origin/main"
+      ]
+    },
+    "head_ref": {
+      "type": "string",
+      "default": "HEAD",
+      "description": "The proposed side"
+    },
+    "threat_context": {
+      "type": "enum",
+      "enum": [
+        "auth",
+        "parsing",
+        "file-handling",
+        "process-spawn",
+        "network",
+        "general"
+      ],
+      "default": "general",
+      "description": "Which class the reviewer weights first"
+    },
+    "allow_degrade_on_missing_history": {
+      "type": "boolean",
+      "default": true,
+      "description": "A shallow clone degrades this to a history-blind read, which must be SAID"
+    }
+  },
+  "roles": {
+    "differential-reviewer": {
+      "description": "Security reviewer with history access; judges the delta, not the file",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:git"
+      ],
+      "speaking_rights": "always"
+    },
+    "surface-auditor": {
+      "description": "Computes and certifies the review surface before any reading starts",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:git",
+        "Write(command-center/review/**)"
+      ],
+      "write_paths": [
+        "command-center/review/**"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/review/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "Write"
+    ],
+    "write_paths": [
+      "command-center/review/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "escalation": {
+      "on": [
+        "failure",
+        "low-confidence"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "surface-discipline": {
+      "predicate": "custom-expression",
+      "expression": "diff_form == THREE_DOT AND working_tree_noise_included == false AND deletions_from_staleness == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "introduced-separated": {
+      "predicate": "custom-expression",
+      "expression": "findings_without_introduced_flag == 0 AND pre_existing_blocks_the_pr == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "history-availability": {
+      "predicate": "custom-expression",
+      "expression": "history_depth_sufficient == true OR degradation_disclosed == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "compute-surface",
+      "title": "Compute the three-dot review surface",
+      "kind": "task",
+      "role": "surface-auditor",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "CRV-5001",
+        "title": "Compute and certify the three-dot review surface for the change",
+        "phase": "2B",
+        "question_or_target": "Emit the file and hunk list for base...head (three dots), together with the counts that prove it is not a stale-branch mass deletion and not polluted by working-tree noise.",
+        "inputs": [
+          "params.base_ref",
+          "params.head_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surface-auditor",
+          "basis": "the surface decides everything downstream, so it is not delegated to a cheap model"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:git",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/review/crv-50-review-surface.json",
+        "output_schema": "command-center/schema/audit-graph.schema.json",
+        "evidence_requirement": "the exact git command and its output are recorded, and the two-dot and three-dot surfaces are both counted so the difference is visible",
+        "tests_required": [
+          "both-states control: on a deliberately stale branch the two-dot surface must exceed the three-dot surface, and the gate must fail the two-dot form",
+          "a forward-only branch must produce identical two-dot and three-dot file lists"
+        ],
+        "reviewer_requirement": "the surface-discipline gate is mechanical; no human sign-off is required to reject a two-dot surface",
+        "completion_sentinel": "SUCCESS:CRV-5001 emitted only when the surface is the three-dot form, carries a per-file add/modify/delete classification, and records both surface sizes; otherwise FAILED:CRV-5001 <reason>",
+        "retry_policy": "two strikes then pivot to fetching the base ref explicitly before a third attempt",
+        "failure_classification": [
+          "detector-failure",
+          "stale-ref"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "git diff base...head with an explicit two-dot control measurement",
+        "notes": "Windows note: pass git revisions with forward slashes and never as backslash paths, and scope MSYS_NO_PATHCONV to revision arguments only."
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-50-review-surface.json",
+          "schema_ref": "command-center/schema/audit-graph.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CRV-5001",
+          "consumers": [
+            "load-history",
+            "review-delta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "surface-discipline",
+      "title": "Reject a two-dot review surface before anyone reads it",
+      "kind": "gate",
+      "depends_on": [
+        "compute-surface"
+      ],
+      "gate_ref": "surface-discipline"
+    },
+    {
+      "id": "load-history",
+      "title": "Load blame and log for each touched region",
+      "kind": "fanout",
+      "depends_on": [
+        "surface-discipline"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/review/crv-50-review-surface.json",
+        "item_var": "region",
+        "key_field": "region"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 100,
+      "max_items": 400,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "region-history",
+          "kind": "task",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:git"
+          ],
+          "work_unit_ref": "AUD-0008",
+          "timeout_seconds": 600
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "history-availability",
+      "title": "A shallow clone degrades this review and must say so",
+      "kind": "gate",
+      "depends_on": [
+        "load-history"
+      ],
+      "gate_ref": "history-availability"
+    },
+    {
+      "id": "review-delta",
+      "title": "Judge what the delta introduces",
+      "kind": "task",
+      "depends_on": [
+        "history-availability"
+      ],
+      "role": "differential-reviewer",
+      "work_unit_ref": "ADV-0032",
+      "timeout_seconds": 3600
+    },
+    {
+      "id": "separate-introduced",
+      "title": "Introduced risk blocks; pre-existing risk is reported separately",
+      "kind": "task",
+      "depends_on": [
+        "review-delta"
+      ],
+      "role": "surface-auditor",
+      "work_unit": {
+        "id": "CRV-5002",
+        "title": "Partition findings into delta-introduced and pre-existing, with the reason each landed where it did",
+        "phase": "2B",
+        "question_or_target": "For every finding, decide from the loaded history whether the delta CAUSED it or merely touched a region where it already lived, and record the blame evidence for that decision. Pre-existing risk is reported, never used to block this PR.",
+        "inputs": [
+          "command-center/review/crv-50-review-surface.json",
+          "command-center/review/crv-50-delta-findings.json"
+        ],
+        "dependencies": [
+          "CRV-5001"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surface-auditor",
+          "basis": "the partition decides what blocks a merge, so it gets the strong model"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:git",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/review/crv-50-introduced-vs-preexisting.json",
+        "output_schema": "command-center/schema/audit-finding.schema.json",
+        "evidence_requirement": "each finding cites the commit or blame line that places it on one side of the partition",
+        "tests_required": [
+          "a change that REMOVES a validation must be classed introduced even though the resulting file looks self-consistent",
+          "both-states control: a finding in an untouched region must be classed pre-existing, and must not block"
+        ],
+        "reviewer_requirement": "one independent reviewer spot-checks five partition decisions against blame output",
+        "completion_sentinel": "SUCCESS:CRV-5002 emitted only when every finding carries an introduced flag with its blame evidence, and no pre-existing finding is marked blocking; otherwise FAILED:CRV-5002 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the whole set as UNPARTITIONED and say so",
+        "failure_classification": [
+          "overclaim",
+          "detector-failure",
+          "shallow-history"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "per-finding blame lookup deciding introduced-versus-pre-existing",
+        "not_a_duplicate_because": "the split-role panel has no history access at all, so it cannot make this partition and does not attempt it"
+      }
+    },
+    {
+      "id": "introduced-separated",
+      "title": "No unflagged finding, no pre-existing blocker",
+      "kind": "gate",
+      "depends_on": [
+        "separate-introduced"
+      ],
+      "gate_ref": "introduced-separated",
+      "produces": [
+        {
+          "path": "command-center/review/crv-50-introduced-vs-preexisting.json",
+          "schema_ref": "command-center/schema/audit-finding.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "consumers": [
+            "crv.bug-class-variant-sweep",
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "emit-differential-verdict",
+      "title": "Emit the differential verdict only after the surface and partition gates pass",
+      "kind": "task",
+      "depends_on": [
+        "introduced-separated"
+      ],
+      "role": "surface-auditor",
+      "work_unit_ref": "ADV-0002",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/review/crv-50-differential-verdict.json",
+          "schema_ref": "command-center/schema/second-order-review.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "crv.bug-class-variant-sweep",
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "delta-reviewed",
+      "expression": "regions_reviewed >= regions_touched AND findings_without_introduced_flag == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "regions_touched >= 1"
+    },
+    {
+      "id": "degraded-to-history-blind",
+      "expression": "history_depth_sufficient == false AND degradation_disclosed == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "separate-introduced"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "shallow-history",
+      "stale-ref",
+      "detector-failure"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "separate-introduced",
+    "quarantine_path": "command-center/quarantine/crv-50"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/crv-50",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260811,
+    "journal_path": "command-center/replay/crv-50-differential.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/crv-50",
+    "ttl_seconds": 172800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "artifact-diff",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/crv-50-plan.json",
+    "forbid_tools": [
+      "Write(command-center/review/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.7,
+      "max": 2.5
+    },
+    "wallclock_seconds": {
+      "expected": 1200,
+      "max": 3600
+    },
+    "tokens": {
+      "expected": 180000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the repo plus writes under command-center/review/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/crv-50-differential.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CRV-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "trailofbits/skills:differential-review",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "CC-BY-SA-4.0",
+        "credit": "Trail of Bits"
+      },
+      {
+        "source": "rules/common/windows-shell.md#8d",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/trail-of-bits-re"
+    ]
+  },
+  "outputs": {
+    "introduced-risk": {
+      "path": "command-center/review/crv-50-introduced-vs-preexisting.json",
+      "schema_ref": "command-center/schema/audit-finding.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "crv.bug-class-variant-sweep"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-CRV-02",
+    "card_index": 50,
+    "family": "D10-code-review",
+    "acquisition_route": "ADOPT-WITH-WRAPPER",
+    "licence_obligation": "The differential-review source pack is CC BY-SA 4.0 (Trail of Bits). Attribution is recorded in lineage.derived_from and must travel with any redistribution.",
+    "mechanism_fingerprint": {
+      "subject": "delta-plus-history",
+      "oracle": "llm-single-history-aware",
+      "execution_required": false,
+      "mutation_target": "none",
+      "comparison_axis": "introduced-vs-preexisting",
+      "output_type": "risk-classification",
+      "information_barrier": false
+    },
+    "mechanism": "Certify a three-dot surface, load blame per touched region, then classify each finding by whether the DELTA caused it. The partition, not the finding list, is the product.",
+    "contraindications": [
+      "NOT for greenfield code with no history - there is no delta to be differential about",
+      "NOT a substitute for a full audit of pre-existing code: it reviews the delta by design",
+      "NOT usable on a shallow clone without degrading to a history-blind read and saying so"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "removed-validation",
+        "setup": "a commit that deletes an input check",
+        "expected": "flagged as INTRODUCED even though the post-change file reads as internally consistent"
+      },
+      {
+        "name": "stale-branch-surface",
+        "setup": "a branch far behind base",
+        "expected": "the three-dot rule keeps the surface small; a two-dot surface proposing mass deletion must be REJECTED by surface-discipline"
+      }
+    ],
+    "why_not_a_duplicate": "BP-CRV-01 is role-partitioned and history-blind; this is single-reviewer, history-aware and delta-scoped, and its output is a partition rather than a ranked list.",
+    "unverified": "UNVERIFIED (likely) that the three-dot attachment changes the verdict on this estate's real branches; settling experiment = run both diff forms on a stale branch and compare surface size. The measured precedent is 1,188 files / 316,222 deletions under the wrong form versus 7 files / 4 deletions under the right one.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "review a parser change on a branch 40 commits behind base",
+      "params": {
+        "base_ref": "origin/main",
+        "head_ref": "HEAD",
+        "threat_context": "parsing",
+        "allow_degrade_on_missing_history": true
+      },
+      "narrative": "The two-dot surface listed 611 files; the three-dot surface listed 9. surface-discipline accepted only the three-dot form. Blame showed one deleted length check dating to the original commit, so that finding is INTRODUCED and blocking; one pre-existing unsafe join in an untouched region is reported and does not block.",
+      "context": {
+        "diff_form": "THREE_DOT",
+        "working_tree_noise_included": false,
+        "deletions_from_staleness": 0,
+        "findings_without_introduced_flag": 0,
+        "pre_existing_blocks_the_pr": false,
+        "history_depth_sufficient": true,
+        "degradation_disclosed": false,
+        "regions_reviewed": 9,
+        "regions_touched": 9
+      },
+      "expected_gate_pass": [
+        "surface-discipline",
+        "introduced-separated",
+        "history-availability"
+      ],
+      "expected_stop": [
+        "delta-reviewed"
+      ],
+      "negative_control": {
+        "gate": "surface-discipline",
+        "overrides": {
+          "diff_form": "TWO_DOT",
+          "deletions_from_staleness": 316222
+        },
+        "expected": false,
+        "why": "the measured stale-branch failure mode must be rejected by the gate, not merely noted in prose"
+      }
+    }
+  }
+}

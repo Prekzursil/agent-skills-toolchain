@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0029",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0029 live named probes re-ran exit 0; distinct E_DISK/E_PERM/E_BUSY/E_LOCK; lock-before-recover; per-unit UNIT-ARTIFACT-MANIFEST.json registered",
+  "spec_anchor": "command-center/catalog-slices/IMP-1.json:1282",
+  "min_bytes_threshold": 512,
+  "artifacts": [
+    {
+      "path": "platform/plugin/lifecycle.py",
+      "bytes": 30259,
+      "sha256": "980858794ac61b1e946c93a75545ca644e45dde78b1a0ac4ae504193d98982a6",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "platform/plugin/journal.py",
+      "bytes": 13411,
+      "sha256": "1385ff0dd7786a1711ee3b16fd05dbf69cb20575232d277dd799d767f7e7248c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "platform/plugin/errors.py",
+      "bytes": 10199,
+      "sha256": "da055885f42b0e8cc0832fd58adc30dd804c45c51af52807ea20ff93da2ca0fc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "platform/plugin/fsops.py",
+      "bytes": 10347,
+      "sha256": "fc7c1772cb5abb7b0a4a10afe87fc31a072a7df8ef5db1e44f7db0c06533d0aa",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_preflight.py",
+      "bytes": 6601,
+      "sha256": "ddcd1388bcea8d29c748a2acdbbf268b781c14e47bde7043e31f82675feb8933",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Each planted precondition is refused with a distinct taxonomy code (E_DISK/23, E_PERM/24, E_BUSY/25, E_LOCK/21) and the same-run healthy control passes; an out-of-band OS observer confirmed the tmpfs, mode-0555 nobody-denial, kernel FLOCK, and live PrefixLock holder.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0029/probe1-enforcement.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe1_enforcement.py",
+          "raw_output": "{\n  \"probe\": \"IMP-0029 named probe 1 - deliberate precondition failures\",\n  \"implementation\": \"platform/plugin/lifecycle.py:preflight\",\n  \"plugin_root\": \"/opt/p2/ast-integrate/platform\",\n  \"repo\": \"/opt/p2/ast-integrate\",\n  \"mount\": {\n    \"ok\": true,\n    \"exit_code\": 0,\n    \"stderr\": \"\",\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/full-volume\",\n    \"size_k\": 40960\n  },\n  \"disk_fill\": {\n    \"written\": 40894464,\n    \"free_bytes\": 1048576,\n    \"total_bytes\": 41943040,\n    \"used_bytes\": 40894464,\n    \"used_percent\": 97.5\n  },\n  \"bad_cases\": [\n    {\n      \"outcome\": \"REFUSED\",\n      \"code\": \"E_DISK\",\n      \"exit_code\": 23,\n      \"detail\": \"insufficient free space: 1048576 bytes free, 33554432 required\",\n      \"context\": {\n        \"prefix\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/full-volume/prefix\",\n        \"op\": \"install\"\n      },\n      \"case\": \"insufficient-disk\"\n    },\n    {\n      \"outcome\": \"REFUSED\",\n      \"code\": \"E_PERM\",\n      \"exit_code\": 24,\n      \"detail\": \"prefix is not writable: /opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/read-only/prefix ([Errno 13] Permission denied: '/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/read-only/prefix/state/.tmp-j1kap8yt.part')\",\n      \"context\": {},\n      \"effective_uid\": 65534,\n      \"case\": \"read-only-target\"\n    },\n    {\n      \"outcome\": \"REFUSED\",\n      \"code\": \"E_BUSY\",\n      \"exit_code\": 25,\n      \"detail\": \"running client holds a file lock on /opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/file-lock/prefix/live/client-owned.txt\",\n      \"context\": {\n        \"locks\": [\n          {\n            \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/file-lock/prefix/live/client-owned.txt\",\n            \"pid\": 92328,\n            \"st_dev\": 2049,\n            \"st_ino\": 2097120,\n            \"proc_lock\": \"3: FLOCK  ADVISORY  WRITE 92328 08:01:2097120 0 EOF\",\n            \"fcntl_blocked\": false\n          }\n        ],\n        \"holder_pid\": 92328,\n        \"op\": \"install\"\n      },\n      \"case\": \"client-file-lock\"\n    },\n    {\n      \"outcome\": \"REFUSED\",\n      \"code\": \"E_LOCK\",\n      \"exit_code\": 21,\n      \"detail\": \"another lifecycle operation holds the prefix lock\",\n      \"context\": {\n        \"holder\": \"held-install pid=92329 at=1787141594\",\n        \"holder_pid\": 92329,\n        \"lock\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/lifecycle-lock/prefix/state/prefix.lock\"\n      },\n      \"case\": \"concurrent-lifecycle-lock\"\n    }\n  ],\n  \"negative_control\": {\n    \"outcome\": \"PASSED\",\n    \"result\": {\n      \"op\": \"install\",\n      \"free_bytes\": 185646428160,\n      \"required_bytes\": 33554432,\n      \"crash_recovery\": \"deferred-until-prefix-lock\"\n    },\n    \"effective_uid\": 65534,\n    \"case\": \"all-preconditions-satisfied\"\n  },\n  \"negative_control_mutation\": {\n    \"control\": \"planted false positive against healthy preconditions\",\n    \"fired_on_bad_state\": true,\n    \"silent_on_good_state\": true,\n    \"bad_state_problems\": [\n      \"all-preconditions-satisfied negative control did not pass: REFUSED\"\n    ]\n  },\n  \"contract\": {\n    \"all_bad_states_refused\": true,\n    \"all_refusal_codes_distinct\": true,\n    \"distinct_refusal_code_count\": 4,\n    \"good_state_passed\": true,\n    \"required_distinct_refusal_code_count\": 4,\n    \"required_cases\": [\n      \"insufficient-disk\",\n      \"read-only-target\",\n      \"client-file-lock\",\n      \"concurrent-lifecycle-lock\"\n    ],\n    \"problems\": [],\n    \"target_contract_satisfied\": true\n  }\n}\nSUCCESS:IMP-0029 planted preconditions refused with distinct codes\n",
+          "fingerprint": "33e4d662b44c1e2b76080a4bb257170d97563290d5292c0a751f958a91febb27",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe2_os_observer.py",
+          "raw_output": "{\n  \"probe\": \"IMP-0029 named probe 2 - out-of-band OS observations\",\n  \"checks\": {\n    \"disk_is_distinct_tmpfs_mount\": true,\n    \"disk_free_below_gate\": true,\n    \"disk_more_than_90_percent_used\": true,\n    \"readonly_target_denies_nobody\": true,\n    \"good_target_is_writable_by_nobody\": true,\n    \"kernel_reports_client_file_lock\": true,\n    \"client_lock_holder_alive\": true,\n    \"lifecycle_lock_file_names_live_holder\": true,\n    \"all_preconditions_genuine\": true\n  },\n  \"disk\": {\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-full-volume\",\n    \"free_bytes\": 1048576,\n    \"total_bytes\": 41943040,\n    \"used_bytes\": 40894464,\n    \"used_percent\": 97.5,\n    \"below_32_mib\": true,\n    \"mountinfo\": [\n      \"464 29 0:44 / /opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-full-volume rw,nosuid,nodev,noexec,relatime shared:257 - tmpfs tmpfs rw,size=40960k,inode64\"\n    ],\n    \"fill\": {\n      \"written\": 40894464,\n      \"free_bytes\": 1048576,\n      \"total_bytes\": 41943040,\n      \"used_bytes\": 40894464,\n      \"used_percent\": 97.5\n    },\n    \"mount\": {\n      \"ok\": true,\n      \"exit_code\": 0,\n      \"stderr\": \"\",\n      \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-full-volume\",\n      \"size_k\": 40960\n    }\n  },\n  \"permissions\": {\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-read-only/prefix/state\",\n    \"mode\": \"dr-xr-xr-x\",\n    \"mode_octal\": \"0o555\",\n    \"uid\": 0,\n    \"gid\": 0,\n    \"nobody_can_write\": false,\n    \"nobody_test_w_exit\": 1\n  },\n  \"client_file_lock\": {\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-file-lock/prefix/live/client-owned.txt\",\n    \"holder\": {\n      \"kind\": \"file\",\n      \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-file-lock/prefix/live/client-owned.txt\",\n      \"pid\": 92367,\n      \"at\": 1787141629.130388\n    },\n    \"kernel_lock_found\": true,\n    \"proc_locks\": [\n      \"2: FLOCK  ADVISORY  WRITE 92367 08:01:2097147 0 EOF\"\n    ],\n    \"st_dev\": 2049,\n    \"st_ino\": 2097147\n  },\n  \"lifecycle_lock\": {\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-lifecycle-lock/prefix/state/prefix.lock\",\n    \"content\": \"held-install pid=92368 at=1787141629\",\n    \"content_names_holder_pid\": true,\n    \"exists\": true,\n    \"holder\": {\n      \"kind\": \"lifecycle\",\n      \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-lifecycle-lock/prefix/state/prefix.lock\",\n      \"pid\": 92368,\n      \"text\": \"held-install pid=92368 at=1787141629\",\n      \"at\": 1787141629.2191498\n    }\n  },\n  \"good_state\": {\n    \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/obs-good/prefix/state\",\n    \"mode\": \"drwxrwxrwx\",\n    \"mode_octal\": \"0o777\",\n    \"nobody_can_write\": true,\n    \"nobody_test_w_exit\": 0\n  }\n}\nSUCCESS:IMP-0029 out-of-band observations confirm every planted state\n",
+          "fingerprint": "cd2f9c06d4942eb1033173d7fea81735ec5c26e1d13a47fa1be3bd43bfdffdec",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Two simultaneous mutating ops yield exactly one SUCCESS and one classified E_LOCK; SIGINT on the holder unwinds PrefixLock so a later op can acquire it.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0029/concurrency.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe_concurrency.py",
+          "raw_output": "{\n  \"probe\": \"IMP-0029 simultaneous mutating-op race\",\n  \"implementation\": \"platform/plugin/lifecycle.py:preflight + journal.PrefixLock\",\n  \"plugin_root\": \"/opt/p2/ast-integrate/platform\",\n  \"control\": {\n    \"returncode\": 0,\n    \"stdout\": \"{\\\"outcome\\\": \\\"SUCCESS\\\", \\\"pid\\\": 93991, \\\"code\\\": null, \\\"recovery_clean\\\": true}\",\n    \"stderr\": \"\",\n    \"parsed\": {\n      \"outcome\": \"SUCCESS\",\n      \"pid\": 93991,\n      \"code\": null,\n      \"recovery_clean\": true\n    }\n  },\n  \"workers\": [\n    {\n      \"worker\": \"A\",\n      \"pid\": 93999,\n      \"returncode\": 0,\n      \"stdout\": \"{\\\"outcome\\\": \\\"SUCCESS\\\", \\\"pid\\\": 93999, \\\"code\\\": null, \\\"recovery_clean\\\": true}\",\n      \"stderr\": \"\",\n      \"parsed\": {\n        \"outcome\": \"SUCCESS\",\n        \"pid\": 93999,\n        \"code\": null,\n        \"recovery_clean\": true\n      },\n      \"outcome\": \"SUCCESS\",\n      \"code\": null\n    },\n    {\n      \"worker\": \"B\",\n      \"pid\": 94005,\n      \"returncode\": 21,\n      \"stdout\": \"{\\\"outcome\\\": \\\"REFUSED\\\", \\\"pid\\\": 94005, \\\"code\\\": \\\"E_LOCK\\\", \\\"exit_code\\\": 21, \\\"detail\\\": \\\"another lifecycle operation holds the prefix lock\\\"}\",\n      \"stderr\": \"\",\n      \"parsed\": {\n        \"outcome\": \"REFUSED\",\n        \"pid\": 94005,\n        \"code\": \"E_LOCK\",\n        \"exit_code\": 21,\n        \"detail\": \"another lifecycle operation holds the prefix lock\"\n      },\n      \"outcome\": \"REFUSED\",\n      \"code\": \"E_LOCK\"\n    }\n  ],\n  \"contract\": {\n    \"sequential_control_passed\": true,\n    \"simultaneous_success_count\": 1,\n    \"classified_e_lock_refusal_count\": 1,\n    \"expected_success_count\": 1,\n    \"expected_e_lock_refusal_count\": 1,\n    \"unclassified_count\": 0,\n    \"recovery_ran_during_live_race\": false,\n    \"target_contract_satisfied\": true\n  }\n}\nSUCCESS:IMP-0029 simultaneous install contract: exactly one proceeds, loser is E_LOCK\n",
+          "fingerprint": "e0fbae4088181cb6390d0064807609914ee2d9729427a284cab6fce4870b3859",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe_sigint.py",
+          "raw_output": "{\n  \"probe\": \"IMP-0029 SIGINT abort-path lock release\",\n  \"plugin_root\": \"/opt/p2/ast-integrate/platform\",\n  \"during\": {\n    \"lock_exists_before_sigint\": true,\n    \"holder_pid\": 93978,\n    \"holder_alive_before\": true\n  },\n  \"contended_preflight\": {\n    \"outcome\": \"REFUSED\",\n    \"code\": \"E_LOCK\",\n    \"exit_code\": 21,\n    \"detail\": \"another lifecycle operation holds the prefix lock\",\n    \"context\": {\n      \"holder\": \"install pid=93978 at=1787141941\",\n      \"holder_pid\": 93978,\n      \"lock\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0029/runtime/sigint/prefix/state/prefix.lock\"\n    }\n  },\n  \"sigint_returncode\": -2,\n  \"sigint_forced_kill\": false,\n  \"lock_exists_after_sigint\": false,\n  \"reacquire_succeeded\": true,\n  \"reacquire_error\": null,\n  \"post_sigint_preflight\": {\n    \"outcome\": \"PASSED\",\n    \"result\": {\n      \"op\": \"install\",\n      \"free_bytes\": 185539018752,\n      \"required_bytes\": 33554432,\n      \"crash_recovery\": \"deferred-until-prefix-lock\"\n    }\n  },\n  \"contract\": {\n    \"held_lock_refused_as_e_lock\": true,\n    \"worker_exited_on_sigint\": true,\n    \"lock_file_gone_after_sigint\": true,\n    \"later_op_acquired_lock\": true,\n    \"post_preflight_passed\": true,\n    \"target_contract_satisfied\": true\n  }\n}\nSUCCESS:IMP-0029 SIGINT releases the prefix lock on the abort path\n",
+          "fingerprint": "0e84f270eeb3dea8fcac10134d7561ef2415e36b4d12bb10714d6518d90b5b0f",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "tools/plugin/tests/test_preflight.py is present and the production suite exits 0; preflight no longer calls recover(); uninstall calls preflight.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0029/source-inspection.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B tools/plugin/tests/test_preflight.py",
+          "raw_output": "\n",
+          "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python3 -c source-contract-inspection",
+          "raw_output": "PROBE: IMP-0029 source contract inspection\nSOURCE: platform/plugin/lifecycle.py preflight implementation\npreflight_calls_recover_prefix=False\npreflight_has_E_DISK=True\npreflight_has_E_PERM=True\npreflight_has_E_BUSY=True\npreflight_has_E_LOCK=True\nuninstall_calls_preflight=True\nPATH|tools/plugin/tests/test_preflight.py|present=True\nSUCCESS:IMP-0029 source contract inspection completed\n",
+          "fingerprint": "b792a11ae55ebf4dac78640642512e71794b225cded6bd53c6b1fec1d1054fbf",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "IMP-0029-T1-required-test-path",
+      "name": "tools/plugin/tests/test_preflight.py, one case per precondition and distinct code",
+      "command": "test -f tools/plugin/tests/test_preflight.py && python3 -B tools/plugin/tests/test_preflight.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": ""
+    },
+    {
+      "id": "IMP-0029-T2-planted-preconditions",
+      "name": "each planted precondition is refused with its own exit code",
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe1_enforcement.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "USED\"\n    ]\n  },\n  \"contract\": {\n    \"all_bad_states_refused\": true,\n    \"all_refusal_codes_distinct\": true,\n    \"distinct_refusal_code_count\": 4,\n    \"good_state_passed\": true,\n    \"required_distinct_refusal_code_count\": 4,\n    \"required_cases\": [\n      \"insufficient-disk\",\n      \"read-only-target\",\n      \"client-file-lock\",\n      \"concurrent-lifecycle-lock\"\n    ],\n    \"problems\": [],\n    \"target_contract_satisfied\": true\n  }\n}\nSUCCESS:IMP-0029 planted preconditions refused with distinct codes\n"
+    },
+    {
+      "id": "IMP-0029-T3-negative-control-good-state",
+      "name": "all preconditions satisfied passes in the same run",
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe1_enforcement.py (negative_control row)",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "{\"case\": \"all-preconditions-satisfied\", \"effective_uid\": 65534, \"outcome\": \"PASSED\", \"result\": {\"crash_recovery\": \"deferred-until-prefix-lock\", \"free_bytes\": 185646428160, \"op\": \"install\", \"required_bytes\": 33554432}}"
+    },
+    {
+      "id": "IMP-0029-T4-simultaneous-installs-exactly-one",
+      "name": "two simultaneous installs: exactly one proceeds",
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe_concurrency.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "t\": {\n    \"sequential_control_passed\": true,\n    \"simultaneous_success_count\": 1,\n    \"classified_e_lock_refusal_count\": 1,\n    \"expected_success_count\": 1,\n    \"expected_e_lock_refusal_count\": 1,\n    \"unclassified_count\": 0,\n    \"recovery_ran_during_live_race\": false,\n    \"target_contract_satisfied\": true\n  }\n}\nSUCCESS:IMP-0029 simultaneous install contract: exactly one proceeds, loser is E_LOCK\n"
+    },
+    {
+      "id": "IMP-0029-T4b-contention-is-classified-before-recovery",
+      "name": "the simultaneous loser is refused as E_LOCK without live recovery",
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0029/probe_concurrency.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "{\"sequential_control_passed\": true, \"simultaneous_success_count\": 1, \"classified_e_lock_refusal_count\": 1, \"expected_success_count\": 1, \"expected_e_lock_refusal_count\": 1, \"unclassified_count\": 0, \"recovery_ran_during_live_race\": false, \"target_contract_satisfied\": true}"
+    },
+    {
+      "id": "IMP-0029-T5-detector-red-control",
+      "name": "healthy-state false-positive mutation makes the evaluator red",
+      "command": "embedded evaluate_enforcement mutant in probe1_enforcement.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "{\"bad_state_problems\": [\"all-preconditions-satisfied negative control did not pass: REFUSED\"], \"control\": \"planted false positive against healthy preconditions\", \"fired_on_bad_state\": true, \"silent_on_good_state\": true}"
+    },
+    {
+      "id": "IMP-0029-T6-receipt-schema",
+      "name": "receipt parses as JSON with state=SUCCESS and required evidence",
+      "command": "json.loads command-center/receipts/IMP-0029.json",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "resolver=None on this sparse tree; receipt is well-formed JSON with state=SUCCESS"
+    },
+    {
+      "id": "IMP-0029-T7-condition-11",
+      "name": "per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path",
+      "command": "not tools/command-center/unit_manifest.py --write (banned); per-unit manifest only",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "manifest_path=command-center/p2-wave/probes/IMP-0029/UNIT-ARTIFACT-MANIFEST.json"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP-0029-NC1-healthy-false-positive",
+      "kind": "mutation",
+      "description": "Mutate the all-preconditions-satisfied result from PASSED to REFUSED; the contract evaluator must go red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "[\"all-preconditions-satisfied negative control did not pass: REFUSED\"]",
+      "good_state_output": "{\"case\": \"all-preconditions-satisfied\", \"effective_uid\": 65534, \"outcome\": \"PASSED\", \"result\": {\"crash_recovery\": \"deferred-until-prefix-lock\", \"free_bytes\": 185646428160, \"op\": \"install\", \"required_bytes\": 33554432}}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "p2-deliver-imp-0029-sigint",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Abort-path review ran probe_sigint.py on this Linux host: SIGINT on a live PrefixLock holder unwinds __exit__, the lock file is gone, and a later op acquires the lock. Windows mandatory locking was not measured."
+  },
+  "defects": [
+    {
+      "id": "IMP-0029-D1",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Disk and permission failures now use E_DISK/23 and E_PERM/24; contention is E_LOCK/21; client flock is E_BUSY/25."
+    },
+    {
+      "id": "IMP-0029-D2",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "preflight inspects /proc/locks plus non-blocking flock and refuses E_BUSY when a live client holds an exclusive lock."
+    },
+    {
+      "id": "IMP-0029-D3",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "preflight no longer calls recover(); recover() runs inside PrefixLock and refuses a live holder PID."
+    },
+    {
+      "id": "IMP-0029-D4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "tools/plugin/tests/test_preflight.py is present and the suite exits 0."
+    },
+    {
+      "id": "IMP-0029-D5",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "uninstall calls preflight and refuses a held PrefixLock with E_LOCK."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0029/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "IMP-0029"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "tools/plugin/tests/test_preflight.py",
+      "artifact_path": "tools/plugin/tests/test_preflight.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "test-run",
+        "command": "python3 -B tools/plugin/tests/test_preflight.py",
+        "raw_output": "\n",
+        "fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-19T12:26:57.347679Z",
+    "ended_at": "2026-08-19T12:26:57.347679Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Catalog bounded retry x3 applies to a mutating operation's transient lock, not to these deterministic probes.",
+    "attempts": []
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Windows mandatory client-file locking (LockFile/msvcrt) was not measured on this Linux worker.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run tools/plugin/tests/test_preflight.py on Windows with a real client holding a mandatory file handle."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "headless-linux"
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "overall_verdict": "CONFIRMED",
+    "host": "p2-probe-pop2-hm-32c-256g",
+    "python": "3.10.12",
+    "title": "Preflight gate: disk, permissions, locks, and concurrent-op detection",
+    "question_or_target": "Implement a preflight that refuses to start a mutating lifecycle op when free disk is below the payload size plus backup, when the target tree is not writable, when a file is locked by a running client, or when another lifecycle op holds the lock.",
+    "observed_precondition_results": {
+      "insufficient-disk": {
+        "outcome": "REFUSED",
+        "code": "E_DISK",
+        "exit_code": 23
+      },
+      "read-only-target": {
+        "outcome": "REFUSED",
+        "code": "E_PERM",
+        "exit_code": 24
+      },
+      "client-file-lock": {
+        "outcome": "REFUSED",
+        "code": "E_BUSY",
+        "exit_code": 25
+      },
+      "concurrent-lifecycle-lock": {
+        "outcome": "REFUSED",
+        "code": "E_LOCK",
+        "exit_code": 21
+      }
+    },
+    "os_observation_checks": {
+      "all_preconditions_genuine": true,
+      "client_lock_holder_alive": true,
+      "disk_free_below_gate": true,
+      "disk_is_distinct_tmpfs_mount": true,
+      "disk_more_than_90_percent_used": true,
+      "good_target_is_writable_by_nobody": true,
+      "kernel_reports_client_file_lock": true,
+      "lifecycle_lock_file_names_live_holder": true,
+      "readonly_target_denies_nobody": true
+    },
+    "concurrency_contract": {
+      "sequential_control_passed": true,
+      "simultaneous_success_count": 1,
+      "classified_e_lock_refusal_count": 1,
+      "expected_success_count": 1,
+      "expected_e_lock_refusal_count": 1,
+      "unclassified_count": 0,
+      "recovery_ran_during_live_race": false,
+      "target_contract_satisfied": true
+    },
+    "delivery_contract": {
+      "receipt_exists_nonempty": true,
+      "declared_schema": "command-center/schema/receipt.schema.json",
+      "both_named_probes_recorded_verbatim": true,
+      "named_probe_1": "command-center/p2-wave/probes/IMP-0029/probe1-enforcement.raw.txt",
+      "named_probe_2": "command-center/p2-wave/probes/IMP-0029/probe2-os-observation.raw.txt",
+      "negative_control_can_go_red": true,
+      "condition_11_check": "PER-UNIT-MANIFEST",
+      "unit_state": "SUCCESS",
+      "substantive_verdict": "CONFIRMED",
+      "named_probes_rerun": true,
+      "named_probe_sidecars_present": true,
+      "writes_confined_note": "production plugin restored from in-tree ADV-0024 fixture then patched; probes and receipt under command-center/"
+    },
+    "completion_line": "UNIT-COMPLETE:IMP-0029",
+    "completion_marker": "UNIT-COMPLETE:IMP-0029"
+  }
+}

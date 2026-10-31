@@ -1,0 +1,309 @@
+{
+  "unit_id": "TST-0050",
+  "id": "TST-0050",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "telemetry-privacy-conformance",
+  "title": "Executable conformance tests for the telemetry and privacy contract",
+  "question": "Does any telemetry path emit a field not declared in the privacy contract, and is a credential-shaped or path-shaped value ever included?",
+  "sentinel": "SUCCESS:TST-0050",
+  "completion_sentinel": "SUCCESS:TST-0050",
+  "verdict": "NO live telemetry path on this worktree emitted an undeclared, credential-shaped, or path-shaped field (captured_payloads=0, emitter_files=1). Empty live capture is not treated as a pass: the suite fails a planted non-conforming payload on every contract rule.",
+  "answer": "NO live telemetry path on this worktree emitted an undeclared, credential-shaped, or path-shaped field (captured_payloads=0, emitter_files=1). Empty live capture is not treated as a pass: the suite fails a planted non-conforming payload on every contract rule. SUCCESS:TST-0050",
+  "declared_fields": [
+    "destination",
+    "duration_ms",
+    "event_id",
+    "event_name",
+    "opt_in_record_id",
+    "outcome",
+    "schema_version",
+    "session_ref",
+    "ts"
+  ],
+  "contract_source": {
+    "catalog_unit": "ARC-0096",
+    "live_path": "command-center/phase4/contracts/ARC-0096.json",
+    "live_present": false,
+    "frozen_in": "command-center/p2-wave/probes/TST-0050/contract.py",
+    "note": "suite written BEFORE broad telemetry implementation"
+  },
+  "live_canonical": {
+    "contract_present": false,
+    "emitter_files": [
+      "tools/harness-corpus/test_hook_telemetry.py"
+    ],
+    "payload_count": 0,
+    "static_hit_paths": [
+      "tools/harness-corpus/test_hook_telemetry.py"
+    ],
+    "empty_live_is_not_a_pass": true
+  },
+  "live_checked": [],
+  "live_violations": [],
+  "empty_live_is_not_a_pass": true,
+  "emitter_files": [
+    "tools/harness-corpus/test_hook_telemetry.py"
+  ],
+  "payload_count": 0,
+  "steps": [
+    {
+      "id": "load-declared-fields",
+      "source": "command-center/p2-wave/probes/TST-0050/contract.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/TST-0050'); from contract import DECLARED_FIELDS; print(len(DECLARED_FIELDS))\"",
+      "exit_code": 0,
+      "classification": "ok",
+      "status": "executed"
+    },
+    {
+      "id": "harvest-live",
+      "source": "command-center/p2-wave/probes/TST-0050/harvest.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/harvest.py --live",
+      "exit_code": 0,
+      "classification": "ok",
+      "status": "executed"
+    },
+    {
+      "id": "diff-live-payloads",
+      "source": "command-center/p2-wave/probes/TST-0050/suite.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/suite.py --live",
+      "exit_code": 0,
+      "classification": "ok",
+      "status": "executed"
+    },
+    {
+      "id": "both-states",
+      "source": "command-center/p2-wave/probes/TST-0050/suite.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/suite.py --both-states",
+      "exit_code": 0,
+      "classification": "ok",
+      "status": "executed"
+    }
+  ],
+  "defects": [
+    {
+      "id": "absent-arc-0096",
+      "classification": "documentation-defect",
+      "path": "command-center/phase4/contracts/ARC-0096.json",
+      "line": null,
+      "detail": "Phase-4 contract JSON is absent; TST-0050 freezes the declared field set in contract.py as the pre-implementation allowlist the suite enforces."
+    },
+    {
+      "id": "catalog-shim-unresolvable",
+      "classification": "documentation-defect",
+      "path": "command-center/schema/conformance-report.schema.json",
+      "line": null,
+      "detail": "Catalog conformance-report.schema.json $ref's https://ast-integrate.invalid/... ; jsonschema 4.10.3 raises RefResolutionError. Local envelope command-center/p2-wave/probes/TST-0050/conformance-report.schema.json rejects empty/unrelated garbage without a network fetch."
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-live-capture",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/probe1_live_capture.py",
+      "result": "PASS",
+      "role": "re-run live harvest and field-diff"
+    },
+    {
+      "id": "probe2-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/probe2_both_states.py",
+      "result": "PASS",
+      "role": "both-states per contract rule"
+    },
+    {
+      "id": "control-declared-fields",
+      "command": "check_payload(extra_field fixture) must fail declared-fields",
+      "result": "PASS"
+    },
+    {
+      "id": "control-no-credential",
+      "command": "planted credential-shaped value must flag without printing",
+      "result": "PASS"
+    },
+    {
+      "id": "control-no-path",
+      "command": "planted absolute home path must flag without printing",
+      "result": "PASS"
+    },
+    {
+      "id": "control-disabled-silence",
+      "command": "disabled emitter must emit nothing; broken emitter is caught",
+      "result": "PASS"
+    }
+  ],
+  "reviewers": [
+    {
+      "reviewer_id": "correctness-refuter-openai",
+      "verdict": "CONFIRMED",
+      "independent": true,
+      "saw_other_verdict_before_filing": false,
+      "role": "cross-vendor-correctness",
+      "basis": "re-derived field-diff and extra-field control from the suite, not from this prose"
+    },
+    {
+      "reviewer_id": "security-refuter-independent",
+      "verdict": "CONFIRMED",
+      "independent": true,
+      "saw_other_verdict_before_filing": false,
+      "role": "security",
+      "basis": "re-derived entropy/path/disabled/no-print controls without seeing the correctness verdict"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Every captured telemetry payload is field-diffed against the declared allowlist destination,duration_ms,event_id,event_name,opt_in_record_id,outcome,schema_version,session_ref,ts",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0050/checker.py:extra_fields"
+    },
+    {
+      "claim": "Credential-shaped and path-shaped values are flagged by an entropy/pattern check that never prints the value",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0050/checker.py:check_payload"
+    },
+    {
+      "claim": "A both-states control proves the suite fails a deliberately non-conforming payload on every contract rule",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0050/suite.py:both_states"
+    },
+    {
+      "claim": "Empty live capture is not read as a pass: the scratch planted emitter is captured and rejected",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0050/harvest.py:harvest_scratch"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "declared-fields",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "no-credential",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "no-path",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "no-user-content",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "egress-requires-opt-in",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "opt-in-in-decision-log",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "disabled-emits-nothing",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    },
+    {
+      "id": "never-print-sensitive",
+      "fired_on_bad": true,
+      "silent_on_good": true
+    }
+  ],
+  "detector_controls": [
+    {
+      "id": "declared-fields",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "no-credential",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "no-path",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "no-user-content",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "egress-requires-opt-in",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "opt-in-in-decision-log",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "disabled-emits-nothing",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "scratch-capture-complete",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    },
+    {
+      "id": "never-print-sensitive",
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "pass": true
+    }
+  ],
+  "produced_by": "command-center/p2-wave/probes/TST-0050/emit.py",
+  "measured_at": "2026-08-25T01:09:06Z",
+  "cloud_ok": false,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0050.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/conformance-report.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0050/conformance-report.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0050/contract.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "live-capture",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/probe1_live_capture.py"
+    },
+    {
+      "id": "probe2",
+      "role": "both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0050/probe2_both_states.py"
+    }
+  ],
+  "notes": "G-1 for TST-0050: conformance suite for the telemetry/privacy contract with per-rule negatives and a both-states control. cloud ok=true is not delivery."
+}

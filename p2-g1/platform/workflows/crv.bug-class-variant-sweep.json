@@ -1,0 +1,780 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "crv.bug-class-variant-sweep",
+  "name": "Bug-class variant sweep with a mandatory detector control",
+  "description": "Once ONE instance of a bug class is confirmed, find every other instance of the same class instead of fixing the first symptom. The load-bearing stage is not the search: it is the DETECTOR CONTROL that proves the pattern finds the already-known instance. A pattern that cannot find the instance you already have makes its zero results mean nothing, and a zero-result sweep read as 'clean' is how a class fix becomes a point fix. The unit of done is the remediation SET, not the first file.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "code-review",
+    "variant-analysis",
+    "blast-radius",
+    "detector-control"
+  ],
+  "flagship": true,
+  "params": {
+    "confirmed_defect_anchor": {
+      "type": "string",
+      "required": true,
+      "min_length": 5,
+      "description": "file:line of the ALREADY-CONFIRMED instance; this is the control target",
+      "examples": [
+        "hooks/_shared/completion.py:212"
+      ]
+    },
+    "class_pattern": {
+      "type": "string",
+      "description": "Seed pattern (semgrep rule or regex); the sweep narrows it if noisy"
+    },
+    "search_scope": {
+      "type": "path",
+      "required": true,
+      "description": "Root of the sweep; state it, because a narrow scope is how a sweep under-reports"
+    },
+    "max_hits_for_manual_triage": {
+      "type": "integer",
+      "default": 200,
+      "minimum": 1,
+      "maximum": 5000,
+      "description": "Above this the pattern is too noisy to triage and must be narrowed, never hand-walked"
+    },
+    "graduate_to_ci": {
+      "type": "boolean",
+      "default": false,
+      "description": "Promote the validated pattern to a standing CI rule (owner decision)"
+    }
+  },
+  "roles": {
+    "pattern-author": {
+      "description": "Generalises the confirmed defect into a machine-checkable pattern",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:semgrep",
+        "Bash:rg"
+      ],
+      "speaking_rights": "always"
+    },
+    "hit-triager": {
+      "description": "Decides per hit whether it is the SAME class; over-broad patterns die here",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "remediation-owner": {
+      "description": "Assembles the remediation set and its ordering",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/review/**)"
+      ],
+      "write_paths": [
+        "command-center/review/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may turn a sweep pattern into a blocking CI gate",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Bash:rg",
+      "Bash:semgrep",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/review/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "require_owner_approval": [
+      "Write(.github/workflows/**)"
+    ],
+    "write_paths": [
+      "command-center/review/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "escalation": {
+      "on": [
+        "failure",
+        "low-confidence"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "detector-control": {
+      "predicate": "custom-expression",
+      "expression": "pattern_finds_known_instance == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "precision-control": {
+      "predicate": "custom-expression",
+      "expression": "similar_but_different_construct_flagged == false AND hits <= max_hits_for_manual_triage",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "remediation-set-is-the-unit": {
+      "predicate": "custom-expression",
+      "expression": "instances_confirmed_same_class > 0 AND remediation_set_size >= instances_confirmed_same_class AND single_file_declared_done == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "generalise-pattern",
+      "title": "Turn the confirmed defect into a machine-checkable pattern",
+      "kind": "task",
+      "role": "pattern-author",
+      "checkpoint": true,
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "CRV-5201",
+        "title": "Generalise one confirmed defect into a pattern that names the class, not the instance",
+        "phase": "2B",
+        "question_or_target": "Write a semgrep rule or AST query that expresses the DEFECT CLASS of the confirmed instance - not its identifiers, not its file. State explicitly what the pattern deliberately does NOT match, so the precision control has something falsifiable to check.",
+        "inputs": [
+          "params.confirmed_defect_anchor",
+          "params.class_pattern"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "pattern-author",
+          "basis": "pattern authoring is the skill this blueprint is bottlenecked on"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:semgrep",
+          "Bash:rg"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/review/crv-52-class-pattern.json",
+        "output_schema": "command-center/schema/audit-detector-control.schema.json",
+        "evidence_requirement": "the pattern text, the confirmed instance it generalises, and an explicit near-miss construct the pattern must NOT match",
+        "tests_required": [
+          "the pattern must match the confirmed instance named in confirmed_defect_anchor",
+          "both-states control: the declared near-miss construct must NOT match, or the pattern is too broad"
+        ],
+        "reviewer_requirement": "the detector-control gate is mechanical and runs before any sweep result is believed",
+        "completion_sentinel": "SUCCESS:CRV-5201 emitted only when the pattern matches the known instance and does not match the declared near-miss construct; otherwise FAILED:CRV-5201 <reason>",
+        "retry_policy": "two strikes then pivot: narrow by AST shape instead of by token regex",
+        "failure_classification": [
+          "detector-failure",
+          "pattern-too-broad",
+          "pattern-too-narrow"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "generalisation of one instance into a class pattern with a declared near-miss"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-52-class-pattern.json",
+          "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CRV-5201",
+          "consumers": [
+            "detector-control",
+            "sweep-scope"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "detector-control",
+      "title": "The pattern MUST find the instance we already have",
+      "kind": "gate",
+      "depends_on": [
+        "generalise-pattern"
+      ],
+      "gate_ref": "detector-control"
+    },
+    {
+      "id": "narrow-noisy-pattern",
+      "title": "Narrow until triage is affordable, without losing the known instance",
+      "kind": "loop",
+      "depends_on": [
+        "detector-control"
+      ],
+      "loop_var": "narrow_round",
+      "body": [
+        {
+          "id": "measure-hit-volume",
+          "kind": "task",
+          "role": "pattern-author",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:semgrep",
+            "Bash:rg"
+          ],
+          "work_unit_ref": "TST-0120",
+          "timeout_seconds": 900
+        },
+        {
+          "id": "retighten-pattern",
+          "kind": "task",
+          "depends_on": [
+            "measure-hit-volume"
+          ],
+          "role": "pattern-author",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:semgrep"
+          ],
+          "work_unit_ref": "IMP-0171",
+          "timeout_seconds": 900
+        }
+      ],
+      "convergence": {
+        "max_iterations": 4,
+        "min_iterations": 1,
+        "converged_when": "hits <= max_hits_for_manual_triage AND pattern_finds_known_instance == true",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "hits",
+            "direction": "decrease"
+          },
+          {
+            "name": "pattern_finds_known_instance",
+            "direction": "stabilize"
+          },
+          {
+            "name": "precision",
+            "direction": "increase",
+            "target": 0.8,
+            "epsilon": 0.05
+          }
+        ],
+        "on_no_convergence": "escalate"
+      }
+    },
+    {
+      "id": "precision-control",
+      "title": "A near-miss construct must not be flagged, and triage must be affordable",
+      "kind": "gate",
+      "depends_on": [
+        "narrow-noisy-pattern"
+      ],
+      "gate_ref": "precision-control"
+    },
+    {
+      "id": "sweep-scope",
+      "title": "Run the validated pattern over the declared scope",
+      "kind": "fanout",
+      "depends_on": [
+        "precision-control"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "search_scope",
+        "item_var": "scope_shard",
+        "key_field": "scope_shard"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 50,
+      "max_items": 512,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "shard-search",
+          "kind": "task",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:semgrep",
+            "Bash:rg"
+          ],
+          "work_unit_ref": "ADV-0019",
+          "timeout_seconds": 900
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "triage-hits",
+      "title": "Per hit: same class, or not",
+      "kind": "task",
+      "depends_on": [
+        "sweep-scope"
+      ],
+      "role": "hit-triager",
+      "work_unit_ref": "ADV-0133",
+      "timeout_seconds": 3600
+    },
+    {
+      "id": "emit-remediation-set",
+      "title": "The remediation SET is the unit of done",
+      "kind": "task",
+      "depends_on": [
+        "triage-hits"
+      ],
+      "role": "remediation-owner",
+      "work_unit": {
+        "id": "CRV-5202",
+        "title": "Assemble the whole remediation set for the class, with its ordering and its scope caveat",
+        "phase": "2B",
+        "question_or_target": "Emit every confirmed same-class instance as ONE remediation set, ordered so no fix depends on an unfixed sibling, and state the SCOPE the sweep actually covered - a set is only as complete as the scope it searched.",
+        "inputs": [
+          "command-center/review/crv-52-class-pattern.json",
+          "command-center/review/crv-52-triage.json",
+          "params.search_scope"
+        ],
+        "dependencies": [
+          "CRV-5201"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "remediation-owner",
+          "basis": "set assembly and ordering is judgement, not a mechanical concatenation"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/review/crv-52-remediation-set.json",
+        "output_schema": "command-center/schema/blast-radius.schema.json",
+        "evidence_requirement": "every instance cites file:line, the pattern that found it and the triage verdict; the searched scope is stated verbatim",
+        "tests_required": [
+          "take a past confirmed defect, run the sweep, and count instances the ORIGINAL point fix missed",
+          "both-states control: shrink search_scope to one directory and assert the set shrinks and the scope caveat changes with it"
+        ],
+        "reviewer_requirement": "one independent reviewer re-runs the pattern over the same scope and compares set membership",
+        "completion_sentinel": "SUCCESS:CRV-5202 emitted only when the set contains every triaged same-class instance, is ordered, and names the exact scope searched; otherwise FAILED:CRV-5202 <reason>",
+        "retry_policy": "two strikes then pivot to emitting the set as PARTIAL with the unsearched scope named",
+        "failure_classification": [
+          "partial-artifact",
+          "overclaim",
+          "scope-too-narrow"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "set assembly over triaged hits with an explicit scope declaration",
+        "not_a_duplicate_because": "a secret-exposure blast radius traces one credential across commits and consumers; this traces one CODE PATTERN across files"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-52-remediation-set.json",
+          "schema_ref": "command-center/schema/blast-radius.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json",
+            "tst.diff-scoped-mutation-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "remediation-set-is-the-unit",
+      "title": "Refuse a one-file done claim on a multi-instance class",
+      "kind": "gate",
+      "depends_on": [
+        "emit-remediation-set"
+      ],
+      "gate_ref": "remediation-set-is-the-unit"
+    },
+    {
+      "id": "graduate-decision",
+      "title": "Owner decision: promote this pattern to a standing CI gate?",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "remediation-set-is-the-unit"
+      ],
+      "when": "graduate_to_ci == true",
+      "timeout_seconds": 86400,
+      "prompt": "This pattern is validated against a known instance and a declared near-miss. Promote it to a standing CI rule? A blocking gate has an owner and a maintenance cost; a non-blocking one decays into noise. Choose deliberately.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": [
+        "promote-blocking",
+        "promote-advisory",
+        "keep-as-one-off-sweep"
+      ],
+      "decision_artifact": {
+        "path": "command-center/decisions/crv-52-pattern-graduation.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "scope-searched-and-triaged",
+      "expression": "shards_searched >= shards_total AND hits_untriaged == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "pattern_finds_known_instance == true"
+    },
+    {
+      "id": "pattern-unfixable",
+      "expression": "narrow_rounds_spent >= 4 AND hits > max_hits_for_manual_triage",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "graduate-decision"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "detector-failure",
+      "pattern-too-broad",
+      "scope-too-narrow",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "graduate-decision",
+    "quarantine_path": "command-center/quarantine/crv-52"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/crv-52",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260813,
+    "journal_path": "command-center/replay/crv-52-variant-sweep.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/crv-52",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/crv-52-plan.json",
+    "forbid_tools": [
+      "Write(command-center/review/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.9,
+      "max": 3.5
+    },
+    "wallclock_seconds": {
+      "expected": 1800,
+      "max": 7200
+    },
+    "tokens": {
+      "expected": 260000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only sweep; writes a pattern, a triage file and a remediation set under command-center/review/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/crv-52-variant-sweep.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CRV-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "trailofbits/skills:variant-analysis",
+        "relation": "MERGE",
+        "license": "CC-BY-SA-4.0",
+        "credit": "Trail of Bits"
+      },
+      {
+        "source": "AGENTS.md#9b-blast-radius",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/security-review",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/trail-of-bits-re",
+      "skills/security-review"
+    ]
+  },
+  "outputs": {
+    "remediation-set": {
+      "path": "command-center/review/crv-52-remediation-set.json",
+      "schema_ref": "command-center/schema/blast-radius.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    },
+    "class-pattern": {
+      "path": "command-center/review/crv-52-class-pattern.json",
+      "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "graduate-decision"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-CRV-04",
+    "card_index": 52,
+    "family": "D10-code-review",
+    "acquisition_route": "MERGE",
+    "licence_obligation": "variant-analysis is CC BY-SA 4.0 (Trail of Bits); attribution recorded in lineage.derived_from. The MERGE adds the S1 detector control and the graduate-to-CI owner checkpoint, neither of which the source pack has.",
+    "mechanism_fingerprint": {
+      "subject": "whole-tree",
+      "oracle": "pattern-search-plus-triage",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "known-instance-then-scope",
+      "output_type": "remediation-set",
+      "information_barrier": false
+    },
+    "mechanism": "Derive a pattern from ONE confirmed instance, prove the pattern finds that instance, then search a declared scope and triage. The control precedes the search, so a zero result is interpretable.",
+    "contraindications": [
+      "NOT before the first instance is CONFIRMED - pattern-hunting a hypothesis wastes a sweep",
+      "NOT when the class is too generic to express as a pattern - the precision control will refuse it",
+      "NOT a hand-walk: above max_hits_for_manual_triage the pattern is narrowed, never triaged by hand"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "known-instance-control",
+        "setup": "the confirmed instance named in confirmed_defect_anchor",
+        "expected": "the pattern finds it; if not, the sweep is aborted and its zero results are meaningless"
+      },
+      {
+        "name": "near-miss-precision",
+        "setup": "a deliberately similar but correct construct",
+        "expected": "NOT flagged; a flag here means the pattern is too broad"
+      }
+    ],
+    "why_not_a_duplicate": "BP-SEC-02 traces the blast radius of a SECRET across commits and consumers; this traces a CODE PATTERN across files. BP-TST-07 also does set membership over a tree, but its assertion is FIXED (declared event in the EVENTS tuple) and its output is a pass/fail reachability report, whereas this derives a NEW pattern per incident and outputs a remediation set.",
+    "unverified": "UNVERIFIED (very-likely the mechanism, unmeasured the yield) how many instances past point fixes missed on this estate; settling experiment = replay a past confirmed defect through this sweep and count instances the original fix left behind.",
+    "owner_decision": "graduate_to_ci: promote a validated pattern to a blocking CI rule, an advisory one, or keep it a one-off sweep. The workflow deliberately cannot decide this - a blocking gate needs an owner and a maintenance budget.",
+    "worked_example": {
+      "name": "sweep the ensure_within path-containment class after one confirmed bypass",
+      "params": {
+        "confirmed_defect_anchor": "hooks/_shared/paths.py:212",
+        "class_pattern": "startswith-based path containment without normalisation",
+        "search_scope": "hooks",
+        "max_hits_for_manual_triage": 200,
+        "graduate_to_ci": true
+      },
+      "narrative": "Round 1 of the narrowing loop returned 431 hits (over budget) because the seed pattern matched every startswith. Round 2 required a path-typed receiver and returned 37, still matching the known instance. Triage confirmed 6 same-class instances; the near-miss (a startswith on a URL scheme) was correctly not flagged. The remediation set is 6 files, not the 1 the original fix touched.",
+      "context": {
+        "pattern_finds_known_instance": true,
+        "similar_but_different_construct_flagged": false,
+        "hits": 37,
+        "max_hits_for_manual_triage": 200,
+        "precision": 0.86,
+        "instances_confirmed_same_class": 6,
+        "remediation_set_size": 6,
+        "single_file_declared_done": false,
+        "shards_searched": 12,
+        "shards_total": 12,
+        "hits_untriaged": 0,
+        "narrow_rounds_spent": 2,
+        "graduate_to_ci": true
+      },
+      "expected_gate_pass": [
+        "detector-control",
+        "precision-control",
+        "remediation-set-is-the-unit"
+      ],
+      "expected_stop": [
+        "scope-searched-and-triaged"
+      ],
+      "negative_control": {
+        "gate": "detector-control",
+        "overrides": {
+          "pattern_finds_known_instance": false
+        },
+        "expected": false,
+        "why": "the whole blueprint rests on this: a pattern that misses the instance we already have must abort the sweep rather than report a clean tree"
+      }
+    }
+  }
+}

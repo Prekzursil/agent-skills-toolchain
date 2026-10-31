@@ -1,0 +1,1594 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0058.json",
+      "bytes": 39468,
+      "sha256": "cccdad148f9aafeb92f5fe2623cdb006fbc4eb39edb93defe36d6f9a5e88f7ac",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "schema-resolver",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema.",
+    "default": "REFUTED",
+    "overclaim_control": {
+      "overclaim": "The Cargo git registry index is a single JSON file and therefore survives a git-file index.",
+      "verdict": "REFUTED",
+      "reason": "Cargo book: the index repository contains one file for each package, sharded by name."
+    }
+  },
+  "sentinel": "SUCCESS:RES-0058",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/research/RES-0058.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "unit_id": "RES-0058",
+  "extensions": {
+    "legacy_root": {
+      "answer": "Mature ecosystems all offer some private-mirror, federation, and offline story, but they do not share one index shape. Designs whose *index unit* is already one JSON object (conda repodata.json per subdir, Nix flake-registry.json, a static gallery JSON) survive a git-file index: clone the file, resolve packages, fetch blobs separately. Designs whose index is a sharded git tree (Cargo), a dists/pool metadata tree (apt), a CouchDB/live HTTP registry (npm), a GOPROXY URL tree, or a per-project simple index (PEP 503/691) do not survive the single-JSON constraint even when they already use git or already support offline install. Control negative: Cargo's git index is git, and still fails.",
+      "claims": [
+        {
+          "canonical_mechanism": "per-subdir repodata.json filename-to-metadata map",
+          "claim": "A conda-style channel index whose lookup unit is one JSON file (repodata.json) survives a git-file index: git can version that file and a client can resolve packages by reading it.",
+          "claim_id": "RES-0058-C1-conda-repodata-survives",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": [
+              "RES-0058-C3-static-gallery-survives"
+            ]
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:45:52Z",
+          "named_settling_probe": "probe1_design_table.py::layout git-file-ok",
+          "snapshot_sha256": "6d41def75dae82abb0b0d917ffb6a4b5be7ece3407ae2140acf25bbf86e42bb3",
+          "source_lineage": [
+            {
+              "bytes": 2671,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-repodata-schema.bin",
+              "fetch_timestamp": "2026-08-24T18:45:52Z",
+              "http_status": 200,
+              "note": "JSON Schema for repodata.json; packages map keyed by filename",
+              "permalink": "https://schemas.conda.org/repodata-1.schema.json",
+              "rail": "structured-api",
+              "rail_id": "conda-repodata-schema",
+              "sha256": "757fa602c9d7328da47c30e4786aba491bac99ccf4808f9f7fbe4f218b10d184"
+            },
+            {
+              "bytes": 50988,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-generating-index-html.bin",
+              "fetch_timestamp": "2026-08-24T18:45:52Z",
+              "http_status": 200,
+              "note": "conda-build docs: each subdir has its own repodata.json",
+              "permalink": "https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html",
+              "rail": "prose",
+              "rail_id": "conda-generating-index-html",
+              "sha256": "1c59079c167cb631912e96ad53797a9b68c896f3a756dd448d1bd27c327d02f4"
+            }
+          ],
+          "strongest_caveat": "Production conda channels emit one repodata.json per platform subdir (linux-64, noarch, ...), not one global file. Survival is at the subdir-file grain. Blobs remain beside the JSON.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "single flake-registry.json name-to-URI map in git",
+          "claim": "The Nix flake registry design survives a git-file index because the default registry is one JSON file in a git repository.",
+          "claim_id": "RES-0058-C2-nix-flake-registry-survives",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": [
+              "RES-0058-C3-static-gallery-survives"
+            ]
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:46:38Z",
+          "named_settling_probe": "probe1_design_table.py::capture nix-flake-registry-json",
+          "snapshot_sha256": "6e9ebacdc69cb48f979f6174755906d6b20ddb645ee0307d1c2c46d3a617297a",
+          "source_lineage": [
+            {
+              "bytes": 9653,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-json.bin",
+              "fetch_timestamp": "2026-08-24T18:45:53Z",
+              "http_status": 200,
+              "note": "live flake-registry.json with flakes[] name-to-URI map",
+              "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/flake-registry.json",
+              "rail": "structured-api",
+              "rail_id": "nix-flake-registry-json",
+              "sha256": "88adb79ebfbec8694c9f68247aab32162ca1792cca07b18bcf74e4a9aee77d87"
+            },
+            {
+              "bytes": 2442,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+              "fetch_timestamp": "2026-08-24T18:46:38Z",
+              "http_status": 200,
+              "note": "README: default flake-registry.json used by the Nix CLI",
+              "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+              "rail": "prose",
+              "rail_id": "nix-flake-registry-readme",
+              "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+            }
+          ],
+          "strongest_caveat": "The registry maps names to flake URIs; it is not a package-blob index. Offline install still needs the nix store / fetched flakes.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "one catalog JSON {packages:[{id,version,blob}]} in git",
+          "claim": "A static marketplace catalog encoded as one JSON file plus content-addressed blobs survives a git-file index. Federation that requires a live uplink does not; merge-in-git does.",
+          "claim_id": "RES-0058-C3-static-gallery-survives",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [
+              "RES-0058-C9-homebrew-tap-not-one-json"
+            ],
+            "supports": [
+              "RES-0058-C1-conda-repodata-survives"
+            ]
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:46:38Z",
+          "named_settling_probe": "probe1_design_table.py::fixture git-file-ok/marketplace.json",
+          "snapshot_sha256": "7b03655386c0a55e68795fee5cbded25765636ba05da0fda6b4c6cca482c0453",
+          "source_lineage": [
+            {
+              "bytes": 4231,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+              "fetch_timestamp": "2026-08-24T18:45:56Z",
+              "http_status": 200,
+              "note": "formulae.brew.sh JSON record for formula git",
+              "permalink": "https://formulae.brew.sh/api/formula/git.json",
+              "rail": "structured-api",
+              "rail_id": "homebrew-formula-git-json",
+              "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+            },
+            {
+              "bytes": 2442,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+              "fetch_timestamp": "2026-08-24T18:46:38Z",
+              "http_status": 200,
+              "note": "README: default flake-registry.json used by the Nix CLI",
+              "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+              "rail": "prose",
+              "rail_id": "nix-flake-registry-readme",
+              "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+            }
+          ],
+          "strongest_caveat": "Homebrew's public formula JSON is a generated API view; Homebrew taps themselves are git trees of Ruby files (see C9). The surviving design is the JSON-catalog shape, not brew tap as shipped.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "git index with config.json plus one file per crate",
+          "claim": "Cargo's git registry index does not survive a single-JSON git-file index: the catalog is a sharded per-crate file tree.",
+          "claim_id": "RES-0058-C4-cargo-sharded-does-not-survive",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [
+              "RES-0058-C3-static-gallery-survives"
+            ],
+            "supports": []
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:45:51Z",
+          "named_settling_probe": "probe2_refuter.py::overclaim cargo-is-one-json",
+          "snapshot_sha256": "71dc9d9261daf34a30608cd021724cd04a3cba492753bd293a852fa3b3605fc4",
+          "source_lineage": [
+            {
+              "bytes": 76,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-config-json.bin",
+              "fetch_timestamp": "2026-08-24T18:45:51Z",
+              "http_status": 200,
+              "note": "crates.io-index config.json is only dl+api URLs, not the catalog",
+              "permalink": "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/config.json",
+              "rail": "structured-api",
+              "rail_id": "cargo-config-json",
+              "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3"
+            },
+            {
+              "bytes": 44107,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-registry-index-html.bin",
+              "fetch_timestamp": "2026-08-24T18:45:51Z",
+              "http_status": 200,
+              "note": "Cargo book: one file for each package in a sharded tree",
+              "permalink": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+              "rail": "prose",
+              "rail_id": "cargo-registry-index-html",
+              "sha256": "0ffca6e631b8eaeacfaf3dcbd4e58d4924600ef03f574c909ca3e50098c9688e"
+            }
+          ],
+          "strongest_caveat": "Cargo still supports offline via vendor/local-registry, and private registries via a git URL. Those features survive; the *single JSON file* constraint does not.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "dists/pool with Release + Packages files",
+          "claim": "Debian apt repository metadata does not survive a git-file index: clients fetch a Release file that enumerates many Packages files.",
+          "claim_id": "RES-0058-C5-apt-does-not-survive",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": []
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:47:49Z",
+          "named_settling_probe": "probe1_design_table.py::layout apt-style",
+          "snapshot_sha256": "e6fb5aa26c71e0974417d96646d2bfe6bdb32c78f603df851dc7a466f014912f",
+          "source_lineage": [
+            {
+              "bytes": 138607,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-stable-release.bin",
+              "fetch_timestamp": "2026-08-24T18:47:49Z",
+              "http_status": 200,
+              "note": "Debian stable Release lists many Packages/Contents files",
+              "permalink": "https://deb.debian.org/debian/dists/stable/Release",
+              "rail": "structured-api",
+              "rail_id": "debian-stable-release",
+              "sha256": "e89b36ee4d4e03b06573468d52c2a8be91ebdbda754c192f9e1a731ad738652f"
+            },
+            {
+              "bytes": 39278,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-wiki-raw.bin",
+              "fetch_timestamp": "2026-08-24T18:46:36Z",
+              "http_status": 200,
+              "note": "DebianRepository/Format: dists/$DISTRIBUTION/InRelease or Release",
+              "permalink": "https://wiki.debian.org/DebianRepository/Format?action=raw",
+              "rail": "prose",
+              "rail_id": "debian-wiki-raw",
+              "sha256": "8358729ac018ecd798fbd09cebe79526def0ff9d868c7e1531826abbddc2d2cd"
+            }
+          ],
+          "strongest_caveat": "You can store an apt mirror in git, but the index shape is still a multi-file dists tree, not one JSON file.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "CouchDB document replication or live HTTP proxy",
+          "claim": "npm's mature private-mirror designs (CouchDB replicate, Verdaccio uplink) do not survive a git-file index because the replication unit is a document database or a live registry API.",
+          "claim_id": "RES-0058-C6-npm-couch-does-not-survive",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": []
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:46:38Z",
+          "named_settling_probe": "probe1_design_table.py::layout npm-couch",
+          "snapshot_sha256": "406763e8732d16240b7291c3aac16d9eb090b03c39512ca33364a133fd11443f",
+          "source_lineage": [
+            {
+              "bytes": 6480,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/github-verdaccio.bin",
+              "fetch_timestamp": "2026-08-24T18:46:38Z",
+              "http_status": 200,
+              "note": "GitHub API: Verdaccio is a private proxy registry, not a git JSON catalog",
+              "permalink": "https://api.github.com/repos/verdaccio/verdaccio",
+              "rail": "structured-api",
+              "rail_id": "github-verdaccio",
+              "sha256": "12002123e7dfbe3cd60a9f57c86df26a1e78ebf8950818d60dd44624c447fa4b"
+            },
+            {
+              "bytes": 500827,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-registry-docs-html.bin",
+              "fetch_timestamp": "2026-08-24T18:46:32Z",
+              "http_status": 200,
+              "note": "npm docs: public registry powered by CouchDB; public mirror skimdb",
+              "permalink": "https://docs.npmjs.com/cli/v10/using-npm/registry",
+              "rail": "prose",
+              "rail_id": "npm-registry-docs-html",
+              "sha256": "b1fd0318927d6abc57c5dd2bf7687d34416898729f75071c8430364ff492d1e5"
+            }
+          ],
+          "strongest_caveat": "A frozen npm pack tarball set plus a handmade catalog JSON would be the static-gallery design (C3), not npm's published mirror protocol.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "GOPROXY URL tree (list/info/mod/zip) plus sumdb",
+          "claim": "The Go module proxy protocol does not survive a git-file index: lookup is a per-module URL tree, not one JSON catalog.",
+          "claim_id": "RES-0058-C7-goproxy-does-not-survive",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": []
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:47:49Z",
+          "named_settling_probe": "probe1_design_table.py::goproxy capture",
+          "snapshot_sha256": "ad884a13401f610273f1df32c1dd03dcc13c2f39c1de793840af95e66cfe90b4",
+          "source_lineage": [
+            {
+              "bytes": 91,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/goproxy-uuid-list.bin",
+              "fetch_timestamp": "2026-08-24T18:47:49Z",
+              "http_status": 200,
+              "note": "proxy.golang.org <module>/@v/list is a version list for one module",
+              "permalink": "https://proxy.golang.org/github.com/google/uuid/@v/list",
+              "rail": "structured-api",
+              "rail_id": "goproxy-uuid-list",
+              "sha256": "7129efa2e128d24f8e3a6b358a6f8a0207605671e5a5be5bdcdaf527665ba5bb"
+            },
+            {
+              "bytes": 283155,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/go-mod-ref-html.bin",
+              "fetch_timestamp": "2026-08-24T18:45:55Z",
+              "http_status": 200,
+              "note": "Go modules reference: GOPROXY is a list of proxy URLs",
+              "permalink": "https://go.dev/ref/mod",
+              "rail": "prose",
+              "rail_id": "go-mod-ref-html",
+              "sha256": "ad42dfa5e9a9bcaf29fca2931360b071c11e604533eca0f3aebcefcba89d1d6d"
+            }
+          ],
+          "strongest_caveat": "go mod vendor produces a directory of module sources; that is an offline export, not a federated registry index encoded as one JSON file.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "PEP 503 simple index: one page per project",
+          "claim": "PEP 503/691 simple indexes do not survive a single-JSON git-file index: each project is its own document.",
+          "claim_id": "RES-0058-C8-pep503-does-not-survive",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [],
+            "supports": []
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:47:49Z",
+          "named_settling_probe": "probe1_design_table.py::pypi-simple-pip-json",
+          "snapshot_sha256": "41d868977704e6738c3b6de040b0373c0880e7cc42971599a85919b296729b48",
+          "source_lineage": [
+            {
+              "bytes": 149904,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pypi-simple-pip-json.bin",
+              "fetch_timestamp": "2026-08-24T18:47:49Z",
+              "http_status": 200,
+              "note": "PEP 691 JSON for project 'pip' only; not a whole-index catalog",
+              "permalink": "https://pypi.org/simple/pip/",
+              "rail": "structured-api",
+              "rail_id": "pypi-simple-pip-json",
+              "sha256": "b1b879f21b71b3a5b31f53cddcf6735854cb4c30c4f657cc86d393f8bdc5096b"
+            },
+            {
+              "bytes": 5370,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pep-0503-raw.bin",
+              "fetch_timestamp": "2026-08-24T18:46:36Z",
+              "http_status": 200,
+              "note": "PEP 503: simple API is HTML pages under /simple/<project>/",
+              "permalink": "https://raw.githubusercontent.com/python/peps/main/peps/pep-0503.rst",
+              "rail": "prose",
+              "rail_id": "pep-0503-raw",
+              "sha256": "375c6ad162214646ea9ad49c538df4a31c5c2996b49ea3c53db97dc23e646041"
+            }
+          ],
+          "strongest_caveat": "PEP 691 JSON is still per-project. A tiny frozen catalog of a few wheels could be rewritten as C3; that would no longer be PEP 503.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "brew tap clones a git repo of Formula/*.rb files",
+          "claim": "Homebrew taps are git repositories, but they do not survive the single-JSON-file constraint: a tap is many Ruby formula files. The JSON API is a generated dump, not the tap index.",
+          "claim_id": "RES-0058-C9-homebrew-tap-not-one-json",
+          "confidence_band": "high",
+          "edges": {
+            "contradicts": [
+              "RES-0058-C3-static-gallery-survives"
+            ],
+            "supports": [
+              "RES-0058-C4-cargo-sharded-does-not-survive"
+            ]
+          },
+          "evidence_tier": "E2",
+          "freshness_stamp": "2026-08-24T18:45:56Z",
+          "named_settling_probe": "probe1_design_table.py::homebrew taps capture",
+          "snapshot_sha256": "a8e8a098c0b42885fb49c2c5092c9e94a33d53d57b8606a80e2fc674ea6f484f",
+          "source_lineage": [
+            {
+              "bytes": 4231,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+              "fetch_timestamp": "2026-08-24T18:45:56Z",
+              "http_status": 200,
+              "note": "formulae.brew.sh JSON record for formula git",
+              "permalink": "https://formulae.brew.sh/api/formula/git.json",
+              "rail": "structured-api",
+              "rail_id": "homebrew-formula-git-json",
+              "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+            },
+            {
+              "bytes": 11337,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-taps-html.bin",
+              "fetch_timestamp": "2026-08-24T18:45:56Z",
+              "http_status": 200,
+              "note": "brew tap clones a git repository of Formula files, not one JSON catalog",
+              "permalink": "https://docs.brew.sh/Taps",
+              "rail": "prose",
+              "rail_id": "homebrew-taps-html",
+              "sha256": "455e94ce9156b95bfdd0a9ec9990c4609b34129a114cf26c41dbc5f1a0d44d30"
+            }
+          ],
+          "strongest_caveat": "formulae.brew.sh/api/formula.json is a generated single-file dump that could be committed to git as C3; that is not how brew tap works.",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "canonical_mechanism": "single prose rail without a structured probe",
+          "claim": "npm registry.md's statement that you can run any compatible registry is sufficient to claim that npm's index is a git JSON file.",
+          "claim_id": "RES-0058-C10-single-rail-not-fact",
+          "confidence_band": "none",
+          "edges": {
+            "contradicts": [
+              "RES-0058-C6-npm-couch-does-not-survive"
+            ],
+            "supports": []
+          },
+          "evidence_tier": "E3",
+          "freshness_stamp": "2026-08-24T18:45:57Z",
+          "named_settling_probe": "probe2_refuter.py::single-rail-default-refute",
+          "snapshot_sha256": "24b0bd7b6e3d27ef2fc69e8d35a156526dee6d2058e98156bfac24ca61443f02",
+          "source_lineage": [
+            {
+              "bytes": 3470,
+              "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-cli-registry-md.bin",
+              "fetch_timestamp": "2026-08-24T18:45:57Z",
+              "http_status": 200,
+              "note": "npm registry.md describes running a compatible registry; no second rail used",
+              "permalink": "https://raw.githubusercontent.com/npm/cli/latest/docs/lib/content/using-npm/registry.md",
+              "rail": "prose",
+              "rail_id": "npm-cli-registry-md",
+              "sha256": "dd6db156b9e425776add3367f555dd0d4b41d0feb585ba27b851a6fee86b83de"
+            }
+          ],
+          "strongest_caveat": "One rail only: graded E3; adversarial default is REFUTED; not citable as measured fact.",
+          "verdict": "REFUTED"
+        }
+      ],
+      "completion_sentinel": "SUCCESS:RES-0058 in the receipt AND a design table with a survives-git-file-index verdict per row and at least one negative",
+      "dependency_note": "Catalog depends on RES-0047. That unit is not on this worktree; this survey does not import a RES-0047 matrix. Missing RES-0047 is not treated as a blocker for the git-file-index question.",
+      "design_table": [
+        {
+          "design": "Conda channel with per-subdir repodata.json plus package blobs",
+          "ecosystem": "conda",
+          "failing_property": null,
+          "federated_index": "client lists multiple channels; each channel is its own index",
+          "id": "conda-repodata-json",
+          "layout_failing_property": null,
+          "layout_probe": "git-file-ok",
+          "offline": "local channel directory; conda install --offline after cache fill",
+          "private_mirror": "copy the channel directory or serve file:// / HTTPS of the same tree",
+          "survives_git_file_index": "SURVIVES",
+          "why": "The lookup unit is already one JSON object (repodata.json) mapping filenames to metadata. Git can version that file; a client reads it without a query API. Caveat: production channels use one JSON per platform subdir, not one global file."
+        },
+        {
+          "design": "Nix flake registry: one JSON file mapping short names to flake URIs, hosted in git",
+          "ecosystem": "nix",
+          "failing_property": null,
+          "federated_index": "additional registries can be configured; the default is one file",
+          "id": "nix-flake-registry-json",
+          "layout_failing_property": null,
+          "layout_probe": "git-file-ok",
+          "offline": "already-fetched nix store paths; the registry JSON still only names URIs",
+          "private_mirror": "point nix at a forked registry JSON (flake-registry.json in a git repo)",
+          "survives_git_file_index": "SURVIVES",
+          "why": "The published default registry is literally one flake-registry.json in a git repository. That is the git-file-index shape."
+        },
+        {
+          "design": "Static marketplace/plugin gallery as one catalog JSON committed to git plus content-addressed blobs",
+          "ecosystem": "generic",
+          "failing_property": null,
+          "federated_index": "federation-by-merge (combine catalogs in git). Live uplink proxies do not survive.",
+          "id": "static-json-gallery",
+          "layout_failing_property": null,
+          "layout_probe": "git-file-ok",
+          "offline": "clone + blob store; install from recorded blob ids",
+          "private_mirror": "git clone of the catalog repo; serve or read the JSON locally",
+          "survives_git_file_index": "SURVIVES",
+          "why": "A catalog whose schema is {packages:[{id,version,blob}]} is exactly one JSON git blob. Local fixture git-file-ok/marketplace.json demonstrates lookup."
+        },
+        {
+          "design": "Cargo registry git index (crates.io-index): config.json plus one file per crate",
+          "ecosystem": "crates.io / cargo",
+          "failing_property": "path-sharded per-crate index files; collapsing them breaks cargo's index layout",
+          "federated_index": "[registries] extra git or sparse+ URLs in .cargo/config.toml",
+          "id": "cargo-git-sharded-index",
+          "layout_failing_property": "index is a path-sharded tree of per-crate files plus config.json, not one JSON catalog",
+          "layout_probe": "cargo-sharded",
+          "offline": "cargo vendor / [source.crates-io] replace with directory or local-registry",
+          "private_mirror": "git clone of the index plus a crate download mirror; or sparse+ HTTP of the same tree",
+          "survives_git_file_index": "DOES-NOT-SURVIVE",
+          "why": "Cargo's git protocol is an index in git, but the index is a sharded tree: one file per package, not one JSON file."
+        },
+        {
+          "design": "Debian apt repository: dists/pool with InRelease/Release and Packages indices",
+          "ecosystem": "apt/deb",
+          "failing_property": "dists/*/Release + per-component Packages files; not a single JSON catalog",
+          "federated_index": "multiple sources.list entries",
+          "id": "debian-apt-dists",
+          "layout_failing_property": "index is dists/*/Release plus per-component Packages files, not one JSON file",
+          "layout_probe": "apt-style",
+          "offline": "local mirror or apt-offline; packages retrieved from pool/",
+          "private_mirror": "debmirror / aptly / reprepro of the dists+pool tree",
+          "survives_git_file_index": "DOES-NOT-SURVIVE",
+          "why": "The index is a signed multi-file dists tree (Release lists many Packages files). It is not JSON and not one file."
+        },
+        {
+          "design": "npm registry CouchDB replication or a live proxy (Verdaccio uplink)",
+          "ecosystem": "npm",
+          "failing_property": "document database / live registry API is the replication unit, not one git JSON file",
+          "federated_index": "Verdaccio uplinks chain registries into one endpoint",
+          "id": "npm-couch-replicate",
+          "layout_failing_property": "replication unit is a document database (_changes + per-id docs), not one git JSON catalog",
+          "layout_probe": "npm-couch",
+          "offline": "Verdaccio disk cache / npm pack / local file: tarballs",
+          "private_mirror": "historical: replicate skimdb; current: Verdaccio/uplink proxy cache",
+          "survives_git_file_index": "DOES-NOT-SURVIVE",
+          "why": "The public registry is a CouchDB; clients talk HTTP JSON per package. Replication is a document _changes feed, not a git JSON file."
+        },
+        {
+          "design": "Go module proxy (GOPROXY) plus checksum database",
+          "ecosystem": "Go",
+          "failing_property": "per-module URL tree + optional sumdb; not a single JSON git blob",
+          "federated_index": "GOPROXY is a comma-separated URL list",
+          "id": "goproxy-module-tree",
+          "layout_failing_property": "index is a path-sharded tree of per-crate files plus config.json, not one JSON catalog",
+          "layout_probe": "cargo-sharded",
+          "offline": "vendor/ directory or GOPROXY=off with a filled module cache",
+          "private_mirror": "Athens / goproxy binary serving the module path tree",
+          "survives_git_file_index": "DOES-NOT-SURVIVE",
+          "why": "The proxy protocol is a URL-addressed tree (list, info, zip, mod per module version), not one JSON catalog."
+        },
+        {
+          "design": "PEP 503 HTML simple repository, optionally PEP 691 per-project JSON",
+          "ecosystem": "PyPI / pip",
+          "failing_property": "per-project simple documents (HTML or PEP 691 JSON), not one git JSON catalog",
+          "federated_index": "extra-index-url / multiple --index-url",
+          "id": "pep503-simple-index",
+          "layout_failing_property": "index is dists/*/Release plus per-component Packages files, not one JSON file",
+          "layout_probe": "apt-style",
+          "offline": "pip download + --no-index --find-links; or a local simple tree",
+          "private_mirror": "bandersnatch / devpi / static simple/ tree",
+          "survives_git_file_index": "DOES-NOT-SURVIVE",
+          "why": "The simple API is a page (HTML or JSON) per project under /simple/<name>/, plus a root project list. That is N documents, not one catalog JSON."
+        }
+      ],
+      "evidence_tier_ledger": {
+        "E1": "verbatim extract from a canonical spec plus a second independent structured observation of the same mechanism (not claimed here)",
+        "E2": "two mechanically independent rails (structured HTTP API/schema/JSON and a prose spec/doc), each with permalink, fetch timestamp, HTTP 200, and sha256 of captured bytes",
+        "E3": "single rail only; may not be cited as measured fact; adversarial default REFUTED",
+        "E4": "degraded fetch or inferred mechanism (needle missing from captured bytes)"
+      },
+      "git_file_index_rule": "survives-git-file-index means a client can resolve every catalogued package id+version to a blob locator by reading one JSON file retrieved as a git blob (clone or sparse-checkout of that path). No live query API, document database, or generated multi-file metadata tree is required for index lookup. Blobs may sit beside the JSON; they are not the index.",
+      "question": "How do mature ecosystems support private mirrors, federated indexes and fully offline install/export - and which of those designs works when the index is a single JSON file in a git repository?",
+      "source_lineage": [
+        {
+          "bytes": 2671,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-repodata-schema.bin",
+          "fetch_timestamp": "2026-08-24T18:45:52Z",
+          "http_status": 200,
+          "note": "JSON Schema for repodata.json; packages map keyed by filename",
+          "permalink": "https://schemas.conda.org/repodata-1.schema.json",
+          "rail": "structured-api",
+          "rail_id": "conda-repodata-schema",
+          "sha256": "757fa602c9d7328da47c30e4786aba491bac99ccf4808f9f7fbe4f218b10d184"
+        },
+        {
+          "bytes": 50988,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-generating-index-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:52Z",
+          "http_status": 200,
+          "note": "conda-build docs: each subdir has its own repodata.json",
+          "permalink": "https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html",
+          "rail": "prose",
+          "rail_id": "conda-generating-index-html",
+          "sha256": "1c59079c167cb631912e96ad53797a9b68c896f3a756dd448d1bd27c327d02f4"
+        },
+        {
+          "bytes": 9653,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:53Z",
+          "http_status": 200,
+          "note": "live flake-registry.json with flakes[] name-to-URI map",
+          "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/flake-registry.json",
+          "rail": "structured-api",
+          "rail_id": "nix-flake-registry-json",
+          "sha256": "88adb79ebfbec8694c9f68247aab32162ca1792cca07b18bcf74e4a9aee77d87"
+        },
+        {
+          "bytes": 2442,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+          "fetch_timestamp": "2026-08-24T18:46:38Z",
+          "http_status": 200,
+          "note": "README: default flake-registry.json used by the Nix CLI",
+          "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+          "rail": "prose",
+          "rail_id": "nix-flake-registry-readme",
+          "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+        },
+        {
+          "bytes": 4231,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:56Z",
+          "http_status": 200,
+          "note": "formulae.brew.sh JSON record for formula git",
+          "permalink": "https://formulae.brew.sh/api/formula/git.json",
+          "rail": "structured-api",
+          "rail_id": "homebrew-formula-git-json",
+          "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+        },
+        {
+          "bytes": 76,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-config-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:51Z",
+          "http_status": 200,
+          "note": "crates.io-index config.json is only dl+api URLs, not the catalog",
+          "permalink": "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/config.json",
+          "rail": "structured-api",
+          "rail_id": "cargo-config-json",
+          "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3"
+        },
+        {
+          "bytes": 44107,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-registry-index-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:51Z",
+          "http_status": 200,
+          "note": "Cargo book: one file for each package in a sharded tree",
+          "permalink": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+          "rail": "prose",
+          "rail_id": "cargo-registry-index-html",
+          "sha256": "0ffca6e631b8eaeacfaf3dcbd4e58d4924600ef03f574c909ca3e50098c9688e"
+        },
+        {
+          "bytes": 138607,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-stable-release.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "Debian stable Release lists many Packages/Contents files",
+          "permalink": "https://deb.debian.org/debian/dists/stable/Release",
+          "rail": "structured-api",
+          "rail_id": "debian-stable-release",
+          "sha256": "e89b36ee4d4e03b06573468d52c2a8be91ebdbda754c192f9e1a731ad738652f"
+        },
+        {
+          "bytes": 39278,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-wiki-raw.bin",
+          "fetch_timestamp": "2026-08-24T18:46:36Z",
+          "http_status": 200,
+          "note": "DebianRepository/Format: dists/$DISTRIBUTION/InRelease or Release",
+          "permalink": "https://wiki.debian.org/DebianRepository/Format?action=raw",
+          "rail": "prose",
+          "rail_id": "debian-wiki-raw",
+          "sha256": "8358729ac018ecd798fbd09cebe79526def0ff9d868c7e1531826abbddc2d2cd"
+        },
+        {
+          "bytes": 6480,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/github-verdaccio.bin",
+          "fetch_timestamp": "2026-08-24T18:46:38Z",
+          "http_status": 200,
+          "note": "GitHub API: Verdaccio is a private proxy registry, not a git JSON catalog",
+          "permalink": "https://api.github.com/repos/verdaccio/verdaccio",
+          "rail": "structured-api",
+          "rail_id": "github-verdaccio",
+          "sha256": "12002123e7dfbe3cd60a9f57c86df26a1e78ebf8950818d60dd44624c447fa4b"
+        },
+        {
+          "bytes": 500827,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-registry-docs-html.bin",
+          "fetch_timestamp": "2026-08-24T18:46:32Z",
+          "http_status": 200,
+          "note": "npm docs: public registry powered by CouchDB; public mirror skimdb",
+          "permalink": "https://docs.npmjs.com/cli/v10/using-npm/registry",
+          "rail": "prose",
+          "rail_id": "npm-registry-docs-html",
+          "sha256": "b1fd0318927d6abc57c5dd2bf7687d34416898729f75071c8430364ff492d1e5"
+        },
+        {
+          "bytes": 91,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/goproxy-uuid-list.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "proxy.golang.org <module>/@v/list is a version list for one module",
+          "permalink": "https://proxy.golang.org/github.com/google/uuid/@v/list",
+          "rail": "structured-api",
+          "rail_id": "goproxy-uuid-list",
+          "sha256": "7129efa2e128d24f8e3a6b358a6f8a0207605671e5a5be5bdcdaf527665ba5bb"
+        },
+        {
+          "bytes": 283155,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/go-mod-ref-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:55Z",
+          "http_status": 200,
+          "note": "Go modules reference: GOPROXY is a list of proxy URLs",
+          "permalink": "https://go.dev/ref/mod",
+          "rail": "prose",
+          "rail_id": "go-mod-ref-html",
+          "sha256": "ad42dfa5e9a9bcaf29fca2931360b071c11e604533eca0f3aebcefcba89d1d6d"
+        },
+        {
+          "bytes": 149904,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pypi-simple-pip-json.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "PEP 691 JSON for project 'pip' only; not a whole-index catalog",
+          "permalink": "https://pypi.org/simple/pip/",
+          "rail": "structured-api",
+          "rail_id": "pypi-simple-pip-json",
+          "sha256": "b1b879f21b71b3a5b31f53cddcf6735854cb4c30c4f657cc86d393f8bdc5096b"
+        },
+        {
+          "bytes": 5370,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pep-0503-raw.bin",
+          "fetch_timestamp": "2026-08-24T18:46:36Z",
+          "http_status": 200,
+          "note": "PEP 503: simple API is HTML pages under /simple/<project>/",
+          "permalink": "https://raw.githubusercontent.com/python/peps/main/peps/pep-0503.rst",
+          "rail": "prose",
+          "rail_id": "pep-0503-raw",
+          "sha256": "375c6ad162214646ea9ad49c538df4a31c5c2996b49ea3c53db97dc23e646041"
+        },
+        {
+          "bytes": 11337,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-taps-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:56Z",
+          "http_status": 200,
+          "note": "brew tap clones a git repository of Formula files, not one JSON catalog",
+          "permalink": "https://docs.brew.sh/Taps",
+          "rail": "prose",
+          "rail_id": "homebrew-taps-html",
+          "sha256": "455e94ce9156b95bfdd0a9ec9990c4609b34129a114cf26c41dbc5f1a0d44d30"
+        },
+        {
+          "bytes": 3470,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-cli-registry-md.bin",
+          "fetch_timestamp": "2026-08-24T18:45:57Z",
+          "http_status": 200,
+          "note": "npm registry.md describes running a compatible registry; no second rail used",
+          "permalink": "https://raw.githubusercontent.com/npm/cli/latest/docs/lib/content/using-npm/registry.md",
+          "rail": "prose",
+          "rail_id": "npm-cli-registry-md",
+          "sha256": "dd6db156b9e425776add3367f555dd0d4b41d0feb585ba27b851a6fee86b83de"
+        }
+      ],
+      "title": "Private mirror, federation and offline export/import vs a git-file JSON index"
+    }
+  },
+  "schema_version": 1,
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0058",
+  "min_bytes_threshold": 1,
+  "evidence": [
+    {
+      "claim": "RES-0058 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/research/RES-0058.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/research/RES-0058.json",
+          "raw_output": "bytes=39468 sha256=cccdad148f9aafeb92f5fe2623cdb006fbc4eb39edb93defe36d6f9a5e88f7ac",
+          "fingerprint": "d9fad4dfe6a57ebedc7ed6286f66b5a6",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact RES-0058",
+          "raw_output": "schema-check",
+          "fingerprint": "3c5f806e9659e80e71b0f7b47ea21c8d",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "RES-0058 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0058",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0058",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "12892bffef09792cff6e005f3fdc0c37",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered RES-0058",
+          "raw_output": "schema-valid",
+          "fingerprint": "6d22576e469d8cc66400471c2568da09",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/RES-0058/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "RES-0058"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/research/RES-0058.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0058.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "a0bcf3b4c85b7c036f16a1cc50771fe0",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "research-claim-record",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 39468,
+        "method": "filesystem-stat",
+        "anchor": "command-center/research/RES-0058.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "answer": "Mature ecosystems all offer some private-mirror, federation, and offline story, but they do not share one index shape. Designs whose *index unit* is already one JSON object (conda repodata.json per subdir, Nix flake-registry.json, a static gallery JSON) survive a git-file index: clone the file, resolve packages, fetch blobs separately. Designs whose index is a sharded git tree (Cargo), a dists/pool metadata tree (apt), a CouchDB/live HTTP registry (npm), a GOPROXY URL tree, or a per-project simple index (PEP 503/691) do not survive the single-JSON constraint even when they already use git or already support offline install. Control negative: Cargo's git index is git, and still fails.",
+  "claims": [
+    {
+      "canonical_mechanism": "per-subdir repodata.json filename-to-metadata map",
+      "claim": "A conda-style channel index whose lookup unit is one JSON file (repodata.json) survives a git-file index: git can version that file and a client can resolve packages by reading it.",
+      "claim_id": "RES-0058-C1-conda-repodata-survives",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": [
+          "RES-0058-C3-static-gallery-survives"
+        ]
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:45:52Z",
+      "named_settling_probe": "probe1_design_table.py::layout git-file-ok",
+      "snapshot_sha256": "6d41def75dae82abb0b0d917ffb6a4b5be7ece3407ae2140acf25bbf86e42bb3",
+      "source_lineage": [
+        {
+          "bytes": 2671,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-repodata-schema.bin",
+          "fetch_timestamp": "2026-08-24T18:45:52Z",
+          "http_status": 200,
+          "note": "JSON Schema for repodata.json; packages map keyed by filename",
+          "permalink": "https://schemas.conda.org/repodata-1.schema.json",
+          "rail": "structured-api",
+          "rail_id": "conda-repodata-schema",
+          "sha256": "757fa602c9d7328da47c30e4786aba491bac99ccf4808f9f7fbe4f218b10d184"
+        },
+        {
+          "bytes": 50988,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-generating-index-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:52Z",
+          "http_status": 200,
+          "note": "conda-build docs: each subdir has its own repodata.json",
+          "permalink": "https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html",
+          "rail": "prose",
+          "rail_id": "conda-generating-index-html",
+          "sha256": "1c59079c167cb631912e96ad53797a9b68c896f3a756dd448d1bd27c327d02f4"
+        }
+      ],
+      "strongest_caveat": "Production conda channels emit one repodata.json per platform subdir (linux-64, noarch, ...), not one global file. Survival is at the subdir-file grain. Blobs remain beside the JSON.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "single flake-registry.json name-to-URI map in git",
+      "claim": "The Nix flake registry design survives a git-file index because the default registry is one JSON file in a git repository.",
+      "claim_id": "RES-0058-C2-nix-flake-registry-survives",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": [
+          "RES-0058-C3-static-gallery-survives"
+        ]
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:46:38Z",
+      "named_settling_probe": "probe1_design_table.py::capture nix-flake-registry-json",
+      "snapshot_sha256": "6e9ebacdc69cb48f979f6174755906d6b20ddb645ee0307d1c2c46d3a617297a",
+      "source_lineage": [
+        {
+          "bytes": 9653,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:53Z",
+          "http_status": 200,
+          "note": "live flake-registry.json with flakes[] name-to-URI map",
+          "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/flake-registry.json",
+          "rail": "structured-api",
+          "rail_id": "nix-flake-registry-json",
+          "sha256": "88adb79ebfbec8694c9f68247aab32162ca1792cca07b18bcf74e4a9aee77d87"
+        },
+        {
+          "bytes": 2442,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+          "fetch_timestamp": "2026-08-24T18:46:38Z",
+          "http_status": 200,
+          "note": "README: default flake-registry.json used by the Nix CLI",
+          "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+          "rail": "prose",
+          "rail_id": "nix-flake-registry-readme",
+          "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+        }
+      ],
+      "strongest_caveat": "The registry maps names to flake URIs; it is not a package-blob index. Offline install still needs the nix store / fetched flakes.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "one catalog JSON {packages:[{id,version,blob}]} in git",
+      "claim": "A static marketplace catalog encoded as one JSON file plus content-addressed blobs survives a git-file index. Federation that requires a live uplink does not; merge-in-git does.",
+      "claim_id": "RES-0058-C3-static-gallery-survives",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [
+          "RES-0058-C9-homebrew-tap-not-one-json"
+        ],
+        "supports": [
+          "RES-0058-C1-conda-repodata-survives"
+        ]
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:46:38Z",
+      "named_settling_probe": "probe1_design_table.py::fixture git-file-ok/marketplace.json",
+      "snapshot_sha256": "7b03655386c0a55e68795fee5cbded25765636ba05da0fda6b4c6cca482c0453",
+      "source_lineage": [
+        {
+          "bytes": 4231,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:56Z",
+          "http_status": 200,
+          "note": "formulae.brew.sh JSON record for formula git",
+          "permalink": "https://formulae.brew.sh/api/formula/git.json",
+          "rail": "structured-api",
+          "rail_id": "homebrew-formula-git-json",
+          "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+        },
+        {
+          "bytes": 2442,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+          "fetch_timestamp": "2026-08-24T18:46:38Z",
+          "http_status": 200,
+          "note": "README: default flake-registry.json used by the Nix CLI",
+          "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+          "rail": "prose",
+          "rail_id": "nix-flake-registry-readme",
+          "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+        }
+      ],
+      "strongest_caveat": "Homebrew's public formula JSON is a generated API view; Homebrew taps themselves are git trees of Ruby files (see C9). The surviving design is the JSON-catalog shape, not brew tap as shipped.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "git index with config.json plus one file per crate",
+      "claim": "Cargo's git registry index does not survive a single-JSON git-file index: the catalog is a sharded per-crate file tree.",
+      "claim_id": "RES-0058-C4-cargo-sharded-does-not-survive",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [
+          "RES-0058-C3-static-gallery-survives"
+        ],
+        "supports": []
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:45:51Z",
+      "named_settling_probe": "probe2_refuter.py::overclaim cargo-is-one-json",
+      "snapshot_sha256": "71dc9d9261daf34a30608cd021724cd04a3cba492753bd293a852fa3b3605fc4",
+      "source_lineage": [
+        {
+          "bytes": 76,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-config-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:51Z",
+          "http_status": 200,
+          "note": "crates.io-index config.json is only dl+api URLs, not the catalog",
+          "permalink": "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/config.json",
+          "rail": "structured-api",
+          "rail_id": "cargo-config-json",
+          "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3"
+        },
+        {
+          "bytes": 44107,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-registry-index-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:51Z",
+          "http_status": 200,
+          "note": "Cargo book: one file for each package in a sharded tree",
+          "permalink": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+          "rail": "prose",
+          "rail_id": "cargo-registry-index-html",
+          "sha256": "0ffca6e631b8eaeacfaf3dcbd4e58d4924600ef03f574c909ca3e50098c9688e"
+        }
+      ],
+      "strongest_caveat": "Cargo still supports offline via vendor/local-registry, and private registries via a git URL. Those features survive; the *single JSON file* constraint does not.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "dists/pool with Release + Packages files",
+      "claim": "Debian apt repository metadata does not survive a git-file index: clients fetch a Release file that enumerates many Packages files.",
+      "claim_id": "RES-0058-C5-apt-does-not-survive",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": []
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:47:49Z",
+      "named_settling_probe": "probe1_design_table.py::layout apt-style",
+      "snapshot_sha256": "e6fb5aa26c71e0974417d96646d2bfe6bdb32c78f603df851dc7a466f014912f",
+      "source_lineage": [
+        {
+          "bytes": 138607,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-stable-release.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "Debian stable Release lists many Packages/Contents files",
+          "permalink": "https://deb.debian.org/debian/dists/stable/Release",
+          "rail": "structured-api",
+          "rail_id": "debian-stable-release",
+          "sha256": "e89b36ee4d4e03b06573468d52c2a8be91ebdbda754c192f9e1a731ad738652f"
+        },
+        {
+          "bytes": 39278,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-wiki-raw.bin",
+          "fetch_timestamp": "2026-08-24T18:46:36Z",
+          "http_status": 200,
+          "note": "DebianRepository/Format: dists/$DISTRIBUTION/InRelease or Release",
+          "permalink": "https://wiki.debian.org/DebianRepository/Format?action=raw",
+          "rail": "prose",
+          "rail_id": "debian-wiki-raw",
+          "sha256": "8358729ac018ecd798fbd09cebe79526def0ff9d868c7e1531826abbddc2d2cd"
+        }
+      ],
+      "strongest_caveat": "You can store an apt mirror in git, but the index shape is still a multi-file dists tree, not one JSON file.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "CouchDB document replication or live HTTP proxy",
+      "claim": "npm's mature private-mirror designs (CouchDB replicate, Verdaccio uplink) do not survive a git-file index because the replication unit is a document database or a live registry API.",
+      "claim_id": "RES-0058-C6-npm-couch-does-not-survive",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": []
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:46:38Z",
+      "named_settling_probe": "probe1_design_table.py::layout npm-couch",
+      "snapshot_sha256": "406763e8732d16240b7291c3aac16d9eb090b03c39512ca33364a133fd11443f",
+      "source_lineage": [
+        {
+          "bytes": 6480,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/github-verdaccio.bin",
+          "fetch_timestamp": "2026-08-24T18:46:38Z",
+          "http_status": 200,
+          "note": "GitHub API: Verdaccio is a private proxy registry, not a git JSON catalog",
+          "permalink": "https://api.github.com/repos/verdaccio/verdaccio",
+          "rail": "structured-api",
+          "rail_id": "github-verdaccio",
+          "sha256": "12002123e7dfbe3cd60a9f57c86df26a1e78ebf8950818d60dd44624c447fa4b"
+        },
+        {
+          "bytes": 500827,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-registry-docs-html.bin",
+          "fetch_timestamp": "2026-08-24T18:46:32Z",
+          "http_status": 200,
+          "note": "npm docs: public registry powered by CouchDB; public mirror skimdb",
+          "permalink": "https://docs.npmjs.com/cli/v10/using-npm/registry",
+          "rail": "prose",
+          "rail_id": "npm-registry-docs-html",
+          "sha256": "b1fd0318927d6abc57c5dd2bf7687d34416898729f75071c8430364ff492d1e5"
+        }
+      ],
+      "strongest_caveat": "A frozen npm pack tarball set plus a handmade catalog JSON would be the static-gallery design (C3), not npm's published mirror protocol.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "GOPROXY URL tree (list/info/mod/zip) plus sumdb",
+      "claim": "The Go module proxy protocol does not survive a git-file index: lookup is a per-module URL tree, not one JSON catalog.",
+      "claim_id": "RES-0058-C7-goproxy-does-not-survive",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": []
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:47:49Z",
+      "named_settling_probe": "probe1_design_table.py::goproxy capture",
+      "snapshot_sha256": "ad884a13401f610273f1df32c1dd03dcc13c2f39c1de793840af95e66cfe90b4",
+      "source_lineage": [
+        {
+          "bytes": 91,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/goproxy-uuid-list.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "proxy.golang.org <module>/@v/list is a version list for one module",
+          "permalink": "https://proxy.golang.org/github.com/google/uuid/@v/list",
+          "rail": "structured-api",
+          "rail_id": "goproxy-uuid-list",
+          "sha256": "7129efa2e128d24f8e3a6b358a6f8a0207605671e5a5be5bdcdaf527665ba5bb"
+        },
+        {
+          "bytes": 283155,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/go-mod-ref-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:55Z",
+          "http_status": 200,
+          "note": "Go modules reference: GOPROXY is a list of proxy URLs",
+          "permalink": "https://go.dev/ref/mod",
+          "rail": "prose",
+          "rail_id": "go-mod-ref-html",
+          "sha256": "ad42dfa5e9a9bcaf29fca2931360b071c11e604533eca0f3aebcefcba89d1d6d"
+        }
+      ],
+      "strongest_caveat": "go mod vendor produces a directory of module sources; that is an offline export, not a federated registry index encoded as one JSON file.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "PEP 503 simple index: one page per project",
+      "claim": "PEP 503/691 simple indexes do not survive a single-JSON git-file index: each project is its own document.",
+      "claim_id": "RES-0058-C8-pep503-does-not-survive",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [],
+        "supports": []
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:47:49Z",
+      "named_settling_probe": "probe1_design_table.py::pypi-simple-pip-json",
+      "snapshot_sha256": "41d868977704e6738c3b6de040b0373c0880e7cc42971599a85919b296729b48",
+      "source_lineage": [
+        {
+          "bytes": 149904,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pypi-simple-pip-json.bin",
+          "fetch_timestamp": "2026-08-24T18:47:49Z",
+          "http_status": 200,
+          "note": "PEP 691 JSON for project 'pip' only; not a whole-index catalog",
+          "permalink": "https://pypi.org/simple/pip/",
+          "rail": "structured-api",
+          "rail_id": "pypi-simple-pip-json",
+          "sha256": "b1b879f21b71b3a5b31f53cddcf6735854cb4c30c4f657cc86d393f8bdc5096b"
+        },
+        {
+          "bytes": 5370,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pep-0503-raw.bin",
+          "fetch_timestamp": "2026-08-24T18:46:36Z",
+          "http_status": 200,
+          "note": "PEP 503: simple API is HTML pages under /simple/<project>/",
+          "permalink": "https://raw.githubusercontent.com/python/peps/main/peps/pep-0503.rst",
+          "rail": "prose",
+          "rail_id": "pep-0503-raw",
+          "sha256": "375c6ad162214646ea9ad49c538df4a31c5c2996b49ea3c53db97dc23e646041"
+        }
+      ],
+      "strongest_caveat": "PEP 691 JSON is still per-project. A tiny frozen catalog of a few wheels could be rewritten as C3; that would no longer be PEP 503.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "brew tap clones a git repo of Formula/*.rb files",
+      "claim": "Homebrew taps are git repositories, but they do not survive the single-JSON-file constraint: a tap is many Ruby formula files. The JSON API is a generated dump, not the tap index.",
+      "claim_id": "RES-0058-C9-homebrew-tap-not-one-json",
+      "confidence_band": "high",
+      "edges": {
+        "contradicts": [
+          "RES-0058-C3-static-gallery-survives"
+        ],
+        "supports": [
+          "RES-0058-C4-cargo-sharded-does-not-survive"
+        ]
+      },
+      "evidence_tier": "E2",
+      "freshness_stamp": "2026-08-24T18:45:56Z",
+      "named_settling_probe": "probe1_design_table.py::homebrew taps capture",
+      "snapshot_sha256": "a8e8a098c0b42885fb49c2c5092c9e94a33d53d57b8606a80e2fc674ea6f484f",
+      "source_lineage": [
+        {
+          "bytes": 4231,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+          "fetch_timestamp": "2026-08-24T18:45:56Z",
+          "http_status": 200,
+          "note": "formulae.brew.sh JSON record for formula git",
+          "permalink": "https://formulae.brew.sh/api/formula/git.json",
+          "rail": "structured-api",
+          "rail_id": "homebrew-formula-git-json",
+          "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+        },
+        {
+          "bytes": 11337,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-taps-html.bin",
+          "fetch_timestamp": "2026-08-24T18:45:56Z",
+          "http_status": 200,
+          "note": "brew tap clones a git repository of Formula files, not one JSON catalog",
+          "permalink": "https://docs.brew.sh/Taps",
+          "rail": "prose",
+          "rail_id": "homebrew-taps-html",
+          "sha256": "455e94ce9156b95bfdd0a9ec9990c4609b34129a114cf26c41dbc5f1a0d44d30"
+        }
+      ],
+      "strongest_caveat": "formulae.brew.sh/api/formula.json is a generated single-file dump that could be committed to git as C3; that is not how brew tap works.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "single prose rail without a structured probe",
+      "claim": "npm registry.md's statement that you can run any compatible registry is sufficient to claim that npm's index is a git JSON file.",
+      "claim_id": "RES-0058-C10-single-rail-not-fact",
+      "confidence_band": "none",
+      "edges": {
+        "contradicts": [
+          "RES-0058-C6-npm-couch-does-not-survive"
+        ],
+        "supports": []
+      },
+      "evidence_tier": "E3",
+      "freshness_stamp": "2026-08-24T18:45:57Z",
+      "named_settling_probe": "probe2_refuter.py::single-rail-default-refute",
+      "snapshot_sha256": "24b0bd7b6e3d27ef2fc69e8d35a156526dee6d2058e98156bfac24ca61443f02",
+      "source_lineage": [
+        {
+          "bytes": 3470,
+          "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-cli-registry-md.bin",
+          "fetch_timestamp": "2026-08-24T18:45:57Z",
+          "http_status": 200,
+          "note": "npm registry.md describes running a compatible registry; no second rail used",
+          "permalink": "https://raw.githubusercontent.com/npm/cli/latest/docs/lib/content/using-npm/registry.md",
+          "rail": "prose",
+          "rail_id": "npm-cli-registry-md",
+          "sha256": "dd6db156b9e425776add3367f555dd0d4b41d0feb585ba27b851a6fee86b83de"
+        }
+      ],
+      "strongest_caveat": "One rail only: graded E3; adversarial default is REFUTED; not citable as measured fact.",
+      "verdict": "REFUTED"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0058 in the receipt AND a design table with a survives-git-file-index verdict per row and at least one negative",
+  "dependency_note": "Catalog depends on RES-0047. That unit is not on this worktree; this survey does not import a RES-0047 matrix. Missing RES-0047 is not treated as a blocker for the git-file-index question.",
+  "design_table": [
+    {
+      "design": "Conda channel with per-subdir repodata.json plus package blobs",
+      "ecosystem": "conda",
+      "failing_property": null,
+      "federated_index": "client lists multiple channels; each channel is its own index",
+      "id": "conda-repodata-json",
+      "layout_failing_property": null,
+      "layout_probe": "git-file-ok",
+      "offline": "local channel directory; conda install --offline after cache fill",
+      "private_mirror": "copy the channel directory or serve file:// / HTTPS of the same tree",
+      "survives_git_file_index": "SURVIVES",
+      "why": "The lookup unit is already one JSON object (repodata.json) mapping filenames to metadata. Git can version that file; a client reads it without a query API. Caveat: production channels use one JSON per platform subdir, not one global file."
+    },
+    {
+      "design": "Nix flake registry: one JSON file mapping short names to flake URIs, hosted in git",
+      "ecosystem": "nix",
+      "failing_property": null,
+      "federated_index": "additional registries can be configured; the default is one file",
+      "id": "nix-flake-registry-json",
+      "layout_failing_property": null,
+      "layout_probe": "git-file-ok",
+      "offline": "already-fetched nix store paths; the registry JSON still only names URIs",
+      "private_mirror": "point nix at a forked registry JSON (flake-registry.json in a git repo)",
+      "survives_git_file_index": "SURVIVES",
+      "why": "The published default registry is literally one flake-registry.json in a git repository. That is the git-file-index shape."
+    },
+    {
+      "design": "Static marketplace/plugin gallery as one catalog JSON committed to git plus content-addressed blobs",
+      "ecosystem": "generic",
+      "failing_property": null,
+      "federated_index": "federation-by-merge (combine catalogs in git). Live uplink proxies do not survive.",
+      "id": "static-json-gallery",
+      "layout_failing_property": null,
+      "layout_probe": "git-file-ok",
+      "offline": "clone + blob store; install from recorded blob ids",
+      "private_mirror": "git clone of the catalog repo; serve or read the JSON locally",
+      "survives_git_file_index": "SURVIVES",
+      "why": "A catalog whose schema is {packages:[{id,version,blob}]} is exactly one JSON git blob. Local fixture git-file-ok/marketplace.json demonstrates lookup."
+    },
+    {
+      "design": "Cargo registry git index (crates.io-index): config.json plus one file per crate",
+      "ecosystem": "crates.io / cargo",
+      "failing_property": "path-sharded per-crate index files; collapsing them breaks cargo's index layout",
+      "federated_index": "[registries] extra git or sparse+ URLs in .cargo/config.toml",
+      "id": "cargo-git-sharded-index",
+      "layout_failing_property": "index is a path-sharded tree of per-crate files plus config.json, not one JSON catalog",
+      "layout_probe": "cargo-sharded",
+      "offline": "cargo vendor / [source.crates-io] replace with directory or local-registry",
+      "private_mirror": "git clone of the index plus a crate download mirror; or sparse+ HTTP of the same tree",
+      "survives_git_file_index": "DOES-NOT-SURVIVE",
+      "why": "Cargo's git protocol is an index in git, but the index is a sharded tree: one file per package, not one JSON file."
+    },
+    {
+      "design": "Debian apt repository: dists/pool with InRelease/Release and Packages indices",
+      "ecosystem": "apt/deb",
+      "failing_property": "dists/*/Release + per-component Packages files; not a single JSON catalog",
+      "federated_index": "multiple sources.list entries",
+      "id": "debian-apt-dists",
+      "layout_failing_property": "index is dists/*/Release plus per-component Packages files, not one JSON file",
+      "layout_probe": "apt-style",
+      "offline": "local mirror or apt-offline; packages retrieved from pool/",
+      "private_mirror": "debmirror / aptly / reprepro of the dists+pool tree",
+      "survives_git_file_index": "DOES-NOT-SURVIVE",
+      "why": "The index is a signed multi-file dists tree (Release lists many Packages files). It is not JSON and not one file."
+    },
+    {
+      "design": "npm registry CouchDB replication or a live proxy (Verdaccio uplink)",
+      "ecosystem": "npm",
+      "failing_property": "document database / live registry API is the replication unit, not one git JSON file",
+      "federated_index": "Verdaccio uplinks chain registries into one endpoint",
+      "id": "npm-couch-replicate",
+      "layout_failing_property": "replication unit is a document database (_changes + per-id docs), not one git JSON catalog",
+      "layout_probe": "npm-couch",
+      "offline": "Verdaccio disk cache / npm pack / local file: tarballs",
+      "private_mirror": "historical: replicate skimdb; current: Verdaccio/uplink proxy cache",
+      "survives_git_file_index": "DOES-NOT-SURVIVE",
+      "why": "The public registry is a CouchDB; clients talk HTTP JSON per package. Replication is a document _changes feed, not a git JSON file."
+    },
+    {
+      "design": "Go module proxy (GOPROXY) plus checksum database",
+      "ecosystem": "Go",
+      "failing_property": "per-module URL tree + optional sumdb; not a single JSON git blob",
+      "federated_index": "GOPROXY is a comma-separated URL list",
+      "id": "goproxy-module-tree",
+      "layout_failing_property": "index is a path-sharded tree of per-crate files plus config.json, not one JSON catalog",
+      "layout_probe": "cargo-sharded",
+      "offline": "vendor/ directory or GOPROXY=off with a filled module cache",
+      "private_mirror": "Athens / goproxy binary serving the module path tree",
+      "survives_git_file_index": "DOES-NOT-SURVIVE",
+      "why": "The proxy protocol is a URL-addressed tree (list, info, zip, mod per module version), not one JSON catalog."
+    },
+    {
+      "design": "PEP 503 HTML simple repository, optionally PEP 691 per-project JSON",
+      "ecosystem": "PyPI / pip",
+      "failing_property": "per-project simple documents (HTML or PEP 691 JSON), not one git JSON catalog",
+      "federated_index": "extra-index-url / multiple --index-url",
+      "id": "pep503-simple-index",
+      "layout_failing_property": "index is dists/*/Release plus per-component Packages files, not one JSON file",
+      "layout_probe": "apt-style",
+      "offline": "pip download + --no-index --find-links; or a local simple tree",
+      "private_mirror": "bandersnatch / devpi / static simple/ tree",
+      "survives_git_file_index": "DOES-NOT-SURVIVE",
+      "why": "The simple API is a page (HTML or JSON) per project under /simple/<name>/, plus a root project list. That is N documents, not one catalog JSON."
+    }
+  ],
+  "evidence_tier_ledger": {
+    "E1": "verbatim extract from a canonical spec plus a second independent structured observation of the same mechanism (not claimed here)",
+    "E2": "two mechanically independent rails (structured HTTP API/schema/JSON and a prose spec/doc), each with permalink, fetch timestamp, HTTP 200, and sha256 of captured bytes",
+    "E3": "single rail only; may not be cited as measured fact; adversarial default REFUTED",
+    "E4": "degraded fetch or inferred mechanism (needle missing from captured bytes)"
+  },
+  "git_file_index_rule": "survives-git-file-index means a client can resolve every catalogued package id+version to a blob locator by reading one JSON file retrieved as a git blob (clone or sparse-checkout of that path). No live query API, document database, or generated multi-file metadata tree is required for index lookup. Blobs may sit beside the JSON; they are not the index.",
+  "question": "How do mature ecosystems support private mirrors, federated indexes and fully offline install/export - and which of those designs works when the index is a single JSON file in a git repository?",
+  "source_lineage": [
+    {
+      "bytes": 2671,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-repodata-schema.bin",
+      "fetch_timestamp": "2026-08-24T18:45:52Z",
+      "http_status": 200,
+      "note": "JSON Schema for repodata.json; packages map keyed by filename",
+      "permalink": "https://schemas.conda.org/repodata-1.schema.json",
+      "rail": "structured-api",
+      "rail_id": "conda-repodata-schema",
+      "sha256": "757fa602c9d7328da47c30e4786aba491bac99ccf4808f9f7fbe4f218b10d184"
+    },
+    {
+      "bytes": 50988,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/conda-generating-index-html.bin",
+      "fetch_timestamp": "2026-08-24T18:45:52Z",
+      "http_status": 200,
+      "note": "conda-build docs: each subdir has its own repodata.json",
+      "permalink": "https://docs.conda.io/projects/conda-build/en/latest/concepts/generating-index.html",
+      "rail": "prose",
+      "rail_id": "conda-generating-index-html",
+      "sha256": "1c59079c167cb631912e96ad53797a9b68c896f3a756dd448d1bd27c327d02f4"
+    },
+    {
+      "bytes": 9653,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-json.bin",
+      "fetch_timestamp": "2026-08-24T18:45:53Z",
+      "http_status": 200,
+      "note": "live flake-registry.json with flakes[] name-to-URI map",
+      "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/flake-registry.json",
+      "rail": "structured-api",
+      "rail_id": "nix-flake-registry-json",
+      "sha256": "88adb79ebfbec8694c9f68247aab32162ca1792cca07b18bcf74e4a9aee77d87"
+    },
+    {
+      "bytes": 2442,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/nix-flake-registry-readme.bin",
+      "fetch_timestamp": "2026-08-24T18:46:38Z",
+      "http_status": 200,
+      "note": "README: default flake-registry.json used by the Nix CLI",
+      "permalink": "https://raw.githubusercontent.com/NixOS/flake-registry/master/README.md",
+      "rail": "prose",
+      "rail_id": "nix-flake-registry-readme",
+      "sha256": "a970ea292413ae4ea2458afb39215d26553ec18290400a36546888c59ee025c9"
+    },
+    {
+      "bytes": 4231,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-formula-git-json.bin",
+      "fetch_timestamp": "2026-08-24T18:45:56Z",
+      "http_status": 200,
+      "note": "formulae.brew.sh JSON record for formula git",
+      "permalink": "https://formulae.brew.sh/api/formula/git.json",
+      "rail": "structured-api",
+      "rail_id": "homebrew-formula-git-json",
+      "sha256": "ae8ff10d98a92da5642cc2794d5bd76a525b089153297d3db83cfce179216018"
+    },
+    {
+      "bytes": 76,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-config-json.bin",
+      "fetch_timestamp": "2026-08-24T18:45:51Z",
+      "http_status": 200,
+      "note": "crates.io-index config.json is only dl+api URLs, not the catalog",
+      "permalink": "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/config.json",
+      "rail": "structured-api",
+      "rail_id": "cargo-config-json",
+      "sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3"
+    },
+    {
+      "bytes": 44107,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/cargo-registry-index-html.bin",
+      "fetch_timestamp": "2026-08-24T18:45:51Z",
+      "http_status": 200,
+      "note": "Cargo book: one file for each package in a sharded tree",
+      "permalink": "https://doc.rust-lang.org/cargo/reference/registry-index.html",
+      "rail": "prose",
+      "rail_id": "cargo-registry-index-html",
+      "sha256": "0ffca6e631b8eaeacfaf3dcbd4e58d4924600ef03f574c909ca3e50098c9688e"
+    },
+    {
+      "bytes": 138607,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-stable-release.bin",
+      "fetch_timestamp": "2026-08-24T18:47:49Z",
+      "http_status": 200,
+      "note": "Debian stable Release lists many Packages/Contents files",
+      "permalink": "https://deb.debian.org/debian/dists/stable/Release",
+      "rail": "structured-api",
+      "rail_id": "debian-stable-release",
+      "sha256": "e89b36ee4d4e03b06573468d52c2a8be91ebdbda754c192f9e1a731ad738652f"
+    },
+    {
+      "bytes": 39278,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/debian-wiki-raw.bin",
+      "fetch_timestamp": "2026-08-24T18:46:36Z",
+      "http_status": 200,
+      "note": "DebianRepository/Format: dists/$DISTRIBUTION/InRelease or Release",
+      "permalink": "https://wiki.debian.org/DebianRepository/Format?action=raw",
+      "rail": "prose",
+      "rail_id": "debian-wiki-raw",
+      "sha256": "8358729ac018ecd798fbd09cebe79526def0ff9d868c7e1531826abbddc2d2cd"
+    },
+    {
+      "bytes": 6480,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/github-verdaccio.bin",
+      "fetch_timestamp": "2026-08-24T18:46:38Z",
+      "http_status": 200,
+      "note": "GitHub API: Verdaccio is a private proxy registry, not a git JSON catalog",
+      "permalink": "https://api.github.com/repos/verdaccio/verdaccio",
+      "rail": "structured-api",
+      "rail_id": "github-verdaccio",
+      "sha256": "12002123e7dfbe3cd60a9f57c86df26a1e78ebf8950818d60dd44624c447fa4b"
+    },
+    {
+      "bytes": 500827,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-registry-docs-html.bin",
+      "fetch_timestamp": "2026-08-24T18:46:32Z",
+      "http_status": 200,
+      "note": "npm docs: public registry powered by CouchDB; public mirror skimdb",
+      "permalink": "https://docs.npmjs.com/cli/v10/using-npm/registry",
+      "rail": "prose",
+      "rail_id": "npm-registry-docs-html",
+      "sha256": "b1fd0318927d6abc57c5dd2bf7687d34416898729f75071c8430364ff492d1e5"
+    },
+    {
+      "bytes": 91,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/goproxy-uuid-list.bin",
+      "fetch_timestamp": "2026-08-24T18:47:49Z",
+      "http_status": 200,
+      "note": "proxy.golang.org <module>/@v/list is a version list for one module",
+      "permalink": "https://proxy.golang.org/github.com/google/uuid/@v/list",
+      "rail": "structured-api",
+      "rail_id": "goproxy-uuid-list",
+      "sha256": "7129efa2e128d24f8e3a6b358a6f8a0207605671e5a5be5bdcdaf527665ba5bb"
+    },
+    {
+      "bytes": 283155,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/go-mod-ref-html.bin",
+      "fetch_timestamp": "2026-08-24T18:45:55Z",
+      "http_status": 200,
+      "note": "Go modules reference: GOPROXY is a list of proxy URLs",
+      "permalink": "https://go.dev/ref/mod",
+      "rail": "prose",
+      "rail_id": "go-mod-ref-html",
+      "sha256": "ad42dfa5e9a9bcaf29fca2931360b071c11e604533eca0f3aebcefcba89d1d6d"
+    },
+    {
+      "bytes": 149904,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pypi-simple-pip-json.bin",
+      "fetch_timestamp": "2026-08-24T18:47:49Z",
+      "http_status": 200,
+      "note": "PEP 691 JSON for project 'pip' only; not a whole-index catalog",
+      "permalink": "https://pypi.org/simple/pip/",
+      "rail": "structured-api",
+      "rail_id": "pypi-simple-pip-json",
+      "sha256": "b1b879f21b71b3a5b31f53cddcf6735854cb4c30c4f657cc86d393f8bdc5096b"
+    },
+    {
+      "bytes": 5370,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/pep-0503-raw.bin",
+      "fetch_timestamp": "2026-08-24T18:46:36Z",
+      "http_status": 200,
+      "note": "PEP 503: simple API is HTML pages under /simple/<project>/",
+      "permalink": "https://raw.githubusercontent.com/python/peps/main/peps/pep-0503.rst",
+      "rail": "prose",
+      "rail_id": "pep-0503-raw",
+      "sha256": "375c6ad162214646ea9ad49c538df4a31c5c2996b49ea3c53db97dc23e646041"
+    },
+    {
+      "bytes": 11337,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/homebrew-taps-html.bin",
+      "fetch_timestamp": "2026-08-24T18:45:56Z",
+      "http_status": 200,
+      "note": "brew tap clones a git repository of Formula files, not one JSON catalog",
+      "permalink": "https://docs.brew.sh/Taps",
+      "rail": "prose",
+      "rail_id": "homebrew-taps-html",
+      "sha256": "455e94ce9156b95bfdd0a9ec9990c4609b34129a114cf26c41dbc5f1a0d44d30"
+    },
+    {
+      "bytes": 3470,
+      "capture_path": "command-center/p2-wave/probes/RES-0058/captures/npm-cli-registry-md.bin",
+      "fetch_timestamp": "2026-08-24T18:45:57Z",
+      "http_status": 200,
+      "note": "npm registry.md describes running a compatible registry; no second rail used",
+      "permalink": "https://raw.githubusercontent.com/npm/cli/latest/docs/lib/content/using-npm/registry.md",
+      "rail": "prose",
+      "rail_id": "npm-cli-registry-md",
+      "sha256": "dd6db156b9e425776add3367f555dd0d4b41d0feb585ba27b851a6fee86b83de"
+    }
+  ],
+  "title": "Private mirror, federation and offline export/import vs a git-file JSON index"
+}

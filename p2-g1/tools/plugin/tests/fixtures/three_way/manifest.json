@@ -1,0 +1,76 @@
+{
+  "fixtures": [
+    {
+      "id": "json_structural_additive",
+      "path": "settings.json",
+      "base": "{\n  \"a\": 1,\n  \"nested\": {\"c\": 2}\n}\n",
+      "ours": "{\n  \"a\": 1,\n  \"nested\": {\"c\": 2},\n  \"timeout\": 30\n}\n",
+      "theirs": "{\n  \"a\": 1,\n  \"nested\": {\"c\": 2, \"gamma\": 3}\n}\n",
+      "expected_status": "merged",
+      "expected_strategy": "json",
+      "expected_doc": {"a": 1, "nested": {"c": 2, "gamma": 3}, "timeout": 30}
+    },
+    {
+      "id": "toml_structural_additive",
+      "path": "config.toml",
+      "base": "[server]\nhost = \"a\"\n",
+      "ours": "[server]\nhost = \"a\"\nport = 8080\n",
+      "theirs": "[server]\nhost = \"a\"\n\n[client]\nname = \"x\"\n",
+      "expected_status": "merged",
+      "expected_strategy": "toml",
+      "expected_doc": {"server": {"host": "a", "port": 8080}, "client": {"name": "x"}}
+    },
+    {
+      "id": "markdown_line_additive",
+      "path": "notes.md",
+      "base": "A\nC\n",
+      "ours": "A\nB\nC\n",
+      "theirs": "A\nC\nD\n",
+      "expected_status": "merged",
+      "expected_strategy": "line",
+      "expected_text": "A\nB\nC\nD\n"
+    },
+    {
+      "id": "markdown_line_disjoint_edits",
+      "path": "notes.md",
+      "base": "L1\nL2\nL3\n",
+      "ours": "L1\nO2\nL3\n",
+      "theirs": "L1\nL2\nL3\nL4\n",
+      "expected_status": "merged",
+      "expected_strategy": "line",
+      "expected_text": "L1\nO2\nL3\nL4\n"
+    },
+    {
+      "id": "binary_refuse",
+      "path": "blob.bin",
+      "base_b64": "AAECAwQ=",
+      "ours_b64": "AAECAwRfX3VzZXJfZWRpdF9f",
+      "theirs_b64": "AAECAwT__25ld19nZW5fXw==",
+      "expected_status": "refused",
+      "expected_strategy": "binary",
+      "expected_reason_contains": "binary"
+    },
+    {
+      "id": "reviewer_key_reorder_comment",
+      "path": "reviewer.json",
+      "base": "{\n  \"alpha\": \"one\",\n  \"beta\": \"two\"\n}\n",
+      "ours": "// user added a comment and reordered\n{\n  \"beta\": \"two\",\n  \"alpha\": \"one\",\n  \"timeout\": 30\n}\n",
+      "theirs": "{\n  \"alpha\": \"one\",\n  \"beta\": \"two\",\n  \"gamma\": \"three\"\n}\n",
+      "expected_status": "merged",
+      "expected_strategy": "json",
+      "expected_doc": {"alpha": "one", "beta": "two", "gamma": "three", "timeout": 30},
+      "expect_comments_preserved": 1
+    },
+    {
+      "id": "line_conflict_both_changed",
+      "path": "single.txt",
+      "base": "X\n",
+      "ours": "Xo\n",
+      "theirs": "Xt\n",
+      "expected_status": "conflict",
+      "expected_strategy": "line",
+      "expected_conflict_regions": ["lines 1-1"],
+      "ours_side_must_contain": "Xo"
+    }
+  ]
+}

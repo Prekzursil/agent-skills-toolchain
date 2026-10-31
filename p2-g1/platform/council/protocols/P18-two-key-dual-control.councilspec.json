@@ -1,0 +1,488 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p18-two-key-dual-control",
+  "preset": "custom",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Authorise an irreversible action only when two independent authorities both return AUTHORISE on the identical action string.",
+    "charter": "JUDICIAL family, dual control. Two isolated keys, different vendors, no shared brief, no tie-break. Either refusal is terminal. The action string is hashed and both keys must have signed the SAME hash.",
+    "risk_tier": "critical",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "a single AUTHORISE does not open the gate",
+      "both keys signed the identical action-string hash",
+      "the two briefs differ in provenance, not merely in wording"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.95,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "execute the action before both keys return AUTHORISE",
+        "substitute a tie-break for a missing second key",
+        "rotate, revoke or print any credential"
+      ],
+      "deadline_minutes": 30
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse",
+        "adversarial"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 3,
+      "min": 3,
+      "max": 3
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_models": 2,
+      "max_share_per_vendor": 0.5
+    },
+    "roster": [
+      {
+        "participant_id": "key-a",
+        "display_name": "Key A (independent authority, vendor 1)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "irreversible-action review",
+          "blast radius"
+        ],
+        "role": "verifier",
+        "authority": "veto_holder",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        },
+        "context": {
+          "partition_id": "brief-a"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "key-b",
+        "display_name": "Key B (independent authority, vendor 2)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "irreversible-action review",
+          "rollback feasibility"
+        ],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        },
+        "context": {
+          "partition_id": "brief-b"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "owner",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": [
+          "owner intent"
+        ],
+        "role": "stakeholder",
+        "authority": "owner",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "blind_to_peers"
+    },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        {
+          "partition_id": "brief-a",
+          "visible_to": [
+            "key-a"
+          ],
+          "sources": [
+            "the action string and its hash",
+            "the primary provenance chain"
+          ]
+        },
+        {
+          "partition_id": "brief-b",
+          "visible_to": [
+            "key-b"
+          ],
+          "sources": [
+            "the action string and its hash",
+            "an independently derived provenance chain"
+          ]
+        }
+      ]
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "prompt",
+        "vendor",
+        "model",
+        "position_similarity"
+      ],
+      "max_similarity": 0.6
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "exclude"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      {
+        "caucus_id": "key-a-isolated",
+        "members": [
+          "key-a"
+        ],
+        "private_rounds": 1
+      },
+      {
+        "caucus_id": "key-b-isolated",
+        "members": [
+          "key-b"
+        ],
+        "private_rounds": 1
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "key-a-review",
+        "independent": true,
+        "rounds": 1,
+        "participants": [
+          "key-a"
+        ],
+        "quotas": {
+          "objections_per_participant": 2,
+          "counterexamples_per_round": 1
+        },
+        "exit_when": {
+          "metric": "custom:action_string_hash_matches",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "action_string_hasher",
+          "note": "key A must have signed the same action-string hash the gate will execute"
+        }
+      },
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "key-b-review",
+        "independent": true,
+        "rounds": 1,
+        "participants": [
+          "key-b"
+        ],
+        "quotas": {
+          "objections_per_participant": 2,
+          "counterexamples_per_round": 1
+        },
+        "exit_when": {
+          "metric": "custom:action_string_hash_matches",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "action_string_hasher",
+          "note": "key B must have signed the SAME hash; a differing hash is a refusal, not a retry"
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "logical_and_over_two_isolated_verdicts",
+        "stage_id": "and-gate",
+        "rounds": 1,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "quorum_met",
+              "op": "==",
+              "value": true,
+              "note": "both keys reported"
+            },
+            {
+              "metric": "custom:brief_provenance_differs",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "brief_provenance_hasher",
+              "note": "correlated keys are not two keys; provenance must differ, not just wording"
+            }
+          ]
+        }
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 1,
+      "max": 2,
+      "divergence_before_convergence": false
+    },
+    "turn": {
+      "max_words": 450
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": false,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 2,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 30,
+    "tool_calls": 60,
+    "sources": 10,
+    "turns": 6,
+    "speaking_quota_per_participant": 2,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 0
+  },
+  "targets": {
+    "objections": 2,
+    "counterexamples": 1,
+    "evidence_items": 6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.6,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "unanimity",
+    "quorum": {
+      "min_voters": 2,
+      "min_fraction": 1.0,
+      "on_failure": "no_decision"
+    },
+    "veto": {
+      "holders": [
+        "key-a",
+        "key-b"
+      ],
+      "scope": "final_decision",
+      "must_justify": true,
+      "overridable_by_owner": false
+    },
+    "abstention": {
+      "allowed": false,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "quorum_met == true AND participants_active >= 2 AND (unanimity == true OR dissent_count >= 1)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "quorum_met",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "participants_active",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "any_of": [
+            {
+              "metric": "unanimity",
+              "op": "==",
+              "value": true
+            },
+            {
+              "metric": "dissent_count",
+              "op": ">=",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 2,
+      "every_participant_spoke": false,
+      "min_evidence_items": 4
+    },
+    "hard_caps": {
+      "max_rounds": 2,
+      "max_minutes": 30,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1
+    },
+    "resolution": [
+      "declare_no_decision",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "collusion",
+      "echo_chamber",
+      "evidence_free_majority",
+      "silence",
+      "hidden_conflict_of_interest",
+      "prompt_injection",
+      "sycophancy"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "execute the authorised action",
+        "merge",
+        "release",
+        "delete"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P18 two-key dual control",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:388-403"
+    ],
+    "notes": "SCOPE, stated honestly: the card says dual control has NO aggregation function, and the schema's voting.method enum has no such value. The nearest faithful encoding is unanimity over exactly two voters (a logical AND) with quorum.min_fraction 1.0, abstention forbidden, both keys as veto holders not overridable by the owner, and tie_break no_decision. The isolation the card demands is carried separately by caucuses, per-key information partitions, fresh_context and duplicate_detection at max_similarity 0.6. The card's required both-states proof - a single AUTHORISE must NOT open the gate - is executed as two independent negative snapshots in PROTOCOL-EXPECTATIONS.json. The per-key quota (2 objections, 1 counterexample) is the anti-rubber-stamp control: a key that returns AUTHORISE having recorded zero objections examined nothing."
+  }
+}

@@ -1,0 +1,52 @@
+{
+ "IMP-0005": {
+  "cmds": [
+   [
+    "probe1",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0005/probe1_dual_census.py",
+    "dual-census-and-budget",
+    "probe1_dual_census"
+   ],
+   [
+    "probe2",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0005/probe2_inventory_negctrl.py",
+    "inventory-and-tautology-review",
+    "probe2_inventory_negctrl"
+   ]
+  ],
+  "supporting": [
+   "tools/plugin/schema/payload-inventory.schema.json",
+   "tools/plugin/size_budget.py",
+   "tools/plugin/inventory_diff.py",
+   "tools/plugin/archive_census.py",
+   "tools/plugin/zip_cd.py",
+   "tools/plugin/ustar.py",
+   "tools/plugin/fixtures.py",
+   "tools/plugin/tests/test_size_budget.py",
+   "tools/plugin/tests/test_inventory_diff.py"
+  ],
+  "notes": "shard-6 wave-4 resume 2026-10-26: receipt + reviewer closure existed but BOTH probe scripts (probe1_dual_census.py, probe2_inventory_negctrl.py) were LOST with the mid-flight host death; probe dir was empty. REBUILT both probes at the same filenames the receipt named_probes anchor, re-derived live, exit 0 first run. DISCLOSURES: (1) the two dumped sidecars the receipt records (tools/plugin/payload_budget.json, tools/plugin/payload-inventory.json) are also gone from this non-git worktree and were NOT fabricated; probes re-derive budget and inventory in-memory from the live modules, so nothing reads them. (2) The live size_budget.py implements a STRICTER budget formula than the receipt recorded v1 (measured*2 / measured+16 from a /tmp fixture): live = measured + max(4096, measured//2) and n+8. The load-bearing unit property - ceiling DERIVED from a measurement of the previous release, not copied from the current artifact size; bad state fires; raised ceiling flips green - is verified against the LIVE code by probe1/probe2; the receipt stands as the historical record. Prior independent reviewer closure kept (verifies live via this probe battery)."
+ },
+ "IMP-0008": {
+  "cmds": [
+   [
+    "probe1",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0008/probe1_below_floor.py",
+    "synthetic-below-floor",
+    "probe1_below_floor"
+   ],
+   [
+    "probe2",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0008/probe2_live_cli.py",
+    "live-cli-version",
+    "probe2_live_cli"
+   ]
+  ],
+  "supporting": [
+   ".claude-plugin/plugin.json",
+   "tools/plugin/client_negotiate.py",
+   "tools/plugin/schema/compatibility.schema.json"
+  ],
+  "notes": "shard-6 wave-4 resume 2026-10-26: receipt + reviewer closure existed but BOTH probe scripts (probe1_below_floor.py, probe2_live_cli.py) were LOST with the mid-flight host death; probe dir was empty. REBUILT both probes at the receipt-anchored filenames, re-derived live, exit 0 first run. DISCLOSURES: (1) live CLIs ARE on PATH in this session - claude 2.1.310 parses and is allowed; codex-cli 0.154.0 parses WITHOUT any claude token (abstraction does not leak) and is refused below the 1.0.0 floor with the exact required version named. The receipt build-time run saw both binaries absent and recorded fail-closed refusals - both worlds verified. (2) The receipt answer says .claude-plugin/plugin.json carries top-level min_client_version/supported_clients; the live manifest (restored during the IMP-0006 resume under the frozen 8-key contract) carries compatibility.min_client=1.0.0 instead, and client_negotiate.load_manifest injects the 1.0.0 default - floor enforced is 1.0.0 either way; probe1 records the divergence in its facts. (3) Receipt-named sidecars tools/plugin/install_gate.py and tools/plugin/tests/test_client_negotiation.py are gone from this worktree; the live gate is client_negotiate.preflight_install (probed) and the fail-closed negative control is in-probe (fail-open mutant diverges on unparsable, agrees on parseable). Prior independent reviewer closure kept (verifies live via this probe battery)."
+ }
+}

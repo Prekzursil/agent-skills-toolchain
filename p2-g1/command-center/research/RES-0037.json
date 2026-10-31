@@ -1,0 +1,363 @@
+{
+ "answer": "On this Linux worktree a controlled stand-in shows stdio cost = 1.0 OS process per server per session (3 sessions x 2 servers = 6 processes) while one shared HTTP stand-in stays at 1 process with a LISTEN socket. The recorded driver 23 sessions x 65 servers = 2037 is arithmetically false (23*65=1495 by both Python and POSIX expr) and today's argv-exact MCP fleet count is 0, not 2037. Mechanism reproduced; fleet size and the 2037 figure are not.",
+ "artifact_paths": [
+  "command-center/research/RES-0037.json",
+  "command-center/p2-wave/probes/RES-0037/lib.py",
+  "command-center/p2-wave/probes/RES-0037/fixtures/stdio_standin.py",
+  "command-center/p2-wave/probes/RES-0037/fixtures/http_standin.py",
+  "command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+  "command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+  "command-center/p2-wave/probes/RES-0037/emit.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 19565,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/lib.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "a119e042fa2aff709376ce355987ccd545a9a6afab346f9e4fb49c3deec74c4a",
+   "unit_id": "RES-0037"
+  },
+  {
+   "bytes": 392,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/fixtures/stdio_standin.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "87eae56948a19fa50c8ae903428c3824c0718ae45cae36faddec22ffe9fa6a58",
+   "unit_id": "RES-0037"
+  },
+  {
+   "bytes": 735,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/fixtures/http_standin.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "d2b7cb71beeab8f29c3df4a66c896fb7fc2db49f796ca2275bec7c159079fa70",
+   "unit_id": "RES-0037"
+  },
+  {
+   "bytes": 4211,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "aa191e236a7afafb5a077cb571dcedd35609eeb8a7c599809c81837945e57a52",
+   "unit_id": "RES-0037"
+  },
+  {
+   "bytes": 4363,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "b7d20fcfdeda450bacb4ed4c7c8848e5f6f72706079c4c61b429e2e052892bda",
+   "unit_id": "RES-0037"
+  },
+  {
+   "bytes": 18752,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0037/emit.py",
+   "present": true,
+   "receipt_path": "command-center/p2-wave/probes/RES-0037/SUBAGENT-RETURN.json",
+   "role": "supporting",
+   "sha256": "1b440d9cb23eb50c45950ea9168317c4213ac2ecc7979fb0e144a10014da5c5a",
+   "unit_id": "RES-0037"
+  }
+ ],
+ "claims": [
+  {
+   "claim": "One stdio stand-in MCP server costs one OS process per session; 3x2 produced 6 processes on /proc and on ps.",
+   "confidence": "almost-certain",
+   "id": "RES-0037-C1",
+   "signals": [
+    "procfs-exact-argv-token",
+    "ps-eo-pid-args"
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "One shared HTTP stand-in costs one OS process for the same 3 sessions, distinguished by a LISTEN inode on /proc/<pid>/fd that stdio children lack.",
+   "confidence": "almost-certain",
+   "id": "RES-0037-C2",
+   "signals": [
+    "procfs-process-count",
+    "fd-listen-inode"
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "The catalog's recorded equation 23 sessions x 65 servers = 2037 does not hold: both Python and POSIX expr compute 1495. Today's argv-exact MCP fleet on this box is 0, so the 2037 freeze size is not reproduced here.",
+   "confidence": "almost-certain",
+   "id": "RES-0037-C3",
+   "signals": [
+    "python-int-product",
+    "posix-expr"
+   ],
+   "subject": "recorded 23x65=2037 and today's live fleet size",
+   "verdict": "REFUTED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0037 in the receipt AND a per-transport process count with a start/stop delta control and a stated proof the probe does not match itself",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0037/lib.py:token_exact_pids",
+   "claim": "Process count is an exact argv token, not a substring of the probe path; start/stop of one known server moves the count by +1 then back to baseline.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+     "exit_code": 0,
+     "fingerprint": "0dc16e7b9e7bfda2c8474d81b937f6c1",
+     "method": "command",
+     "raw_output": "{\"decoy\": {\"decoy_pid\": 56315, \"decoy_token_hits\": [56315], \"naive_includes_decoy\": true, \"naive_includes_self\": true, \"naive_probe1_name_hits\": [56155, 56156, 56315], \"pass\": true, \"self_pid\": 56156, \"stdio_token_hits\": [], \"stdio_token_ignores_decoy\": true}, \"fleet_argv_exact_mcp_count\": 0, \"fleet_naive_mcp_count\": 0, \"pass\": true, \"per_transport_process_count\": {\"http_os_processes\": 1, \"processes_per_stdio_server_per_session\": 1.0, \"sessions\": 3, \"shared_http_processes\": 1, \"stdio_os_processes\": 6, \"stdio_servers_per_session\": 2}, \"probe\": \"probe1-self-exclusion-delta\", \"rail\": \"/proc/*/cmdline exact-argv token\", \"self_match_proof\": {\"actual_includes_probe\": false, \"naive_includes_probe\": true, \"naive_pattern\": \"RES-0037\", \"stated_proof\": \"While this probe is running, a substring match for 'RES-0037' includes this process because the script path contains that id. The production matcher requires an exact argv element 'RES0037_STDIO_STANDIN' which is not on this probe's command line, so this PID is excluded. A start/stop of one known stand-in moves the token count by +1 then 0.\", \"token\": \"RES0037_STDIO_STANDIN\", \"token_absent_from_probe_argv\": true}, \"start_stop_delta\": {\"actual_matcher_includes_probe_after_start\": false, \"actual_matcher_includes_probe_before\": false, \"after_start_count\": 1, \"after_stop_count\": 0, \"baseline_count\": 0, \"child_argv\": [\"/usr/bin/python3\", \"-B\", \"/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0037/fixtures/stdio_standin.py\", \"RES0037_STDIO_STANDIN\", \"delta-session\", \"delta-server\"], \"child_cmdline_is_probe_script\": false, \"child_in_actual\": true, \"child_in_naive_RES-0037\": true, \"child_pid\": 56157, \"expected_start_delta\": 1, \"expected_stop_delta\": 0, \"naive_matcher_includes_probe\": true, \"naive_pattern\": \"RES-0037\", \"observed_start_delta\": 1, \"observed_stop_delta\": 0, \"pass\": true, \"self_argv\": [\"python3\", \"-B\", \"command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py\"], \"self_pid\": 56156, \"token\": \"RES0037_STDIO_STANDIN\", \"token_present_on_probe_argv\": false}, \"unit_id\": \"RES-0037\"}\ndelta=+1/-0 naive_self=True token_self=False stdio=6 http=1\nSUCCESS:RES-0037-probe1 process-table self-exclusion and start/stop delta",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0037/lib.py:ps_token_pids",
+   "claim": "A second rail (/bin/ps plus per-pid fd/LISTEN handles) reproduces the same per-transport process counts.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+     "exit_code": 0,
+     "fingerprint": "f34de253087426913c651e387cfcccb7",
+     "method": "command",
+     "raw_output": "{\"pass\": true, \"per_transport_process_count\": {\"http_handle_count\": 4, \"http_listen_inodes\": [109118], \"http_ps_processes\": 1, \"sessions\": 3, \"stdio_handle_counts\": {\"56590\": 3, \"56591\": 3, \"56592\": 3, \"56593\": 3, \"56594\": 3, \"56595\": 3}, \"stdio_listen_inodes\": [], \"stdio_ps_processes\": 6, \"stdio_servers_per_session\": 2}, \"probe\": \"probe2-handle-count-ps\", \"rail\": \"/bin/ps + /proc/<pid>/fd LISTEN inodes\", \"recorded_driver\": {\"claimed_processes\": 2037, \"equation_23_x_65_equals_2037\": false, \"expr_product\": 1495, \"python_product\": 1495, \"servers\": 65, \"sessions\": 23, \"true_product\": 1495}, \"today_fleet\": {\"argv_exact_mcp_count\": 0, \"configs\": {\"/opt/p2/ast-integrate/.mcp.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.claude.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.claude/settings.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.mcp.json\": {\"bytes\": 0, \"exists\": false}}, \"naive_substring_mcp_count\": 0, \"reproduces_claimed_2037\": false, \"reproduces_sessions_x_servers_product\": false}, \"unit_id\": \"RES-0037\"}\nps stdio=6 http=1 http_listen=1 expr_23x65=1495 fleet_exact=0\nSUCCESS:RES-0037-probe2 ps/handle-count independent rail; 23*65=1495 not 2037; fleet does not reproduce 2037",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "WORK-UNIT-CATALOG.json:RES-0037 recorded 23x65=2037",
+   "claim": "23*65 is 1495, not 2037; live argv-exact MCP count is not 2037.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+     "exit_code": 0,
+     "fingerprint": "f34de253087426913c651e387cfcccb7",
+     "method": "command",
+     "raw_output": "{\"pass\": true, \"per_transport_process_count\": {\"http_handle_count\": 4, \"http_listen_inodes\": [109118], \"http_ps_processes\": 1, \"sessions\": 3, \"stdio_handle_counts\": {\"56590\": 3, \"56591\": 3, \"56592\": 3, \"56593\": 3, \"56594\": 3, \"56595\": 3}, \"stdio_listen_inodes\": [], \"stdio_ps_processes\": 6, \"stdio_servers_per_session\": 2}, \"probe\": \"probe2-handle-count-ps\", \"rail\": \"/bin/ps + /proc/<pid>/fd LISTEN inodes\", \"recorded_driver\": {\"claimed_processes\": 2037, \"equation_23_x_65_equals_2037\": false, \"expr_product\": 1495, \"python_product\": 1495, \"servers\": 65, \"sessions\": 23, \"true_product\": 1495}, \"today_fleet\": {\"argv_exact_mcp_count\": 0, \"configs\": {\"/opt/p2/ast-integrate/.mcp.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.claude.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.claude/settings.json\": {\"bytes\": 0, \"exists\": false}, \"/root/.mcp.json\": {\"bytes\": 0, \"exists\": false}}, \"naive_substring_mcp_count\": 0, \"reproduces_claimed_2037\": false, \"reproduces_sessions_x_servers_product\": false}, \"unit_id\": \"RES-0037\"}\nps stdio=6 http=1 http_listen=1 expr_23x65=1495 fleet_exact=0\nSUCCESS:RES-0037-probe2 ps/handle-count independent rail; 23*65=1495 not 2037; fleet does not reproduce 2037",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+     "exit_code": 0,
+     "fingerprint": "0dc16e7b9e7bfda2c8474d81b937f6c1",
+     "method": "command",
+     "raw_output": "{\"decoy\": {\"decoy_pid\": 56315, \"decoy_token_hits\": [56315], \"naive_includes_decoy\": true, \"naive_includes_self\": true, \"naive_probe1_name_hits\": [56155, 56156, 56315], \"pass\": true, \"self_pid\": 56156, \"stdio_token_hits\": [], \"stdio_token_ignores_decoy\": true}, \"fleet_argv_exact_mcp_count\": 0, \"fleet_naive_mcp_count\": 0, \"pass\": true, \"per_transport_process_count\": {\"http_os_processes\": 1, \"processes_per_stdio_server_per_session\": 1.0, \"sessions\": 3, \"shared_http_processes\": 1, \"stdio_os_processes\": 6, \"stdio_servers_per_session\": 2}, \"probe\": \"probe1-self-exclusion-delta\", \"rail\": \"/proc/*/cmdline exact-argv token\", \"self_match_proof\": {\"actual_includes_probe\": false, \"naive_includes_probe\": true, \"naive_pattern\": \"RES-0037\", \"stated_proof\": \"While this probe is running, a substring match for 'RES-0037' includes this process because the script path contains that id. The production matcher requires an exact argv element 'RES0037_STDIO_STANDIN' which is not on this probe's command line, so this PID is excluded. A start/stop of one known stand-in moves the token count by +1 then 0.\", \"token\": \"RES0037_STDIO_STANDIN\", \"token_absent_from_probe_argv\": true}, \"start_stop_delta\": {\"actual_matcher_includes_probe_after_start\": false, \"actual_matcher_includes_probe_before\": false, \"after_start_count\": 1, \"after_stop_count\": 0, \"baseline_count\": 0, \"child_argv\": [\"/usr/bin/python3\", \"-B\", \"/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0037/fixtures/stdio_standin.py\", \"RES0037_STDIO_STANDIN\", \"delta-session\", \"delta-server\"], \"child_cmdline_is_probe_script\": false, \"child_in_actual\": true, \"child_in_naive_RES-0037\": true, \"child_pid\": 56157, \"expected_start_delta\": 1, \"expected_stop_delta\": 0, \"naive_matcher_includes_probe\": true, \"naive_pattern\": \"RES-0037\", \"observed_start_delta\": 1, \"observed_stop_delta\": 0, \"pass\": true, \"self_argv\": [\"python3\", \"-B\", \"command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py\"], \"self_pid\": 56156, \"token\": \"RES0037_STDIO_STANDIN\", \"token_present_on_probe_argv\": false}, \"unit_id\": \"RES-0037\"}\ndelta=+1/-0 naive_self=True token_self=False stdio=6 http=1\nSUCCESS:RES-0037-probe1 process-table self-exclusion and start/stop delta",
+     "role": "source"
+    }
+   ],
+   "verdict": "REFUTED"
+  }
+ ],
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/RES-0037/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "Substring 'RES-0037' matches this probe's script path and would report the measurer as a live server. The token matcher must stay silent on that PID.",
+   "fired_on_bad_state": true,
+   "id": "naive-substring-RES-0037-matches-probe",
+   "kind": "known-broken-matcher",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A decoy argv includes probe1_self_exclusion_delta.py but not the stand-in token; the stdio token matcher must not count it.",
+   "fired_on_bad_state": true,
+   "id": "decoy-carries-probe-filename-but-not-token",
+   "kind": "known-broken-cmdline",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 delivery of RES-0037. Live named probes measure stdio vs HTTP process cost with a start/stop delta and a stated self-exclusion proof. Did not run global unit_manifest.py --write. cloud ok is not consulted.",
+ "per_transport_process_count": {
+  "http_shared": {
+   "additional_processes_per_extra_session": 0,
+   "handle_count": 4,
+   "listen_inodes": [
+    109118
+   ],
+   "os_processes_procfs": 1,
+   "os_processes_ps": 1,
+   "sessions": 3
+  },
+  "stdio": {
+   "handle_counts_by_pid": {
+    "56590": 3,
+    "56591": 3,
+    "56592": 3,
+    "56593": 3,
+    "56594": 3,
+    "56595": 3
+   },
+   "listen_inodes": [],
+   "os_processes_procfs": 6,
+   "os_processes_ps": 6,
+   "processes_per_server_per_session": 1.0,
+   "servers_per_session": 2,
+   "sessions": 3
+  }
+ },
+ "question": "How many OS processes does one session spawn per stdio MCP server versus one shared HTTP server, and does the measured multiplication reproduce the estate's recorded commit-exhaustion driver (sessions x servers) on today's fleet?",
+ "question_or_target": "How many OS processes does one session spawn per stdio MCP server versus one shared HTTP server, and does the measured multiplication reproduce the estate's recorded commit-exhaustion driver (sessions x servers) on today's fleet?",
+ "recorded_commit_exhaustion_driver": {
+  "claimed_processes": 2037,
+  "equation_23_x_65_equals_2037": false,
+  "expr_product": 1495,
+  "python_product": 1495,
+  "servers": 65,
+  "sessions": 23,
+  "true_product": 1495
+ },
+ "report_kind": "measurement-run",
+ "residual_unknowns": [
+  {
+   "claim": "Windows estate ~/.mcp.json, the 2026-07-19 commit-exhaustion root-cause note, and a live Claude stdio fleet are absent from this Linux worktree. Stand-ins measure the multiplication mechanism; they are not the original 65-server vendor binaries.",
+   "settling_experiment": "Re-run token_exact_pids against a live Claude MCP fleet on the Windows estate and compare sessions x servers to both 1495 and 2037.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "powershell7_vs_git_bash": "NOT-CHECKED",
+  "powershell7_vs_git_bash_reason": "This worktree is Linux; PowerShell 7 vs Git Bash is the catalog's Windows reviewer pair and is not the substrate here.",
+  "reproduced_http_count": 1,
+  "reproduced_stdio_count": 6,
+  "reviewer_id": "RES-0037-probe2-handle-count",
+  "shell": "/bin/ps versus Python /proc walk; POSIX expr versus Python int",
+  "tolerance": 0,
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "self_match_proof": {
+  "actual_includes_probe": false,
+  "decoy": {
+   "decoy_pid": 56315,
+   "decoy_token_hits": [
+    56315
+   ],
+   "naive_includes_decoy": true,
+   "naive_includes_self": true,
+   "naive_probe1_name_hits": [
+    56155,
+    56156,
+    56315
+   ],
+   "pass": true,
+   "self_pid": 56156,
+   "stdio_token_hits": [],
+   "stdio_token_ignores_decoy": true
+  },
+  "naive_includes_probe": true,
+  "naive_pattern": "RES-0037",
+  "stated_proof": "While this probe is running, a substring match for 'RES-0037' includes this process because the script path contains that id. The production matcher requires an exact argv element 'RES0037_STDIO_STANDIN' which is not on this probe's command line, so this PID is excluded. A start/stop of one known stand-in moves the token count by +1 then 0.",
+  "token": "RES0037_STDIO_STANDIN",
+  "token_absent_from_probe_argv": true
+ },
+ "sentinel": "SUCCESS:RES-0037 in the receipt AND a per-transport process count with a start/stop delta control and a stated proof the probe does not match itself",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:RES-0037; recorded 23 sessions x 65 servers = 2037 as prior estate claim, re-measured rather than trusted",
+ "start_stop_delta_control": {
+  "child_pid": 56157,
+  "expected_start_delta": 1,
+  "expected_stop_delta": 0,
+  "known_server": "fixtures/stdio_standin.py argv token RES0037_STDIO_STANDIN",
+  "observed_start_delta": 1,
+  "observed_stop_delta": 0,
+  "pass": true
+ },
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+   "id": "count-with-pattern-proven-not-to-match-probe-cmdline",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe1_self_exclusion_delta.py",
+   "id": "start-stop-known-server-delta",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+   "id": "independent-ps-and-handle-count",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0037/probe2_handle_count.py",
+   "id": "recorded-23x65-arithmetic",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:00:30Z",
+  "started_at": "2026-08-25T01:00:30Z"
+ },
+ "title": "Measure the per-session process cost of stdio versus HTTP MCP transports on this box",
+ "today_fleet": {
+  "argv_exact_mcp_count": 0,
+  "configs": {
+   "/opt/p2/ast-integrate/.mcp.json": {
+    "bytes": 0,
+    "exists": false
+   },
+   "/root/.claude.json": {
+    "bytes": 0,
+    "exists": false
+   },
+   "/root/.claude/settings.json": {
+    "bytes": 0,
+    "exists": false
+   },
+   "/root/.mcp.json": {
+    "bytes": 0,
+    "exists": false
+   }
+  },
+  "naive_substring_mcp_count": 0,
+  "reproduces_claimed_2037": false,
+  "reproduces_sessions_x_servers_product": false
+ },
+ "unit_id": "RES-0037"
+}

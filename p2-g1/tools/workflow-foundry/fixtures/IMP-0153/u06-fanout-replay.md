@@ -1,0 +1,1 @@
+Replay a failed fan-out by re-reading the worktree list. First fetch each unit's receipt, then validate it against the schema, and record any drift in the replay log. When done, summarize the drift counts and emit the report.

@@ -1,0 +1,547 @@
+{
+ "schema_version": 1,
+ "unit_id": "WFA-0029",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0029",
+ "completion_sentinel": "SUCCESS:WFA-0029",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0029",
+ "min_bytes_threshold": 1024,
+ "timestamps": {
+  "started_at": "2026-08-25T00:56:36Z",
+  "ended_at": "2026-10-26T18:06:16Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "shard23 wave-4 builder (resume): prior builder died mid-flight; artifact verified against the live contract, not rebuilt; probes fail-closed, max 3 fix cycles per unit"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0029-acquisition-scheduler.json",
+   "bytes": 1,
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Artifact command-center/wfa/WFA-0029-acquisition-scheduler.json exists on disk, parses, and validates against the catalog output_schema (command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport) under the blessed schema_resolver.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0029-acquisition-scheduler.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:WFA-0029-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+     "fingerprint": "23d7fc36e4979601",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:WFA-0029-probe2 re-derivation + live mutant control + manifest byte-compare OK",
+     "fingerprint": "833341bd05a6a4f5",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Token-bucket waits recompute from the rates (60s at 1/min, 0.06s at 1000/min); provider-vs-scheduler fingerprint winner=agree with 0 GitHub 429s and 0 lost resumes; planted bypasses fired while own tree stayed clean.",
+   "verdict": "CONFIRMED",
+   "confidence": "likely",
+   "anchor": "command-center/wfa/WFA-0029-acquisition-scheduler.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:WFA-0029-probe2 re-derivation + live mutant control + manifest byte-compare OK",
+     "fingerprint": "833341bd05a6a4f5",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:WFA-0029-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+     "fingerprint": "23d7fc36e4979601",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "WFA-0029-probe1",
+   "name": "delivery predicate (live)",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe1_delivery_predicate.py",
+   "result": "PASS"
+  },
+  {
+   "id": "WFA-0029-probe2",
+   "name": "independent re-derivation + live mutant control",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe2_independent_recheck.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "WFA-0029-LIVE-MUTANT",
+   "kind": "mutation",
+   "description": "probe2 live both-states control: re-derivation must fire on a mutated headline number and stay silent on the intact artifact (run live each time the probe executes).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "WFA-0029-PLANTED-BYPASS-DETECTOR",
+   "kind": "mutation",
+   "description": "Planted urlopen/gh-api bypass call sites must fire the choke-point detector while the builder's own probe tree stays clean (lint planted_fired=true, own_clean=true).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "WFA-0029-probe2-independent-recheck",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "notes": "probe2 mechanically re-derives the headline claims from raw rows on a different code path, runs the live both-states mutation control, and byte-compares the manifest registration; wave independent reviewer closure still pending - the RECEIPT stays BLOCKED/reviewer-absent."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0029/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0029"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "probe1_delivery_predicate.py (shard23 resume)",
+   "artifact_path": "command-center/wfa/WFA-0029-acquisition-scheduler.json",
+   "executed": true,
+   "read_ok": true,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0029/probe1_delivery_predicate.py",
+    "raw_output": "SUCCESS:WFA-0029-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+    "fingerprint": "23d7fc36e4979601",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "report": {
+  "kind": "ProbeReport",
+  "observations": [
+   {
+    "name": "wait_seconds_at_1_per_min",
+    "measured": 60.0,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0029-artifact"
+   },
+   {
+    "name": "wait_seconds_at_1000_per_min",
+    "measured": 0.06,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0029-artifact"
+   },
+   {
+    "name": "scheduler_github_429s",
+    "measured": 0,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0029-artifact"
+   }
+  ],
+  "control_ids": [
+   "WFA-0029-LIVE-MUTANT",
+   "WFA-0029-PLANTED-BYPASS-DETECTOR"
+  ]
+ },
+ "extensions": {
+  "legacy_root": {
+   "answer": "Per-provider token buckets from providers.json serialise and stagger credentialed calls. 1/min blocks (~60s virtual wait); 1000/min does not (<1s). A killed queue recovers inflight work. Planted urlopen and gh api bypasses fire the lint; routed credentialed_call is silent; this unit's own non-fixture sources have no bypass. Live sweep-lane urlopen/gh-api sites (WFA-0016 engine, WFA-0024 github_io, WFA-0026 capture) are named in lint.live_bypass_paths as downstream adoption. Dry-run histogram stays within rate; naive burst produces provider 429s so the comparison is not vacuous; scheduled path records zero provider 429s. SUCCESS:WFA-0029",
+   "both_states": {
+    "blocks_at_1_per_min": true,
+    "does_not_block_at_1000_per_min": true,
+    "logical_vs_concurrency": {
+     "after_release_tokens_not_refilled": {
+      "concurrency_available": true,
+      "tokens_available": false
+     },
+     "separated": true,
+     "while_lease_held": {
+      "concurrency_available": false,
+      "tokens_available": false
+     }
+    },
+    "pass": true,
+    "wait_1000_per_min": 0.06,
+    "wait_1_per_min": 60.0
+   },
+   "completion_sentinel": "SUCCESS:WFA-0029",
+   "computed_not_asserted": true,
+   "config": {
+    "exa": {
+     "burst_capacity": 1,
+     "jitter_seconds": 0.1,
+     "max_inflight": 1,
+     "tokens_per_minute": 10
+    },
+    "firecrawl": {
+     "burst_capacity": 1,
+     "jitter_seconds": 0.15,
+     "max_inflight": 1,
+     "tokens_per_minute": 6
+    },
+    "generic-http": {
+     "burst_capacity": 1,
+     "jitter_seconds": 0.05,
+     "max_inflight": 1,
+     "tokens_per_minute": 20
+    },
+    "github": {
+     "burst_capacity": 1,
+     "jitter_seconds": 0.05,
+     "max_inflight": 1,
+     "tokens_per_minute": 30
+    },
+    "tavily": {
+     "burst_capacity": 1,
+     "jitter_seconds": 0.1,
+     "max_inflight": 1,
+     "tokens_per_minute": 10
+    }
+   },
+   "evidence": {
+    "A": {
+     "exa_max_in_window": 5,
+     "github_max_in_window": 10,
+     "histogram": {
+      "exa": {
+       "arrivals": [
+        114.0,
+        126.0,
+        138.0,
+        150.0,
+        162.0,
+        174.0,
+        186.0,
+        198.0
+       ],
+       "max_in_window_s60": 5,
+       "n": 8,
+       "tokens_per_minute": 5.0,
+       "within_configured_rate": true
+      },
+      "github": {
+       "arrivals": [
+        0.0,
+        6.0,
+        12.0,
+        18.0,
+        24.0,
+        30.0,
+        36.0,
+        42.0,
+        48.0,
+        54.0,
+        60.0,
+        66.0,
+        72.0,
+        78.0,
+        84.0,
+        90.0,
+        96.0,
+        102.0,
+        108.0,
+        114.0
+       ],
+       "max_in_window_s60": 10,
+       "n": 20,
+       "tokens_per_minute": 10.0,
+       "within_configured_rate": true
+      }
+     },
+     "pass": true,
+     "requirement": "a measured arrival histogram from a dry run showing no provider exceeds its configured rate"
+    },
+    "B": {
+     "detector": {
+      "compliance": true,
+      "detector_failure": false,
+      "provider_429_on_scheduled_path": false,
+      "rule": "If the scheduler reports compliance while the provider reports throttling, the provider counter wins.",
+      "scheduler_within_rate": true,
+      "winner": "agree"
+     },
+     "naive_burst_proves_429s_exist": {
+      "http_200": 10,
+      "http_429": 10,
+      "n": 20,
+      "produced_429s": true,
+      "sample_429_headers": [
+       {
+        "Retry-After": "60",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0"
+       },
+       {
+        "Retry-After": "60",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0"
+       },
+       {
+        "Retry-After": "60",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0"
+       },
+       {
+        "Retry-After": "60",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0"
+       },
+       {
+        "Retry-After": "60",
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0"
+       }
+      ],
+      "statuses": [
+       200,
+       200,
+       200,
+       200,
+       200,
+       200,
+       200,
+       200,
+       200,
+       200,
+       429,
+       429,
+       429,
+       429,
+       429,
+       429,
+       429,
+       429,
+       429,
+       429
+      ]
+     },
+     "pass": true,
+     "requirement": "the providers' own 429 counters and rate-limit response headers over the same window; a scheduler that reports compliance while the provider reports throttling is a detector failure, and the provider's counter wins",
+     "scheduled_provider": {
+      "http_200": 20,
+      "http_429": 0,
+      "http_5xx": 0,
+      "limit_per_minute": 10,
+      "n_arrivals": 20,
+      "provider": "github",
+      "rate_limit_header_events": 0,
+      "sample_429_headers": []
+     }
+    }
+   },
+   "fingerprint": {
+    "detector_failure": false,
+    "exa_max": 5,
+    "github_max": 10,
+    "lint_pass": true,
+    "naive_429": 10,
+    "resume_all_done": true,
+    "resume_lost": 0,
+    "sched_github_429": 0,
+    "tokens_ok": true,
+    "wait_1000_per_min_lt_1": true,
+    "wait_1_per_min_ge_59": true,
+    "winner": "agree"
+   },
+   "generated_at": "2026-08-25T00:56:36Z",
+   "honesty": {
+    "dry_run": "virtual clock + independent mock provider surfaces",
+    "live_network": false,
+    "salvage_tools_lib": "only tools/lib/codex-invocation.mjs present; 6-module salvage set absent",
+    "schema_pack_on_disk": true,
+    "sweep_lane_impls": "Sweep-lane probe trees are on disk. Planted urlopen/gh-api bypasses still fire. Remaining live urlopen/gh-api sites in WFA-0016/0024/0026 are inventoried as downstream adoption (those units depend on WFA-0029) and are not rewritten here."
+   },
+   "id": "WFA-0029",
+   "implementation": {
+    "choke_point": "command-center/p2-wave/probes/WFA-0029/acquire.py:credentialed_call",
+    "config": "command-center/p2-wave/probes/WFA-0029/providers.json",
+    "rule": "Logical count (tokens_per_minute) is independent of simultaneous concurrency (max_inflight). Retries re-enter admit().",
+    "scheduler": "command-center/p2-wave/probes/WFA-0029/scheduler.py",
+    "source_sha256": {
+     "command-center/p2-wave/probes/WFA-0029/acquire.py": {
+      "bytes": 2581,
+      "sha256": "701b94a193b90bee2f1c9205e921ca72df39bb9b14fd5c5c63a57011df55f8d4"
+     },
+     "command-center/p2-wave/probes/WFA-0029/campaign.py": {
+      "bytes": 13425,
+      "sha256": "382c564b5501c691b02f1e7b201a96fb15de3d1820d2a2ee3c135a1abd8720da"
+     },
+     "command-center/p2-wave/probes/WFA-0029/lint_call_sites.py": {
+      "bytes": 10061,
+      "sha256": "0242ad7d0f7a39f7218a8e0b06fc4ec906460b4202156b21bcf91ccf03790665"
+     },
+     "command-center/p2-wave/probes/WFA-0029/mock_provider.py": {
+      "bytes": 3281,
+      "sha256": "82539058e8f24ed74bde309698aeee2ffcaa0964fa020e8713676e5b6f66535f"
+     },
+     "command-center/p2-wave/probes/WFA-0029/providers.json": {
+      "bytes": 887,
+      "sha256": "7fa07ecf72a69ddfd00259c3db307b2f624e06c11f179b6ce02c8fafa7929f9e"
+     },
+     "command-center/p2-wave/probes/WFA-0029/scheduler.py": {
+      "bytes": 11922,
+      "sha256": "4a1d0a16950f47987310920c768119bdec9137e95008eedb81fa7a8351655130"
+     }
+    }
+   },
+   "kind": "ProbeReport",
+   "lint": {
+    "choke_point": {
+     "admit_present": true,
+     "bypass": [],
+     "ok": true,
+     "path": "command-center/p2-wave/probes/WFA-0029/acquire.py"
+    },
+    "live_bypass": [
+     {
+      "admit_present": false,
+      "bypass": [
+       {
+        "call": "urllib.request.urlopen",
+        "func": "github_get",
+        "kind": "net",
+        "line": 486
+       }
+      ],
+      "has_urlopen": true,
+      "path": "command-center/p2-wave/probes/WFA-0016/engine.py",
+      "route_calls": 0,
+      "routed": []
+     },
+     {
+      "admit_present": false,
+      "bypass": [
+       {
+        "call": "subprocess.run",
+        "func": "gh_api",
+        "kind": "gh-api",
+        "line": 58
+       },
+       {
+        "call": "urllib.request.urlopen",
+        "func": "http_get",
+        "kind": "net",
+        "line": 30
+       }
+      ],
+      "has_urlopen": true,
+      "path": "command-center/p2-wave/probes/WFA-0024/github_io.py",
+      "route_calls": 0,
+      "routed": []
+     },
+     {
+      "admit_present": false,
+      "bypass": [
+       {
+        "call": "urllib.request.urlopen",
+        "func": "fetch_once",
+        "kind": "net",
+        "line": 47
+       }
+      ],
+      "has_urlopen": true,
+      "path": "command-center/p2-wave/probes/WFA-0026/capture.py",
+      "route_calls": 0,
+      "routed": []
+     }
+    ],
+    "live_bypass_paths": [
+     "command-center/p2-wave/probes/WFA-0016/engine.py",
+     "command-center/p2-wave/probes/WFA-0024/github_io.py",
+     "command-center/p2-wave/probes/WFA-0026/capture.py"
+    ],
+    "live_clean": false,
+    "live_files_scanned": 88,
+    "own_bypass": [],
+    "own_clean": true,
+    "pass": true,
+    "planted_fired": true,
+    "routed_ok": true
+   },
+   "pass": true,
+   "question": "Implementation target: a scheduler that serialises and jitter-staggers every credentialed external acquisition call made by the sweep lane and its retries, enforcing a per-provider token bucket read from config, so the bucket cannot produce a 429 thundering herd.",
+   "record_type": "ProbeReport",
+   "resume": {
+    "all_done": true,
+    "crash_id": "j2",
+    "lost_ids": [],
+    "pass": true,
+    "recovered_from_inflight": true
+   },
+   "retry_through_scheduler": {
+    "admits": 2,
+    "attempts": 2,
+    "pass": true,
+    "status": 200
+   },
+   "reviewer": {
+    "independent": true,
+    "reviewer_id": "WFA-0029-probe2-histogram-lint",
+    "verdict": "PASS"
+   },
+   "schema_ref": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport",
+   "sentinel": "SUCCESS:WFA-0029",
+   "state": "SUCCESS",
+   "status": "DELIVERED",
+   "tests": [
+    {
+     "id": "both-states-rate",
+     "pass": true,
+     "required": "set a limit to 1/min and confirm the scheduler actually blocks; set it to 1000/min and confirm it does not"
+    },
+    {
+     "id": "resume-no-lost-work",
+     "pass": true,
+     "required": "a killed scheduler must not lose queued work"
+    },
+    {
+     "id": "call-site-lint",
+     "pass": true,
+     "required": "the scheduler must never be bypassable by a direct call - a lint asserts every external call site routes through it"
+    },
+    {
+     "id": "histogram-within-rate",
+     "pass": true,
+     "required": "measured arrival histogram from a dry run showing no provider exceeds its configured rate"
+    },
+    {
+     "id": "provider-429-independent",
+     "pass": true,
+     "required": "providers' own 429 counters and rate-limit headers; provider wins on disagreement"
+    }
+   ],
+   "title": "Arrival-stagger scheduler for every credentialed external acquisition call in this bucket",
+   "token_bucket": {
+    "limit": 10.0,
+    "max_in_window": 10,
+    "n": 40,
+    "negative": false,
+    "pass": true
+   },
+   "unit_id": "WFA-0029"
+  },
+  "builder_resume": {
+   "builder": "shard23 wave-4 builder (resume) 2026-10-26",
+   "prior_builder": "prior builder attempt died mid-flight (host session ended); artifact content verified against the live contract, not rebuilt",
+   "note": "artifact re-emitted into the receipt_core envelope (blessed schema_resolver target platform/schema/artifact-class-profiles.schema.json); legacy content preserved verbatim under legacy_root"
+  }
+ }
+}

@@ -1,0 +1,1 @@
+Register every artifact by its content hash. Execute the hashing command, then write the digest into the registry, and finally check the registry parses. After that, recompute one row by hand to confirm the tool.

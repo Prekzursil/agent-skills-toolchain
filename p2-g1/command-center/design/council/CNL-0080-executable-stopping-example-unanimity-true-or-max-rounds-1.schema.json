@@ -1,0 +1,1621 @@
+{
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "CNL-0080-probe2-independent-recount",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNL-0080",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNL-0080/probe1_both_states.py",
+   "id": "both-states",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNL-0080/probe2_distinguish.py",
+   "id": "independent-recount-distinguish",
+   "result": "PASS"
+  }
+ ],
+ "unit_id": "CNL-0080",
+ "extensions": {
+  "legacy_root": {
+   "$id": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+   "$schema": "http://json-schema.org/draft-07/schema#",
+   "SUCCESS:CNL-0080": true,
+   "additionalProperties": false,
+   "answer": {
+    "cnl_0059_interaction": "Instant-unanimity suspicion (round 1, no independent briefs) holds finalization as AGREEMENT_HELD_FOR_REVALUATION. Timer exhaustion at round 12 with disagreement never takes that path and must not be read as unanimity or as instant unanimity.",
+    "consumer_must_key": [
+     "outcome_kind",
+     "unanimity",
+     "stop_reason",
+     "branch_fired"
+    ],
+    "consumer_must_not_key": [
+     "stopped",
+     "expression_true"
+    ],
+    "timer_distinguishable_from_unanimity": true,
+    "when_both_at_round_12": {
+     "note": "Not TIMER_EXHAUSTION. Agreement is retained.",
+     "outcome_kind": "AGREEMENT_AT_CEILING",
+     "stop_reason": "BOTH",
+     "unanimity": true
+    },
+    "when_real_unanimity": {
+     "branch_fired": [
+      "unanimity == true"
+     ],
+     "expression_true": true,
+     "outcome_kind": "AGREEMENT",
+     "stop_reason": "UNANIMITY",
+     "stopped": true,
+     "unanimity": true
+    },
+    "when_timer_not_agreement": {
+     "branch_fired": [
+      "max_rounds == 12"
+     ],
+     "expression_true": true,
+     "instant_unanimity_trigger": false,
+     "outcome_kind": "TIMER_EXHAUSTION",
+     "stop_reason": "MAX_ROUNDS",
+     "stopped": true,
+     "unanimity": false
+    },
+    "why": "The disjunction is true for two different worlds. If the outcome record only says stopped=true, a downstream consumer cannot tell persuasion-failed-at-the-ceiling from all-seats-agreed. The record therefore keeps vote-state unanimity independent of stop_reason, and names TIMER_EXHAUSTION as a distinct outcome_kind from AGREEMENT."
+   },
+   "bindings": {
+    "max_rounds": {
+     "binds_to": "clock.round_index",
+     "configured_ceiling_field": "stopping.configured_max_rounds",
+     "literal_12": 12,
+     "rule": "1-based index of the round just completed. Must NOT bind to stopping.configured_max_rounds: when the ceiling is 12, max_rounds == 12 would be a tautology and the disjunction would FIRE on round 1 with no agreement."
+    },
+    "unanimity": {
+     "binds_to": "computed.unanimity_from_ballots",
+     "rule": "true iff every seated participant has a non-ABSTAIN ballot and all ballot values are identical. Missing ballot or ABSTAIN breaks unanimity. This field is the vote state; it is never copied from stop_reason or stopped."
+    }
+   },
+   "both_states": {
+    "fire_fixtures": [
+     "fire-unanimity",
+     "fire-timer"
+    ],
+    "fire_true": [
+     true,
+     true
+    ],
+    "silent_fixtures": [
+     "silent-contested",
+     "silent-round-11"
+    ],
+    "silent_true": false,
+    "vacuous": false
+   },
+   "completion_sentinel": "SUCCESS:CNL-0080",
+   "description": "CouncilSpec v2 stopping-example fragment for CNL-0080. The JSON Schema body validates an outcome record. Unit metadata is carried as extra draft-07 keywords.",
+   "emitted_at": "2026-08-25T00:52:45Z",
+   "evaluation_semantics": {
+    "cadence": "end-of-round",
+    "flap": "end-of-round snapshot; a predicate that was true mid-round and false at round end does not stop",
+    "not_cadence": [
+     "mid-turn",
+     "end-of-turn"
+    ],
+    "short_circuit": false,
+    "side_effect_free": true,
+    "why_no_short_circuit": "A timer-and-agreement coincidence at round 12 must record BOTH, not hide one branch."
+   },
+   "examples": [
+    {
+     "bindings": {
+      "max_rounds": "clock.round_index",
+      "unanimity": "computed.unanimity_from_ballots"
+     },
+     "branch_fired": [
+      "max_rounds == 12"
+     ],
+     "computed_unanimity": false,
+     "configured_max_rounds": 12,
+     "consumer_key": [
+      "TIMER_EXHAUSTION",
+      false,
+      "MAX_ROUNDS"
+     ],
+     "distinguishable_from_unanimity": true,
+     "evaluation_cadence": "end-of-round",
+     "expression": "unanimity == true OR max_rounds == 12",
+     "expression_true": true,
+     "fixture_id": "fire-timer",
+     "instant_unanimity_trigger": false,
+     "outcome_kind": "TIMER_EXHAUSTION",
+     "parse_accepted": true,
+     "rejected": false,
+     "round_index": 12,
+     "short_circuit": false,
+     "side_effect_free": true,
+     "source_verbatim": "unanimity == true OR max_rounds == 12",
+     "stop_reason": "MAX_ROUNDS",
+     "stopped": true,
+     "unanimity": false
+    },
+    {
+     "bindings": {
+      "max_rounds": "clock.round_index",
+      "unanimity": "computed.unanimity_from_ballots"
+     },
+     "branch_fired": [
+      "unanimity == true"
+     ],
+     "computed_unanimity": true,
+     "configured_max_rounds": 12,
+     "consumer_key": [
+      "AGREEMENT",
+      true,
+      "UNANIMITY"
+     ],
+     "distinguishable_from_unanimity": false,
+     "evaluation_cadence": "end-of-round",
+     "expression": "unanimity == true OR max_rounds == 12",
+     "expression_true": true,
+     "fixture_id": "fire-unanimity",
+     "instant_unanimity_trigger": false,
+     "outcome_kind": "AGREEMENT",
+     "parse_accepted": true,
+     "rejected": false,
+     "round_index": 4,
+     "short_circuit": false,
+     "side_effect_free": true,
+     "source_verbatim": "unanimity == true OR max_rounds == 12",
+     "stop_reason": "UNANIMITY",
+     "stopped": true,
+     "unanimity": true
+    },
+    {
+     "bindings": {
+      "max_rounds": "clock.round_index",
+      "unanimity": "computed.unanimity_from_ballots"
+     },
+     "branch_fired": [
+      "unanimity == true",
+      "max_rounds == 12"
+     ],
+     "computed_unanimity": true,
+     "configured_max_rounds": 12,
+     "consumer_key": [
+      "AGREEMENT_AT_CEILING",
+      true,
+      "BOTH"
+     ],
+     "distinguishable_from_unanimity": true,
+     "evaluation_cadence": "end-of-round",
+     "expression": "unanimity == true OR max_rounds == 12",
+     "expression_true": true,
+     "fixture_id": "both-at-ceiling",
+     "instant_unanimity_trigger": false,
+     "outcome_kind": "AGREEMENT_AT_CEILING",
+     "parse_accepted": true,
+     "rejected": false,
+     "round_index": 12,
+     "short_circuit": false,
+     "side_effect_free": true,
+     "source_verbatim": "unanimity == true OR max_rounds == 12",
+     "stop_reason": "BOTH",
+     "stopped": true,
+     "unanimity": true
+    },
+    {
+     "bindings": {
+      "max_rounds": "clock.round_index",
+      "unanimity": "computed.unanimity_from_ballots"
+     },
+     "branch_fired": [],
+     "computed_unanimity": false,
+     "configured_max_rounds": 12,
+     "consumer_key": [
+      "CONTINUE",
+      false,
+      null
+     ],
+     "distinguishable_from_unanimity": true,
+     "evaluation_cadence": "end-of-round",
+     "expression": "unanimity == true OR max_rounds == 12",
+     "expression_true": false,
+     "fixture_id": "silent-contested",
+     "instant_unanimity_trigger": false,
+     "outcome_kind": "CONTINUE",
+     "parse_accepted": true,
+     "rejected": false,
+     "round_index": 5,
+     "short_circuit": false,
+     "side_effect_free": true,
+     "source_verbatim": "unanimity == true OR max_rounds == 12",
+     "stop_reason": null,
+     "stopped": false,
+     "unanimity": false
+    }
+   ],
+   "expression": {
+    "ast": {
+     "args": [
+      {
+       "cmp": "==",
+       "left": "unanimity",
+       "op": "CMP",
+       "right": true
+      },
+      {
+       "cmp": "==",
+       "left": "max_rounds",
+       "op": "CMP",
+       "right": 12
+      }
+     ],
+     "op": "OR"
+    },
+    "parse_accepted_unchanged": true,
+    "quoted_from": "catalog title of CNL-0080, which quotes the third of the six required executable stopping examples at spec 10937-10942; restore path C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md is not present on this worktree",
+    "source_file_on_this_worktree": false,
+    "spec_anchor": "_USER-PROMPTS.md:10939",
+    "spec_range": "_USER-PROMPTS.md:10937-10942",
+    "verbatim": "unanimity == true OR max_rounds == 12"
+   },
+   "fixture_runs": [
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "accept",
+      "skeptic": "accept"
+     },
+     "fixture_file": "fire-unanimity.json",
+     "fixture_id": "fire-unanimity",
+     "independent_briefs": 3,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [
+       "unanimity == true"
+      ],
+      "computed_unanimity": true,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "AGREEMENT",
+       true,
+       "UNANIMITY"
+      ],
+      "distinguishable_from_unanimity": false,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": true,
+      "fixture_id": "fire-unanimity",
+      "instant_unanimity_trigger": false,
+      "outcome_kind": "AGREEMENT",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 4,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": "UNANIMITY",
+      "stopped": true,
+      "unanimity": true
+     },
+     "round_index": 4
+    },
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "accept",
+      "skeptic": "reject"
+     },
+     "fixture_file": "fire-timer.json",
+     "fixture_id": "fire-timer",
+     "independent_briefs": 3,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [
+       "max_rounds == 12"
+      ],
+      "computed_unanimity": false,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "TIMER_EXHAUSTION",
+       false,
+       "MAX_ROUNDS"
+      ],
+      "distinguishable_from_unanimity": true,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": true,
+      "fixture_id": "fire-timer",
+      "instant_unanimity_trigger": false,
+      "outcome_kind": "TIMER_EXHAUSTION",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 12,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": "MAX_ROUNDS",
+      "stopped": true,
+      "unanimity": false
+     },
+     "round_index": 12
+    },
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "accept",
+      "skeptic": "reject"
+     },
+     "fixture_file": "silent-contested.json",
+     "fixture_id": "silent-contested",
+     "independent_briefs": 3,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [],
+      "computed_unanimity": false,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "CONTINUE",
+       false,
+       null
+      ],
+      "distinguishable_from_unanimity": true,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": false,
+      "fixture_id": "silent-contested",
+      "instant_unanimity_trigger": false,
+      "outcome_kind": "CONTINUE",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 5,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": null,
+      "stopped": false,
+      "unanimity": false
+     },
+     "round_index": 5
+    },
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "rework",
+      "skeptic": "reject"
+     },
+     "fixture_file": "silent-round-11.json",
+     "fixture_id": "silent-round-11",
+     "independent_briefs": 3,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [],
+      "computed_unanimity": false,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "CONTINUE",
+       false,
+       null
+      ],
+      "distinguishable_from_unanimity": true,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": false,
+      "fixture_id": "silent-round-11",
+      "instant_unanimity_trigger": false,
+      "outcome_kind": "CONTINUE",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 11,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": null,
+      "stopped": false,
+      "unanimity": false
+     },
+     "round_index": 11
+    },
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "accept",
+      "skeptic": "accept"
+     },
+     "fixture_file": "both-at-ceiling.json",
+     "fixture_id": "both-at-ceiling",
+     "independent_briefs": 3,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [
+       "unanimity == true",
+       "max_rounds == 12"
+      ],
+      "computed_unanimity": true,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "AGREEMENT_AT_CEILING",
+       true,
+       "BOTH"
+      ],
+      "distinguishable_from_unanimity": true,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": true,
+      "fixture_id": "both-at-ceiling",
+      "instant_unanimity_trigger": false,
+      "outcome_kind": "AGREEMENT_AT_CEILING",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 12,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": "BOTH",
+      "stopped": true,
+      "unanimity": true
+     },
+     "round_index": 12
+    },
+    {
+     "ballots": {
+      "architect": "accept",
+      "pragmatist": "accept",
+      "skeptic": "accept"
+     },
+     "fixture_file": "instant-unanimity-round-1.json",
+     "fixture_id": "instant-unanimity-round-1",
+     "independent_briefs": 0,
+     "result": {
+      "bindings": {
+       "max_rounds": "clock.round_index",
+       "unanimity": "computed.unanimity_from_ballots"
+      },
+      "branch_fired": [
+       "unanimity == true"
+      ],
+      "computed_unanimity": true,
+      "configured_max_rounds": 12,
+      "consumer_key": [
+       "AGREEMENT_HELD_FOR_REVALUATION",
+       true,
+       "UNANIMITY"
+      ],
+      "distinguishable_from_unanimity": true,
+      "evaluation_cadence": "end-of-round",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "expression_true": true,
+      "fixture_id": "instant-unanimity-round-1",
+      "instant_unanimity_trigger": true,
+      "outcome_kind": "AGREEMENT_HELD_FOR_REVALUATION",
+      "parse_accepted": true,
+      "rejected": false,
+      "round_index": 1,
+      "short_circuit": false,
+      "side_effect_free": true,
+      "source_verbatim": "unanimity == true OR max_rounds == 12",
+      "stop_reason": "UNANIMITY",
+      "stopped": true,
+      "unanimity": true
+     },
+     "round_index": 1
+    }
+   ],
+   "kind": "executable_stopping_example",
+   "negative_control": {
+    "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+    "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+    "on_agreement_fixture": {
+     "actual_outcome_kind": "AGREEMENT",
+     "actual_unanimity": true,
+     "fired": false,
+     "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+     "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+     "naive_outcome_kind": "AGREEMENT",
+     "naive_unanimity": true,
+     "silent": true
+    },
+    "on_timer_fixture": {
+     "actual_outcome_kind": "TIMER_EXHAUSTION",
+     "actual_unanimity": false,
+     "fired": true,
+     "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+     "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+     "naive_outcome_kind": "AGREEMENT",
+     "naive_unanimity": true,
+     "silent": false
+    },
+    "verbatim": "On fire-timer (disagreeing ballots, round_index=12): the naive consumer copies stopped=true onto unanimity=true; the control FIRES (fired=True). On fire-unanimity (identical ballots, round_index=4): the naive consumer also reports unanimity=true but that matches the ballots, so the control stays SILENT (fired=False)."
+   },
+   "parse_test": {
+    "accepted_unchanged": true,
+    "expression": "unanimity == true OR max_rounds == 12",
+    "grammar": "A10 / CNL-0010 AND OR NOT comparison ANY ALL WEIGHTED",
+    "six_required_examples": [
+     {
+      "accepted": true,
+      "line": 10937,
+      "unchanged": true,
+      "verbatim": "unique_ideas >= 100 AND completeness_score >= 0.90"
+     },
+     {
+      "accepted": true,
+      "line": 10938,
+      "unchanged": true,
+      "verbatim": "consensus >= 0.95 AND no_new_objection_rounds >= 2"
+     },
+     {
+      "accepted": true,
+      "line": 10939,
+      "unchanged": true,
+      "verbatim": "unanimity == true OR max_rounds == 12"
+     },
+     {
+      "accepted": true,
+      "line": 10940,
+      "unchanged": true,
+      "verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0"
+     },
+     {
+      "accepted": true,
+      "line": 10941,
+      "unchanged": true,
+      "verbatim": "evidence_saturation == true OR time_minutes >= 180"
+     },
+     {
+      "accepted": true,
+      "line": 10942,
+      "unchanged": true,
+      "verbatim": "proof_of_impossibility == true"
+     }
+    ]
+   },
+   "properties": {
+    "bindings": {
+     "type": "object"
+    },
+    "branch_fired": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "computed_unanimity": {
+     "type": "boolean"
+    },
+    "configured_max_rounds": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "consumer_key": {
+     "maxItems": 3,
+     "minItems": 3,
+     "type": "array"
+    },
+    "distinguishable_from_unanimity": {
+     "type": "boolean"
+    },
+    "evaluation_cadence": {
+     "const": "end-of-round",
+     "type": "string"
+    },
+    "expression": {
+     "const": "unanimity == true OR max_rounds == 12",
+     "type": "string"
+    },
+    "expression_true": {
+     "type": "boolean"
+    },
+    "fixture_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "instant_unanimity_trigger": {
+     "type": "boolean"
+    },
+    "outcome_kind": {
+     "enum": [
+      "CONTINUE",
+      "AGREEMENT",
+      "TIMER_EXHAUSTION",
+      "AGREEMENT_AT_CEILING",
+      "AGREEMENT_HELD_FOR_REVALUATION"
+     ],
+     "type": "string"
+    },
+    "parse_accepted": {
+     "type": "boolean"
+    },
+    "rejected": {
+     "type": "boolean"
+    },
+    "round_index": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "short_circuit": {
+     "const": false,
+     "type": "boolean"
+    },
+    "side_effect_free": {
+     "const": true,
+     "type": "boolean"
+    },
+    "source_verbatim": {
+     "type": "string"
+    },
+    "stop_reason": {
+     "enum": [
+      "UNANIMITY",
+      "MAX_ROUNDS",
+      "BOTH",
+      null
+     ],
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "stopped": {
+     "type": "boolean"
+    },
+    "trace": {
+     "type": "object"
+    },
+    "unanimity": {
+     "type": "boolean"
+    }
+   },
+   "question_or_target": "This disjunction terminates on a timer if persuasion fails - what does the outcome record say when the timer, not agreement, ended the council, and is that outcome distinguishable from a real unanimity in downstream consumers?",
+   "required": [
+    "stopped",
+    "expression_true",
+    "stop_reason",
+    "outcome_kind",
+    "unanimity",
+    "round_index",
+    "branch_fired",
+    "instant_unanimity_trigger",
+    "consumer_key"
+   ],
+   "tautology_control": {
+    "illegal_binding": "max_rounds -> stopping.configured_max_rounds",
+    "reject_reason": "tautology: max_rounds is bound to constant 12 compared == 12",
+    "rejected": true,
+    "result": {
+     "binding_mode": "stopping.configured_max_rounds",
+     "reject_reason": "tautology: max_rounds is bound to constant 12 compared == 12",
+     "rejected": true
+    }
+   },
+   "title": "Executable stopping example: unanimity == true OR max_rounds == 12",
+   "type": "object",
+   "worked_example_council": {
+    "council_id": "cnl-0080.timer-or-unanimity",
+    "objective": "Stop on genuine unanimity or at round 12, never conflating the two.",
+    "participants": [
+     {
+      "id": "architect",
+      "role": "architect"
+     },
+     {
+      "id": "skeptic",
+      "role": "skeptic"
+     },
+     {
+      "id": "pragmatist",
+      "role": "pragmatist"
+     }
+    ],
+    "protocol": {
+     "id": "deliberate-until-unanimity-or-ceiling"
+    },
+    "schema_version": "councilspec.v2",
+    "stopping": {
+     "agreement_outcome_kind": "AGREEMENT",
+     "configured_max_rounds": 12,
+     "expression": "unanimity == true OR max_rounds == 12",
+     "on_timeout": "halt",
+     "timeout_outcome_kind": "TIMER_EXHAUSTION"
+    },
+    "topology": {
+     "kind": "round-robin",
+     "seats": 3
+    },
+    "voting": {
+     "quorum": 3,
+     "rule": "unanimity-of-seated-ballots"
+    }
+   }
+  },
+  "stripped": [
+   {
+    "loc": "reviewer",
+    "keys": [
+     "method"
+    ]
+   }
+  ]
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNL-0080",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+   "bytes": 20742,
+   "sha256": "4cfd09c1abb082af5f9fd213ecb2beef140d45a7a282fb678018e42631c8bdd6",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNL-0080 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+     "raw_output": "bytes=20742 sha256=4cfd09c1abb082af5f9fd213ecb2beef140d45a7a282fb678018e42631c8bdd6",
+     "fingerprint": "e34341dd18fe9f2200883d9f4f2d90f8",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNL-0080",
+     "raw_output": "schema-check",
+     "fingerprint": "b59e5566d8f10ba7a692d4c44f56e17a",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNL-0080 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNL-0080",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNL-0080",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "60c80904c943f95c64cc71c2570f10d6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNL-0080",
+     "raw_output": "schema-valid",
+     "fingerprint": "9e71ff6573635c4fb9e6de4128ff6741",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNL-0080/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNL-0080"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "a98adf9c37d52bbd745a1ee77b56e535",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "councilspec.v2",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 20742,
+    "method": "filesystem-stat",
+    "anchor": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "$id": "command-center/design/council/CNL-0080-executable-stopping-example-unanimity-true-or-max-rounds-1.schema.json",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "SUCCESS:CNL-0080": true,
+ "additionalProperties": false,
+ "answer": {
+  "cnl_0059_interaction": "Instant-unanimity suspicion (round 1, no independent briefs) holds finalization as AGREEMENT_HELD_FOR_REVALUATION. Timer exhaustion at round 12 with disagreement never takes that path and must not be read as unanimity or as instant unanimity.",
+  "consumer_must_key": [
+   "outcome_kind",
+   "unanimity",
+   "stop_reason",
+   "branch_fired"
+  ],
+  "consumer_must_not_key": [
+   "stopped",
+   "expression_true"
+  ],
+  "timer_distinguishable_from_unanimity": true,
+  "when_both_at_round_12": {
+   "note": "Not TIMER_EXHAUSTION. Agreement is retained.",
+   "outcome_kind": "AGREEMENT_AT_CEILING",
+   "stop_reason": "BOTH",
+   "unanimity": true
+  },
+  "when_real_unanimity": {
+   "branch_fired": [
+    "unanimity == true"
+   ],
+   "expression_true": true,
+   "outcome_kind": "AGREEMENT",
+   "stop_reason": "UNANIMITY",
+   "stopped": true,
+   "unanimity": true
+  },
+  "when_timer_not_agreement": {
+   "branch_fired": [
+    "max_rounds == 12"
+   ],
+   "expression_true": true,
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "TIMER_EXHAUSTION",
+   "stop_reason": "MAX_ROUNDS",
+   "stopped": true,
+   "unanimity": false
+  },
+  "why": "The disjunction is true for two different worlds. If the outcome record only says stopped=true, a downstream consumer cannot tell persuasion-failed-at-the-ceiling from all-seats-agreed. The record therefore keeps vote-state unanimity independent of stop_reason, and names TIMER_EXHAUSTION as a distinct outcome_kind from AGREEMENT."
+ },
+ "bindings": {
+  "max_rounds": {
+   "binds_to": "clock.round_index",
+   "configured_ceiling_field": "stopping.configured_max_rounds",
+   "literal_12": 12,
+   "rule": "1-based index of the round just completed. Must NOT bind to stopping.configured_max_rounds: when the ceiling is 12, max_rounds == 12 would be a tautology and the disjunction would FIRE on round 1 with no agreement."
+  },
+  "unanimity": {
+   "binds_to": "computed.unanimity_from_ballots",
+   "rule": "true iff every seated participant has a non-ABSTAIN ballot and all ballot values are identical. Missing ballot or ABSTAIN breaks unanimity. This field is the vote state; it is never copied from stop_reason or stopped."
+  }
+ },
+ "both_states": {
+  "fire_fixtures": [
+   "fire-unanimity",
+   "fire-timer"
+  ],
+  "fire_true": [
+   true,
+   true
+  ],
+  "silent_fixtures": [
+   "silent-contested",
+   "silent-round-11"
+  ],
+  "silent_true": false,
+  "vacuous": false
+ },
+ "completion_sentinel": "SUCCESS:CNL-0080",
+ "description": "CouncilSpec v2 stopping-example fragment for CNL-0080. The JSON Schema body validates an outcome record. Unit metadata is carried as extra draft-07 keywords.",
+ "emitted_at": "2026-08-25T00:52:45Z",
+ "evaluation_semantics": {
+  "cadence": "end-of-round",
+  "flap": "end-of-round snapshot; a predicate that was true mid-round and false at round end does not stop",
+  "not_cadence": [
+   "mid-turn",
+   "end-of-turn"
+  ],
+  "short_circuit": false,
+  "side_effect_free": true,
+  "why_no_short_circuit": "A timer-and-agreement coincidence at round 12 must record BOTH, not hide one branch."
+ },
+ "examples": [
+  {
+   "bindings": {
+    "max_rounds": "clock.round_index",
+    "unanimity": "computed.unanimity_from_ballots"
+   },
+   "branch_fired": [
+    "max_rounds == 12"
+   ],
+   "computed_unanimity": false,
+   "configured_max_rounds": 12,
+   "consumer_key": [
+    "TIMER_EXHAUSTION",
+    false,
+    "MAX_ROUNDS"
+   ],
+   "distinguishable_from_unanimity": true,
+   "evaluation_cadence": "end-of-round",
+   "expression": "unanimity == true OR max_rounds == 12",
+   "expression_true": true,
+   "fixture_id": "fire-timer",
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "TIMER_EXHAUSTION",
+   "parse_accepted": true,
+   "rejected": false,
+   "round_index": 12,
+   "short_circuit": false,
+   "side_effect_free": true,
+   "source_verbatim": "unanimity == true OR max_rounds == 12",
+   "stop_reason": "MAX_ROUNDS",
+   "stopped": true,
+   "unanimity": false
+  },
+  {
+   "bindings": {
+    "max_rounds": "clock.round_index",
+    "unanimity": "computed.unanimity_from_ballots"
+   },
+   "branch_fired": [
+    "unanimity == true"
+   ],
+   "computed_unanimity": true,
+   "configured_max_rounds": 12,
+   "consumer_key": [
+    "AGREEMENT",
+    true,
+    "UNANIMITY"
+   ],
+   "distinguishable_from_unanimity": false,
+   "evaluation_cadence": "end-of-round",
+   "expression": "unanimity == true OR max_rounds == 12",
+   "expression_true": true,
+   "fixture_id": "fire-unanimity",
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "AGREEMENT",
+   "parse_accepted": true,
+   "rejected": false,
+   "round_index": 4,
+   "short_circuit": false,
+   "side_effect_free": true,
+   "source_verbatim": "unanimity == true OR max_rounds == 12",
+   "stop_reason": "UNANIMITY",
+   "stopped": true,
+   "unanimity": true
+  },
+  {
+   "bindings": {
+    "max_rounds": "clock.round_index",
+    "unanimity": "computed.unanimity_from_ballots"
+   },
+   "branch_fired": [
+    "unanimity == true",
+    "max_rounds == 12"
+   ],
+   "computed_unanimity": true,
+   "configured_max_rounds": 12,
+   "consumer_key": [
+    "AGREEMENT_AT_CEILING",
+    true,
+    "BOTH"
+   ],
+   "distinguishable_from_unanimity": true,
+   "evaluation_cadence": "end-of-round",
+   "expression": "unanimity == true OR max_rounds == 12",
+   "expression_true": true,
+   "fixture_id": "both-at-ceiling",
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "AGREEMENT_AT_CEILING",
+   "parse_accepted": true,
+   "rejected": false,
+   "round_index": 12,
+   "short_circuit": false,
+   "side_effect_free": true,
+   "source_verbatim": "unanimity == true OR max_rounds == 12",
+   "stop_reason": "BOTH",
+   "stopped": true,
+   "unanimity": true
+  },
+  {
+   "bindings": {
+    "max_rounds": "clock.round_index",
+    "unanimity": "computed.unanimity_from_ballots"
+   },
+   "branch_fired": [],
+   "computed_unanimity": false,
+   "configured_max_rounds": 12,
+   "consumer_key": [
+    "CONTINUE",
+    false,
+    null
+   ],
+   "distinguishable_from_unanimity": true,
+   "evaluation_cadence": "end-of-round",
+   "expression": "unanimity == true OR max_rounds == 12",
+   "expression_true": false,
+   "fixture_id": "silent-contested",
+   "instant_unanimity_trigger": false,
+   "outcome_kind": "CONTINUE",
+   "parse_accepted": true,
+   "rejected": false,
+   "round_index": 5,
+   "short_circuit": false,
+   "side_effect_free": true,
+   "source_verbatim": "unanimity == true OR max_rounds == 12",
+   "stop_reason": null,
+   "stopped": false,
+   "unanimity": false
+  }
+ ],
+ "expression": {
+  "ast": {
+   "args": [
+    {
+     "cmp": "==",
+     "left": "unanimity",
+     "op": "CMP",
+     "right": true
+    },
+    {
+     "cmp": "==",
+     "left": "max_rounds",
+     "op": "CMP",
+     "right": 12
+    }
+   ],
+   "op": "OR"
+  },
+  "parse_accepted_unchanged": true,
+  "quoted_from": "catalog title of CNL-0080, which quotes the third of the six required executable stopping examples at spec 10937-10942; restore path C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md is not present on this worktree",
+  "source_file_on_this_worktree": false,
+  "spec_anchor": "_USER-PROMPTS.md:10939",
+  "spec_range": "_USER-PROMPTS.md:10937-10942",
+  "verbatim": "unanimity == true OR max_rounds == 12"
+ },
+ "fixture_runs": [
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "accept",
+    "skeptic": "accept"
+   },
+   "fixture_file": "fire-unanimity.json",
+   "fixture_id": "fire-unanimity",
+   "independent_briefs": 3,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [
+     "unanimity == true"
+    ],
+    "computed_unanimity": true,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "AGREEMENT",
+     true,
+     "UNANIMITY"
+    ],
+    "distinguishable_from_unanimity": false,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": true,
+    "fixture_id": "fire-unanimity",
+    "instant_unanimity_trigger": false,
+    "outcome_kind": "AGREEMENT",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 4,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": "UNANIMITY",
+    "stopped": true,
+    "unanimity": true
+   },
+   "round_index": 4
+  },
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "accept",
+    "skeptic": "reject"
+   },
+   "fixture_file": "fire-timer.json",
+   "fixture_id": "fire-timer",
+   "independent_briefs": 3,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [
+     "max_rounds == 12"
+    ],
+    "computed_unanimity": false,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "TIMER_EXHAUSTION",
+     false,
+     "MAX_ROUNDS"
+    ],
+    "distinguishable_from_unanimity": true,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": true,
+    "fixture_id": "fire-timer",
+    "instant_unanimity_trigger": false,
+    "outcome_kind": "TIMER_EXHAUSTION",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 12,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": "MAX_ROUNDS",
+    "stopped": true,
+    "unanimity": false
+   },
+   "round_index": 12
+  },
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "accept",
+    "skeptic": "reject"
+   },
+   "fixture_file": "silent-contested.json",
+   "fixture_id": "silent-contested",
+   "independent_briefs": 3,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [],
+    "computed_unanimity": false,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "CONTINUE",
+     false,
+     null
+    ],
+    "distinguishable_from_unanimity": true,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": false,
+    "fixture_id": "silent-contested",
+    "instant_unanimity_trigger": false,
+    "outcome_kind": "CONTINUE",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 5,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": null,
+    "stopped": false,
+    "unanimity": false
+   },
+   "round_index": 5
+  },
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "rework",
+    "skeptic": "reject"
+   },
+   "fixture_file": "silent-round-11.json",
+   "fixture_id": "silent-round-11",
+   "independent_briefs": 3,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [],
+    "computed_unanimity": false,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "CONTINUE",
+     false,
+     null
+    ],
+    "distinguishable_from_unanimity": true,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": false,
+    "fixture_id": "silent-round-11",
+    "instant_unanimity_trigger": false,
+    "outcome_kind": "CONTINUE",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 11,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": null,
+    "stopped": false,
+    "unanimity": false
+   },
+   "round_index": 11
+  },
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "accept",
+    "skeptic": "accept"
+   },
+   "fixture_file": "both-at-ceiling.json",
+   "fixture_id": "both-at-ceiling",
+   "independent_briefs": 3,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [
+     "unanimity == true",
+     "max_rounds == 12"
+    ],
+    "computed_unanimity": true,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "AGREEMENT_AT_CEILING",
+     true,
+     "BOTH"
+    ],
+    "distinguishable_from_unanimity": true,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": true,
+    "fixture_id": "both-at-ceiling",
+    "instant_unanimity_trigger": false,
+    "outcome_kind": "AGREEMENT_AT_CEILING",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 12,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": "BOTH",
+    "stopped": true,
+    "unanimity": true
+   },
+   "round_index": 12
+  },
+  {
+   "ballots": {
+    "architect": "accept",
+    "pragmatist": "accept",
+    "skeptic": "accept"
+   },
+   "fixture_file": "instant-unanimity-round-1.json",
+   "fixture_id": "instant-unanimity-round-1",
+   "independent_briefs": 0,
+   "result": {
+    "bindings": {
+     "max_rounds": "clock.round_index",
+     "unanimity": "computed.unanimity_from_ballots"
+    },
+    "branch_fired": [
+     "unanimity == true"
+    ],
+    "computed_unanimity": true,
+    "configured_max_rounds": 12,
+    "consumer_key": [
+     "AGREEMENT_HELD_FOR_REVALUATION",
+     true,
+     "UNANIMITY"
+    ],
+    "distinguishable_from_unanimity": true,
+    "evaluation_cadence": "end-of-round",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "expression_true": true,
+    "fixture_id": "instant-unanimity-round-1",
+    "instant_unanimity_trigger": true,
+    "outcome_kind": "AGREEMENT_HELD_FOR_REVALUATION",
+    "parse_accepted": true,
+    "rejected": false,
+    "round_index": 1,
+    "short_circuit": false,
+    "side_effect_free": true,
+    "source_verbatim": "unanimity == true OR max_rounds == 12",
+    "stop_reason": "UNANIMITY",
+    "stopped": true,
+    "unanimity": true
+   },
+   "round_index": 1
+  }
+ ],
+ "kind": "executable_stopping_example",
+ "negative_control": {
+  "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+  "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+  "on_agreement_fixture": {
+   "actual_outcome_kind": "AGREEMENT",
+   "actual_unanimity": true,
+   "fired": false,
+   "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+   "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+   "naive_outcome_kind": "AGREEMENT",
+   "naive_unanimity": true,
+   "silent": true
+  },
+  "on_timer_fixture": {
+   "actual_outcome_kind": "TIMER_EXHAUSTION",
+   "actual_unanimity": false,
+   "fired": true,
+   "id": "NC-STOPPED-IS-NOT-UNANIMITY",
+   "meant_to_reject": "a downstream consumer that copies stopped==true onto unanimity==true when the timer, not agreement, ended the council",
+   "naive_outcome_kind": "AGREEMENT",
+   "naive_unanimity": true,
+   "silent": false
+  },
+  "verbatim": "On fire-timer (disagreeing ballots, round_index=12): the naive consumer copies stopped=true onto unanimity=true; the control FIRES (fired=True). On fire-unanimity (identical ballots, round_index=4): the naive consumer also reports unanimity=true but that matches the ballots, so the control stays SILENT (fired=False)."
+ },
+ "parse_test": {
+  "accepted_unchanged": true,
+  "expression": "unanimity == true OR max_rounds == 12",
+  "grammar": "A10 / CNL-0010 AND OR NOT comparison ANY ALL WEIGHTED",
+  "six_required_examples": [
+   {
+    "accepted": true,
+    "line": 10937,
+    "unchanged": true,
+    "verbatim": "unique_ideas >= 100 AND completeness_score >= 0.90"
+   },
+   {
+    "accepted": true,
+    "line": 10938,
+    "unchanged": true,
+    "verbatim": "consensus >= 0.95 AND no_new_objection_rounds >= 2"
+   },
+   {
+    "accepted": true,
+    "line": 10939,
+    "unchanged": true,
+    "verbatim": "unanimity == true OR max_rounds == 12"
+   },
+   {
+    "accepted": true,
+    "line": 10940,
+    "unchanged": true,
+    "verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0"
+   },
+   {
+    "accepted": true,
+    "line": 10941,
+    "unchanged": true,
+    "verbatim": "evidence_saturation == true OR time_minutes >= 180"
+   },
+   {
+    "accepted": true,
+    "line": 10942,
+    "unchanged": true,
+    "verbatim": "proof_of_impossibility == true"
+   }
+  ]
+ },
+ "properties": {
+  "bindings": {
+   "type": "object"
+  },
+  "branch_fired": {
+   "items": {
+    "type": "string"
+   },
+   "type": "array"
+  },
+  "computed_unanimity": {
+   "type": "boolean"
+  },
+  "configured_max_rounds": {
+   "minimum": 1,
+   "type": "integer"
+  },
+  "consumer_key": {
+   "maxItems": 3,
+   "minItems": 3,
+   "type": "array"
+  },
+  "distinguishable_from_unanimity": {
+   "type": "boolean"
+  },
+  "evaluation_cadence": {
+   "const": "end-of-round",
+   "type": "string"
+  },
+  "expression": {
+   "const": "unanimity == true OR max_rounds == 12",
+   "type": "string"
+  },
+  "expression_true": {
+   "type": "boolean"
+  },
+  "fixture_id": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "instant_unanimity_trigger": {
+   "type": "boolean"
+  },
+  "outcome_kind": {
+   "enum": [
+    "CONTINUE",
+    "AGREEMENT",
+    "TIMER_EXHAUSTION",
+    "AGREEMENT_AT_CEILING",
+    "AGREEMENT_HELD_FOR_REVALUATION"
+   ],
+   "type": "string"
+  },
+  "parse_accepted": {
+   "type": "boolean"
+  },
+  "rejected": {
+   "type": "boolean"
+  },
+  "round_index": {
+   "minimum": 1,
+   "type": "integer"
+  },
+  "short_circuit": {
+   "const": false,
+   "type": "boolean"
+  },
+  "side_effect_free": {
+   "const": true,
+   "type": "boolean"
+  },
+  "source_verbatim": {
+   "type": "string"
+  },
+  "stop_reason": {
+   "enum": [
+    "UNANIMITY",
+    "MAX_ROUNDS",
+    "BOTH",
+    null
+   ],
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "stopped": {
+   "type": "boolean"
+  },
+  "trace": {
+   "type": "object"
+  },
+  "unanimity": {
+   "type": "boolean"
+  }
+ },
+ "question_or_target": "This disjunction terminates on a timer if persuasion fails - what does the outcome record say when the timer, not agreement, ended the council, and is that outcome distinguishable from a real unanimity in downstream consumers?",
+ "required": [
+  "stopped",
+  "expression_true",
+  "stop_reason",
+  "outcome_kind",
+  "unanimity",
+  "round_index",
+  "branch_fired",
+  "instant_unanimity_trigger",
+  "consumer_key"
+ ],
+ "tautology_control": {
+  "illegal_binding": "max_rounds -> stopping.configured_max_rounds",
+  "reject_reason": "tautology: max_rounds is bound to constant 12 compared == 12",
+  "rejected": true,
+  "result": {
+   "binding_mode": "stopping.configured_max_rounds",
+   "reject_reason": "tautology: max_rounds is bound to constant 12 compared == 12",
+   "rejected": true
+  }
+ },
+ "title": "Executable stopping example: unanimity == true OR max_rounds == 12",
+ "type": "object",
+ "worked_example_council": {
+  "council_id": "cnl-0080.timer-or-unanimity",
+  "objective": "Stop on genuine unanimity or at round 12, never conflating the two.",
+  "participants": [
+   {
+    "id": "architect",
+    "role": "architect"
+   },
+   {
+    "id": "skeptic",
+    "role": "skeptic"
+   },
+   {
+    "id": "pragmatist",
+    "role": "pragmatist"
+   }
+  ],
+  "protocol": {
+   "id": "deliberate-until-unanimity-or-ceiling"
+  },
+  "schema_version": "councilspec.v2",
+  "stopping": {
+   "agreement_outcome_kind": "AGREEMENT",
+   "configured_max_rounds": 12,
+   "expression": "unanimity == true OR max_rounds == 12",
+   "on_timeout": "halt",
+   "timeout_outcome_kind": "TIMER_EXHAUSTION"
+  },
+  "topology": {
+   "kind": "round-robin",
+   "seats": 3
+  },
+  "voting": {
+   "quorum": 3,
+   "rule": "unanimity-of-seated-ballots"
+  }
+ }
+}

@@ -1,0 +1,418 @@
+{
+ "unit_id": "IMP-0312",
+ "schema_version": 1,
+ "report_kind": "council-outcomes-module",
+ "profile": "council-outcomes-module",
+ "title": "Dissent and minority-report preservation pipeline",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0312",
+ "completion_sentinel": "SUCCESS:IMP-0312",
+ "spec_anchor": "_USER-PROMPTS.md:11172-11244 council outcomes / dissent preservation; _USER-PROMPTS.md:11340 / catalog tests_required spec 11342 planted-drop; FC-11340 dropped-dissent class; 11-COUNCIL-SPECIFICATION.md outcomes.minority_report",
+ "question": "Implement tools/council/outcomes/dissent.py so every dissent is captured, attributed and carried into the final artifact and any parent aggregation. Falsifiable question: does the count of dissents entering synthesis equal the count leaving it, and is a dissent ever summarised into non-existence?",
+ "module": "tools/council/outcomes/dissent.py",
+ "module_sha256": "8ac5ce6c19bbcda1a6969f3651b988255360f2b06fd2c47ddc333284f5eda870",
+ "module_bytes": 18892,
+ "artifact_paths": [
+  "command-center/receipts/IMP-0312.json",
+  "tools/council/outcomes/dissent.py",
+  "command-center/p2-wave/probes/IMP-0312/probe1_conservation.py",
+  "command-center/p2-wave/probes/IMP-0312/probe2_planted_drop.py",
+  "command-center/p2-wave/probes/IMP-0312/scenario.py"
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/outcomes/dissent.py:conservation",
+   "claim": "Dissent conservation holds at capture, attribute, synthesis and parent_aggregation: in_count==out_count and lost_ids empty ({\"capture\": [2, 2], \"attribute\": [2, 2], \"synthesis\": [2, 2], \"parent_aggregation\": [3, 3]}).",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -c 'DissentPipeline.run two_dissent_council + sibling; ledger'",
+     "exit_code": 0,
+     "fingerprint": "15eb5818a2662ff22850814ff440e673",
+     "raw_output": "[{\"conserved\": true, \"extra_ids\": [], \"in_count\": 2, \"in_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [], \"out_count\": 2, \"out_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"stage\": \"capture\"}, {\"conserved\": true, \"extra_ids\": [], \"in_count\": 2, \"in_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [], \"out_count\": 2, \"out_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"stage\": \"attribute\"}, {\"conserved\": true, \"extra_ids\": [], \"in_count\": 2, \"in_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [], \"out_count\": 2, \"out_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"stage\": \"synthesis\"}, {\"conserved\": true, \"extra_ids\": [], \"in_count\": 3, \"in_ids\": [\"dsnt-q-impossibility-ecb92a443ee0\", \"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [], \"out_count\": 3, \"out_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\", \"dsnt-q-impossibility-ecb92a443ee0\"], \"stage\": \"parent_aggregation\"}]"
+    },
+    {
+     "role": "verifier",
+     "method": "id-set-diff",
+     "command": "set(in_ids) - set(out_ids) per stage",
+     "exit_code": 0,
+     "fingerprint": "50816a8deea942293bd3b591d5891b06",
+     "raw_output": "[{\"stage\": \"capture\", \"lost_ids\": [], \"extra_ids\": []}, {\"stage\": \"attribute\", \"lost_ids\": [], \"extra_ids\": []}, {\"stage\": \"synthesis\", \"lost_ids\": [], \"extra_ids\": []}, {\"stage\": \"parent_aggregation\", \"lost_ids\": [], \"extra_ids\": []}]"
+    }
+   ]
+  },
+  {
+   "anchor": "tools/council/outcomes/dissent.py:claim_present",
+   "claim": "Each dissent's distinctive claim string survives in the synthesis verbatim (TOKEN-DSNT-ALPHA / TOKEN-DSNT-BETA) and the sibling TOKEN-DSNT-GAMMA remains reachable by id from the parent aggregation.",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED",
+   "probes": [
+    {
+     "role": "source",
+     "method": "text-presence",
+     "command": "claim in json.dumps(artifact) or dissent_index[id]==claim",
+     "exit_code": 0,
+     "fingerprint": "a80b7493b287c453fcce3048c8a82b34",
+     "raw_output": "{\"alpha_in_synthesis\": true, \"beta_in_synthesis\": true, \"gamma_in_parent\": true, \"majority_in_synthesis\": true}"
+    },
+    {
+     "role": "verifier",
+     "method": "resolvable-id",
+     "command": "artifact['dissent_index'][id] == original claim",
+     "exit_code": 0,
+     "fingerprint": "bf33700b4d6d5e402a139d698d4f8f37",
+     "raw_output": "{\"dsnt-p-auditor-d54c70069d50\": \"TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser\", \"dsnt-p-skeptic-80f692efcbef\": \"TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle\"}"
+    }
+   ]
+  }
+ ],
+ "test_ids": [
+  "IMP-0312-UNIT-CAPTURE-ATTRIBUTE-PROPAGATE",
+  "IMP-0312-INVARIANT-CONSERVATION",
+  "IMP-0312-NEG-PLANTED-DROP"
+ ],
+ "tests": [
+  {
+   "id": "IMP-0312-UNIT-CAPTURE-ATTRIBUTE-PROPAGATE",
+   "name": "unit: dissent capture, attribution and propagation",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0312/probe1_conservation.py",
+   "result": "PASS"
+  },
+  {
+   "id": "IMP-0312-INVARIANT-CONSERVATION",
+   "name": "invariant: conservation across synthesis",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0312/probe1_conservation.py",
+   "result": "PASS"
+  },
+  {
+   "id": "IMP-0312-NEG-PLANTED-DROP",
+   "name": "negative control (spec 11342): drop one dissent and assert conservation FAILS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0312/probe2_planted_drop.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_control_ids": [
+  "IMP-0312-NC-PLANTED-DROP",
+  "IMP-0312-NC-SUMMARISED-AWAY",
+  "IMP-0312-NC-UNATTRIBUTED",
+  "IMP-0312-NC-UNANIMOUS-NO-FABRICATE"
+ ],
+ "negative_controls": [
+  {
+   "id": "IMP-0312-NC-PLANTED-DROP",
+   "kind": "known-broken-fixture",
+   "description": "Delete one captured dissent from the synthesis; conservation must fail with that id in lost_ids (catalog spec 11342 / FC-11340).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"conserved\": false, \"extra_ids\": [], \"in_count\": 2, \"in_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [\"dsnt-p-auditor-d54c70069d50\"], \"out_count\": 1, \"out_ids\": [\"dsnt-p-skeptic-80f692efcbef\"], \"stage\": \"synthesis\"}",
+   "good_state_output": "{\"conserved\": true, \"extra_ids\": [], \"in_count\": 2, \"in_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"lost_ids\": [], \"out_count\": 2, \"out_ids\": [\"dsnt-p-auditor-d54c70069d50\", \"dsnt-p-skeptic-80f692efcbef\"], \"stage\": \"synthesis\"}"
+  },
+  {
+   "id": "IMP-0312-NC-SUMMARISED-AWAY",
+   "kind": "known-broken-fixture",
+   "description": "Replace a distinctive claim with 'minority disagreed' while keeping an id slot. Presence must fail: summarised into non-existence.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"checked\": 2, \"failures\": [{\"claim\": \"TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser\", \"dissent_id\": \"dsnt-p-auditor-d54c70069d50\", \"reason\": \"summarised-away\"}], \"ok\": false, \"stage\": \"synthesis\"}",
+   "good_state_output": "{\"checked\": 2, \"failures\": [], \"ok\": true, \"stage\": \"synthesis\"}"
+  },
+  {
+   "id": "IMP-0312-NC-UNATTRIBUTED",
+   "kind": "known-broken-fixture",
+   "description": "A dissent missing participant_id is refused, not silently dropped.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "dissent missing participant_id; unattributed minority must not vanish (id='dsnt-unattributed-a8d558e60569' turn_id='t-r1-ghost')",
+   "good_state_output": "attributed n=2"
+  },
+  {
+   "id": "IMP-0312-NC-UNANIMOUS-NO-FABRICATE",
+   "kind": "known-good-fixture",
+   "description": "Unanimous council must not fabricate a minority report.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "fabricated-dissent-would-fail",
+   "good_state_output": "unanimous captured=0"
+  }
+ ],
+ "reviewer_verdict": "PASS",
+ "reviewer": {
+  "reviewer_id": "IMP-0312-probe2-planted-drop",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "starts_from_tests": true,
+  "notes": "Adversarial reviewer is the planted-drop / summarised-away probe. It does not read this narrative: it re-runs conservation and presence on good, dropped, and summarised mutants."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0264 kernel.py is not on this worktree. The pipeline consumes documented turn/event dicts (from_kernel_events) rather than a live round scheduler. A topology that writes participant output behind the kernel is not executable here.",
+   "settling_experiment": "Re-run capture against a live IMP-0264 event log once the kernel unit delivers.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "FAILURE-MODES.json maps spec 11342 to 'corruption threshold unspecified' while this unit's catalog tests_required names spec 11342 as the planted-drop control. FC-11340 is the dropped-dissent class. This receipt binds the planted-drop test to both the catalog wording and FC-11340.",
+   "settling_experiment": "Reconcile spec-line numbering against 11-COUNCIL-SPECIFICATION.md when that file is on the tree.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "conservation_ledger": [
+  {
+   "stage": "capture",
+   "in_count": 2,
+   "out_count": 2,
+   "in_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "out_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "lost_ids": [],
+   "extra_ids": [],
+   "conserved": true
+  },
+  {
+   "stage": "attribute",
+   "in_count": 2,
+   "out_count": 2,
+   "in_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "out_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "lost_ids": [],
+   "extra_ids": [],
+   "conserved": true
+  },
+  {
+   "stage": "synthesis",
+   "in_count": 2,
+   "out_count": 2,
+   "in_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "out_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "lost_ids": [],
+   "extra_ids": [],
+   "conserved": true
+  },
+  {
+   "stage": "parent_aggregation",
+   "in_count": 3,
+   "out_count": 3,
+   "in_ids": [
+    "dsnt-q-impossibility-ecb92a443ee0",
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "out_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef",
+    "dsnt-q-impossibility-ecb92a443ee0"
+   ],
+   "lost_ids": [],
+   "extra_ids": [],
+   "conserved": true
+  }
+ ],
+ "presence_ledger": [
+  {
+   "stage": "synthesis",
+   "ok": true,
+   "checked": 2,
+   "failures": []
+  },
+  {
+   "stage": "parent_aggregation",
+   "ok": true,
+   "checked": 3,
+   "failures": []
+  }
+ ],
+ "falsifiable_answers": {
+  "count_in_equals_count_out_at_synthesis": true,
+  "summarised_into_non_existence_on_intact_run": false,
+  "summarised_into_non_existence_detected_on_mutant": true,
+  "parent_aggregation_preserves_ids": true,
+  "kernel_adapter_preserves_claims": true
+ },
+ "sample_artifact": {
+  "council_id": "council-main",
+  "kind": "dissent_recorded",
+  "majority": {
+   "option_id": "opt-A",
+   "claim": "Ship the hatch path as-is under option opt-A."
+  },
+  "synthesis": {
+   "text": "Ship the hatch path as-is under option opt-A.\nDissent dsnt-p-auditor-d54c70069d50 (p-auditor): TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser\nDissent dsnt-p-skeptic-80f692efcbef (p-skeptic): TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+   "acknowledged_dissent_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "majority_claim": "Ship the hatch path as-is under option opt-A."
+  },
+  "minority_report": {
+   "dissent_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef"
+   ],
+   "dissents": [
+    {
+     "id": "dsnt-p-auditor-d54c70069d50",
+     "claim": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+     "participant_id": "p-auditor",
+     "turn_id": "t-r1-p-auditor",
+     "role": "Auditor",
+     "option_id": "opt-C",
+     "rationale": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+     "evidence_cites": [
+      "e-condorcet"
+     ],
+     "council_id": "council-main",
+     "round_index": 1,
+     "kind": "dissent",
+     "dissent_id": "dsnt-p-auditor-d54c70069d50"
+    },
+    {
+     "id": "dsnt-p-skeptic-80f692efcbef",
+     "claim": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+     "participant_id": "p-skeptic",
+     "turn_id": "t-r1-p-skeptic",
+     "role": "Skeptic",
+     "option_id": "opt-B",
+     "rationale": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+     "evidence_cites": [
+      "e-hatch-leak"
+     ],
+     "council_id": "council-main",
+     "round_index": 1,
+     "kind": "dissent",
+     "dissent_id": "dsnt-p-skeptic-80f692efcbef"
+    }
+   ],
+   "count": 2
+  },
+  "dissent_index": {
+   "dsnt-p-auditor-d54c70069d50": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+   "dsnt-p-skeptic-80f692efcbef": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle"
+  }
+ },
+ "sample_parent": {
+  "council_id": "council-main-parent",
+  "kind": "dissent_recorded",
+  "majority": {
+   "option_id": "opt-A",
+   "claim": "Ship the hatch path as-is under option opt-A."
+  },
+  "synthesis": {
+   "text": "Ship the hatch path as-is under option opt-A.\nDissent dsnt-p-auditor-d54c70069d50 (p-auditor): TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser\nDissent dsnt-p-skeptic-80f692efcbef (p-skeptic): TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle\nDissent dsnt-q-impossibility-ecb92a443ee0 (q-impossibility): TOKEN-DSNT-GAMMA: nested fan-in averages away the skeptic's impossibility proof",
+   "acknowledged_dissent_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef",
+    "dsnt-q-impossibility-ecb92a443ee0"
+   ],
+   "majority_claim": "Ship the hatch path as-is under option opt-A."
+  },
+  "minority_report": {
+   "dissent_ids": [
+    "dsnt-p-auditor-d54c70069d50",
+    "dsnt-p-skeptic-80f692efcbef",
+    "dsnt-q-impossibility-ecb92a443ee0"
+   ],
+   "dissents": [
+    {
+     "id": "dsnt-p-auditor-d54c70069d50",
+     "claim": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+     "participant_id": "p-auditor",
+     "turn_id": "t-r1-p-auditor",
+     "role": "Auditor",
+     "option_id": "opt-C",
+     "rationale": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+     "evidence_cites": [
+      "e-condorcet"
+     ],
+     "council_id": "council-main",
+     "round_index": 1,
+     "kind": "dissent",
+     "dissent_id": "dsnt-p-auditor-d54c70069d50"
+    },
+    {
+     "id": "dsnt-p-skeptic-80f692efcbef",
+     "claim": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+     "participant_id": "p-skeptic",
+     "turn_id": "t-r1-p-skeptic",
+     "role": "Skeptic",
+     "option_id": "opt-B",
+     "rationale": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+     "evidence_cites": [
+      "e-hatch-leak"
+     ],
+     "council_id": "council-main",
+     "round_index": 1,
+     "kind": "dissent",
+     "dissent_id": "dsnt-p-skeptic-80f692efcbef"
+    },
+    {
+     "id": "dsnt-q-impossibility-ecb92a443ee0",
+     "claim": "TOKEN-DSNT-GAMMA: nested fan-in averages away the skeptic's impossibility proof",
+     "participant_id": "q-impossibility",
+     "turn_id": "t-q-imp",
+     "role": "Skeptic",
+     "option_id": "opt-D",
+     "rationale": "TOKEN-DSNT-GAMMA: nested fan-in averages away the skeptic's impossibility proof",
+     "evidence_cites": [
+      "e-fan-in"
+     ],
+     "council_id": "council-sibling",
+     "round_index": 1,
+     "kind": "dissent",
+     "dissent_id": "dsnt-q-impossibility-ecb92a443ee0"
+    }
+   ],
+   "count": 3
+  },
+  "dissent_index": {
+   "dsnt-p-auditor-d54c70069d50": "TOKEN-DSNT-BETA: ranked-choice on this ballot set elects a Condorcet loser",
+   "dsnt-p-skeptic-80f692efcbef": "TOKEN-DSNT-ALPHA: the proposed hatch path leaks owner credentials into the artifact bundle",
+   "dsnt-q-impossibility-ecb92a443ee0": "TOKEN-DSNT-GAMMA: nested fan-in averages away the skeptic's impossibility proof"
+  },
+  "child_council_ids": [
+   "council-sibling"
+  ],
+  "local_dissent_ids": [
+   "dsnt-p-auditor-d54c70069d50",
+   "dsnt-p-skeptic-80f692efcbef"
+  ]
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0312/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+ },
+ "min_bytes_threshold": 128,
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "timestamps": {
+  "started_at": "2026-08-25T00:59:24Z",
+  "ended_at": "2026-08-25T00:59:24Z"
+ },
+ "produced_by": {
+  "role": "implementer",
+  "execution_substrate": "worktree-isolated",
+  "worktree": "/opt/p2/ast-integrate"
+ }
+}

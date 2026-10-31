@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0108/measurement-run.schema.json",
+  "title": "RES-0108 measurement run (pre-published GEM rubric, blind calibration)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "methodology",
+    "rubric",
+    "calibration",
+    "measurements",
+    "tests",
+    "reviewer",
+    "reviewers",
+    "artifacts",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0108" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 16 },
+    "report_kind": { "type": "string", "const": "measurement-run" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "methodology": {
+      "type": "object",
+      "required": ["instrument", "blinding", "published_before_application"],
+      "properties": {
+        "instrument": { "type": "string", "minLength": 8 },
+        "blinding": { "type": "string", "minLength": 16 },
+        "published_before_application": { "type": "boolean", "const": true }
+      }
+    },
+    "rubric": {
+      "type": "object",
+      "required": ["id", "published_sha256", "gem_rule"],
+      "properties": {
+        "id": { "type": "string", "minLength": 8 },
+        "published_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "gem_rule": { "type": "string", "minLength": 16 }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "required": [
+        "tier1_row_count",
+        "tier1_agree",
+        "tier1_disagree",
+        "tier3_row_count",
+        "tier3_scored_as_gem"
+      ],
+      "properties": {
+        "tier1_row_count": { "type": "integer", "minimum": 10, "maximum": 10 },
+        "tier1_agree": { "type": "integer", "minimum": 0 },
+        "tier1_disagree": { "type": "integer", "minimum": 1 },
+        "tier3_row_count": { "type": "integer", "minimum": 5, "maximum": 5 },
+        "tier3_scored_as_gem": { "type": "integer", "minimum": 0, "maximum": 0 }
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["id", "call_sheet_grade", "gem", "agree"],
+        "properties": {
+          "id": { "type": "string", "minLength": 2 },
+          "call_sheet_grade": { "type": "string", "minLength": 2 },
+          "gem": { "type": "boolean" },
+          "agree": { "type": "boolean" }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 4 },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL", "CHANGES-REQUESTED"] },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "reviewers": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["reviewer_id", "vendor", "partition", "verdict"],
+        "properties": {
+          "reviewer_id": { "type": "string", "minLength": 4 },
+          "vendor": { "type": "string", "minLength": 2 },
+          "partition": { "type": "array", "minItems": 1 },
+          "verdict": { "type": "string", "minLength": 2 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "exists": { "type": "boolean" },
+          "role": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["path", "kind", "claim"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "kind": { "type": "string", "minLength": 4 },
+          "claim": { "type": "string", "minLength": 8 }
+        }
+      }
+    }
+  }
+}

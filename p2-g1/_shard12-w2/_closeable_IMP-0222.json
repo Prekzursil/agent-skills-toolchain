@@ -1,0 +1,99 @@
+{
+ "schema_version": 1,
+ "unit_id": "IMP-0222",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:IMP-0222",
+ "spec_anchor": "_USER-PROMPTS.md:11318 + rules/common/fan-out-contract.md (one hung agent deadlocked a whole phase - measured orchestration failure); inputs tools/agentrail/agentrail/runner.py",
+ "min_bytes_threshold": 2048,
+ "retry": {
+  "attempts": [
+   {
+    "attempt": 1,
+    "error_fingerprint": "import-concurrent-futures-TimeoutExpired-missing-py314",
+    "outcome": "FAILED"
+   },
+   {
+    "attempt": 2,
+    "error_fingerprint": "threadpool-with-block-joins-hung-worker-wall-30s",
+    "outcome": "FAILED"
+   },
+   {
+    "attempt": 3,
+    "error_fingerprint": "pivot-applied-builtin-timeout-and-no-join-shutdown",
+    "outcome": "SUCCESS"
+   }
+  ],
+  "count": 2,
+  "pivot_alternatives": [
+   "use builtin TimeoutError (py3.11+ merged concurrent.futures.TimeoutExpired)",
+   "shutdown(wait=False, cancel_futures=True) so the cohort never joins the hung worker; abandoned workers counted in the report"
+  ],
+  "policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [],
+ "downstream_consumers": null,
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0222/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "profile": null,
+ "timestamps": {
+  "duration_seconds": 900,
+  "ended_at": "2026-10-24T12:37:02Z",
+  "started_at": "2026-10-24T12:37:02Z"
+ },
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "implementer",
+  "vendor": "anthropic"
+ },
+ "has_failure": true,
+ "failure": {
+  "blocked_on": "c9=UNSATISFIED independent adversarial reviewer PASS (catalog requires one independent reviewer in a fresh context; this receipt was authored by the builder and must not self-certify)",
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Build and live probes complete; state is BLOCKED only because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true. The independent adversarial reviewer in a fresh context has not yet reviewed this unit; only the independent reviewer closes. Build evidence: 49/50 complete under a planted hang with a timeout-typed terminal record and timestamp-audited barrier bound; coupled-barrier counterfactual stalls. No owner gate applies (owner_approval_required=false)."
+ },
+ "n_tests": 1,
+ "test_rows": [
+  {
+   "id": "test-cohort-isolation",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools/agentrail;tools/agentspec python3 -m pytest tools/agentrail/tests/test_cohort_isolation.py -q"
+  }
+ ],
+ "n_evidence": 2,
+ "evidence_conf": [
+  "CONFIRMED",
+  "CONFIRMED"
+ ],
+ "n_neg": 1,
+ "neg_flags": [
+  {
+   "fired": true,
+   "silent": true
+  }
+ ],
+ "reviewer": null,
+ "keys": [
+  "artifacts",
+  "evidence",
+  "extensions",
+  "failure",
+  "manifest_registration",
+  "min_bytes_threshold",
+  "negative_controls",
+  "produced_by",
+  "residual_unknowns",
+  "retry",
+  "schema_version",
+  "sentinel",
+  "spec_anchor",
+  "state",
+  "tests",
+  "timestamps",
+  "unit_id"
+ ]
+}

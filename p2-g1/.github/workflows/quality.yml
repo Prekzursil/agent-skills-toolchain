@@ -1,0 +1,32 @@
+# Command-center quality gate (rebuilt 2026-10-25 for IMP-0435/IMP-0437 resume).
+# The historical 122KB workflow was lost with the dead builder's worktree; this
+# rebuild carries the two command-center gate steps those units deliver.
+name: quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gate-tests-coverage:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: gate-tests-coverage command-center
+        # IMP-0437: --require-complete is armed; deleting the defaults block
+        # must turn this step red, not pass silently.
+        run: |
+          python tools/command-center/validate.py --require-complete
+          python tools/command-center/tests/test_receipt_gate.py
+          python tools/command-center/tests/test_vfields_ci.py
+
+      - name: receipt-gate standalone
+        run: python tools/command-center/receipt_gate.py

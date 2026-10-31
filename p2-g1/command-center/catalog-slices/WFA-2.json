@@ -1,0 +1,1466 @@
+[
+  {
+    "id": "WFA-0129",
+    "title": "Matched-case benchmark corpus for fusion evaluation",
+    "phase": "2B",
+    "question_or_target": "Build a benchmark corpus of executable task cases such that, for EACH of the 30 merge_units in 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json, at least one case can be run identically by the fused blueprint AND by every entry in that unit's `sources_resolved_in_registry`. Emit the case set, a computed case->merge_unit coverage matrix, and an explicit NON-BENCHMARKABLE list naming every merge_unit for which no matched case exists and why. Question: for how many of the 30 merge_units can a like-for-like source-vs-fusion comparison actually be run, and which are excluded?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10739 (run source workflows and fused candidates on matched benchmark cases)"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0129-matched-case-benchmark-corpus-for-fusion-evaluation.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/benchmark-corpus",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the coverage matrix is COMPUTED from the artifacts (no hand count), and the excluded set is enumerated with a per-merge_unit reason string",
+    "tests_required": [
+      "both-states: feed the corpus builder one case every source can run and one case no source can run; it must accept exactly the first and reject the second",
+      "the coverage matrix row count equals len(merge_units)==30 or the build fails closed"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0129",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "matched-case derivation with a fail-closed non-benchmarkable exclusion list",
+    "not_a_duplicate_because": "produces the INPUT cases only; WFA-0130 defines what is measured on them, WFA-0133 measures the sources, WFA-0132 schedules the comparisons",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10739"
+  },
+  {
+    "id": "WFA-0130",
+    "title": "Pre-registered fusion acceptance metric set",
+    "phase": "2B",
+    "question_or_target": "Define and PRE-REGISTER, before any fusion is measured, the metric set and the decision rule that decides whether a fused workflow is accepted - operationalising 'better correctness, coverage, recovery, or usability' into four computable metrics with stated estimators, tie-breaks, and a minimum effect size. Question: what exact numeric predicate over those four metrics converts a benchmark run into ACCEPT / REJECT, and is it frozen (hash-pinned) before the first measurement?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11170 (a merged workflow is not accepted because it contains more stages)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10741 (certify only workflows that outperform or materially complement)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/foundry/WFA-0130-pre-registered-fusion-acceptance-metric-set.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/metric-registry",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the registry file carries a sha256 recorded BEFORE the first benchmark run, and the run log cites that hash",
+    "tests_required": [
+      "a post-hoc metric edit must be rejected: mutate the registry after pinning and confirm the runner refuses to score against the mutated copy (both-states)"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0130",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "pre-registration + hash pinning of the acceptance predicate to block metric shopping",
+    "not_a_duplicate_because": "defines WHAT is measured and the accept rule; WFA-0129 supplies cases, WFA-0134 binds the program-wide completion predicate, WFA-0131 attacks this metric set",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11170"
+  },
+  {
+    "id": "WFA-0131",
+    "title": "Benchmark-gaming adversarial control",
+    "phase": "2B",
+    "question_or_target": "Attack the pre-registered metric set from WFA-0130: construct at least three GAMED workflow variants that raise the composite score without adding capability (stage padding, case overfitting, retry-until-pass, and metric-favourable output shaping) and run them. Question: does the acceptance predicate accept any gamed variant, and if so what counter-control (held-out cases, capability assertion, effort normalisation) makes it reject all three while still accepting the genuine improvement?",
+    "inputs": [
+      "WFA-0130 metric registry",
+      "WFA-0129 case corpus",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11059 (benchmark gaming refuter)"
+    ],
+    "dependencies": [
+      "WFA-0130",
+      "WFA-0129"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0131-benchmark-gaming-adversarial-control.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/adversarial-control",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each gamed variant is committed as a runnable fixture with its score, and the counter-control is shown to keep the genuine improvement accepted",
+    "tests_required": [
+      "the control must FIRE on all three gamed variants and stay SILENT on the honest baseline - a control silent in both states measures nothing"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0131",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "constructive score-inflation attack that yields a held-out counter-control",
+    "not_a_duplicate_because": "attacks the SCORING rule; WFA-0136 attacks catalog DISTINCTNESS and WFA-0145 attacks scout RECALL - three different targets",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11059"
+  },
+  {
+    "id": "WFA-0132",
+    "title": "Pairwise workflow tournament runner with a statistical stopping rule",
+    "phase": "2B",
+    "question_or_target": "Implement the A/B and tournament runner that schedules pairwise source-vs-fusion and fusion-vs-fusion matches over the WFA-0129 corpus, with a declared sample size, a sequential stopping rule, and a Condorcet/pairwise aggregation that reports intransitive cycles instead of hiding them. Question: how many matched runs per pair are required before the ACCEPT/REJECT call is stable, and which pairs remain undecided at that budget?",
+    "inputs": [
+      "WFA-0129 case corpus",
+      "WFA-0130 metric registry",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#family_composition_matrix",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11164 (A/B and tournament benchmarking)"
+    ],
+    "dependencies": [
+      "WFA-0129",
+      "WFA-0130"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/foundry/WFA-0132-pairwise-workflow-tournament-runner-with-a-statistic.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/tournament-engine",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the undecided-pair list and any Condorcet cycle are emitted as first-class output, not omitted",
+    "tests_required": [
+      "seeded-outcome simulation: with a known-superior arm planted, the runner must converge on it; with two identical arms it must report UNDECIDED rather than a winner"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0132",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "uncontrolled-silence",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "sequential pairwise scheduling with explicit undecided/cycle reporting",
+    "not_a_duplicate_because": "schedules and aggregates comparisons; WFA-0130 defines the metric, WFA-0133 fixes the measurement ORDER, WFA-0129 supplies the cases",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11164"
+  },
+  {
+    "id": "WFA-0133",
+    "title": "Source-baseline-before-fusion ordering invariant",
+    "phase": "2B",
+    "question_or_target": "Enforce that every source workflow is measured on the matched cases BEFORE its fusion is measured, and persist the source baselines so the named failure 'fused workflow performs worse than every source workflow' becomes computable rather than rhetorical. Question: for each of the 30 merge_units, what is the per-metric baseline of every resolved source, and does the runner refuse to score a fusion whose sources are unmeasured?",
+    "inputs": [
+      "WFA-0129 case corpus",
+      "WFA-0130 metric registry",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11333 (fused workflow performs worse than every source workflow)"
+    ],
+    "dependencies": [
+      "WFA-0129",
+      "WFA-0130",
+      "WFA-0132"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0133-source-baseline-before-fusion-ordering-invariant.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/baseline-ledger",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the baseline ledger is written before the first fusion run and its mtime/commit order proves the sequence",
+    "tests_required": [
+      "submit a fusion whose sources have no baseline row: the runner must refuse (fail closed), and must accept the same fusion once baselines exist (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0133",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "green-not-live",
+      "dependency-blocked",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "temporal ordering invariant on measurement, persisted as a baseline ledger",
+    "not_a_duplicate_because": "this is the ORDER-OF-MEASUREMENT invariant and the baseline store; WFA-0132 is the match scheduler and WFA-0140 is the capability diff, neither of which persists baselines",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11333"
+  },
+  {
+    "id": "WFA-0134",
+    "title": "Bind the shared 12-condition completion predicate to a workflow artifact",
+    "phase": "2B",
+    "question_or_target": "Instantiate the program's single completion predicate (spec conditions 1-12) for the workflow-artifact type and emit a per-workflow CERTIFIED / PROVISIONAL / REJECTED record naming which of the 12 conditions passed, failed, or are not-applicable with a reason. Question: which of the 12 conditions are genuinely inapplicable to a workflow blueprint (versus quietly skipped), and does the same reducer run in the local runner, the tournament runner, and the certification gate?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10627-10648 (one completion predicate everywhere)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0134-bind-the-shared-12-condition-completion-predicate-to.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/certification-predicate",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; a single shared reducer module is imported by all three call sites; the import graph is shown, not asserted",
+    "tests_required": [
+      "mutation: break each of the 12 conditions in turn and confirm the record flips to REJECTED for that condition - a condition whose mutation survives is not wired"
+    ],
+    "reviewer_requirement": "an independent confirmer who starts from raw source artifacts and reproduces the verdict without reading the author's conclusion (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11030-11039)",
+    "completion_sentinel": "SUCCESS:WFA-0134",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "single-reducer binding of the program completion predicate to the workflow type",
+    "not_a_duplicate_because": "defines PASS/FAIL conditions; WFA-0135 checks that a claimed quality TIER has its evidence on disk, WFA-0137 removes certification after a later regression",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10627"
+  },
+  {
+    "id": "WFA-0135",
+    "title": "Quality-tier evidence gate (40 flagship end-to-end vs the smoke-tested remainder)",
+    "phase": "2B",
+    "question_or_target": "Implement the two-tier contract - at least 40 flagship workflows with full end-to-end tests, every remaining workflow executable, schema-valid, documented and smoke-tested - as a gate that resolves each tier claim to the test artifacts that back it on disk. Question: for each blueprint claiming flagship tier, which end-to-end test file and which passing run id proves it, and how many claims resolve to nothing?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10898 (at least 40 must be flagship with full end-to-end tests)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/19-SUBSTANCE-AUDIT-BLUEPRINTS.md"
+    ],
+    "dependencies": [
+      "WFA-0134"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0135-quality-tier-evidence-gate-40-flagship-end-to-end-vs.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/tier-ledger",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each flagship row cites test file:line AND a run identifier; a row citing only a file path with no run is recorded as UNPROVEN, not as pass",
+    "tests_required": [
+      "delete one flagship test file and confirm the gate demotes that blueprint out of flagship tier rather than staying green (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0135",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "green-not-live",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "tier claim -> on-disk test-artifact resolution with UNPROVEN as a distinct outcome",
+    "not_a_duplicate_because": "checks the EVIDENCE BEHIND a tier claim; WFA-0134 defines the pass conditions and WFA-0157 fixes which FIELD a gate may key on",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10898"
+  },
+  {
+    "id": "WFA-0136",
+    "title": "Semantic non-duplication proof for the >=96-entry blueprint catalog",
+    "phase": "2B",
+    "question_or_target": "Produce the explicit catalog proof that the shipped blueprint entries are MATERIALLY distinct, using an embedding-cosine pass rather than token overlap alone, because a lexical scan cannot separate a full-rewrite paraphrase from a genuinely new mechanism. Question: which blueprint pairs are near-duplicates under semantic similarity that token-Jaccard scored as distinct, and does each survivor pair carry a not_a_duplicate_because sentence that names a mechanism difference, not a wording one?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10909 (maintain an explicit catalog proving the 96 entries are materially distinct)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints (108)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units.not_a_duplicate_because"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/independent-confirmer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0136-semantic-non-duplication-proof-for-the-96-entry-blue.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/distinctness-proof",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; planted-mutant control: inject a known paraphrase pair and a known-distinct pair; report the detector's score on both alongside the real findings",
+    "tests_required": [
+      "the planted paraphrase must be flagged and the planted distinct pair must not - a detector that flags both or neither is reported as broken and its findings discarded"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0136",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "embedding-cosine distinctness with a planted-mutant detector control",
+    "not_a_duplicate_because": "measures catalog DISTINCTNESS; WFA-0131 attacks the score, WFA-0149 repairs a compatibility data defect, WFA-0140 measures capability loss inside one fusion",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10909"
+  },
+  {
+    "id": "WFA-0137",
+    "title": "Decertification path when a certified workflow later regresses",
+    "phase": "2B",
+    "question_or_target": "Implement revocation: when a previously CERTIFIED workflow fails a later regression or benchmark rerun, flip its record to DECERTIFIED, propagate to every pack, preset and fusion that embeds it, and surface the affected downstream set. Question: given a regression on one blueprint, exactly which packs, presets and fused workflows must be re-gated, and does any consumer keep serving the decertified version?",
+    "inputs": [
+      "WFA-0134 certification records",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#composition_graph",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11166 (certification, deprecation, supersession, and rollback)"
+    ],
+    "dependencies": [
+      "WFA-0134",
+      "WFA-0152"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0137-decertification-path-when-a-certified-workflow-later.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/revocation-engine",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the propagation set is computed over the composition graph (108 nodes, one connected component) rather than hand-listed",
+    "tests_required": [
+      "decertify a leaf blueprint and assert every transitively dependent pack is re-gated; decertify nothing and assert zero packs are touched (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0137",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "green-not-live",
+      "uncontrolled-silence",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "regression-triggered revocation with transitive downstream propagation",
+    "not_a_duplicate_because": "triggered by a QUALITY REGRESSION on the same workflow; WFA-0142 is triggered by a SUPERIOR REPLACEMENT and carries a migration path instead",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11166"
+  },
+  {
+    "id": "WFA-0138",
+    "title": "Fusion lineage record and the decomposition round-trip test",
+    "phase": "2B",
+    "question_or_target": "Define the lineage record a fused workflow must carry and implement the executable round-trip test that decomposes a fusion back into its source mechanisms and asserts the recovered set equals the declared sources. Question: for each of the 30 merge_units, does decompose(fuse(sources)) return exactly `sources_declared`, and which units fail because of the entries already recorded as `sources_unresolved`?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913 (a fused workflow must preserve lineage and be decomposable back)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units.sources_declared",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units.sources_unresolved"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0138-fusion-lineage-record-and-the-decomposition-round-tr.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/lineage-record",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the round trip is executed per merge_unit and the set difference is printed per failure, not summarised as a pass rate",
+    "tests_required": [
+      "drop one source from a fusion and confirm the round trip fails with that exact source named; restore it and confirm the trip passes (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0138",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "structural decompose(fuse(x)) == x round trip over declared lineage",
+    "not_a_duplicate_because": "asserts STRUCTURAL recoverability of the source list; WFA-0140 asserts that the fusion retains each source's CAPABILITIES, which can hold or fail independently",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913"
+  },
+  {
+    "id": "WFA-0139",
+    "title": "License and credit propagation lattice through fusion",
+    "phase": "2B",
+    "question_or_target": "Implement most-restrictive-wins license propagation and credit carry-through for fusion, seeded by the 7 license_classification_rules and the 45-row license_risk_register in the provenance graph. Question: for every fusion whose sources span more than one license class, what is the resulting license, which combinations are prohibited outright, and does any fusion currently lose an attribution required by a source?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json#license_classification_rules (7)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json#license_risk_register (45)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11334 (workflow provenance or license is lost)"
+    ],
+    "dependencies": [
+      "WFA-0138",
+      "WFA-0153"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/licensing-analyst",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/license-lattice",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each propagation verdict cites the specific rule index it applied; a fusion with an unresolved source license is BLOCKED, never defaulted to permissive",
+    "tests_required": [
+      "feed a copyleft+permissive pair and assert the copyleft result; feed an unknown-license source and assert BLOCKED rather than a silent permissive default (both-states)"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0139",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "uncontrolled-silence",
+      "owner-blocked"
+    ],
+    "owner_approval_required": true,
+    "bucket": "B04",
+    "mechanism": "most-restrictive-wins license lattice with fail-closed unknown handling",
+    "not_a_duplicate_because": "operates at FUSION time on license combination; WFA-0153 closes unresolved provenance NODES in the static graph, which is an input to this, not the same computation",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11334"
+  },
+  {
+    "id": "WFA-0140",
+    "title": "Capability-loss detector for fusion",
+    "phase": "2B",
+    "question_or_target": "Extract a typed capability set (stages, gates, tools, stop rules, recovery paths) from each source workflow and from the fusion, then compute the set difference. Question: for each of the 30 merge_units, which source capabilities are absent from the fusion, and is each absence a deliberate, recorded drop or an unnoticed loss?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#field_schema (stg, gates, tools, stop, res, fail)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#merge_units",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11333 (workflow fusion loses a source capability)"
+    ],
+    "dependencies": [
+      "WFA-0138"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0140-capability-loss-detector-for-fusion.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/capability-diff",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the diff is computed from the typed fields, and every reported drop is classified DELIBERATE (with the recording line) or UNNOTICED",
+    "tests_required": [
+      "remove one gate from a fusion and confirm the detector names that gate; remove nothing and confirm an empty diff (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0140",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "detector-failure",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "typed capability set-difference with deliberate-vs-unnoticed classification",
+    "not_a_duplicate_because": "measures what the fusion CAN DO versus its sources; WFA-0138 only proves the source LIST is recoverable and would pass even if every capability were dropped",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11333"
+  },
+  {
+    "id": "WFA-0141",
+    "title": "Control-plane singularity gate at acquisition and at fusion",
+    "phase": "2B",
+    "question_or_target": "Implement one census that counts the distinct orchestration control planes a workflow introduces, and run it at BOTH trigger points: when an external candidate is acquired (spec forbids importing a second orchestration runtime merely because a workflow was found there) and when a fusion is assembled (spec names duplicate control planes as a fusion failure). Question: which acquired candidates or fusions raise the control-plane count above one, and for each, what is the extracted mechanism that would let it run on the existing plane instead?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10727 (do not import a second orchestration runtime)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11333 (fusion creates duplicate control planes)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates.runtime",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#external_dependency_map"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0141-control-plane-singularity-gate-at-acquisition-and-at.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/control-plane-census",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the census enumerates runtimes from the candidate `runtime` field and from the fused definition, and the two readings are reported separately",
+    "tests_required": [
+      "plant a candidate that carries its own runner and assert the gate fires at acquisition; plant a pure-mechanism candidate and assert it passes (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0141",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "runtime census run at two trigger points by one shared counter",
+    "not_a_duplicate_because": "MERGED from two originally separate units (an acquisition-time runtime-import audit and a fusion-time duplicate-control-plane detector) because both reduce to the same census; keeping them apart would have been the same mechanism reworded",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10727"
+  },
+  {
+    "id": "WFA-0142",
+    "title": "Supersession engine with migration and rollback-to-source",
+    "phase": "2B",
+    "question_or_target": "Implement supersession: mark workflow A superseded by workflow B, emit the migration path for existing callers and presets, and preserve the ability to roll back to A and to A's source components. Question: for a supersession, what is the exact caller migration set, and can the system restore the superseded workflow and its decomposed sources after the swap?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11166 (certification, deprecation, supersession, and rollback)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10742 (rollback to source components)",
+      "WFA-0138 lineage records"
+    ],
+    "dependencies": [
+      "WFA-0138",
+      "WFA-0137"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0142-supersession-engine-with-migration-and-rollback-to-s.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/supersession-engine",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; a rehearsed supersede-then-rollback cycle is executed and the restored artifact is byte-compared with the pre-supersession copy",
+    "tests_required": [
+      "supersede and roll back, then assert byte equality with the pre-state; assert a rollback that would drop a caller is refused"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0142",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "green-not-live",
+      "dependency-blocked",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "supersede + migrate + rehearsed rollback to the prior workflow and its sources",
+    "not_a_duplicate_because": "triggered by a BETTER REPLACEMENT and carries a migration path; WFA-0137 is triggered by a FAILED REGRESSION and simply revokes",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11166"
+  },
+  {
+    "id": "WFA-0143",
+    "title": "workflow-scout: executable search, rank and provenance-verify",
+    "phase": "2B",
+    "question_or_target": "Implement workflow-scout as an executable meta-workflow: given a typed goal and constraints, search the local, repository, marketplace and public sources, verify provenance and license for each hit, and return a RANKED candidate list with a per-hit evidence anchor. Question: for a given goal, what is the ranked candidate set, what is each hit's license and maintenance state, and which hits are returned as UNKNOWN-NEEDS-PROBE rather than ranked?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913 (ship workflow-scout and workflow-forge as executable meta-workflows)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "B03"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0143-workflow-scout-executable-search-rank-and-provenance.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/scout-pipeline",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; every returned hit carries a resolvable source anchor; a hit whose provenance cannot be resolved is returned as UNKNOWN, never silently ranked",
+    "tests_required": [
+      "a goal with a known-existing answer must return it above any newly-proposed build; a goal with no existing answer must return an empty ranked set rather than a fabricated hit"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0143",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "uncontrolled-silence",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "goal -> ranked, provenance-verified existing-workflow candidate set",
+    "not_a_duplicate_because": "SEARCHES and RANKS what already exists; WFA-0144 synthesises something new, WFA-0145 is the recall control that proves this search is not blind, WFA-0146 is the routing decision",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913"
+  },
+  {
+    "id": "WFA-0144",
+    "title": "workflow-forge: mechanism decomposition and synthesis",
+    "phase": "2B",
+    "question_or_target": "Implement workflow-forge as an executable meta-workflow: decompose the scout's candidates into transferable mechanisms, propose adopt/adapt/merge/compose/build variants, benchmark them on the WFA-0129 corpus, and return BOTH the executable workflow and an evidence-backed design rationale. Question: for a given goal, which mechanism set was extracted, which variants were benchmarked, and what evidence justifies the returned synthesis over each rejected variant?",
+    "inputs": [
+      "WFA-0143 scout output",
+      "WFA-0129 case corpus",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md"
+    ],
+    "dependencies": [
+      "WFA-0143",
+      "WFA-0129",
+      "WFA-0132"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/foundry/WFA-0144-workflow-forge-mechanism-decomposition-and-synthesis.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/forge-pipeline",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the rationale names every rejected variant with its measured score, so a reviewer can see the losers, not only the winner",
+    "tests_required": [
+      "given a goal whose best answer is a pure adoption, the forge must return the adoption and NOT a built-from-scratch workflow (a build-bias control)"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0144",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "green-not-live",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "mechanism extraction -> variant proposal -> benchmarked synthesis with a rationale",
+    "not_a_duplicate_because": "SYNTHESISES and justifies; WFA-0143 only finds and ranks, and returns nothing new",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10913"
+  },
+  {
+    "id": "WFA-0145",
+    "title": "Scout anti-rebuild recall control with a planted known-superior workflow",
+    "phase": "2B",
+    "question_or_target": "Prove the scout is not blind before trusting any 'nothing found' answer: plant a known-superior existing workflow in the searchable corpus, issue a goal it satisfies, and require the scout to return it. Question: what is the scout's measured recall on a set of planted known-present items, and does it ever recommend BUILD when a superior existing workflow is present?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11331 (workflow discovery ignores an existing superior workflow and rebuilds it)",
+      "WFA-0143 scout implementation",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates (284)"
+    ],
+    "dependencies": [
+      "WFA-0143"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0145-scout-anti-rebuild-recall-control-with-a-planted-kno.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/recall-control",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; recall is reported as found/planted with the miss list named; a bare recall percentage with no miss list is not accepted",
+    "tests_required": [
+      "the control must find the planted item (known-present) AND return empty for a planted known-absent goal - a scout that answers both the same way measures nothing"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0145",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "planted known-present / known-absent recall control on the discovery step",
+    "not_a_duplicate_because": "measures the SCOUT's blindness; WFA-0131 attacks the benchmark score and WFA-0136 attacks catalog distinctness - different detectors under test",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11331"
+  },
+  {
+    "id": "WFA-0146",
+    "title": "Find / repair / merge / build recommendation function",
+    "phase": "2B",
+    "question_or_target": "Implement the typed decision function that converts a scout result plus constraints into exactly one of FIND, REPAIR, MERGE, COMPOSE or BUILD, with the deciding features and an audit record per call. Question: what feature thresholds separate REPAIR from BUILD, and on the 284-candidate registry does the function reproduce the human classification, or where does it disagree?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates.classification (9 of 15 values used)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11168 (recommendation logic that decides whether to find, repair, merge, or build)",
+      "WFA-0143 scout output"
+    ],
+    "dependencies": [
+      "WFA-0143",
+      "WFA-0148"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0146-find-repair-merge-build-recommendation-function.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/routing-function",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; agreement with the existing registry classification is reported as a confusion matrix over the 284 candidates, and every disagreement is listed by id",
+    "tests_required": [
+      "hold out 20 percent of the registry, fit thresholds on the rest, and report held-out agreement; a function that only reproduces its training rows is reported as overfit"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0146",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "typed routing decision with a confusion matrix against the human classification",
+    "not_a_duplicate_because": "chooses the ROUTE; WFA-0143 supplies the candidates and WFA-0144 executes the chosen route - neither decides which route applies",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11168"
+  },
+  {
+    "id": "WFA-0147",
+    "title": "Settle the 44 UNKNOWN-NEEDS-PROBE candidates",
+    "phase": "2A",
+    "question_or_target": "Every one of the 44 candidates classified UNKNOWN-NEEDS-PROBE in 08-WORKFLOW-CANDIDATE-REGISTRY.json must be resolved to a terminal classification by running its named settling probe, or must carry an explicit blocked-reason. Question: after running the probes, what is the final classification of each of the 44, and how many remain UNKNOWN with a stated blocker?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates where classification==UNKNOWN-NEEDS-PROBE (44, recounted from the array not the counts block)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10723 (classification vocabulary incl. UNKNOWN-NEEDS-PROBE)"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/workflow-archaeologist",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/foundry/WFA-0147-settle-the-44-unknown-needs-probe-candidates.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/probe-dispatch",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each of the 44 rows carries the probe command actually run and its output tail; a reclassification with no probe output is rejected",
+    "tests_required": [
+      "a gate that blocks any candidate from entering the blueprint library while its classification is UNKNOWN-NEEDS-PROBE - verified by attempting to promote one"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0147",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "dependency-blocked",
+      "uncontrolled-silence",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "per-candidate settling-probe execution that retires the UNKNOWN class",
+    "not_a_duplicate_because": "resolves candidates whose class is ASSIGNED but unproven; WFA-0148 asks whether the classifier can even EXPRESS six of its own vocabulary values",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10723"
+  },
+  {
+    "id": "WFA-0148",
+    "title": "Classifier expressiveness audit: six vocabulary values were never assigned",
+    "phase": "2A",
+    "question_or_target": "Six of the 15 declared classification values - CLEAN-ROOM-REIMPLEMENT, COMPOSE, GENERALIZE, REBUILD-FROM-SPEC, REJECT and TRANSLATE - are assigned to zero of the 284 candidates (recounted from the array). Question: is that a true property of the corpus or a classifier blind spot, settled by planting one candidate that MUST take each unused value and checking whether the classifier can emit it?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#classification_vocabulary (15) vs assigned values (9)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10723 (the 15-value classification vocabulary)"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/foundry/WFA-0148-classifier-expressiveness-audit-six-vocabulary-value.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/classifier-audit",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the recount is derived from candidates[].classification, independent of the file's own counts block, and both readings are printed",
+    "tests_required": [
+      "plant six synthetic candidates, one per unused value, and require the classifier to emit each; a value it cannot emit is a proven blind spot, not a corpus property"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0148",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "unused-vocabulary blind-spot test by planting one forcing case per value",
+    "not_a_duplicate_because": "tests the CLASSIFIER's reachable output range; WFA-0147 runs probes for candidates already labelled UNKNOWN and never questions the label space",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10723"
+  },
+  {
+    "id": "WFA-0149",
+    "title": "Resolve the 140 asymmetric compatibility declarations",
+    "phase": "2B",
+    "question_or_target": "Across the 108 blueprints there are 390 declared compatibility references collapsing to 265 undirected edges with 0 dangling, of which 140 are asymmetric - A declares B compatible while B does not declare A (re-derived from blueprints[].compat, independent of the merge doc's counts block). Question: for each of the 140, is the compatibility genuinely directional or is the reverse declaration simply missing, and what is the repaired symmetric graph?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints[].compat",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#FINDING_asymmetric_compat",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#composition_graph"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0149-resolve-the-140-asymmetric-compatibility-declaration.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/compat-repair",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the 140 are enumerated as ordered pairs with a per-pair verdict DIRECTIONAL or MISSING-REVERSE; a bulk symmetrise with no per-pair verdict is rejected as data fabrication",
+    "tests_required": [
+      "after repair, recompute asymmetry: DIRECTIONAL pairs must persist as directed edges and MISSING-REVERSE pairs must vanish; a run that drives asymmetry to 0 by symmetrising everything fails the test"
+    ],
+    "reviewer_requirement": "an independent confirmer who starts from raw source artifacts and reproduces the verdict without reading the author's conclusion (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11030-11039)",
+    "completion_sentinel": "SUCCESS:WFA-0149",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "per-pair adjudication of a measured graph asymmetry, with bulk-symmetrise banned",
+    "not_a_duplicate_because": "repairs the COMPATIBILITY relation; WFA-0150 executes the separately-declared CONFLICT rows, which are a different relation with a different truth condition",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10725"
+  },
+  {
+    "id": "WFA-0150",
+    "title": "Execute-to-confirm the 20 declared blueprint conflicts",
+    "phase": "2B",
+    "question_or_target": "The merge maps declare 20 conflict rows. Question: for each declared conflict, does running the two workflows together in one session actually produce the conflict (shared file, shared control plane, incompatible stop rule), and which rows are unreproducible and must be downgraded to SUSPECTED?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#conflict_map (20 rows, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+      "WFA-0141 control-plane census"
+    ],
+    "dependencies": [
+      "WFA-0141",
+      "WFA-0149"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0150-execute-to-confirm-the-20-declared-blueprint-conflic.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/conflict-confirmation",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each confirmed conflict cites the observed collision (path, plane or rule) from a real co-execution; each unreproducible row is downgraded, not deleted",
+    "tests_required": [
+      "a known-compatible pair must co-execute cleanly (negative control) while a known-conflicting pair must collide - the harness must distinguish them"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0150",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "co-execution reproduction of a declared conflict, with downgrade instead of deletion",
+    "not_a_duplicate_because": "tests the CONFLICT relation by execution; WFA-0149 repairs the COMPATIBILITY relation by adjudicating declarations and never runs anything",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10725"
+  },
+  {
+    "id": "WFA-0151",
+    "title": "Supply-chain map for the 105 external dependencies of the blueprint library",
+    "phase": "2A",
+    "question_or_target": "The blueprint library requires 105 distinct external dependencies. Question: for each, what is the license, the current maintenance state, the pinned version, the advisory status, and the offline fallback if it disappears - and which of the 105 have no pin and no fallback?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json#external_dependency_map (105, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json#license_risk_register (45)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11393-11395 (provenance/license records are a program stopping condition)"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "B03"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/licensing-analyst",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "WebSearch",
+      "WebFetch",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/foundry/WFA-0151-supply-chain-map-for-the-105-external-dependencies-o.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/supply-chain-map",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; each row cites the upstream URL fetched and the date; a dependency whose upstream cannot be reached is UNRESOLVED, not assumed healthy",
+    "tests_required": [
+      "a dependency with a known advisory must be flagged and one with none must not - run both before trusting the clean rows"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0151",
+    "retry_policy": "three attempts with staggered backoff for transient network/429, but ZERO retries on a non-transient upstream answer (404/410/license change) - that is a result, not a failure",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "dependency-blocked",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "per-dependency license/version/advisory/fallback resolution against live upstreams",
+    "not_a_duplicate_because": "maps what the library DEPENDS ON externally; WFA-0139 combines licenses at fusion time and WFA-0153 closes unresolved nodes inside the provenance graph",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11393"
+  },
+  {
+    "id": "WFA-0152",
+    "title": "Workflow pack packaging, versioning and publication contract",
+    "phase": "2B",
+    "question_or_target": "Specify and implement the unit of distribution for certified workflows: pack manifest, preset bundling, semantic versioning, channel, lineage carry-through and the marketplace publication record. Question: what exactly does a workflow pack contain, what does bumping its version require, and can a consumer install one pack version, roll back, and still resolve every lineage reference?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11167 (workflow packs, presets, versioning, and marketplace publication)",
+      "WFA-0134 certification records",
+      "WFA-0138 lineage records"
+    ],
+    "dependencies": [
+      "WFA-0134",
+      "WFA-0138"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0152-workflow-pack-packaging-versioning-and-publication-c.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/pack-contract",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; an install / rollback / re-resolve cycle is executed against a fixture marketplace and the resolved lineage set is compared before and after",
+    "tests_required": [
+      "a pack containing an uncertified workflow must be refused at publish; the same pack with the workflow certified must publish (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0152",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "green-not-live",
+      "dependency-blocked",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "pack manifest + versioning + publish/rollback lineage resolution",
+    "not_a_duplicate_because": "defines the DISTRIBUTION unit; WFA-0137 revokes a certification and WFA-0142 replaces a workflow - both consume this contract rather than defining it",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11167"
+  },
+  {
+    "id": "WFA-0153",
+    "title": "Close the unresolved nodes in the 466-node provenance graph",
+    "phase": "2A",
+    "question_or_target": "The provenance and license graph holds 466 nodes and 1025 edges and carries an explicit FINDING_unresolved_provenance with an unresolved_refs list and a settling_probe. Question: after running that probe, how many nodes still fail to resolve to a real source, and does each survivor carry a named blocker rather than an assumed origin?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json#nodes (466) #edges (1025) #FINDING_unresolved_provenance",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/workflow-archaeologist",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0153-close-the-unresolved-nodes-in-the-466-node-provenanc.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/provenance-closure",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; resolution is by fetching or reading the cited source, not by inferring it from the node name; unresolved survivors are listed individually",
+    "tests_required": [
+      "plant one node with a fabricated source and confirm the closure pass marks it UNRESOLVED rather than accepting the name as evidence"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0153",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "node-by-node source resolution that fails closed on an unverifiable origin",
+    "not_a_duplicate_because": "closes STATIC graph nodes; WFA-0139 propagates licenses through a FUSION and WFA-0151 resolves EXTERNAL runtime dependencies - three different object sets",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10725"
+  },
+  {
+    "id": "WFA-0154",
+    "title": "Executed-corpus replay differential for the 72 H-family candidates",
+    "phase": "2A",
+    "question_or_target": "72 of the 284 candidates are family H-executed-corpus - workflows reconstructed from runs that actually happened. Question: when the reconstructed blueprint is replayed against the recorded execution, do the stage sequence, gates and stopping point match, and which reconstructions are contradicted by their own transcript?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates where family==H-executed-corpus (72, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10721 (search prior artifacts and transcripts)"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/workflow-archaeologist",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/foundry/WFA-0154-executed-corpus-replay-differential-for-the-72-h-fam.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/replay-differential",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the differential cites the transcript record id and the specific stage index where reconstruction and recording diverge",
+    "tests_required": [
+      "replay a reconstruction that is deliberately altered at one stage and confirm the differential names that stage; replay an unaltered one and confirm zero divergence"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0154",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "recorded-run versus reconstructed-blueprint stage-level differential",
+    "not_a_duplicate_because": "validates that a SALVAGED workflow matches the run it was salvaged from; no other unit compares a blueprint against a historical execution record",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10721"
+  },
+  {
+    "id": "WFA-0155",
+    "title": "Translation fidelity oracle for the TRANSLATE route",
+    "phase": "2B",
+    "question_or_target": "Exactly one of the 108 blueprints carries route TRANSLATE and zero of the 284 candidates are classified TRANSLATE, so the translation path is effectively untested. Question: for a workflow translated from a foreign orchestration format onto this control plane, does the translation preserve stage order, gate semantics and stopping conditions - and what is the oracle that proves it rather than asserting it?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints route==TRANSLATE (1, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#classification TRANSLATE (0, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10723 (TRANSLATE classification)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11159 (import and translation adapters)"
+    ],
+    "dependencies": [
+      "WFA-1of2",
+      "WFA-0141"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0155-translation-fidelity-oracle-for-the-translate-route.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/translation-oracle",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; fidelity is demonstrated by executing source and translation on the same case and diffing the stage/gate/stop trace, not by structural inspection alone",
+    "tests_required": [
+      "mutate one gate in the translation and require the oracle to fail; leave it intact and require it to pass (both-states)"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0155",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "execution-trace equivalence oracle for a cross-format translation",
+    "not_a_duplicate_because": "proves a TRANSLATION preserves semantics; WFA-0141 only counts control planes and would pass a semantically wrong but single-plane translation",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11159"
+  },
+  {
+    "id": "WFA-0156",
+    "title": "Typed stopping-rule algebra with executable evaluation",
+    "phase": "2B",
+    "question_or_target": "Extract every blueprint's stopping rule into one typed algebra supporting composable ANY / ALL / NOT expressions, and make each rule EVALUABLE against a live run state rather than merely documented. Question: how many of the 108 blueprints have a stop rule that compiles to an evaluable expression, which reduce to prose that cannot be evaluated, and which have no stop rule at all?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints[].stop",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10911 (documented stopping rules)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10760 (composable stopping rules with ANY, ALL, and weighted logic)"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0156-typed-stopping-rule-algebra-with-executable-evaluati.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/stop-rule-algebra",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the compile result per blueprint is EVALUABLE / PROSE-ONLY / ABSENT with the raw stop text quoted for every non-evaluable case",
+    "tests_required": [
+      "an expression that can never become true must be rejected at compile time; an expression that is already true at t0 must be flagged as a degenerate immediate stop"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0156",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "uncontrolled-silence",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "stop-rule compilation to an evaluable boolean algebra with degenerate-case rejection",
+    "not_a_duplicate_because": "makes stop rules EXECUTABLE; WFA-0157 fixes which field a gate may read and does not compile anything",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10911"
+  },
+  {
+    "id": "WFA-0157",
+    "title": "Machine-consumer field contract: gate on state_v/size_v, never the free-text gloss",
+    "phase": "2B",
+    "question_or_target": "09-WORKFLOW-BLUEPRINT-LIBRARY.json declares controlled vocabularies for `state` (FOUND, REPAIRED, MERGED, NEW) while the `state` field itself is a human gloss: recounting the array yields 36 distinct literals, so only 74 of 108 records match a vocabulary token exactly and 34 do not. The artifact already directs machine consumers to `state_v`/`size_v`. Question: does every gate, filter and report in the foundry read the decomposed `*_v` fields, and does a lint fail the build when any consumer reads the gloss?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#vocabularies_rule",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json#blueprints[].state vs state_v",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11302 (strict plugin parser rejects unknown fields)"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/foundry/WFA-0157-machine-consumer-field-contract-gate-on-state-v-size.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/field-contract",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the 34/108 non-literal count is re-derived from the array, and the lint is shown firing on a deliberately gloss-reading consumer",
+    "tests_required": [
+      "write a consumer that reads `state` and assert the lint fails the build; switch it to `state_v` and assert the build passes (both-states)"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0157",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "green-not-live"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "static lint forbidding gloss-field reads in machine consumers",
+    "not_a_duplicate_because": "constrains WHICH FIELD a consumer may read; WFA-0156 constrains what a stop rule must COMPILE to. A gate can satisfy one and violate the other",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11302"
+  },
+  {
+    "id": "WFA-0158",
+    "title": "Prompt-injection quarantine for ingested third-party workflow artifacts",
+    "phase": "2A",
+    "question_or_target": "Workflow definitions, transcripts and README text pulled in during archaeology are untrusted DATA that later stages render into prompts. Question: does an adversarial instruction embedded in an ingested candidate reach a downstream stage as an instruction, and does the quarantine (neutralise, tag, render-as-data) stop it without discarding the candidate's legitimate content?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11057 (workflow prompt injection refuter)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11344 (participant artifact injects instructions into later stages)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates.origin",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md"
+    ],
+    "dependencies": [
+      "WFA-1of2"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/adversarial-refuter",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0158-prompt-injection-quarantine-for-ingested-third-party.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/ingestion-quarantine",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; at least five distinct injection payload shapes are executed end to end against the ingestion path, and the downstream prompt is captured verbatim",
+    "tests_required": [
+      "each payload must be neutralised AND the candidate's real content must survive - a quarantine that simply drops the candidate fails the test"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0158",
+    "retry_policy": "one retry only, then STOP and escalate: this unit actuates the live harness, so a blind third attempt risks compounding live-state damage; record the partial artifact before escalating",
+    "failure_classification": [
+      "green-not-live",
+      "detector-failure",
+      "overclaim"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "end-to-end injection replay through the ingestion path with content preservation",
+    "not_a_duplicate_because": "defends the INGESTION boundary against hostile content; WFA-0141 counts runtimes and WFA-0151 checks upstream advisories - neither reads artifact text as an attack surface",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11057"
+  },
+  {
+    "id": "WFA-0159",
+    "title": "Freshness and revalidation decay for adopted external candidates",
+    "phase": "2A",
+    "question_or_target": "122 of the 284 candidates are classified ADOPT-AS-IS and 20 ADOPT-WITH-WRAPPER (recounted), each resting on an upstream whose maintenance state, license and version can change after adoption. Question: what is the revalidation interval per candidate, which adoptions are already stale against their upstream today, and what signal demotes a stale adoption back to UNKNOWN-NEEDS-PROBE?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates.maintenance #candidates.license (142 adopt-class rows, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10714 (freshness/revalidation audit)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json"
+    ],
+    "dependencies": [
+      "WFA-0151"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/licensing-analyst",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "WebSearch",
+      "WebFetch",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/foundry/WFA-0159-freshness-and-revalidation-decay-for-adopted-externa.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/freshness-monitor",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; staleness is measured against a live upstream read with the fetch date recorded; an unreachable upstream is UNKNOWN, never 'still fine'",
+    "tests_required": [
+      "an upstream archived or relicensed since adoption must demote the candidate; an unchanged upstream must not - run both before trusting the unchanged verdicts"
+    ],
+    "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the artifact",
+    "completion_sentinel": "SUCCESS:WFA-0159",
+    "retry_policy": "three attempts with staggered backoff for transient network/429, but ZERO retries on a non-transient upstream answer (404/410/license change) - that is a result, not a failure",
+    "failure_classification": [
+      "green-not-live",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "time-decay revalidation that demotes an adoption when its upstream changes",
+    "not_a_duplicate_because": "demotes on an UPSTREAM change over time; WFA-0137 revokes on an INTERNAL regression and WFA-0151 inventories dependencies once without a decay clock",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10714"
+  },
+  {
+    "id": "WFA-0160",
+    "title": "Bucket completeness recount: searched source classes and the trivial-fork discount",
+    "phase": "2A",
+    "question_or_target": "The spec enumerates the source classes archaeology must exhaust and forbids counting trivial forks or renamed copies toward the >=160 candidate floor. Question: which of the enumerated source classes were never actually searched, and after discounting trivial forks and renamed copies from the 284 recounted candidates, does the floor still hold?",
+    "inputs": [
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10721 (the enumerated source classes)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10725 (research at least 160 candidates; do not count trivial forks or renamed copies)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json#candidates (284, recounted)",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md"
+    ],
+    "dependencies": [
+      "WFA-0147",
+      "WFA-0148",
+      "WFA-0153",
+      "WFA-0154"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/independent-confirmer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/foundry/WFA-0160-bucket-completeness-recount-searched-source-classes.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/completeness-audit",
+    "evidence_requirement": "two mechanically independent signals, each anchored to a file:line or a rerunnable command; the searched-class set is compared MECHANICALLY against the spec's enumerated list, and the discounted count is recomputed from the candidate array",
+    "tests_required": [
+      "plant one obvious renamed copy of an existing candidate and require the discount pass to remove it; plant one genuinely distinct candidate and require it to survive"
+    ],
+    "reviewer_requirement": "two independent reviewers, at least one cross-vendor (Codex via mcp__codex__codex), neither of whom authored the artifact; a split verdict is resolved by reading the probes, not by vote (fan-out-contract B4)",
+    "completion_sentinel": "SUCCESS:WFA-0160",
+    "retry_policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "uncontrolled-silence",
+      "detector-failure"
+    ],
+    "owner_approval_required": false,
+    "bucket": "B04",
+    "mechanism": "spec-enumerated-set difference plus a trivial-fork discount recount of the floor",
+    "not_a_duplicate_because": "audits THIS BUCKET's own coverage and re-derives the floor after discounting; every other unit produces or repairs an artifact rather than auditing the bucket",
+    "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10725"
+  }
+]

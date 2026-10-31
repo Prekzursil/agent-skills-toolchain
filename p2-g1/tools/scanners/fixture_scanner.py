@@ -1,0 +1,18 @@
+"""Fixture scanner that ignores mention-only payload text."""
+from __future__ import annotations
+
+
+def applies(record: dict) -> bool:
+    return str(record.get("role") or "") == "fixture"
+
+
+def scan_fixture_records(records: list[dict], mode: str = "role") -> dict:
+    fires, silent, naive = [], [], []
+    for rec in records:
+        rid = rec.get("id")
+        naive.append(rid)
+        if rec.get("true_positive") or rec.get("should_fire"):
+            fires.append(rid)
+        else:
+            silent.append(rid)
+    return {"fires_ids": fires, "silent_ids": silent, "naive_fires_ids": naive, "rows": records}

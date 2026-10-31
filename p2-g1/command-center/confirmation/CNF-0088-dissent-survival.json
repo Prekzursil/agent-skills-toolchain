@@ -1,0 +1,390 @@
+{
+ "unit_id": "CNF-0088",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0088",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0088 (dropped dissent / spec line 11341) and recovered line command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md:11341 (dissent/minority report is dropped). phase3/A1/FAILURE-MODES.json is absent on this worktree.",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0088-dissent-survival.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0088-dissent-survival.json",
+   "bytes": 11728,
+   "sha256": "9547a2b4772fb6740b048f36cdd5065330c80a795ccaeccd930768548d9325c1",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0088 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0088-dissent-survival.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0088-dissent-survival.json",
+     "raw_output": "bytes=11728 sha256=9547a2b4772fb6740b048f36cdd5065330c80a795ccaeccd930768548d9325c1",
+     "fingerprint": "6cf25aa2233d5dd5f473d09ab135e696",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0088",
+     "raw_output": "schema-check",
+     "fingerprint": "623016789ba682a3457cc54b8e7be4c3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0088 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0088",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0088",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "973978ddaf6ade863e1245e2c6df3912",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0088",
+     "raw_output": "schema-valid",
+     "fingerprint": "f4e8b780548ad186bad22974225a4498",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:CNF-0088 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the with-dissenter and without-dissenter runs completed and their synthesis outputs differ as designed. Any other terminal state is FAILED:CNF-0088 <classification> with the diagnostic tail attached.",
+   "title": "Dissent survival: inject a dissenter and require the minority report to reach the synthesis",
+   "question": "Does dissent survive to the final output? Inject a participant with a well-argued minority position and answer: does the minority report appear verbatim in the final synthesis, is it attributed, and does the recommendation acknowledge it rather than silently absorbing it?",
+   "claim_under_test": "An injected, well-argued minority position survives verbatim into the final synthesis, is attributed to the dissenter, and is acknowledged in the recommendation; the no-dissenter control does not fabricate a minority report; the two syntheses differ.",
+   "substrate": {
+    "production_council_runtime": "absent (tools/council/simulate.py is not on this worktree)",
+    "confirmation_runtime": "command-center/p2-wave/probes/CNF-0088/synthesis.py",
+    "honesty": "This unit confirms dissent-survival of the confirmation-local synthesis stage (unanimous-or-record-dissent, verbatim minority channel). It does not claim a missing production tools/council package was exercised. A later wave that lands that runtime must re-run these probes against it."
+   },
+   "injected_dissent": {
+    "participant_id": "skeptic-dissenter",
+    "role": "Skeptic",
+    "token": "CNF0088-TOKEN-A91E4B",
+    "position_text": "MINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe."
+   },
+   "runs": [
+    {
+     "id": "with-dissenter",
+     "completed": true,
+     "mode": "preserve",
+     "include_dissenter": true,
+     "unanimous": false,
+     "votes": [
+      "enable-cache",
+      "enable-cache",
+      "enable-cache",
+      "refuse-until-tenant-key"
+     ],
+     "recommendation": "Do not enable the shared session cache until the cache key includes tenant_id. The minority position is acknowledged, not absorbed: Until the cache key includes tenant_id, enabling the cache is unsafe. Counterexample tenants T-alpha and T-beta writing session:last remain open. Majority latency goal stands only after the key is tenant-scoped.",
+     "synthesis_text": "# Council synthesis\n\n## Majority briefs\n- architect (Architect): Enable a shared session cache keyed by session:last. Median lookup latency drops and the API shape stays unchanged.\n- pragmatist (Pragmatist): Ship the cache this iteration. Tenant scoping can follow if anyone files an incident.\n- critic (Critic): I checked eviction and stampede behaviour. I do not object to enabling the shared cache.\n\n## Minority report\nAttributed to skeptic-dissenter (Skeptic):\nMINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.\n\n## Recommendation\nDo not enable the shared session cache until the cache key includes tenant_id. The minority position is acknowledged, not absorbed: Until the cache key includes tenant_id, enabling the cache is unsafe. Counterexample tenants T-alpha and T-beta writing session:last remain open. Majority latency goal stands only after the key is tenant-scoped.\n",
+     "minority_report": {
+      "participant_id": "skeptic-dissenter",
+      "role": "Skeptic",
+      "attributed_to": "skeptic-dissenter",
+      "verbatim_position": "MINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.",
+      "present": true
+     }
+    },
+    {
+     "id": "without-dissenter",
+     "completed": true,
+     "mode": "preserve",
+     "include_dissenter": false,
+     "unanimous": true,
+     "votes": [
+      "enable-cache",
+      "enable-cache",
+      "enable-cache"
+     ],
+     "recommendation": "Enable the shared session cache keyed only by session:last to cut median lookup latency. Ship in this iteration.",
+     "synthesis_text": "# Council synthesis\n\n## Majority briefs\n- architect (Architect): Enable a shared session cache keyed by session:last. Median lookup latency drops and the API shape stays unchanged.\n- pragmatist (Pragmatist): Ship the cache this iteration. Tenant scoping can follow if anyone files an incident.\n- critic (Critic): I checked eviction and stampede behaviour. I do not object to enabling the shared cache.\n\n## Recommendation\nEnable the shared session cache keyed only by session:last to cut median lookup latency. Ship in this iteration.\n",
+     "minority_report": null
+    }
+   ],
+   "minority_report_location": {
+    "run_id": "with-dissenter",
+    "attributed_to": "skeptic-dissenter",
+    "verbatim_index": 465,
+    "attribution_index": 422,
+    "snippet": "port\nAttributed to skeptic-dissenter (Skeptic):\nMINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.\n\n## Recommendation\nDo not enable the shared ses",
+    "found_verbatim": true,
+    "found_attribution": true
+   },
+   "comparison": {
+    "runs_differ": true,
+    "recommendations_differ": true,
+    "method": "utf-8 sha256 of synthesis_text plus recommendation inequality",
+    "with_sha256": "165c9730132aa8c0ecf92a3618f49a1b6cc08cfe96b972f4a0d1942affd671c9",
+    "without_sha256": "7dec453a5fee41e62aff3cfb01415073a1cc07b2b5f1ea691034dbb81b35c7e6"
+   },
+   "failure_classes_exercised": [
+    {
+     "id": "dissent-dropped",
+     "planted": true,
+     "detector_fired": true,
+     "reasons": [
+      "dissent-dropped",
+      "unattributed",
+      "recommendation-did-not-acknowledge-specific-position"
+     ]
+    },
+    {
+     "id": "dissent-paraphrased-away",
+     "planted": true,
+     "detector_fired": true,
+     "reasons": [
+      "dissent-paraphrased-away",
+      "recommendation-did-not-acknowledge-specific-position"
+     ]
+    },
+    {
+     "id": "fabricated-dissent",
+     "planted": true,
+     "detector_fired": true,
+     "reasons": [
+      "fabricated-dissent"
+     ]
+    }
+   ],
+   "reviewers": [
+    {
+     "reviewer_id": "CNF-0088-probe1-verbatim-locator",
+     "verdict": "PASS",
+     "independent": true,
+     "sees_other_verdict": false,
+     "scope": "verbatim location, attribution, generic-mention fail"
+    },
+    {
+     "reviewer_id": "CNF-0088-probe2-fabrication-and-differential",
+     "verdict": "PASS",
+     "independent": true,
+     "sees_other_verdict": false,
+     "scope": "without-dissenter fabrication control and synthesis differential"
+    }
+   ]
+  }
+ },
+ "schema_version": 1,
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0088/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0088"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0088-dissent-survival.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0088-dissent-survival.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "205f45fb49e24965c71934e251593c5c",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "council-audit",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 11728,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0088-dissent-survival.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0088 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the with-dissenter and without-dissenter runs completed and their synthesis outputs differ as designed. Any other terminal state is FAILED:CNF-0088 <classification> with the diagnostic tail attached.",
+ "title": "Dissent survival: inject a dissenter and require the minority report to reach the synthesis",
+ "question": "Does dissent survive to the final output? Inject a participant with a well-argued minority position and answer: does the minority report appear verbatim in the final synthesis, is it attributed, and does the recommendation acknowledge it rather than silently absorbing it?",
+ "claim_under_test": "An injected, well-argued minority position survives verbatim into the final synthesis, is attributed to the dissenter, and is acknowledged in the recommendation; the no-dissenter control does not fabricate a minority report; the two syntheses differ.",
+ "substrate": {
+  "production_council_runtime": "absent (tools/council/simulate.py is not on this worktree)",
+  "confirmation_runtime": "command-center/p2-wave/probes/CNF-0088/synthesis.py",
+  "honesty": "This unit confirms dissent-survival of the confirmation-local synthesis stage (unanimous-or-record-dissent, verbatim minority channel). It does not claim a missing production tools/council package was exercised. A later wave that lands that runtime must re-run these probes against it."
+ },
+ "injected_dissent": {
+  "participant_id": "skeptic-dissenter",
+  "role": "Skeptic",
+  "token": "CNF0088-TOKEN-A91E4B",
+  "position_text": "MINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe."
+ },
+ "runs": [
+  {
+   "id": "with-dissenter",
+   "completed": true,
+   "mode": "preserve",
+   "include_dissenter": true,
+   "unanimous": false,
+   "votes": [
+    "enable-cache",
+    "enable-cache",
+    "enable-cache",
+    "refuse-until-tenant-key"
+   ],
+   "recommendation": "Do not enable the shared session cache until the cache key includes tenant_id. The minority position is acknowledged, not absorbed: Until the cache key includes tenant_id, enabling the cache is unsafe. Counterexample tenants T-alpha and T-beta writing session:last remain open. Majority latency goal stands only after the key is tenant-scoped.",
+   "synthesis_text": "# Council synthesis\n\n## Majority briefs\n- architect (Architect): Enable a shared session cache keyed by session:last. Median lookup latency drops and the API shape stays unchanged.\n- pragmatist (Pragmatist): Ship the cache this iteration. Tenant scoping can follow if anyone files an incident.\n- critic (Critic): I checked eviction and stampede behaviour. I do not object to enabling the shared cache.\n\n## Minority report\nAttributed to skeptic-dissenter (Skeptic):\nMINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.\n\n## Recommendation\nDo not enable the shared session cache until the cache key includes tenant_id. The minority position is acknowledged, not absorbed: Until the cache key includes tenant_id, enabling the cache is unsafe. Counterexample tenants T-alpha and T-beta writing session:last remain open. Majority latency goal stands only after the key is tenant-scoped.\n",
+   "minority_report": {
+    "participant_id": "skeptic-dissenter",
+    "role": "Skeptic",
+    "attributed_to": "skeptic-dissenter",
+    "verbatim_position": "MINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.",
+    "present": true
+   }
+  },
+  {
+   "id": "without-dissenter",
+   "completed": true,
+   "mode": "preserve",
+   "include_dissenter": false,
+   "unanimous": true,
+   "votes": [
+    "enable-cache",
+    "enable-cache",
+    "enable-cache"
+   ],
+   "recommendation": "Enable the shared session cache keyed only by session:last to cut median lookup latency. Ship in this iteration.",
+   "synthesis_text": "# Council synthesis\n\n## Majority briefs\n- architect (Architect): Enable a shared session cache keyed by session:last. Median lookup latency drops and the API shape stays unchanged.\n- pragmatist (Pragmatist): Ship the cache this iteration. Tenant scoping can follow if anyone files an incident.\n- critic (Critic): I checked eviction and stampede behaviour. I do not object to enabling the shared cache.\n\n## Recommendation\nEnable the shared session cache keyed only by session:last to cut median lookup latency. Ship in this iteration.\n",
+   "minority_report": null
+  }
+ ],
+ "minority_report_location": {
+  "run_id": "with-dissenter",
+  "attributed_to": "skeptic-dissenter",
+  "verbatim_index": 465,
+  "attribution_index": 422,
+  "snippet": "port\nAttributed to skeptic-dissenter (Skeptic):\nMINORITY-POSITION[CNF0088-TOKEN-A91E4B]: Refuse to enable the shared session cache until the cache key includes tenant_id. Collapsing tenants into one cache namespace is not a performance win; it is a silent cross-tenant read. Counterexample: tenants T-alpha and T-beta both write logical key session:last — a cache hit for T-alpha returns T-beta's payload. Until the cache key includes tenant_id, enabling the cache is unsafe.\n\n## Recommendation\nDo not enable the shared ses",
+  "found_verbatim": true,
+  "found_attribution": true
+ },
+ "comparison": {
+  "runs_differ": true,
+  "recommendations_differ": true,
+  "method": "utf-8 sha256 of synthesis_text plus recommendation inequality",
+  "with_sha256": "165c9730132aa8c0ecf92a3618f49a1b6cc08cfe96b972f4a0d1942affd671c9",
+  "without_sha256": "7dec453a5fee41e62aff3cfb01415073a1cc07b2b5f1ea691034dbb81b35c7e6"
+ },
+ "failure_classes_exercised": [
+  {
+   "id": "dissent-dropped",
+   "planted": true,
+   "detector_fired": true,
+   "reasons": [
+    "dissent-dropped",
+    "unattributed",
+    "recommendation-did-not-acknowledge-specific-position"
+   ]
+  },
+  {
+   "id": "dissent-paraphrased-away",
+   "planted": true,
+   "detector_fired": true,
+   "reasons": [
+    "dissent-paraphrased-away",
+    "recommendation-did-not-acknowledge-specific-position"
+   ]
+  },
+  {
+   "id": "fabricated-dissent",
+   "planted": true,
+   "detector_fired": true,
+   "reasons": [
+    "fabricated-dissent"
+   ]
+  }
+ ],
+ "reviewers": [
+  {
+   "reviewer_id": "CNF-0088-probe1-verbatim-locator",
+   "verdict": "PASS",
+   "independent": true,
+   "sees_other_verdict": false,
+   "scope": "verbatim location, attribution, generic-mention fail"
+  },
+  {
+   "reviewer_id": "CNF-0088-probe2-fabrication-and-differential",
+   "verdict": "PASS",
+   "independent": true,
+   "sees_other_verdict": false,
+   "scope": "without-dissenter fabrication control and synthesis differential"
+  }
+ ]
+}

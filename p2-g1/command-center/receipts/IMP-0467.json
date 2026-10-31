@@ -1,0 +1,307 @@
+{
+ "unit_id": "IMP-0467",
+ "id": "IMP-0467",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+ "completion_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+ "schema_version": 1,
+ "title": "Path library for extended-length paths and reserved device names",
+ "question_or_target": "does a tree containing a file named NUL still enumerate completely, and what does the relative-path computation return for it?",
+ "answer": {
+  "enumerates_completely": true,
+  "count_without_reserved_files": 3,
+  "count_with_reserved_files": 4,
+  "delta": 1,
+  "neither_run_raised": true,
+  "relpath_for_NUL": "NUL",
+  "relpath_is_device_mount": false,
+  "naive_windows_relpath_raises": true,
+  "long_path_chars": 289,
+  "long_path_above_260": true,
+  "swallow_returns_zero_on_reserved": true,
+  "library_does_not_return_zero_on_reserved": true
+ },
+ "library": {
+  "path": "command-center/lib/windows_safe_path.py",
+  "max_path": 260,
+  "reserved_stems": [
+   "AUX",
+   "CLOCK$",
+   "COM1",
+   "COM2",
+   "COM3",
+   "COM4",
+   "COM5",
+   "COM6",
+   "COM7",
+   "COM8",
+   "COM9",
+   "CON",
+   "LPT1",
+   "LPT2",
+   "LPT3",
+   "LPT4",
+   "LPT5",
+   "LPT6",
+   "LPT7",
+   "LPT8",
+   "LPT9",
+   "NUL",
+   "PRN"
+  ],
+  "extended_prefix": "\\\\?\\",
+  "relpath_algorithm": "component-wise logical_abspath + safe_relpath; never os.path.relpath / GetFullPathNameW on reserved names",
+  "walk_fail_closed": "WalkIncomplete is raised when errors exist and zero entries were collected; swallowing_walk_count is the defect replica"
+ },
+ "evidence": [
+  {
+   "claim": "Named probe 1 (source) and probe 2 (verifier) both ran live and exited 0 on this checkout.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0467",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py",
+     "raw_output": "{\n  \"probe\": \"probe1-reserved-enum\",\n  \"unit_id\": \"IMP-0467\",\n  \"files_without_reserved\": 3,\n  \"files_with_reserved\": 4,\n  \"delta\": 1,\n  \"reserved_stems\": [\n    \"NUL\"\n  ],\n  \"swallowing_count_on_reserved_tree\": 0,\n  \"library_does_not_return_zero\": true,\n  \"safe_relpath_for_NUL\": \"NUL\",\n  \"naive_windows_relpath_raises\": true,\n  \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n}\nSUCCESS:IMP-0467-probe1 NUL tree enumerates completely; safe relpath = NUL",
+     "fingerprint": "3852d169d92fb1fcd71b3fae451b980d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py",
+     "raw_output": "{\n  \"probe\": \"probe2-longpath-noswallow\",\n  \"unit_id\": \"IMP-0467\",\n  \"long_path_chars\": 372,\n  \"long_path_above_260\": true,\n  \"roundtrip_ok\": true,\n  \"library_walk_count\": 2,\n  \"swallowing_replica_count\": 0,\n  \"library_does_not_swallow\": true,\n  \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n}\nSUCCESS:IMP-0467-probe2 260+ char path round-trips; no zero-swallow",
+     "fingerprint": "f0463f3ce645bee8c95999acb8fcb926",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Second independent signal: both named probes re-ran live on this checkout with exit 0 (repair-time re-verification).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0467",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py",
+     "raw_output": "{\n  \"probe\": \"probe1-reserved-enum\",\n  \"unit_id\": \"IMP-0467\",\n  \"files_without_reserved\": 3,\n  \"files_with_reserved\": 4,\n  \"delta\": 1,\n  \"reserved_stems\": [\n    \"NUL\"\n  ],\n  \"swallowing_count_on_reserved_tree\": 0,\n  \"library_does_not_return_zero\": true,\n  \"safe_relpath_for_NUL\": \"NUL\",\n  \"naive_windows_relpath_raises\": true,\n  \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n}\nSUCCESS:IMP-0467-probe1 NUL tree enumerates completely; safe relpath = NUL",
+     "fingerprint": "3852d169d92fb1fcd71b3fae451b980d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py",
+     "raw_output": "{\n  \"probe\": \"probe2-longpath-noswallow\",\n  \"unit_id\": \"IMP-0467\",\n  \"long_path_chars\": 372,\n  \"long_path_above_260\": true,\n  \"roundtrip_ok\": true,\n  \"library_walk_count\": 2,\n  \"swallowing_replica_count\": 0,\n  \"library_does_not_swallow\": true,\n  \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n}\nSUCCESS:IMP-0467-probe2 260+ char path round-trips; no zero-swallow",
+     "fingerprint": "f0463f3ce645bee8c95999acb8fcb926",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "reserved-name-enumeration",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py"
+  },
+  {
+   "id": "long-path-above-260",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py"
+  },
+  {
+   "id": "no-silent-zero-swallow",
+   "result": "PASS",
+   "command": "probe1"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "naive-windows-relpath-NUL",
+   "kind": "other",
+   "description": "[original kind: known-crash-replica] naive_windows_relpath raises ValueError on a file named NUL, matching os.path.relpath / GetFullPathNameW on Windows",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "path is on mount '\\\\.\\NUL', start on mount 'Z:'"
+  },
+  {
+   "id": "swallow-walk-zero",
+   "kind": "other",
+   "description": "[original kind: known-broken-enumerator] A walk that catches the reserved-name crash and returns [] reports zero entries; the library must not be equivalent",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0467-probe2-longpath-noswallow",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "notes": " [note: Probe 2 is a mechanically different instrument: long-path round-trip plus the swallow-zero control, not a re-read of probe 1's reserved-name delta.]"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0467/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0467; related IMP-0021 / AUD-0082 / TST-0197",
+ "timestamps": {
+  "started_at": "2026-08-25T00:58:48Z",
+  "ended_at": "2026-08-25T00:58:48Z"
+ },
+ "host": {
+  "os": "posix",
+  "platform": "linux"
+ },
+ "notes": "G-1 delivery for IMP-0467 on Linux: a tree containing a file named NUL enumerates completely (file count differs by exactly one versus the same tree without NUL; neither walk raises). safe_relpath returns 'NUL', not a \\\\.\\NUL device mount. A long path above 260 characters is created, walked, and read back. The crash-swallowing enumerator returns 0; the library does not. SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+ "report": {
+  "schema_repair_preserved": [
+   {
+    "parent": "tests/2",
+    "key": "note",
+    "value": "swallowing_walk_count returns 0 on the reserved tree; walk_tree returns the real non-zero file count"
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0467.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0467.json",
+       "raw_output": "ACCEPT:IMP-0467 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "59313e1df6d828f85ee1394032b41ffb",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0467.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0467",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py\n    ],\n    \"swallowing_count_on_reserved_tree\": 0,\n    \"library_does_not_return_zero\": true,\n    \"safe_relpath_for_NUL\": \"NUL\",\n    \"naive_windows_relpath_raises\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe1 NUL tree enumerates completely; safe relpath = NUL\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py\n    \"long_path_above_260\": true,\n    \"roundtrip_ok\": true,\n    \"library_walk_count\": 2,\n    \"swallowing_replica_count\": 0,\n    \"library_does_not_swallow\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe2 260+ char path round-trips; no zero-swallow\nartifact command-center/receipts/IMP-0467.json bytes=6481 sha256=d47bdc889f66846a059b995c7c15f450384fab78bf778df5235279f3c72c36c5\nSUCCESS:delivered IMP-0467",
+       "fingerprint": "514d93e0d6be47209ef2ade8cfb67da8",
+       "exit_code": 0
+      }
+     }
+    ]
+   },
+   {
+    "parent": "downstream_consumers",
+    "key": "dropped_rows",
+    "value": [
+     {
+      "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+      "artifact_path": "command-center/receipts/IMP-0467.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0467.json",
+       "raw_output": "ACCEPT:IMP-0467 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+       "fingerprint": "59313e1df6d828f85ee1394032b41ffb",
+       "exit_code": 0
+      }
+     },
+     {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+      "artifact_path": "command-center/receipts/IMP-0467.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+       "role": "verifier",
+       "method": "command",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0467",
+       "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py\n    ],\n    \"swallowing_count_on_reserved_tree\": 0,\n    \"library_does_not_return_zero\": true,\n    \"safe_relpath_for_NUL\": \"NUL\",\n    \"naive_windows_relpath_raises\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe1 NUL tree enumerates completely; safe relpath = NUL\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py\n    \"long_path_above_260\": true,\n    \"roundtrip_ok\": true,\n    \"library_walk_count\": 2,\n    \"swallowing_replica_count\": 0,\n    \"library_does_not_swallow\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe2 260+ char path round-trips; no zero-swallow\nartifact command-center/receipts/IMP-0467.json bytes=11392 sha256=2269cb49a78822bd601d124e0bdfaf310be9748bda68aabf75cfbe3407bb329e\nSUCCESS:delivered IMP-0467",
+       "fingerprint": "514d93e0d6be47209ef2ade8cfb67da8",
+       "exit_code": 0
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "min_bytes_threshold": 128,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0467.json",
+   "bytes": 15635,
+   "sha256": "00b470a54e6ac7badccdd7933443767c01f4f9a0ce0c9f12d61632ca22943602",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py",
+   "bytes": 4020,
+   "sha256": "120bb0d72372f3e6323906bd4462a410f59e3a5222c08534f8e1bfa68d798ee3",
+   "exists": true,
+   "eol": "CRLF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py",
+   "bytes": 2682,
+   "sha256": "31c8040d4fbe1f3aec365f461438b385caadeb21180bb96e82bd87488a2484ea",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1/C3)",
+   "artifact_path": "command-center/receipts/IMP-0467.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0467.json",
+    "raw_output": "ACCEPT:IMP-0467 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "fingerprint": "59313e1df6d828f85ee1394032b41ffb",
+    "exit_code": 0
+   }
+  },
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py (G-1 delivery measure)",
+   "artifact_path": "command-center/receipts/IMP-0467.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py IMP-0467",
+    "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py\n    ],\n    \"swallowing_count_on_reserved_tree\": 0,\n    \"library_does_not_return_zero\": true,\n    \"safe_relpath_for_NUL\": \"NUL\",\n    \"naive_windows_relpath_raises\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe1 NUL tree enumerates completely; safe relpath = NUL\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py\n    \"long_path_above_260\": true,\n    \"roundtrip_ok\": true,\n    \"library_walk_count\": 2,\n    \"swallowing_replica_count\": 0,\n    \"library_does_not_swallow\": true,\n    \"sentinel\": \"SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE\"\n  }\n  SUCCESS:IMP-0467-probe2 260+ char path round-trips; no zero-swallow\nartifact command-center/receipts/IMP-0467.json bytes=13853 sha256=15e9fc2364c92c85438a34f705bec67b67934453d7b9a3ca100cc257a6c36cc9\nSUCCESS:delivered IMP-0467",
+    "fingerprint": "514d93e0d6be47209ef2ade8cfb67da8",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": []
+}

@@ -1,0 +1,80 @@
+{
+  "report_kind": "cache_report",
+  "claims": [
+    {
+      "id": "E-reader-integrity",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:publish_atomic",
+      "claim": "Two concurrent publishers of the same named cache key via tempfile.mkstemp + os.fsync + os.replace (the production atomic primitive from platform/plugin/fsops.py) never expose a partial entry: across 1,000 cross-process interleavings with a paced reader classifying every observation, zero reads were PARTIAL and every trial ended in a well-defined winner (A or B, complete payload).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-mutation-detector",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:publish_inplace",
+      "claim": "Mutation control: with the atomic replace removed (in-place overwrite carrying a torn-write window), the same reader observes hundreds of PARTIAL entries - the detector fires on the broken state and is silent on the atomic state, so the property test measures something.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-leftover-temps",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:publish_atomic",
+      "claim": "After concurrent atomic publishes join, the cache parent contains no leftover .tmp-TST0174-* files (publisher removes its temp on every path, replace exhaust raises instead of leaking).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "atomic-vs-inplace",
+      "kind": "mutation",
+      "description": "Atomic os.replace: zero partial reads across 1,000 dual-writer trials. In-place overwrite with a torn-write window: the same reader must observe at least one truncated or checksum-invalid entry (242 observed).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "partial_reads=242 reasons=bad-magic-or-trailer detector_red=true",
+      "good_state_output": "partial_reads=0 trials=1000 winners A/B well-defined"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0174/atomic_cache.py",
+    "publish": "tempfile.mkstemp + os.fsync + os.replace with PermissionError backoff",
+    "entry_layout": "MAGIC T174\\0 + uint32be length + sha256(payload) + payload (reader verifies checksum before classifying)",
+    "reader": "CreateFileW with FILE_SHARE_READ|WRITE|DELETE so a concurrent os.replace is never blocked by an observation (measured: without delete-sharing the trial loop storm-degrades ~1000x)",
+    "concurrency": "two persistent writer PROCESSES (A, B) driven by atomically-written go files; coordinator reader classifies during each trial",
+    "same_key": "same-key",
+    "production_cache_present": true
+  },
+  "observations": [
+    {
+      "name": "partial reads across 1,000 dual-writer atomic interleavings",
+      "measured": 0,
+      "method": "paced reader classifying every observation during concurrent tmp+os.replace",
+      "anchor": "command-center/p2-wave/probes/TST-0174/probe1_interleavings.py"
+    },
+    {
+      "name": "winners across 1,000 trials",
+      "measured": "A=495 B=505 OLD=0 UNKNOWN=0 (every trial a complete new payload)",
+      "method": "post-join classify of the live entry",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:classify"
+    },
+    {
+      "name": "inplace mutation partial reads",
+      "measured": 242,
+      "method": "same reader against in-place overwrite with a torn-write window (atomic replace removed)",
+      "anchor": "command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py"
+    },
+    {
+      "name": "leftover temps after concurrent atomic publish",
+      "measured": "[]",
+      "method": "directory scan of the cache parent after writers join",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:publish_atomic"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Production Cache.put (platform/plugin/cache.py) is content-addressed via hash_bytes, so two distinct payloads cannot share a key and the A-vs-B winner race cannot exist there; the named-key concurrent publish under test is measured on the probe-local publisher using the same atomic primitive (tmp + os.replace).",
+      "settling_experiment": "If a name-keyed production cache appears, re-bind the same two probes to its put path and keep publish_inplace as the detector control.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0174: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight: its receipt claimed SUCCESS with a probe-named reviewer entry while NO probe files existed on disk; the fabricated probe records were not carried over. Owner-gated: no (owner_approval_required=false)."
+}

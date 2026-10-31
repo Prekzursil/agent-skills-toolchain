@@ -1,0 +1,92 @@
+{
+  "reviewer": "claude-opus-5-5-ind-reviewer-w2-shard2-2026-10-26",
+  "wave": 2,
+  "shard": 2,
+  "reviewed_at": "2026-10-26T01:05:00Z",
+  "units_total": 12,
+  "summary": {
+    "closed_success": 6,
+    "confirmed_existing_success": 5,
+    "failed": 1
+  },
+  "verdicts": {
+    "ADV-0124": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ADV-0124",
+      "notes": "Probe1 first re-run hit the S4 suspend->state-T race (exit 1 under back-to-back load), immediate re-run exit 0 at idle; probe2 exit 0. Artifact CRLF on disk (405 pairs) converted to LF byte-level (normalized sha invariant c4044bfe..., raw size now == recorded 18559, gate c3 green). Cross-vendor reviewer requirement satisfied (builder substrate grok-4.6/xai; reviewer Anthropic opus)."
+    },
+    "ADV-0127": {
+      "verdict": "FAIL",
+      "failing_check": "probes_rerun_live_exit_0",
+      "receipt": "UNCHANGED (sha 4ef3e0b278df... matches pre-closure backup)",
+      "precise_reason": "probe1_static_audit.py exits 1 DETERMINISTICALLY: census fingerprint drift - live tree census hash 1c56848781602ff218f1d6865c9c389e4d2e9cfcf54d5e5f04ac178144f2c40f != artifact-recorded d3e350d0e0fcadd8b456dc0844e80af925be26ed792b20510ed7d9a9d14e6fd2. The artifact's static clock-class census (emitted 2026-10-24 on a worktree-isolated Linux substrate) predates the current tree state; the probe's own freshness tripwire fired. probe2_behavioral re-ran exit 0 and its live results match the artifact. Needs a builder-side re-emission (re-run census + re-record fingerprint in the artifact), then reviewer re-review."
+    },
+    "ADV-0128": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ADV-0128",
+      "notes": "Both probes re-run exit 0; 3 negative controls both-states true; production-estate honestly REFUTED with P1 finding recorded in artifact; fixtures loopback-only per catalog control."
+    },
+    "ARC-0001": {
+      "verdict": "CONFIRMED_SUCCESS",
+      "state": "SUCCESS",
+      "notes": "All reviewer delivery checks held (artifact ok, probes exit 0, sha matches manifest, schema resolved). Receipt byte-identical to pre-review (prior shard1-w1 closure untouched per instruction)."
+    },
+    "ARC-0012": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ARC-0012",
+      "notes": "Reviewer added FM-COHERENT-STALE (mutually complete yet coherently stale vs upstream source - both directions green does not imply freshness) per the catalog requirement to add a failure mode the author missed."
+    },
+    "ARC-0013": {
+      "verdict": "CONFIRMED_SUCCESS",
+      "state": "SUCCESS",
+      "notes": "All reviewer delivery checks held. Receipt byte-identical to pre-review."
+    },
+    "ARC-0015": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ARC-0015",
+      "notes": "Reviewer named MUT-CWD-DEPENDENT-PATH (cwd/__file__ embedding: same-dir two-run determinism passes, relocated regeneration diverges; uncatchable by T-TWO-RUN/T-MUT-DATETIME-NOW/T-MUT-DICT-ORDER/T-CRLF-CAT-FILE) per the catalog requirement."
+    },
+    "ARC-0019": {
+      "verdict": "CONFIRMED_SUCCESS",
+      "state": "SUCCESS",
+      "notes": "All reviewer delivery checks held. Receipt byte-identical to pre-review."
+    },
+    "ARC-0020": {
+      "verdict": "CONFIRMED_SUCCESS",
+      "state": "SUCCESS",
+      "notes": "All reviewer delivery checks held. Receipt byte-identical to pre-review."
+    },
+    "ARC-0021": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ARC-0021",
+      "notes": "Both-directions content preservation confirmed from live probe re-runs (adopt 0-byte rewrites; uninstall preserves 4/4 unclaimed estate, 3/3 independent signals). Dead bash-cmp lane recorded, non-gating."
+    },
+    "ARC-0048": {
+      "verdict": "PASS_CLOSED",
+      "state": "SUCCESS",
+      "receipt_admission": "0 errors",
+      "gate_a": "SUCCESS:ARC-0048",
+      "notes": "Two-reviewer requirement satisfied: primary reviewer (Anthropic opus) + codex-cli 0.154.0 cross-vendor second reviewer over model_providers.grok_lane (grok-4.7; OpenAI direct auth HTTP 401, substitution recorded). Codex verified classification discipline at line level (C5 CONFIRMED), refuted all overclaim probes, named zero missed paths. Format deviation (no literal VERDICT line) recorded verbatim, adjudicated PASS-on-substance. Artifact CRLF on disk (517 pairs) converted to LF (normalized sha invariant, raw size == recorded 24237)."
+    },
+    "ARC-0047": {
+      "verdict": "CONFIRMED_SUCCESS",
+      "state": "SUCCESS",
+      "notes": "All reviewer delivery checks held. Receipt byte-identical to pre-review."
+    }
+  },
+  "program_level_findings": [
+    "Artifact-class physical profiles are generated as allOf[receipt generic_report, report.kind pin], so every non-receipt artifact structurally fails validate_artifact (measured 12/12 here, 3-48 errors; prior reviewer measured 11/22 program-wide). Schema RESOLVES for all 12 units (fail-closed resolver green); profile violations adjudicated profile-generation defect, recorded verbatim in every closure.",
+    "Global command-center/UNIT-ARTIFACT-MANIFEST.json is stale for this shard: ADV-0124 row carries bytes=46052/sha of a superseded artifact emission and the 9 ARC units have no global rows. The per-unit probes/<id>/UNIT-ARTIFACT-MANIFEST.json files (the closure-contract instrument) all match live artifacts. Regeneration is builder-side (unit_manifest.py --write).",
+    "The 5 pre-existing SUCCESS closures (ARC-0001/0013/0019/0020/0047, shard1-w1 wave) use a flat receipt shape that rejects admission (11 errors: missing downstream_consumers/evidence/sentinel/tests/... + extra reviewer keys) and fails gate A. Delivery CONTENT verified green by this review; the receipt FORMAT gap is pre-existing, disclosed in their own notes, and left untouched per instruction."
+  ]
+}

@@ -1,0 +1,575 @@
+{
+ "TST-0081": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "release-test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0081",
+  "dependencies": [
+   "TST-0035"
+  ],
+  "evidence_requirement": "a complete file listing of the built package with sizes, plus the gate demonstrated failing on a deliberately polluted build",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "packaging-gap",
+   "green-not-live",
+   "stale-cache",
+   "dependency-blocked"
+  ],
+  "id": "TST-0081",
+  "inputs": [
+   "_USER-PROMPTS.md:11307",
+   "_USER-PROMPTS.md:10842",
+   ".github/workflows/no-runtime-junk.yml"
+  ],
+  "output_path": "command-center/receipts/TST-0081.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Failure class :11307 and the explicit prohibition at :10842. Target: a packaging gate that fails on any .git directory, transcript, credential-shaped file, log, or total size above a declared budget. Question: what does the current package actually contain, file by file?",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two fresh-context reviewers: one cross-vendor correctness refuter and one security refuter; both default to REFUTED when evidence is insufficient (:11062)",
+  "tests_required": [
+   "test_gate_fails_on_a_planted_dot_git",
+   "test_gate_fails_above_the_size_budget",
+   "test_clean_package_passes (the both-states pair)"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Package hygiene: no .git, no unrelated caches, no gigabyte payloads",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0085": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0085",
+  "dependencies": [
+   "TST-0084"
+  ],
+  "evidence_requirement": "injected-token counts measured at 10, 100 and 500 installed capabilities, with the growth curve reported; a single-point measurement cannot show flooding",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "measured-nothing",
+   "benchmark-gaming",
+   "variance-unbanded",
+   "overclaim"
+  ],
+  "id": "TST-0085",
+  "inputs": [
+   "_USER-PROMPTS.md:10957",
+   "_USER-PROMPTS.md:10963"
+  ],
+  "output_path": "command-center/receipts/TST-0085.json",
+  "output_schema": "command-center/schema/benchmark-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "8",
+  "question_or_target": "Phase 8 requires 'top-k injection with confidence' and a regression suite proving the router selects relevant capabilities 'without flooding context' (:10957, :10963). Target: measure injected tokens per turn as a function of the installed capability count and assert a budget. Precedent: skills-context-budget overflow was the root cause of naive sessions on this estate.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one cross-vendor refuter plus one statistics reviewer who re-derives the variance band from the raw per-run numbers, not from the summary",
+  "tests_required": [
+   "test_injected_tokens_stay_under_budget_at_500_capabilities",
+   "test_growth_is_sublinear_in_the_installed_count"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Router top-k injection must not flood the context window",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0088": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0088",
+  "dependencies": [
+   "TST-0008"
+  ],
+  "evidence_requirement": "the truncated artifact preserved as a fixture with its byte length, plus the classification and the condition id that rejected it",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "severed-stream",
+   "timeout-<n>s",
+   "uncontrolled-silence",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "TST-0088",
+  "inputs": [
+   "_USER-PROMPTS.md:11009",
+   "_USER-PROMPTS.md:11313"
+  ],
+  "output_path": "command-center/receipts/TST-0088.json",
+  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Failure classes :11009 and :11313. Target: SIGKILL a unit while it is streaming its artifact and assert the fan-in classifies the truncated file FAILED at condition 5, never SUCCESS. Distinct from TST-0004 (artifact wholly absent): here the file exists, parses partially, and looks plausible.",
+  "retry_policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_truncated_artifact_is_failed_not_success",
+   "test_atomic_write_prevents_the_partial_from_being_visible_at_all (the stronger fix)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Partial artifact without a sentinel: kill a unit mid-write",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell",
+   "Monitor"
+  ]
+ },
+ "TST-0090": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0090",
+  "dependencies": [
+   "TST-0089"
+  ],
+  "evidence_requirement": "a run in which the original dispatcher is frozen past lease expiry, the unit is reclaimed and completed, and the thawed original's write is then REJECTED with its stale token recorded",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "severed-stream",
+   "timeout-<n>s",
+   "uncontrolled-silence",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "TST-0090",
+  "inputs": [
+   "_USER-PROMPTS.md:10972-10975",
+   "_USER-PROMPTS.md:11315"
+  ],
+  "output_path": "command-center/receipts/TST-0090.json",
+  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Phase 9 requires work claims, file leases, conflict detection and duplicate-work suppression (:10972-10975). Target: when the dispatcher holding a unit's lease dies, a new dispatcher may reclaim the unit after lease expiry, and the ORIGINAL must be unable to commit a late result afterwards - a monotonically increasing fencing token, not a timeout alone, is what makes reclaim safe. Question: can a zombie dispatcher that wakes after expiry still write a receipt? (Monitor-death observation is TST-0089; mtime-based stall detection is owned by TST-0152 in slice TST-2.)",
+  "retry_policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_expired_lease_permits_exactly_one_reclaim",
+   "test_thawed_original_write_is_rejected_by_the_fencing_token",
+   "test_two_concurrent_reclaimers_do_not_both_win",
+   "test_unexpired_lease_blocks_reclaim (the both-states pair)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Orphaned work must be reclaimable exactly once: lease expiry with a fencing token",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell",
+   "Monitor"
+  ]
+ },
+ "TST-0091": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0091",
+  "dependencies": [
+   "TST-0089"
+  ],
+  "evidence_requirement": "a batch of N units with one deliberately hung: the barrier must resolve within the declared timeout with N-1 results plus one typed timeout classification",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "severed-stream",
+   "timeout-<n>s",
+   "uncontrolled-silence",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "TST-0091",
+  "inputs": [
+   "_USER-PROMPTS.md:11317",
+   "rules/common/fan-out-contract.md"
+  ],
+  "output_path": "command-center/receipts/TST-0091.json",
+  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Failure class :11317. Measured: parallel() has no per-agent timeout, so one hung agent deadlocks the whole phase - detected only by a write-freeze longer than 25 minutes. Target: per-unit timeouts and a per-work-unit pipeline so the barrier resolves on the survivors with the hung unit classified, not silently awaited.",
+  "retry_policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_barrier_resolves_despite_one_hung_unit",
+   "test_hung_unit_is_classified_timeout_not_silently_dropped",
+   "test_survivor_results_are_complete_and_attributed"
+  ],
+  "timeout_seconds": 5400,
+  "title": "One hung unit must not block a large batch",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell",
+   "Monitor"
+  ]
+ },
+ "TST-0092": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0092",
+  "dependencies": [
+   "TST-0027"
+  ],
+  "evidence_requirement": "sliding-window arrival counts computed from a simulated dispatch of >=1000 units at several caps, with the max observed window rate printed per cap | substrate note: runs cloud-batch because pure scheduler simulation over >=1000 generated schedules; no local state touched",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "measured-nothing",
+   "benchmark-gaming",
+   "variance-unbanded",
+   "overclaim"
+  ],
+  "id": "TST-0092",
+  "inputs": [
+   "_USER-PROMPTS.md:10577-10578"
+  ],
+  "output_path": "command-center/receipts/TST-0092.json",
+  "output_schema": "command-center/schema/benchmark-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Spec: 'Stagger arrivals to avoid 429 thundering-herd failures. Treat quota and arrival rate as scheduler inputs' (:10577-10578). Target: a property test over the scheduler asserting that for any batch size and any declared rate cap, the realised inter-arrival distribution never exceeds the cap in any sliding window. Distinct from TST-0093, which tests the RESPONSE to a 429 rather than its prevention.",
+  "retry_policy": "unlimited re-runs ONLY with a new recorded seed; re-running the same seed is not a retry, it is a reproduction and must produce the identical verdict",
+  "reviewer_requirement": "one cross-vendor refuter plus one statistics reviewer who re-derives the variance band from the raw per-run numbers, not from the summary",
+  "tests_required": [
+   "test_no_sliding_window_exceeds_the_cap (property, >=1000 generated schedules)",
+   "test_jitter_is_actually_applied (identical timestamps across units is a defect)"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Arrival-rate scheduler: stagger and jitter as a measured property",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0094": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0094",
+  "dependencies": [
+   "TST-0089"
+  ],
+  "evidence_requirement": "three runs recorded - genuinely-nothing-to-harvest, filter-mismatch, and connection-failure - each producing a DIFFERENT typed outcome rather than a shared empty result",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "severed-stream",
+   "timeout-<n>s",
+   "uncontrolled-silence",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "TST-0094",
+  "inputs": [
+   "_USER-PROMPTS.md:11319",
+   "rules/common/cross-vendor-dispatch.md#1"
+  ],
+  "output_path": "command-center/receipts/TST-0094.json",
+  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Failure class :11319. Target: a harvest run against a remote substrate that has produced zero new artifacts must be distinguishable from a harvest whose connection or filter silently matched nothing. Measured analogue: a job filter keyed on session id where the written record carried null, hiding every result.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_empty_harvest_and_broken_harvest_are_distinguishable",
+   "test_a_null_key_in_the_filter_is_rejected_at_write_time"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Remote harvest that silently does nothing",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell",
+   "Monitor"
+  ]
+ },
+ "TST-0100": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0100",
+  "dependencies": [
+   "TST-0099"
+  ],
+  "evidence_requirement": "the guard demonstrated refusing a write in a scratch clone of a DIFFERENT repository, and permitting it in the pinned one",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "severed-stream",
+   "timeout-<n>s",
+   "uncontrolled-silence",
+   "duplicate-dispatch",
+   "partial-artifact"
+  ],
+  "id": "TST-0100",
+  "inputs": [
+   "_USER-PROMPTS.md:11321",
+   "rules/common/harness-vcs-hygiene.md"
+  ],
+  "output_path": "command-center/receipts/TST-0100.json",
+  "output_schema": "command-center/schema/detector-control.schema.json",
+  "owner_approval_required": false,
+  "phase": "9",
+  "question_or_target": "Failure class :11321. Target: before any write, a guard resolves the worktree's origin URL and refuses when it is not the pinned repository. This program operates under a hard constraint naming a concurrently-owned tree that must never be touched; the guard is what makes that mechanical rather than a matter of care.",
+  "retry_policy": "single attempt then escalate to the owner; this unit mutates a live shared surface and a blind retry can compound the damage",
+  "reviewer_requirement": "two fresh-context reviewers: one cross-vendor refuter and one Windows-platform specialist who re-runs the probe in the OTHER shell (PowerShell 7 vs Git Bash)",
+  "tests_required": [
+   "test_write_to_a_foreign_worktree_is_refused",
+   "test_write_to_the_pinned_worktree_is_permitted",
+   "test_guard_resolves_origin_by_command_not_by_path_string"
+  ],
+  "timeout_seconds": 2700,
+  "title": "A worktree pointing at the wrong repository",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "TST-0109": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "benchmark-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0109",
+  "dependencies": [
+   "TST-0105"
+  ],
+  "evidence_requirement": "per-benchmark n, mean, standard deviation and the derived minimum detectable effect, with the raw per-run numbers attached",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "measured-nothing",
+   "benchmark-gaming",
+   "variance-unbanded",
+   "overclaim"
+  ],
+  "id": "TST-0109",
+  "inputs": [
+   "_USER-PROMPTS.md:11021"
+  ],
+  "output_path": "command-center/receipts/TST-0109.json",
+  "output_schema": "command-center/schema/benchmark-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Target: for each benchmark, run n repetitions at one SHA and compute the variance band, then derive the minimum n at which a claimed improvement is distinguishable from noise. Without this, every regression and improvement claim in the program is uncalibrated.",
+  "retry_policy": "unlimited re-runs ONLY with a new recorded seed; re-running the same seed is not a retry, it is a reproduction and must produce the identical verdict",
+  "reviewer_requirement": "one cross-vendor refuter plus one statistics reviewer who re-derives the variance band from the raw per-run numbers, not from the summary",
+  "tests_required": [
+   "test_minimum_detectable_effect_is_computed_per_benchmark",
+   "test_raw_per_run_numbers_are_preserved_not_only_the_summary"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Variance banding: how many runs before a benchmark number means anything",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0113": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "docs-test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0113",
+  "dependencies": [
+   "TST-0078"
+  ],
+  "evidence_requirement": "the verbatim message for every triggered error path with a rubric score per part; scores assigned against the captured text, not from reading the source",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "false-coverage",
+   "overclaim",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "TST-0113",
+  "inputs": [
+   "_USER-PROMPTS.md:10840"
+  ],
+  "output_path": "command-center/receipts/TST-0113.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Phase 5 requires 'clear user-facing error messages' (:10840). Target: trigger every error path and score its message against a three-part rubric (what failed, why, what to do). A message that only says an operation failed is a defect, not a style preference.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two fresh-context reviewers: one cross-vendor refuter and one Windows-platform specialist who re-runs the probe in the OTHER shell (PowerShell 7 vs Git Bash)",
+  "tests_required": [
+   "test_every_error_path_is_triggered_at_least_once",
+   "test_each_message_scores_on_all_three_rubric_parts"
+  ],
+  "timeout_seconds": 3600,
+  "title": "User-facing error messages must name the component, the cause and the remedy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "TST-0116": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "test-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0116",
+  "dependencies": [
+   "TST-0027",
+   "TST-0039"
+  ],
+  "evidence_requirement": "a type-by-type generator inventory with coverage of the schema's field space, plus a shrunk counterexample demonstrated for a planted invariant violation | substrate note: runs cloud-batch because property generation is stateless and embarrassingly parallel",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "schema-invalid",
+   "dependency-blocked"
+  ],
+  "id": "TST-0116",
+  "inputs": [
+   "_USER-PROMPTS.md:11001"
+  ],
+  "output_path": "command-center/receipts/TST-0116.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Phase 10 layer 13 (:11001). Target: stand up the property-test substrate - generators for the domain types (work unit, receipt, council spec, workflow DAG), a shrinking policy, and a reporting format that records the minimal counterexample plus its seed. What domain types have no generator, and are therefore unreachable by every property test?",
+  "retry_policy": "unlimited re-runs ONLY with a new recorded seed; re-running the same seed is not a retry, it is a reproduction and must produce the identical verdict",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_a_planted_invariant_violation_is_found_and_shrunk",
+   "test_every_domain_type_has_a_generator_or_is_listed_as_ungenerated"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Property-based testing infrastructure with a shrinking and reporting policy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash"
+  ]
+ },
+ "TST-0124": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "test-governance-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0124",
+  "dependencies": [
+   "TST-0123"
+  ],
+  "evidence_requirement": "the suite x gate join table with the ungated count; the join must be proven by showing a known-gated suite appearing on the gated side",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "false-coverage",
+   "overclaim",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "TST-0124",
+  "inputs": [
+   ".github/workflows/quality.yml",
+   ".github/workflows/no-runtime-junk.yml",
+   "_USER-PROMPTS.md:11026"
+  ],
+  "output_path": "command-center/receipts/TST-0124.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Measured on this estate: 162 of 244 suites ran in NO CI gate, and every triage lane that looked inside that set found a live bug. Target: enumerate suites and gates, join them, and report the ungated set. A suite nobody runs is not coverage.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_every_suite_is_classified_gated_or_ungated",
+   "test_a_known_gated_suite_is_correctly_joined (control)",
+   "test_ungated_suites_are_listed_by_path"
+  ],
+  "timeout_seconds": 3600,
+  "title": "CI-gate census: every test suite must map to a gate that can turn red",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "mcp__github__list_commits",
+   "mcp__github__get_file_contents",
+   "mcp__github__pull_request_read"
+  ]
+ }
+}

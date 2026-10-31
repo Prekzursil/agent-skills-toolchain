@@ -1,0 +1,87 @@
+{
+  "report_kind": "cache_report",
+  "claims": [
+    {
+      "id": "E-owned-cleared-user-intact",
+      "anchor": "command-center/p2-wave/probes/TST-0175/ownership.py:upgrade_install_repair",
+      "claim": "Upgrade/install --repair built on the production invalidation primitive (platform Cache.invalidate) clears exactly the manifest-owned derived paths (state/cache entries, state/derived-index) and leaves every user-data path byte-identical (pre/post tree hash equal over state/notes, state/profiles, state/user-settings.json, commands.json).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-both-states-planted",
+      "anchor": "command-center/p2-wave/probes/TST-0175/probe1_both_states.py:main",
+      "claim": "Both-states control: a planted user file survives byte-identical and a planted derived-cache file is removed by the same upgrade; under the deferred (no-op) upgrade mutant the derived state survives, so the assertions fire on the broken state.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-rollback-seed",
+      "anchor": "command-center/p2-wave/probes/TST-0175/probe2_rollback_seed.py:main",
+      "claim": "Regression seed (_USER-PROMPTS.md:11347): a known-broken rollback that wipes state/ removes user data (detector fires), while the correct rollback preserves user data and installed commands byte-identically and still clears derived cache.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "deferred-upgrade-noop",
+      "kind": "mutation",
+      "description": "No-op upgrade leaves planted derived-cache files in place, so the probe's owned-paths-emptiness assertions fail there - the detector is silent on the good state and fires on the deferred state.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "derived_cleared=False cache_empty=False under mutant",
+      "good_state_output": "derived_cleared=True cache_empty=True user_identical=True"
+    },
+    {
+      "id": "rollback-wipes-user-data",
+      "kind": "regression-seed",
+      "description": "Known-broken rollback (rmtree of state/) deletes user notes/profiles; the tree-hash equality assertion fails there and only there.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "user_data_byte_identical=False; state/notes/user.json absent",
+      "good_state_output": "user_data_byte_identical=True; planted bytes return read-for-read"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0175/ownership.py",
+    "production_primitive": "platform/plugin/cache.py Cache.invalidate (EOL-stable hashing; never touches quarantine)",
+    "ownership_manifest": {
+      "owned_derived": ["state/cache", "state/quarantine", "state/derived-index"],
+      "user_data": ["state/notes", "state/profiles", "state/user-settings.json", "commands.json"]
+    },
+    "signals": {
+      "a": "pre/post sha256 tree hash over the four user-data paths (byte-identical)",
+      "b": "post-upgrade file-count==0 over owned derived paths only"
+    },
+    "fixtures": "probe builds its own install root under probes/TST-0175/.run-p1 and .run-p2 (self-cleaning)"
+  },
+  "observations": [
+    {
+      "name": "user-data tree hash across upgrade",
+      "measured": "pre/post equal over state/notes, state/profiles, state/user-settings.json, commands.json",
+      "method": "sha256 per file before/after production Cache.invalidate-driven upgrade",
+      "anchor": "command-center/p2-wave/probes/TST-0175/probe1_both_states.py"
+    },
+    {
+      "name": "owned derived paths post-upgrade",
+      "measured": "state/cache file count 6 -> 0; state/derived-index planted file removed",
+      "method": "file-count scan restricted to manifest-owned paths",
+      "anchor": "command-center/p2-wave/probes/TST-0175/ownership.py:upgrade_install_repair"
+    },
+    {
+      "name": "rollback user-data preservation (regression seed)",
+      "measured": "user files byte-identical; broken-rollback mutant deletes them (detector red)",
+      "method": "correct vs known-broken rollback over identical fixtures",
+      "anchor": "command-center/p2-wave/probes/TST-0175/probe2_rollback_seed.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The ownership manifest here is the probe-local explicit manifest the unit demands; the shipping product's own ownership manifest (if it adds one) must be reconciled with these paths when it appears.",
+      "settling_experiment": "When the product grows a real ownership manifest, re-bind upgrade_install_repair to it and re-run both probes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0175: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Prior builder attempt died mid-flight: its receipt claimed SUCCESS with probe-named reviewer entries while NO probe files existed on disk; the rebuild replaced fabricated records with live measurements. Owner-gated: no (owner_approval_required=false)."
+}

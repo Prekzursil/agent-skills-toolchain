@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verdict-freshness.schema.json",
+  "title": "Stamped verdict with freshness provenance (IMP-0095)",
+  "description": "A stored quality score, vulnerability verdict, or conformance result carrying the timestamp and input hashes it was computed from. A green result computed last week against a live advisory database is not a control for today.",
+  "type": "object",
+  "required": ["kind", "result", "computed_at", "input_hashes", "freshness"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["quality_score", "vulnerability_verdict", "conformance_result"]
+    },
+    "result": {
+      "description": "The stored outcome, e.g. CLEAN/PASS or a score_bp integer.",
+      "type": ["string", "integer", "number", "boolean"]
+    },
+    "subject": {
+      "type": "string",
+      "description": "What was scored, e.g. package@version."
+    },
+    "computed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC instant the verdict was computed."
+    },
+    "input_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "sha256 over the canonical JSON encoding of each hashable input."
+    },
+    "unhashable_inputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Live inputs (e.g. advisory_db) that are listed because they cannot be hashed; they decay via the age signal."
+    },
+    "freshness_window_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Age beyond this window marks the verdict STALE even when no input hash changed."
+    },
+    "freshness": {
+      "type": "string",
+      "enum": ["VALID", "STALE"]
+    },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["HASH_STALE", "AGE_STALE"] }
+    }
+  }
+}

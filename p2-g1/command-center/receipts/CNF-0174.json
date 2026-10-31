@@ -1,0 +1,2188 @@
+{
+ "unit_id": "CNF-0174",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0174",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CNF-0174.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "spec_anchor": "_USER-PROMPTS.md:11343 nested councils disagree on completion",
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "claim_id": "CNF-0174-nested-completion-split-surfaces",
+   "claim_under_test": "When two subcouncils disagree about whether the work is complete, the council-of-councils surfaces the disagreement (both verdicts + escalation path) rather than silently averaging it into a consensus. Spec:11343.",
+   "question": "When two subcouncils disagree about whether the work is complete, does the council-of-councils SURFACE the disagreement, or silently average it into a consensus?",
+   "confirmer": {
+    "identity": "CNF-0174-independent-confirmer",
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "independent-confirmer",
+    "execution_substrate": "local-parallel"
+   },
+   "blinding_attestation_hash": "fa4d3ebf004c9edcdab2a05480431e4d10f001c13a1e36dad009990e9f5be12a",
+   "output_schema": "command-center/schema/confirmation-record.schema.json",
+   "output_schema_present": true,
+   "verdict": "PARTIAL",
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe1_split_surface.py",
+    "role": "split-surface-minority-deadlock-three-way",
+    "fingerprint": "da3a5cc6569c24ae0eef1394db5bcf679f934469a26db4be87ef2b8eb232fbaf",
+    "live_result_digest": "e1d22aa4ddcc618f53c120aa1ef0c877d09dc734b9322360f7160f32087257be"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe2_controls.py",
+    "role": "both-states-known-broken-census-averaging",
+    "fingerprint": "50d4c593fcf8713df5f44cf001b8dc90cd98397781d030f31084925db79920ab",
+    "live_result_digest": "31904369aad2d7779289cc9bbf7254d95a97d60047d61dab1f47bd88e8ec9ed2"
+   },
+   "baseline_repro": {
+    "label": "split-detector-on",
+    "parent_verdict": "SPLIT",
+    "parent_completion": "INCOMPLETE",
+    "split_surfaced": true,
+    "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+    "escalation_path": [
+     "observe-split",
+     "ESCALATE_TO_PARENT_WITH_SPLIT"
+    ],
+    "subcouncil_verdicts": [
+     {
+      "id": "sub-alpha",
+      "completion": "COMPLETE"
+     },
+     {
+      "id": "sub-beta",
+      "completion": "BLOCKED"
+     }
+    ],
+    "minority_ids": [
+     "sub-beta"
+    ],
+    "digest": "e1d22aa4ddcc618f53c120aa1ef0c877d09dc734b9322360f7160f32087257be"
+   },
+   "corrected_repro": {
+    "label": "persistent-split-terminal-escalation",
+    "parent_verdict": "SPLIT",
+    "escalation": "ESCALATE_TO_OWNER_NO_LOOP",
+    "attempts": 2,
+    "looped": false,
+    "terminal": true,
+    "escalation_path": [
+     "observe-split",
+     "ESCALATE_TO_PARENT_WITH_SPLIT",
+     "retry-same-fingerprint",
+     "ESCALATE_TO_OWNER_NO_LOOP"
+    ]
+   },
+   "rollback_repro": {
+    "label": "known-broken-detector-off",
+    "parent_verdict": "COMPLETE",
+    "split_surfaced": false,
+    "averaged": true,
+    "mean_completion": 0.5,
+    "minority_reports": [],
+    "note": "Disabling the split detector restores averaging. Same children, merged COMPLETE, minority reasoning dropped. This is the red state."
+   },
+   "regression_diff": {
+    "detector_on_parent_verdict": "SPLIT",
+    "detector_off_parent_verdict": "COMPLETE",
+    "split_preserved_on": true,
+    "split_preserved_off": false,
+    "minority_reasoning_on": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+    "minority_reasoning_off": null
+   },
+   "discrepancies": [
+    {
+     "id": "D-PRODUCTION-ABSENT",
+     "kind": "missing-runtime",
+     "detail": "production nested runtime (tools/council/topology/nested.py) is absent; confirmer-authored completion-split fan-in is the object under test. CNL-0123 ships a sibling disagreement simulation with PASS/REFUTED labels, not COMPLETE/BLOCKED completion status.",
+     "production_nested_present": false
+    }
+   ],
+   "residual_caveat": "Object under test is command-center/p2-wave/probes/CNF-0174/fanin.py. tools/council/topology/nested.py is absent. command-center/phase3/A1/FAILURE-MODES.json is also absent; FC-11343 is cited from live reconstructed prompt text (CC-0024/fixtures/prompt-two-slice.md:11343) and the catalog unit. confirmation-record.schema.json exists as a generated shim. This record CONFIRMS harness behaviour and REFUTES production nested presence; record-level verdict is PARTIAL, not CONFIRMED. cloud ok=true is not delivery. Did not run unit_manifest.py --write.",
+   "fan_in_output": {
+    "split": {
+     "parent_verdict": "SPLIT",
+     "parent_completion": "INCOMPLETE",
+     "split_surfaced": true,
+     "averaged": false,
+     "mean_completion": null,
+     "local_predicate_used": false,
+     "local_predicate_name": null,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+     "escalation_path": [
+      "observe-split",
+      "ESCALATE_TO_PARENT_WITH_SPLIT"
+     ],
+     "terminal": false,
+     "looped": false,
+     "attempts": 1,
+     "majority_status": "COMPLETE",
+     "majority_n": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "exit_code": 0,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+       "dissent": [],
+       "confidence": 0.91,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "claimed_completion": "BLOCKED",
+       "exit_code": 1,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "minority: completion predicate unsatisfied on consumer proof"
+       ],
+       "confidence": 0.82,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      }
+     ],
+     "minority_reports": [
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "minority: completion predicate unsatisfied on consumer proof"
+       ],
+       "lost": false
+      }
+     ],
+     "forwarded_dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "tally": {
+      "n_children": 2,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta"
+      ],
+      "n_distinct_sources": 2,
+      "double_counted": false,
+      "by_completion": {
+       "BLOCKED": 1,
+       "COMPLETE": 1
+      }
+     },
+     "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+     "split_meta": {
+      "split": true,
+      "unique_completions": [
+       "BLOCKED",
+       "COMPLETE"
+      ],
+      "n_unique": 2
+     },
+     "policy": {
+      "id": "cnf-0174-nested-completion-split",
+      "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+      "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+      "max_attempts": 2,
+      "never_loop": true
+     }
+    },
+    "persistent_terminal": {
+     "parent_verdict": "SPLIT",
+     "parent_completion": "INCOMPLETE",
+     "split_surfaced": true,
+     "averaged": false,
+     "mean_completion": null,
+     "local_predicate_used": false,
+     "local_predicate_name": null,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "escalation": "ESCALATE_TO_OWNER_NO_LOOP",
+     "escalation_path": [
+      "observe-split",
+      "ESCALATE_TO_PARENT_WITH_SPLIT",
+      "retry-same-fingerprint",
+      "ESCALATE_TO_OWNER_NO_LOOP"
+     ],
+     "terminal": true,
+     "looped": false,
+     "attempts": 2,
+     "majority_status": "COMPLETE",
+     "majority_n": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "exit_code": 0,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+       "dissent": [],
+       "confidence": 0.91,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "claimed_completion": "BLOCKED",
+       "exit_code": 1,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "minority: completion predicate unsatisfied on consumer proof"
+       ],
+       "confidence": 0.82,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      }
+     ],
+     "minority_reports": [
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "minority: completion predicate unsatisfied on consumer proof"
+       ],
+       "lost": false
+      }
+     ],
+     "forwarded_dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "tally": {
+      "n_children": 2,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta"
+      ],
+      "n_distinct_sources": 2,
+      "double_counted": false,
+      "by_completion": {
+       "BLOCKED": 1,
+       "COMPLETE": 1
+      }
+     },
+     "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+     "split_meta": {
+      "split": true,
+      "unique_completions": [
+       "BLOCKED",
+       "COMPLETE"
+      ],
+      "n_unique": 2
+     },
+     "policy": {
+      "id": "cnf-0174-nested-completion-split",
+      "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+      "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+      "max_attempts": 2,
+      "never_loop": true
+     },
+     "history_attempts": 2,
+     "hit_safety_cap": false
+    },
+    "agree_complete": {
+     "parent_verdict": "COMPLETE",
+     "parent_completion": "COMPLETE",
+     "split_surfaced": false,
+     "averaged": false,
+     "mean_completion": null,
+     "local_predicate_used": false,
+     "local_predicate_name": null,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "escalation": null,
+     "escalation_path": [],
+     "terminal": true,
+     "looped": false,
+     "attempts": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "exit_code": 0,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-alpha: deliberated four rounds; dissent empty; both artifacts present; reducer COMPLETE.",
+       "dissent": [],
+       "confidence": 0.88,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-beta",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "exit_code": 0,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-beta: independently reached COMPLETE on the same receipt pair after reading alpha's evidence rather than counting votes.",
+       "dissent": [],
+       "confidence": 0.86,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      }
+     ],
+     "minority_reports": [],
+     "forwarded_dissent": [],
+     "tally": {
+      "n_children": 2,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta"
+      ],
+      "n_distinct_sources": 2,
+      "double_counted": false,
+      "by_completion": {
+       "COMPLETE": 2
+      }
+     },
+     "split_fingerprint": "1994a254a47e51eac3f280c9d482ce67346e1e73687d4c0d99843099e85e5aee",
+     "split_meta": {
+      "split": false,
+      "unique_completions": [
+       "COMPLETE"
+      ],
+      "n_unique": 1
+     }
+    },
+    "agree_blocked": {
+     "parent_verdict": "BLOCKED",
+     "parent_completion": "BLOCKED",
+     "split_surfaced": false,
+     "averaged": false,
+     "mean_completion": null,
+     "local_predicate_used": false,
+     "local_predicate_name": null,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "escalation": null,
+     "escalation_path": [],
+     "terminal": true,
+     "looped": false,
+     "attempts": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "BLOCKED",
+       "claimed_completion": "BLOCKED",
+       "exit_code": 2,
+       "artifact_present": true,
+       "reasoning": "Both subcouncils blocked: shared reducer INCOMPLETE.",
+       "dissent": [],
+       "confidence": 0.6,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "claimed_completion": "BLOCKED",
+       "exit_code": 2,
+       "artifact_present": true,
+       "reasoning": "Beta agrees blocked after reading alpha's missing artifact.",
+       "dissent": [],
+       "confidence": 0.61,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      }
+     ],
+     "minority_reports": [],
+     "forwarded_dissent": [],
+     "tally": {
+      "n_children": 2,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta"
+      ],
+      "n_distinct_sources": 2,
+      "double_counted": false,
+      "by_completion": {
+       "BLOCKED": 2
+      }
+     },
+     "split_fingerprint": "015cee39584080f0f81ef17fc845fc6b4ec115f9b694dc4201b291e8d84c265a",
+     "split_meta": {
+      "split": false,
+      "unique_completions": [
+       "BLOCKED"
+      ],
+      "n_unique": 1
+     }
+    },
+    "three_way": {
+     "parent_verdict": "SPLIT",
+     "parent_completion": "INCOMPLETE",
+     "split_surfaced": true,
+     "averaged": false,
+     "mean_completion": null,
+     "local_predicate_used": false,
+     "local_predicate_name": null,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+     "escalation_path": [
+      "observe-split",
+      "ESCALATE_TO_PARENT_WITH_SPLIT"
+     ],
+     "terminal": false,
+     "looped": false,
+     "attempts": 1,
+     "majority_status": "COMPLETE",
+     "majority_n": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "exit_code": 0,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+       "dissent": [],
+       "confidence": 0.9,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "claimed_completion": "BLOCKED",
+       "exit_code": 1,
+       "artifact_present": true,
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "beta-minority: do not merge"
+       ],
+       "confidence": 0.8,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": true,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      },
+      {
+       "id": "sub-gamma",
+       "completion": "INCOMPLETE",
+       "claimed_completion": "INCOMPLETE",
+       "exit_code": 0,
+       "artifact_present": false,
+       "reasoning": "Subcouncil-gamma: still in progress. Two of five required artifacts are unwritten; exit_code 0 on the worker is not success.",
+       "dissent": [
+        "gamma-minority: exit-zero is not success"
+       ],
+       "confidence": 0.55,
+       "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+       "reducer_symbol": "judge",
+       "conditions": [
+        {
+         "id": "exit-zero-is-not-success",
+         "pass": false,
+         "note": "exit_code==0 with missing artifact is INCOMPLETE"
+        },
+        {
+         "id": "digest-is-not-receipt",
+         "pass": true,
+         "note": "a digest without artifact_present is not a receipt"
+        },
+        {
+         "id": "path-is-not-proof",
+         "pass": true,
+         "note": "a path string is not proof the file exists"
+        },
+        {
+         "id": "evidence-nonempty-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires non-empty reasoning/evidence"
+        },
+        {
+         "id": "artifact-present-when-complete",
+         "pass": true,
+         "note": "COMPLETE requires artifact_present=true"
+        }
+       ]
+      }
+     ],
+     "minority_reports": [
+      {
+       "id": "sub-beta",
+       "completion": "BLOCKED",
+       "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+       "dissent": [
+        "beta-minority: do not merge"
+       ],
+       "lost": false
+      },
+      {
+       "id": "sub-gamma",
+       "completion": "INCOMPLETE",
+       "reasoning": "Subcouncil-gamma: still in progress. Two of five required artifacts are unwritten; exit_code 0 on the worker is not success.",
+       "dissent": [
+        "gamma-minority: exit-zero is not success"
+       ],
+       "lost": false
+      }
+     ],
+     "forwarded_dissent": [
+      "beta-minority: do not merge",
+      "gamma-minority: exit-zero is not success"
+     ],
+     "tally": {
+      "n_children": 3,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta",
+       "sub-gamma"
+      ],
+      "n_distinct_sources": 3,
+      "double_counted": false,
+      "by_completion": {
+       "BLOCKED": 1,
+       "COMPLETE": 1,
+       "INCOMPLETE": 1
+      }
+     },
+     "split_fingerprint": "2a1a07d767b06382238af818bbede4aec3b410174266fd09a6c1ff37f38af1f6",
+     "split_meta": {
+      "split": true,
+      "unique_completions": [
+       "BLOCKED",
+       "COMPLETE",
+       "INCOMPLETE"
+      ],
+      "n_unique": 3
+     },
+     "policy": {
+      "id": "cnf-0174-nested-completion-split",
+      "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+      "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+      "max_attempts": 2,
+      "never_loop": true
+     }
+    },
+    "known_broken": {
+     "parent_verdict": "COMPLETE",
+     "parent_completion": "COMPLETE",
+     "split_surfaced": false,
+     "averaged": true,
+     "mean_completion": 0.5,
+     "local_predicate_used": true,
+     "local_predicate_name": "majority-mean-completion",
+     "reducer_module": null,
+     "escalation": null,
+     "escalation_path": [],
+     "terminal": true,
+     "looped": false,
+     "attempts": 1,
+     "subcouncil_verdicts": [
+      {
+       "id": "sub-alpha",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "reasoning": "",
+       "dissent": [],
+       "erased": true
+      },
+      {
+       "id": "sub-beta",
+       "completion": "COMPLETE",
+       "claimed_completion": "COMPLETE",
+       "reasoning": "",
+       "dissent": [],
+       "erased": true
+      }
+     ],
+     "minority_reports": [],
+     "forwarded_dissent": [],
+     "tally": {
+      "n_children": 2,
+      "distinct_source_ids": [
+       "sub-alpha",
+       "sub-beta"
+      ],
+      "n_distinct_sources": 2,
+      "double_counted": false,
+      "by_completion": {
+       "BLOCKED": 1,
+       "COMPLETE": 1
+      }
+     },
+     "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+     "split_meta": {
+      "split": true,
+      "unique_completions": [
+       "BLOCKED",
+       "COMPLETE"
+      ],
+      "n_unique": 2
+     }
+    }
+   },
+   "reducer": {
+    "module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+    "symbol": "judge",
+    "cited_by_parent": true
+   },
+   "census": {
+    "tools_council_dir": false,
+    "production_fanin_files": [],
+    "production_nested_present": false,
+    "candidates": [
+     {
+      "path": "tools/council/topology/nested.py",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "tools/council/simulate.py",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "tools/council/fanin.py",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "tools/council/__init__.py",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "agentspec/oracle.py",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "command-center/schema/confirmation-record.schema.json",
+      "present": true,
+      "bytes": 1118
+     },
+     {
+      "path": "command-center/design/council/CNL-0037-nested-subcouncils-and-council-of-councils-fan-in.md",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "command-center/design/council/CNL-0123-council-of-councils-fan-in-simulation-including-the-disagr.md",
+      "present": false,
+      "bytes": 0
+     },
+     {
+      "path": "command-center/confirmation/CNF-0095-council-of-councils-fanin.json",
+      "present": false,
+      "bytes": 0
+     }
+    ],
+    "failure_modes_fc11343": {
+     "path": "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+     "present": true,
+     "names_fc11343": true,
+     "line": 11343,
+     "production_failure_modes_present": false,
+     "why_snippet": "Fan-in averaging; A1 has no nested council runtime.",
+     "why_present": false
+    },
+    "object_under_test": "command-center/p2-wave/probes/CNF-0174/fanin.py",
+    "object_under_test_reason": "production nested runtime (tools/council/topology/nested.py) is absent; confirmer-authored completion-split fan-in is the object under test. CNL-0123 ships a sibling disagreement simulation with PASS/REFUTED labels, not COMPLETE/BLOCKED completion status."
+   },
+   "claims": [
+    {
+     "id": "C-HARNESS-SPLIT-SURFACES",
+     "claim": "Confirmer-authored fan-in surfaces COMPLETE vs BLOCKED instead of merging them.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:fan_in"
+    },
+    {
+     "id": "C-MINORITY-PRESERVED",
+     "claim": "Losing subcouncil reasoning survives into the parent artifact.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:BLOCKED_REASON"
+    },
+    {
+     "id": "C-DEADLOCK-ESCALATES",
+     "claim": "Persistent split reaches ESCALATE_TO_OWNER_NO_LOOP and does not loop.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:ESCALATION_POLICY"
+    },
+    {
+     "id": "C-BOTH-STATES-AGREE",
+     "claim": "Agreeing COMPLETE subcouncils fan in to COMPLETE with no spurious escalation.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:agree_complete"
+    },
+    {
+     "id": "C-KNOWN-BROKEN",
+     "claim": "Disabling the split detector makes the split-surface test go red (averaging).",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:_average_away"
+    },
+    {
+     "id": "C-PRODUCTION-NESTED",
+     "claim": "Production tools/council/topology/nested.py exists and is the fan-in under test.",
+     "verdict": "REFUTED",
+     "anchor": "tools/council/topology/nested.py",
+     "defect_locus": "DESIGN"
+    },
+    {
+     "id": "C-THREE-WAY",
+     "claim": "A three-way COMPLETE/BLOCKED/INCOMPLETE split still surfaces all three verdicts.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:three_way"
+    }
+   ],
+   "failure_class": "FC-11343",
+   "named_probes": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe1_split_surface.py",
+     "role": "split-surface"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe2_controls.py",
+     "role": "controls"
+    }
+   ],
+   "cloud_ok": false,
+   "registered": true,
+   "ts": "2026-08-25T00:54:07Z",
+   "answer": "Harness fan-in SURFACES the split (parent_verdict=SPLIT, both subcouncil verdicts forwarded, minority reasoning preserved, persistent split escalates to ESCALATE_TO_OWNER_NO_LOOP). Production nested runtime is ABSENT, so the estate-level claim is not CONFIRMED. Record verdict=PARTIAL. SUCCESS:CNF-0174"
+  }
+ },
+ "schema_version": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0174.json",
+   "bytes": 37456,
+   "sha256": "2b24cb0bce5a0d5a55f06dcf9d1d0754d7e6731ecb1b6ba9273ac5feaf509442",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0174 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CNF-0174.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CNF-0174.json",
+     "raw_output": "bytes=37456 sha256=2b24cb0bce5a0d5a55f06dcf9d1d0754d7e6731ecb1b6ba9273ac5feaf509442",
+     "fingerprint": "f49f5c3792bfcb3062df02dff983bc92",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0174",
+     "raw_output": "schema-check",
+     "fingerprint": "2ba9dbe8025c7ff23bf65d579535ddcb",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0174 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0174",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0174",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "ef96975fe1696a52bffe8f90d2f83e69",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0174",
+     "raw_output": "schema-valid",
+     "fingerprint": "b7d1a1e64f560c8c36e6022326f59247",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0174/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0174"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CNF-0174.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CNF-0174.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "56b775a85a9f11e6e737602f8c6ea66f",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "confirmation-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 37456,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CNF-0174.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "claim_id": "CNF-0174-nested-completion-split-surfaces",
+ "claim_under_test": "When two subcouncils disagree about whether the work is complete, the council-of-councils surfaces the disagreement (both verdicts + escalation path) rather than silently averaging it into a consensus. Spec:11343.",
+ "question": "When two subcouncils disagree about whether the work is complete, does the council-of-councils SURFACE the disagreement, or silently average it into a consensus?",
+ "confirmer": {
+  "identity": "CNF-0174-independent-confirmer",
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "independent-confirmer",
+  "execution_substrate": "local-parallel"
+ },
+ "blinding_attestation_hash": "fa4d3ebf004c9edcdab2a05480431e4d10f001c13a1e36dad009990e9f5be12a",
+ "output_schema": "command-center/schema/confirmation-record.schema.json",
+ "output_schema_present": true,
+ "verdict": "PARTIAL",
+ "source_probe": {
+  "id": "probe1",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe1_split_surface.py",
+  "role": "split-surface-minority-deadlock-three-way",
+  "fingerprint": "da3a5cc6569c24ae0eef1394db5bcf679f934469a26db4be87ef2b8eb232fbaf",
+  "live_result_digest": "e1d22aa4ddcc618f53c120aa1ef0c877d09dc734b9322360f7160f32087257be"
+ },
+ "verifier_probe": {
+  "id": "probe2",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe2_controls.py",
+  "role": "both-states-known-broken-census-averaging",
+  "fingerprint": "50d4c593fcf8713df5f44cf001b8dc90cd98397781d030f31084925db79920ab",
+  "live_result_digest": "31904369aad2d7779289cc9bbf7254d95a97d60047d61dab1f47bd88e8ec9ed2"
+ },
+ "baseline_repro": {
+  "label": "split-detector-on",
+  "parent_verdict": "SPLIT",
+  "parent_completion": "INCOMPLETE",
+  "split_surfaced": true,
+  "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+  "escalation_path": [
+   "observe-split",
+   "ESCALATE_TO_PARENT_WITH_SPLIT"
+  ],
+  "subcouncil_verdicts": [
+   {
+    "id": "sub-alpha",
+    "completion": "COMPLETE"
+   },
+   {
+    "id": "sub-beta",
+    "completion": "BLOCKED"
+   }
+  ],
+  "minority_ids": [
+   "sub-beta"
+  ],
+  "digest": "e1d22aa4ddcc618f53c120aa1ef0c877d09dc734b9322360f7160f32087257be"
+ },
+ "corrected_repro": {
+  "label": "persistent-split-terminal-escalation",
+  "parent_verdict": "SPLIT",
+  "escalation": "ESCALATE_TO_OWNER_NO_LOOP",
+  "attempts": 2,
+  "looped": false,
+  "terminal": true,
+  "escalation_path": [
+   "observe-split",
+   "ESCALATE_TO_PARENT_WITH_SPLIT",
+   "retry-same-fingerprint",
+   "ESCALATE_TO_OWNER_NO_LOOP"
+  ]
+ },
+ "rollback_repro": {
+  "label": "known-broken-detector-off",
+  "parent_verdict": "COMPLETE",
+  "split_surfaced": false,
+  "averaged": true,
+  "mean_completion": 0.5,
+  "minority_reports": [],
+  "note": "Disabling the split detector restores averaging. Same children, merged COMPLETE, minority reasoning dropped. This is the red state."
+ },
+ "regression_diff": {
+  "detector_on_parent_verdict": "SPLIT",
+  "detector_off_parent_verdict": "COMPLETE",
+  "split_preserved_on": true,
+  "split_preserved_off": false,
+  "minority_reasoning_on": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+  "minority_reasoning_off": null
+ },
+ "discrepancies": [
+  {
+   "id": "D-PRODUCTION-ABSENT",
+   "kind": "missing-runtime",
+   "detail": "production nested runtime (tools/council/topology/nested.py) is absent; confirmer-authored completion-split fan-in is the object under test. CNL-0123 ships a sibling disagreement simulation with PASS/REFUTED labels, not COMPLETE/BLOCKED completion status.",
+   "production_nested_present": false
+  }
+ ],
+ "residual_caveat": "Object under test is command-center/p2-wave/probes/CNF-0174/fanin.py. tools/council/topology/nested.py is absent. command-center/phase3/A1/FAILURE-MODES.json is also absent; FC-11343 is cited from live reconstructed prompt text (CC-0024/fixtures/prompt-two-slice.md:11343) and the catalog unit. confirmation-record.schema.json exists as a generated shim. This record CONFIRMS harness behaviour and REFUTES production nested presence; record-level verdict is PARTIAL, not CONFIRMED. cloud ok=true is not delivery. Did not run unit_manifest.py --write.",
+ "fan_in_output": {
+  "split": {
+   "parent_verdict": "SPLIT",
+   "parent_completion": "INCOMPLETE",
+   "split_surfaced": true,
+   "averaged": false,
+   "mean_completion": null,
+   "local_predicate_used": false,
+   "local_predicate_name": null,
+   "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+   "reducer_symbol": "judge",
+   "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+   "escalation_path": [
+    "observe-split",
+    "ESCALATE_TO_PARENT_WITH_SPLIT"
+   ],
+   "terminal": false,
+   "looped": false,
+   "attempts": 1,
+   "majority_status": "COMPLETE",
+   "majority_n": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "exit_code": 0,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+     "dissent": [],
+     "confidence": 0.91,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "claimed_completion": "BLOCKED",
+     "exit_code": 1,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "confidence": 0.82,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    }
+   ],
+   "minority_reports": [
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "lost": false
+    }
+   ],
+   "forwarded_dissent": [
+    "minority: completion predicate unsatisfied on consumer proof"
+   ],
+   "tally": {
+    "n_children": 2,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta"
+    ],
+    "n_distinct_sources": 2,
+    "double_counted": false,
+    "by_completion": {
+     "BLOCKED": 1,
+     "COMPLETE": 1
+    }
+   },
+   "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+   "split_meta": {
+    "split": true,
+    "unique_completions": [
+     "BLOCKED",
+     "COMPLETE"
+    ],
+    "n_unique": 2
+   },
+   "policy": {
+    "id": "cnf-0174-nested-completion-split",
+    "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+    "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+    "max_attempts": 2,
+    "never_loop": true
+   }
+  },
+  "persistent_terminal": {
+   "parent_verdict": "SPLIT",
+   "parent_completion": "INCOMPLETE",
+   "split_surfaced": true,
+   "averaged": false,
+   "mean_completion": null,
+   "local_predicate_used": false,
+   "local_predicate_name": null,
+   "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+   "reducer_symbol": "judge",
+   "escalation": "ESCALATE_TO_OWNER_NO_LOOP",
+   "escalation_path": [
+    "observe-split",
+    "ESCALATE_TO_PARENT_WITH_SPLIT",
+    "retry-same-fingerprint",
+    "ESCALATE_TO_OWNER_NO_LOOP"
+   ],
+   "terminal": true,
+   "looped": false,
+   "attempts": 2,
+   "majority_status": "COMPLETE",
+   "majority_n": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "exit_code": 0,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+     "dissent": [],
+     "confidence": 0.91,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "claimed_completion": "BLOCKED",
+     "exit_code": 1,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "confidence": 0.82,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    }
+   ],
+   "minority_reports": [
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "minority: completion predicate unsatisfied on consumer proof"
+     ],
+     "lost": false
+    }
+   ],
+   "forwarded_dissent": [
+    "minority: completion predicate unsatisfied on consumer proof"
+   ],
+   "tally": {
+    "n_children": 2,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta"
+    ],
+    "n_distinct_sources": 2,
+    "double_counted": false,
+    "by_completion": {
+     "BLOCKED": 1,
+     "COMPLETE": 1
+    }
+   },
+   "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+   "split_meta": {
+    "split": true,
+    "unique_completions": [
+     "BLOCKED",
+     "COMPLETE"
+    ],
+    "n_unique": 2
+   },
+   "policy": {
+    "id": "cnf-0174-nested-completion-split",
+    "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+    "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+    "max_attempts": 2,
+    "never_loop": true
+   },
+   "history_attempts": 2,
+   "hit_safety_cap": false
+  },
+  "agree_complete": {
+   "parent_verdict": "COMPLETE",
+   "parent_completion": "COMPLETE",
+   "split_surfaced": false,
+   "averaged": false,
+   "mean_completion": null,
+   "local_predicate_used": false,
+   "local_predicate_name": null,
+   "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+   "reducer_symbol": "judge",
+   "escalation": null,
+   "escalation_path": [],
+   "terminal": true,
+   "looped": false,
+   "attempts": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "exit_code": 0,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-alpha: deliberated four rounds; dissent empty; both artifacts present; reducer COMPLETE.",
+     "dissent": [],
+     "confidence": 0.88,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-beta",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "exit_code": 0,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-beta: independently reached COMPLETE on the same receipt pair after reading alpha's evidence rather than counting votes.",
+     "dissent": [],
+     "confidence": 0.86,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    }
+   ],
+   "minority_reports": [],
+   "forwarded_dissent": [],
+   "tally": {
+    "n_children": 2,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta"
+    ],
+    "n_distinct_sources": 2,
+    "double_counted": false,
+    "by_completion": {
+     "COMPLETE": 2
+    }
+   },
+   "split_fingerprint": "1994a254a47e51eac3f280c9d482ce67346e1e73687d4c0d99843099e85e5aee",
+   "split_meta": {
+    "split": false,
+    "unique_completions": [
+     "COMPLETE"
+    ],
+    "n_unique": 1
+   }
+  },
+  "agree_blocked": {
+   "parent_verdict": "BLOCKED",
+   "parent_completion": "BLOCKED",
+   "split_surfaced": false,
+   "averaged": false,
+   "mean_completion": null,
+   "local_predicate_used": false,
+   "local_predicate_name": null,
+   "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+   "reducer_symbol": "judge",
+   "escalation": null,
+   "escalation_path": [],
+   "terminal": true,
+   "looped": false,
+   "attempts": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "BLOCKED",
+     "claimed_completion": "BLOCKED",
+     "exit_code": 2,
+     "artifact_present": true,
+     "reasoning": "Both subcouncils blocked: shared reducer INCOMPLETE.",
+     "dissent": [],
+     "confidence": 0.6,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "claimed_completion": "BLOCKED",
+     "exit_code": 2,
+     "artifact_present": true,
+     "reasoning": "Beta agrees blocked after reading alpha's missing artifact.",
+     "dissent": [],
+     "confidence": 0.61,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    }
+   ],
+   "minority_reports": [],
+   "forwarded_dissent": [],
+   "tally": {
+    "n_children": 2,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta"
+    ],
+    "n_distinct_sources": 2,
+    "double_counted": false,
+    "by_completion": {
+     "BLOCKED": 2
+    }
+   },
+   "split_fingerprint": "015cee39584080f0f81ef17fc845fc6b4ec115f9b694dc4201b291e8d84c265a",
+   "split_meta": {
+    "split": false,
+    "unique_completions": [
+     "BLOCKED"
+    ],
+    "n_unique": 1
+   }
+  },
+  "three_way": {
+   "parent_verdict": "SPLIT",
+   "parent_completion": "INCOMPLETE",
+   "split_surfaced": true,
+   "averaged": false,
+   "mean_completion": null,
+   "local_predicate_used": false,
+   "local_predicate_name": null,
+   "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+   "reducer_symbol": "judge",
+   "escalation": "ESCALATE_TO_PARENT_WITH_SPLIT",
+   "escalation_path": [
+    "observe-split",
+    "ESCALATE_TO_PARENT_WITH_SPLIT"
+   ],
+   "terminal": false,
+   "looped": false,
+   "attempts": 1,
+   "majority_status": "COMPLETE",
+   "majority_n": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "exit_code": 0,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-alpha: work is complete. Receipt exists at artifacts/alpha.json, tests T1-T4 passed, shared reducer returned COMPLETE.",
+     "dissent": [],
+     "confidence": 0.9,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "claimed_completion": "BLOCKED",
+     "exit_code": 1,
+     "artifact_present": true,
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "beta-minority: do not merge"
+     ],
+     "confidence": 0.8,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": true,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    },
+    {
+     "id": "sub-gamma",
+     "completion": "INCOMPLETE",
+     "claimed_completion": "INCOMPLETE",
+     "exit_code": 0,
+     "artifact_present": false,
+     "reasoning": "Subcouncil-gamma: still in progress. Two of five required artifacts are unwritten; exit_code 0 on the worker is not success.",
+     "dissent": [
+      "gamma-minority: exit-zero is not success"
+     ],
+     "confidence": 0.55,
+     "reducer_module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+     "reducer_symbol": "judge",
+     "conditions": [
+      {
+       "id": "exit-zero-is-not-success",
+       "pass": false,
+       "note": "exit_code==0 with missing artifact is INCOMPLETE"
+      },
+      {
+       "id": "digest-is-not-receipt",
+       "pass": true,
+       "note": "a digest without artifact_present is not a receipt"
+      },
+      {
+       "id": "path-is-not-proof",
+       "pass": true,
+       "note": "a path string is not proof the file exists"
+      },
+      {
+       "id": "evidence-nonempty-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires non-empty reasoning/evidence"
+      },
+      {
+       "id": "artifact-present-when-complete",
+       "pass": true,
+       "note": "COMPLETE requires artifact_present=true"
+      }
+     ]
+    }
+   ],
+   "minority_reports": [
+    {
+     "id": "sub-beta",
+     "completion": "BLOCKED",
+     "reasoning": "Subcouncil-beta: work is NOT complete. Blocking gap: nested fan-in never read beta's evidence that the completion predicate is unsatisfied (missing condition-12 consumer proof). Do not average this away.",
+     "dissent": [
+      "beta-minority: do not merge"
+     ],
+     "lost": false
+    },
+    {
+     "id": "sub-gamma",
+     "completion": "INCOMPLETE",
+     "reasoning": "Subcouncil-gamma: still in progress. Two of five required artifacts are unwritten; exit_code 0 on the worker is not success.",
+     "dissent": [
+      "gamma-minority: exit-zero is not success"
+     ],
+     "lost": false
+    }
+   ],
+   "forwarded_dissent": [
+    "beta-minority: do not merge",
+    "gamma-minority: exit-zero is not success"
+   ],
+   "tally": {
+    "n_children": 3,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta",
+     "sub-gamma"
+    ],
+    "n_distinct_sources": 3,
+    "double_counted": false,
+    "by_completion": {
+     "BLOCKED": 1,
+     "COMPLETE": 1,
+     "INCOMPLETE": 1
+    }
+   },
+   "split_fingerprint": "2a1a07d767b06382238af818bbede4aec3b410174266fd09a6c1ff37f38af1f6",
+   "split_meta": {
+    "split": true,
+    "unique_completions": [
+     "BLOCKED",
+     "COMPLETE",
+     "INCOMPLETE"
+    ],
+    "n_unique": 3
+   },
+   "policy": {
+    "id": "cnf-0174-nested-completion-split",
+    "on_first_split": "ESCALATE_TO_PARENT_WITH_SPLIT",
+    "on_persistent_split": "ESCALATE_TO_OWNER_NO_LOOP",
+    "max_attempts": 2,
+    "never_loop": true
+   }
+  },
+  "known_broken": {
+   "parent_verdict": "COMPLETE",
+   "parent_completion": "COMPLETE",
+   "split_surfaced": false,
+   "averaged": true,
+   "mean_completion": 0.5,
+   "local_predicate_used": true,
+   "local_predicate_name": "majority-mean-completion",
+   "reducer_module": null,
+   "escalation": null,
+   "escalation_path": [],
+   "terminal": true,
+   "looped": false,
+   "attempts": 1,
+   "subcouncil_verdicts": [
+    {
+     "id": "sub-alpha",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "reasoning": "",
+     "dissent": [],
+     "erased": true
+    },
+    {
+     "id": "sub-beta",
+     "completion": "COMPLETE",
+     "claimed_completion": "COMPLETE",
+     "reasoning": "",
+     "dissent": [],
+     "erased": true
+    }
+   ],
+   "minority_reports": [],
+   "forwarded_dissent": [],
+   "tally": {
+    "n_children": 2,
+    "distinct_source_ids": [
+     "sub-alpha",
+     "sub-beta"
+    ],
+    "n_distinct_sources": 2,
+    "double_counted": false,
+    "by_completion": {
+     "BLOCKED": 1,
+     "COMPLETE": 1
+    }
+   },
+   "split_fingerprint": "9159c9cb1122ecea0d3a3b933354fb45fe71e4fe4039230b34bff8345e661bb2",
+   "split_meta": {
+    "split": true,
+    "unique_completions": [
+     "BLOCKED",
+     "COMPLETE"
+    ],
+    "n_unique": 2
+   }
+  }
+ },
+ "reducer": {
+  "module": "command-center/p2-wave/probes/CNF-0174/reducer.py",
+  "symbol": "judge",
+  "cited_by_parent": true
+ },
+ "census": {
+  "tools_council_dir": false,
+  "production_fanin_files": [],
+  "production_nested_present": false,
+  "candidates": [
+   {
+    "path": "tools/council/topology/nested.py",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "tools/council/simulate.py",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "tools/council/fanin.py",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "tools/council/__init__.py",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "agentspec/oracle.py",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "command-center/schema/confirmation-record.schema.json",
+    "present": true,
+    "bytes": 1118
+   },
+   {
+    "path": "command-center/design/council/CNL-0037-nested-subcouncils-and-council-of-councils-fan-in.md",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "command-center/design/council/CNL-0123-council-of-councils-fan-in-simulation-including-the-disagr.md",
+    "present": false,
+    "bytes": 0
+   },
+   {
+    "path": "command-center/confirmation/CNF-0095-council-of-councils-fanin.json",
+    "present": false,
+    "bytes": 0
+   }
+  ],
+  "failure_modes_fc11343": {
+   "path": "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+   "present": true,
+   "names_fc11343": true,
+   "line": 11343,
+   "production_failure_modes_present": false,
+   "why_snippet": "Fan-in averaging; A1 has no nested council runtime.",
+   "why_present": false
+  },
+  "object_under_test": "command-center/p2-wave/probes/CNF-0174/fanin.py",
+  "object_under_test_reason": "production nested runtime (tools/council/topology/nested.py) is absent; confirmer-authored completion-split fan-in is the object under test. CNL-0123 ships a sibling disagreement simulation with PASS/REFUTED labels, not COMPLETE/BLOCKED completion status."
+ },
+ "claims": [
+  {
+   "id": "C-HARNESS-SPLIT-SURFACES",
+   "claim": "Confirmer-authored fan-in surfaces COMPLETE vs BLOCKED instead of merging them.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:fan_in"
+  },
+  {
+   "id": "C-MINORITY-PRESERVED",
+   "claim": "Losing subcouncil reasoning survives into the parent artifact.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:BLOCKED_REASON"
+  },
+  {
+   "id": "C-DEADLOCK-ESCALATES",
+   "claim": "Persistent split reaches ESCALATE_TO_OWNER_NO_LOOP and does not loop.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:ESCALATION_POLICY"
+  },
+  {
+   "id": "C-BOTH-STATES-AGREE",
+   "claim": "Agreeing COMPLETE subcouncils fan in to COMPLETE with no spurious escalation.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:agree_complete"
+  },
+  {
+   "id": "C-KNOWN-BROKEN",
+   "claim": "Disabling the split detector makes the split-surface test go red (averaging).",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/fanin.py:_average_away"
+  },
+  {
+   "id": "C-PRODUCTION-NESTED",
+   "claim": "Production tools/council/topology/nested.py exists and is the fan-in under test.",
+   "verdict": "REFUTED",
+   "anchor": "tools/council/topology/nested.py",
+   "defect_locus": "DESIGN"
+  },
+  {
+   "id": "C-THREE-WAY",
+   "claim": "A three-way COMPLETE/BLOCKED/INCOMPLETE split still surfaces all three verdicts.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/CNF-0174/scenario.py:three_way"
+  }
+ ],
+ "failure_class": "FC-11343",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe1_split_surface.py",
+   "role": "split-surface"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0174/probe2_controls.py",
+   "role": "controls"
+  }
+ ],
+ "cloud_ok": false,
+ "registered": true,
+ "ts": "2026-08-25T00:54:07Z",
+ "answer": "Harness fan-in SURFACES the split (parent_verdict=SPLIT, both subcouncil verdicts forwarded, minority reasoning preserved, persistent split escalates to ESCALATE_TO_OWNER_NO_LOOP). Production nested runtime is ABSENT, so the estate-level claim is not CONFIRMED. Record verdict=PARTIAL. SUCCESS:CNF-0174"
+}

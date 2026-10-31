@@ -1,0 +1,114 @@
+{
+  "$id": "https://prekzursil.dev/ast-integrate/schema/payload-inventory.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`forbidden_matches` has maxItems 0: an inventory that records a forbidden match is invalid by construction, so the value cannot be reported as a warning.",
+  "properties": {
+    "artifact": {
+      "const": "payload-inventory"
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "size",
+          "sha256",
+          "rule"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "file_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "forbidden_classes_checked": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "forbidden_matches": {
+      "maxItems": 0,
+      "type": "array"
+    },
+    "plugin": {
+      "type": "string"
+    },
+    "total_bytes": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "version": {
+      "pattern": "^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$",
+      "type": "string"
+    },
+    "added": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "size": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "removed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "size": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "grown": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "from": {"type": "integer", "minimum": 0},
+          "to": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
+  },
+  "required": [
+    "artifact",
+    "plugin",
+    "version",
+    "total_bytes",
+    "file_count",
+    "entries",
+    "forbidden_classes_checked",
+    "forbidden_matches",
+    "grown"
+  ],
+  "title": "Staged payload inventory with per-file EOL-normalised hashes",
+  "type": "object"
+}

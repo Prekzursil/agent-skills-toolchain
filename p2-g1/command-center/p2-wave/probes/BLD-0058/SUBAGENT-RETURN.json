@@ -1,0 +1,31 @@
+{
+ "id": "BLD-0058",
+ "unit_id": "BLD-0058",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:BLD-0058",
+ "registered": true,
+ "output_path": "command-center/receipts/BLD-0058.json",
+ "output_schema": "command-center/schema (catalog output_schema; see receipt)",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/probe1_both_states.py",
+   "exit_code": 0,
+   "role": "probe1_both_states.py",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"BLD-0058\",\n \"artifact_bytes\": 7811,\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:BLD-0058-probe1 delivery predicate holds"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/probe2_observed_throughput.py",
+   "exit_code": 0,
+   "role": "probe2_observed_throughput.py",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"BLD-0058\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=55f6d3ca10f0622a... rows=2\"\n   },\n   {\n    \"label\": \"sim.py schedule invariants hold (burst split sums, stagger admits all, admit_rpm<rpm)\",\n    \"ok\": true,\n    \"detail\": \"burst 500+19570=20070 (n=20070), stagger 20070/429=0, admit_rpm 400.0 < rpm 500, vacuous=False\"\n   },\n   {\n    \"label\": \"sim.py error-class table: 429 ours/stagger vs 529 vendor/keep-concurrency\",\n    \"ok\": true,\n    \"detail\": \"429=OUR_ARRIVAL_RATE/stagger-and-backoff; do-not-mark-unit-failed 529=VENDOR_OVERLOAD keep-concurrency=True naive-throttles=True\"\n   },\n   {\n    \"label\": \"binding ceiling re-derived from quota rows (NOT-CHECKED excluded)\",\n    \"ok\": true,\n    \"detail\": \"binding=500 status=DOCUMENTED over 3 eligible\"\n   },\n   {\n    \"label\": \"scale chain re-multiplies 2007*10=20070\",\n    \"ok\": true,\n    \"detail\": \"2007*10=20070\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICATE-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:BLD-0058-probe2 manifest sha match, 5 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "wave2_completion": {
+  "at": "2026-10-25T15:02:55Z",
+  "by": "claude-opus-5-5 builder shard 7 wave 2",
+  "note": "Completed the unit after the prior builder died mid-flight: the delivered artifact and its independent reviewer closure (reviewer.verdict=PASS, independent=true) already verified on disk and were kept verbatim; this wave re-created the lost probes/<id>/ tree (probes + recorded-named instrument modules, headers carry the recreation note), re-ran both live probes green, and registered the manifest sha row. Receipt left at the prior closure state per the reviewer-closure exception."
+ }
+}

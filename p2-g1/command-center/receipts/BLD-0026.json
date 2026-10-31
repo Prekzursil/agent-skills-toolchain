@@ -1,0 +1,835 @@
+{
+  "artifacts": [
+    {
+      "bytes": 40068,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/BLD-0026.json",
+      "role": "primary",
+      "sha256": "bfa80f1c6b81f332d3bc8aa09a01e5cb85d5b3d9aae281f64ae012a545666c6f"
+    },
+    {
+      "bytes": 1111,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/blindspot-register.schema.json",
+      "role": "supporting",
+      "sha256": "365db991e2358eb9875164dbbf4c4487052b04183980f298270ce006c98981be"
+    },
+    {
+      "bytes": 4872,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py",
+      "role": "supporting",
+      "sha256": "67368a2381991551c602201121831783684823e953c58b035d1666626d92be39"
+    },
+    {
+      "bytes": 1754,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/command-center/degradation_events.py",
+      "role": "supporting",
+      "sha256": "36c9bcd49d151218f3513bc1cddbf1db0bb3357ffd31dffce5dd8950babb5ec7"
+    },
+    {
+      "bytes": 35339,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/ready_units.py",
+      "role": "supporting",
+      "sha256": "f2d86ae4f0391985b2ba91391e891bbd1f1f542cc1de2ba9ba53b699539b9b93"
+    }
+  ],
+  "defects": [
+    {
+      "id": "BLD-0026-D1-SILENT-PREFIX-PREDICATE",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "ready_units._prefix_predicate still swallows contract-validation exceptions (historical pre-4b skip). Classified SILENT in the register; not rewritten because it is the live both-states control for this unit."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/BLD-0026.json",
+      "consumer": "json.loads of catalog output_path",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "json.loads command-center/receipts/BLD-0026.json",
+        "exit_code": 0,
+        "fingerprint": "e3f3131daff2ec1fe45291fd16245a7991d58bc1b60a8400831724a7e9d52c28",
+        "method": "file-read",
+        "raw_output": "consumer=json.loads unit_id=BLD-0026 state=SUCCESS SUCCESS:BLD-0026",
+        "role": "source"
+      },
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/receipts/BLD-0026.json",
+      "consumer": "platform/lib/schema_resolver.py:validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "schema_resolver.validate_artifact(command-center/receipts/BLD-0026.json, command-center/schema/blindspot-register.schema.json)",
+        "exit_code": 0,
+        "fingerprint": "018a3a675dcb4304f19b830a7a0d925722ebdc606d26ed38dee4ecbcd75daa74",
+        "method": "schema-validate",
+        "raw_output": "errors=[] SUCCESS:schema-valid",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:16",
+      "claim": "Five catalog fallback kinds were forced against the fixture product; 5 LOUD user-visible DEGRADATION-EVENT rows named the capability lost and the work artifact survived.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0026/inject.py",
+          "exit_code": 0,
+          "fingerprint": "99b1c7661a800a4cbb42f18fb4e5b6b9d06ee77060bf8a4b53e58d78a7a970ec",
+          "method": "test-run",
+          "raw_output": "[{\"artifact_preserved\": \"/tmp/bld0026-e5_u65ii/work.json\", \"capability_lost\": \"json-document-parse\", \"fallback_kind\": \"default-on-exception\", \"reason\": \"JSONDecodeError\", \"source\": \"command-center/p2-wave/probes/BLD-0026/fixtures/product.py:default_on_exception\", \"type\": \"DEGRADATION-EVENT\", \"user_visible\": true}, {\"artifact_preserved\": \"/tmp/bld0026-e5_u65ii/work.json\", \"capability_lost\": \"strict-json-parse\", \"fallback_kind\": \"best-effort-parse\", \"reason\": \"JSONDecodeError\", \"source\": \"command-center/p2-wave/probes/BLD-0026/fixtures/product.py:best_effort_parse\", \"type\": \"DEGRADATION-EVENT\", \"user_visible\": true}, {\"artifact_preserved\": \"/tmp/bld0026-e5_u65ii/work.json\", \"capability_lost\": \"vendor:anthropic\", \"fallback_kind\": \"capability-missing-shim\", \"reason\": \"vendor-not-mounted\", \"source\": \"command-center/p2-wave/probes/BLD-0026/fixtures/product.py:capability_missing_shim\", \"type\": \"DEGRADATION-EVENT\", \"user_visible\": true}]",
+          "role": "source"
+        },
+        {
+          "command": "read command-center/p2-wave/probes/BLD-0026/fixtures/product.py",
+          "exit_code": 0,
+          "fingerprint": "0aaabe8d1911b22189a3fda16fe37beffee7689a0504294edcb3cba87974e91f",
+          "method": "file-read",
+          "raw_output": "\"\"\"Miniature product with one fallback of each catalog kind, plus two controls.\"\"\"\nfrom __future__ import annotations\n\nimport json\nimport re\nimport sys\nfrom pathlib import Path\n\nHERE = Path(__file__).resolve().parent\nsys.path.insert(0, str(HERE.parent))\nimport events as E  # noqa: E402\n\nSRC = \"command-center/p2-wave/probes/BLD-0026/fixtures/product.py\"\n\n\ndef default_on_exception(path: Path) -> dict:\n    \"\"\"Kind: default-on-exception. Parse error -> empty object, work file kept.\"\"\"\n    try:\n        return json.loads(path.read_text(encoding=\"utf-8\"))\n    except Exception as exc:\n        E.emit_loud(\n            capability_lost=\"json-document-parse\",\n            fallback_kind=\"default-on-exception\",\n            source=f\"{SRC}:default_on_exception\",\n            artifact_preserved=str(path),\n            reason=type(exc).__name__,\n        )\n        return {}\n\n\ndef best_effort_parse(path: Path) -> dict:\n    \"\"\"Kind: best-effort-parse. Salvage first object from garbage; never delete the file.\"\"\"\n    raw = path.read_text(encoding=\"utf-8\")\n    try:\n        doc = json.loads(raw)\n        if isinstance(doc, dict):\n            return doc\n        raise ValueError(\"not-an-object\")\n    except Exception as exc:\n        recovered = {}\n        match = re.search(r\"\\{[^{}]*\\}\", raw)\n        if match:\n            try:\n                recovered = json.loads(match.group(0))\n            except Exception:\n                recovered = {\"salvaged\": False}\n        E.emit_loud(\n            capability_lost=\"strict-json-parse\",\n            fallback_kind=\"best-effort-parse\",\n            source=f\"{SRC}:best_effort_parse\",\n            artifact_preserved=str(path),\n            reason=type(exc).__name__,\n        )\n        return recovered if isinstance(recovered, dict) else {}\n\n\ndef capability_missing_shim(vendor: str, artifact: Path) -> str:\n    \"\"\"Kind: capability-missing-shim. Unknown vendor -> local echo, artifact kept.\"\"\"\n    known = {\"local\"}\n    if vendor in known:\n        return f\"local:{artifact.name}\"\n    E.emit_loud(\n        capability_lost=f\"vendor:{vendor}\",\n        fallback_kind=\"capability-missing-shim\",\n        source=f\"{SRC}:capability_missing_shim\",\n        artifact_preserved=str(artifact),\n        reason=\"vendor-not-mounted\",\n    )\n    return f\"shim-local:{artifact.name}\"\n\n\ndef cached_value_on_error(path: Path, cache: dict) -> str:\n    \"\"\"Kind: cached-value-on-error. Read fails -> last good cache, file still there.\"\"\"\n    try:\n        text = path.read_text(encoding=\"utf-8\")\n        if not text.strip():\n            raise ValueError(\"empty\")\n        cache[\"last\"] = text\n        return text\n    except Exception as exc:\n        E.emit_loud(\n            capability_lost=\"fresh-read\",\n            fallback_kind=\"cached-value-on-error\",\n            source=f\"{SRC}:cached_value_on_error\",\n            artifact_preserved=str(path),\n            reason=type(exc).__name__,\n        )\n        return str(cache.get(\"last\", \"\"))\n\n\ndef vendor_adapter_substitution(primary: str, artifact: Path) -> str:\n    \"\"\"Kind: vendor-adapter-substitution. Primary adapter fails -> secondary vendor.\"\"\"\n\n    def _primary() -> str:\n        if primary != \"local\":\n            raise RuntimeError(f\"adapter-{primary}-unreachable\")\n        return f\"primary:{primary}:{artifact.name}\"\n\n    try:\n        return _primary()\n    except Exception as exc:\n        E.emit_loud(\n            capability_lost=f\"vendor-adapter:{primary}\",\n            fallback_kind=\"vendor-adapter-substitution\",\n            source=f\"{SRC}:vendor_adapter_substitution\",\n            artifact_preserved=str(artifact),\n            reason=type(exc).__name__,\n        )\n        return f\"secondary:local:{artifact.name}\"\n\n\ndef silent_debug_only(path: Path) -> dict:\n    \"\"\"CONTROL: fallback whose only trace is a debug log. Must classify SILENT.\"\"\"\n    try:\n        return json.loads(path.read_text(encoding=\"utf-8\"))\n    except Exception as exc:\n        E.emit_debug(\n            capability_lost=\"json-document-parse\",\n            fallba...",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/ready_units.py:_load_resolver",
+      "claim": "Live ready_units._load_resolver was forced through the missing-file branch (schema_resolver present on disk; REPO patched off-tree) and emitted a user-visible capability-missing event; the catalog bytes were unchanged. Historical _prefix_predicate remains SILENT.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "inject.force_live()",
+          "exit_code": 0,
+          "fingerprint": "e11464cfa0d2f8b833462340d3ef8c77d21cc7a0d0ffad39e6a9d7ec8d488ca3",
+          "method": "test-run",
+          "raw_output": "{\"forced\": [{\"artifact_survived\": true, \"classification\": \"LOUD\", \"event\": {\"artifact_preserved\": \"command-center/WORK-UNIT-CATALOG.json\", \"capability_lost\": \"jsonschema-contract-validation\", \"fallback_kind\": \"capability-missing-shim\", \"reason\": \"schema_resolver.py-absent\", \"source\": \"command-center/ready_units.py:_load_resolver\", \"type\": \"DEGRADATION-EVENT\", \"user_visible\": true}, \"id\": \"live:ready_units.py:_load_resolver\", \"strike\": 1}, {\"artifact_survived\": true, \"classification\": \"LOUD\", \"event\": {\"artifact_preserved\": \"command-center/WORK-UNIT-CATALOG.json\", \"capability_lost\": \"jsonschema-contract-validation\", \"fallback_kind\": \"capability-missing-shim\", \"reason\": \"schema_resolver.py-absent\", \"source\": \"command-center/ready_units.py:_load_resolver\", \"type\": \"DEGRADATION-EVENT\", \"user_visible\": true}, \"id\": \"live:ready_units.py:_load_resolver\", \"strike\": 2}, {\"artifact_survived\": true, \"classification\": \"SILENT\", \"id\": \"live:ready_units.py:_prefix_predicate\", \"note\": \"historical silent skip reproduced; no user-visible event\"}], \"strikes_then_pivot\": 2, \"unreachable_by_injection\": [], \"unreachable_strikes\": []}",
+          "role": "source"
+        },
+        {
+          "command": "census.scan_live() ready_units.py",
+          "exit_code": 0,
+          "fingerprint": "f61aec449308e0c681256ed9ce4abd9111f7828052b203b55f8d4c4b70e472b7",
+          "method": "static-analysis",
+          "raw_output": "[{\"capability_lost\": \"operation-result\", \"classification\": \"SILENT\", \"corpus\": \"live\", \"function\": \"contract_discriminates\", \"id\": \"live:command-center/ready_units.py:116:contract_discriminates\", \"kind\": \"default-on-exception\", \"line\": 116, \"note\": \"except Exception:\", \"path\": \"command-center/ready_units.py\"}, {\"capability_lost\": \"operation-result\", \"classification\": \"SILENT\", \"corpus\": \"live\", \"function\": \"_registry\", \"id\": \"live:command-center/ready_units.py:140:_registry\", \"kind\": \"default-on-exception\", \"line\": 140, \"note\": \"except Exception:\", \"path\": \"command-center/ready_units.py\"}, {\"capability_lost\": \"operation-result\", \"classification\": \"SILENT\", \"corpus\": \"live\", \"function\": \"schema_doc_verdict\", \"id\": \"live:command-center/ready_units.py:200:schema_doc_verdict\", \"kind\": \"default-on-exception\", \"line\": 200, \"note\": \"except Exception as e:\", \"path\": \"command-center/ready_units.py\"}, {\"capability_lost\": \"jsonschema-contract-validation\", \"classification\": \"LOUD\", \"corpus\": \"live\", \"function\": \"_load_resolver\", \"id\": \"live:command-center/ready_units.py:326:_load_resolver-missing-file\", \"kind\": \"capability-missing-shim\", \"line\": 326, \"note\": \"early return None when platform/lib/schema_resolver.py is absent\", \"path\": \"command-center/ready_units.py\"}, {\"capability_lost\": \"declared-capability\", \"classification\": \"SILENT\", \"corpus\": \"live\", \"function\": \"_load_resolver\", \"id\": \"live:command-center/ready_units.py:337:_load_resolver\", \"kind\": \"capability-missing-shim\", \"line\": 337, \"note\": \"except Exception:\", \"path\": \"command-center/ready_units.py\"}, {\"capability_lost\": \"error-visibility\", \"classification\": \"SILENT\", \"corpus\": \"live\", \"function\": \"_prefix_predicate\", \"id\": \"live:command-center/ready_units.py:433:_prefix_predicate\", \"kind\": \"silent-swallow\", \"line\": 433, \"note\": \"except Exception:\", \"path\": \"command-center/ready_units.py\"}]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "entries": [
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "contract_discriminates",
+        "id": "live:command-center/ready_units.py:116:contract_discriminates",
+        "kind": "default-on-exception",
+        "line": 116,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_registry",
+        "id": "live:command-center/ready_units.py:140:_registry",
+        "kind": "default-on-exception",
+        "line": 140,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "schema_doc_verdict",
+        "id": "live:command-center/ready_units.py:200:schema_doc_verdict",
+        "kind": "default-on-exception",
+        "line": 200,
+        "note": "except Exception as e:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "jsonschema-contract-validation",
+        "classification": "LOUD",
+        "corpus": "live",
+        "function": "_load_resolver",
+        "id": "live:command-center/ready_units.py:326:_load_resolver-missing-file",
+        "kind": "capability-missing-shim",
+        "line": 326,
+        "note": "early return None when platform/lib/schema_resolver.py is absent",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "declared-capability",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_load_resolver",
+        "id": "live:command-center/ready_units.py:337:_load_resolver",
+        "kind": "capability-missing-shim",
+        "line": 337,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "error-visibility",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_prefix_predicate",
+        "id": "live:command-center/ready_units.py:433:_prefix_predicate",
+        "kind": "silent-swallow",
+        "line": 433,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "reconcile",
+        "id": "live:tools/command-center/reconcile_delivery.py:152:reconcile",
+        "kind": "default-on-exception",
+        "line": 152,
+        "note": "except OSError:",
+        "path": "tools/command-center/reconcile_delivery.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "default_on_exception",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:20:default_on_exception",
+        "kind": "default-on-exception",
+        "line": 20,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "strict-parse",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "best_effort_parse",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:39:best_effort_parse",
+        "kind": "best-effort-parse",
+        "line": 39,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "strict-parse",
+        "classification": "SILENT",
+        "corpus": "fixture",
+        "function": "best_effort_parse",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:45:best_effort_parse",
+        "kind": "best-effort-parse",
+        "line": 45,
+        "note": "except Exception:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "fresh-value",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "cached_value_on_error",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:80:cached_value_on_error",
+        "kind": "cached-value-on-error",
+        "line": 80,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "primary-vendor-adapter",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "vendor_adapter_substitution",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:101:vendor_adapter_substitution",
+        "kind": "vendor-adapter-substitution",
+        "line": 101,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "fixture",
+        "function": "silent_debug_only",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:116:silent_debug_only",
+        "kind": "default-on-exception",
+        "line": 116,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      }
+    ],
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0026/probe1_force_fallback.py",
+        "name": "probe1_force_fallback"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0026/probe2_controls_reviewer.py",
+        "name": "probe2_controls_reviewer"
+      }
+    ],
+    "notes": "G-1 for BLD-0026: live named probes exit 0, receipt state=SUCCESS, per-unit UNIT-ARTIFACT-MANIFEST row. Did not run global unit_manifest.py --write. SUCCESS:BLD-0026"
+  },
+  "manifest_registration": {
+    "entry_id": "BLD-0026",
+    "manifest_path": "command-center/p2-wave/probes/BLD-0026/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T00:56:04Z"
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "classification=SILENT user_events=0 debug_events=1",
+      "description": "silent_debug_only emits only logging.debug. The census must classify it SILENT and must not emit a user-visible event.",
+      "fired_on_bad_state": true,
+      "good_state_output": "default_on_exception valid JSON: no fallback event",
+      "id": "C-SILENT-DEBUG-LOGGER",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "raised=JSONDecodeError in_register=false",
+      "description": "no_fallback_strict raises on bad JSON and must not appear in the register.",
+      "fired_on_bad_state": true,
+      "good_state_output": "default_on_exception is present in the register",
+      "id": "C-NO-FALLBACK-PATH",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "headless-linux",
+    "model": "grok-4.6",
+    "role": "reliability-engineer",
+    "vendor": "xai"
+  },
+  "report": {
+    "control_ids": [
+      "C-SILENT-DEBUG-LOGGER",
+      "C-NO-FALLBACK-PATH"
+    ],
+    "counts": {
+      "fixture": 6,
+      "live": 7,
+      "loud": 5,
+      "silent": 8
+    },
+    "entries": [
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "contract_discriminates",
+        "id": "live:command-center/ready_units.py:116:contract_discriminates",
+        "kind": "default-on-exception",
+        "line": 116,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_registry",
+        "id": "live:command-center/ready_units.py:140:_registry",
+        "kind": "default-on-exception",
+        "line": 140,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "schema_doc_verdict",
+        "id": "live:command-center/ready_units.py:200:schema_doc_verdict",
+        "kind": "default-on-exception",
+        "line": 200,
+        "note": "except Exception as e:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "jsonschema-contract-validation",
+        "classification": "LOUD",
+        "corpus": "live",
+        "function": "_load_resolver",
+        "id": "live:command-center/ready_units.py:326:_load_resolver-missing-file",
+        "kind": "capability-missing-shim",
+        "line": 326,
+        "note": "early return None when platform/lib/schema_resolver.py is absent",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "declared-capability",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_load_resolver",
+        "id": "live:command-center/ready_units.py:337:_load_resolver",
+        "kind": "capability-missing-shim",
+        "line": 337,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "error-visibility",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "_prefix_predicate",
+        "id": "live:command-center/ready_units.py:433:_prefix_predicate",
+        "kind": "silent-swallow",
+        "line": 433,
+        "note": "except Exception:",
+        "path": "command-center/ready_units.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "live",
+        "function": "reconcile",
+        "id": "live:tools/command-center/reconcile_delivery.py:152:reconcile",
+        "kind": "default-on-exception",
+        "line": 152,
+        "note": "except OSError:",
+        "path": "tools/command-center/reconcile_delivery.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "default_on_exception",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:20:default_on_exception",
+        "kind": "default-on-exception",
+        "line": 20,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "strict-parse",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "best_effort_parse",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:39:best_effort_parse",
+        "kind": "best-effort-parse",
+        "line": 39,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "strict-parse",
+        "classification": "SILENT",
+        "corpus": "fixture",
+        "function": "best_effort_parse",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:45:best_effort_parse",
+        "kind": "best-effort-parse",
+        "line": 45,
+        "note": "except Exception:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "fresh-value",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "cached_value_on_error",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:80:cached_value_on_error",
+        "kind": "cached-value-on-error",
+        "line": 80,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "primary-vendor-adapter",
+        "classification": "LOUD",
+        "corpus": "fixture",
+        "function": "vendor_adapter_substitution",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:101:vendor_adapter_substitution",
+        "kind": "vendor-adapter-substitution",
+        "line": 101,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      },
+      {
+        "capability_lost": "operation-result",
+        "classification": "SILENT",
+        "corpus": "fixture",
+        "function": "silent_debug_only",
+        "id": "fixture:command-center/p2-wave/probes/BLD-0026/fixtures/product.py:116:silent_debug_only",
+        "kind": "default-on-exception",
+        "line": 116,
+        "note": "except Exception as exc:",
+        "path": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py"
+      }
+    ],
+    "injection": {
+      "fixture": {
+        "forced": 6,
+        "results": [
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "json-document-parse",
+              "fallback_kind": "default-on-exception",
+              "reason": "JSONDecodeError",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:default_on_exception",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "kind": "default-on-exception"
+          },
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "strict-json-parse",
+              "fallback_kind": "best-effort-parse",
+              "reason": "JSONDecodeError",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:best_effort_parse",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "kind": "best-effort-parse"
+          },
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "vendor:anthropic",
+              "fallback_kind": "capability-missing-shim",
+              "reason": "vendor-not-mounted",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:capability_missing_shim",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "kind": "capability-missing-shim"
+          },
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "fresh-read",
+              "fallback_kind": "cached-value-on-error",
+              "reason": "ValueError",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:cached_value_on_error",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "kind": "cached-value-on-error"
+          },
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "vendor-adapter:anthropic",
+              "fallback_kind": "vendor-adapter-substitution",
+              "reason": "RuntimeError",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:vendor_adapter_substitution",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "kind": "vendor-adapter-substitution"
+          },
+          {
+            "artifact_survived": true,
+            "classification": "SILENT",
+            "event": {
+              "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+              "capability_lost": "json-document-parse",
+              "fallback_kind": "default-on-exception",
+              "reason": "JSONDecodeError",
+              "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:silent_debug_only",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": false
+            },
+            "function": "silent_debug_only",
+            "kind": "default-on-exception"
+          },
+          {
+            "classification": "NOT-A-FALLBACK",
+            "function": "no_fallback_strict",
+            "in_register": false,
+            "kind": "none",
+            "raised": true
+          }
+        ]
+      },
+      "forced": 9,
+      "live": {
+        "forced": [
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "command-center/WORK-UNIT-CATALOG.json",
+              "capability_lost": "jsonschema-contract-validation",
+              "fallback_kind": "capability-missing-shim",
+              "reason": "schema_resolver.py-absent",
+              "source": "command-center/ready_units.py:_load_resolver",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "id": "live:ready_units.py:_load_resolver",
+            "strike": 1
+          },
+          {
+            "artifact_survived": true,
+            "classification": "LOUD",
+            "event": {
+              "artifact_preserved": "command-center/WORK-UNIT-CATALOG.json",
+              "capability_lost": "jsonschema-contract-validation",
+              "fallback_kind": "capability-missing-shim",
+              "reason": "schema_resolver.py-absent",
+              "source": "command-center/ready_units.py:_load_resolver",
+              "type": "DEGRADATION-EVENT",
+              "user_visible": true
+            },
+            "id": "live:ready_units.py:_load_resolver",
+            "strike": 2
+          },
+          {
+            "artifact_survived": true,
+            "classification": "SILENT",
+            "id": "live:ready_units.py:_prefix_predicate",
+            "note": "historical silent skip reproduced; no user-visible event"
+          }
+        ],
+        "unreachable_by_injection": [],
+        "unreachable_strikes": []
+      },
+      "sample_user_events": [
+        {
+          "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+          "capability_lost": "json-document-parse",
+          "fallback_kind": "default-on-exception",
+          "reason": "JSONDecodeError",
+          "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:default_on_exception",
+          "type": "DEGRADATION-EVENT",
+          "user_visible": true
+        },
+        {
+          "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+          "capability_lost": "strict-json-parse",
+          "fallback_kind": "best-effort-parse",
+          "reason": "JSONDecodeError",
+          "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:best_effort_parse",
+          "type": "DEGRADATION-EVENT",
+          "user_visible": true
+        },
+        {
+          "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+          "capability_lost": "vendor:anthropic",
+          "fallback_kind": "capability-missing-shim",
+          "reason": "vendor-not-mounted",
+          "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:capability_missing_shim",
+          "type": "DEGRADATION-EVENT",
+          "user_visible": true
+        },
+        {
+          "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+          "capability_lost": "fresh-read",
+          "fallback_kind": "cached-value-on-error",
+          "reason": "ValueError",
+          "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:cached_value_on_error",
+          "type": "DEGRADATION-EVENT",
+          "user_visible": true
+        },
+        {
+          "artifact_preserved": "/tmp/bld0026-e5_u65ii/work.json",
+          "capability_lost": "vendor-adapter:anthropic",
+          "fallback_kind": "vendor-adapter-substitution",
+          "reason": "RuntimeError",
+          "source": "command-center/p2-wave/probes/BLD-0026/fixtures/product.py:vendor_adapter_substitution",
+          "type": "DEGRADATION-EVENT",
+          "user_visible": true
+        }
+      ],
+      "strikes_then_pivot": 2,
+      "unreachable": []
+    },
+    "kind": "blindspot-register",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/BLD-0026/inject.py",
+        "measured": 5,
+        "method": "inject.force_fixture_kinds",
+        "name": "fixture_loud_kinds_forced"
+      },
+      {
+        "anchor": "command-center/ready_units.py:_load_resolver",
+        "measured": "LOUD",
+        "method": "inject.force_live missing-file branch",
+        "name": "live_resolver_classification"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/BLD-0026/census.py",
+        "measured": 5,
+        "method": "census.scan_live+scan_fixtures",
+        "name": "register_loud_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/BLD-0026/census.py",
+        "measured": 8,
+        "method": "census.scan_live+scan_fixtures",
+        "name": "register_silent_count"
+      }
+    ],
+    "phase_13_answer": "Silent fallbacks in the instrumented shipped Python are enumerated in report.entries (8 SILENT, 5 LOUD). Each of the five catalog kinds degrades loudly on the fixture; live _load_resolver degrades loudly when forced missing. SUCCESS:BLD-0026",
+    "question": "Where does the product silently fall back instead of degrading loudly, which the spec requires for cross-vendor and capability gaps? Enumerate every fallback branch and require each to emit a structured, user-visible degradation event that names the capability lost and preserves the work artifact.",
+    "schema_discrimination": {
+      "all_rejected": true,
+      "probes": [
+        {
+          "n_errors": 11,
+          "name": "empty-object",
+          "rejected": true
+        },
+        {
+          "n_errors": 12,
+          "name": "unrelated-passing-tests",
+          "rejected": true
+        },
+        {
+          "n_errors": 12,
+          "name": "two-thousand-x",
+          "rejected": true
+        }
+      ]
+    },
+    "scope": {
+      "excluded_roots": [
+        "command-center/p2-wave/probes/ (other units)"
+      ],
+      "phase9_adapter": {
+        "present": false,
+        "searched": [
+          "platform/",
+          "tools/plugin/",
+          "tools/council/"
+        ],
+        "verdict": "NO-VENDOR-SUBSTITUTION-LAYER"
+      },
+      "schema_resolver": {
+        "path": "platform/lib/schema_resolver.py",
+        "present": true
+      },
+      "shipped_roots": [
+        "command-center/ready_units.py",
+        "tools/command-center/"
+      ]
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No Phase-9 cross-vendor adapter substitutes a secondary vendor on primary failure; that catalog kind is covered by the fixture.",
+      "settling_experiment": "If a vendor-adapter substitution layer lands under platform/, add it to census LIVE_FILES and re-force that branch.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "receipt-absent-predicate-absent",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-24T18:54:34Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "emit-live-census-and-forced-injection",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-25T00:56:04Z"
+      }
+    ],
+    "count": 1,
+    "pivot_alternatives": [
+      "Emit the catalog receipt from live census plus forced injection (chosen).",
+      "Park BLOCKED if the same schema-ref fingerprint repeats."
+    ],
+    "policy": "Two strikes then pivot: if fault injection cannot reach a branch twice, mark it UNREACHABLE-BY-INJECTION rather than a third try."
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent of emit_receipt write: probe2 re-forces default-on-exception and vendor-adapter-substitution and checks USER_EVENTS / stderr DEGRADATION-EVENT, not logging.debug. SILENT and no-fallback controls pass.",
+    "reviewed_at": "2026-08-25T00:56:04Z",
+    "reviewer_id": "BLD-0026-probe2-user-surface",
+    "vendor": "xai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:BLD-0026",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=BLD-0026]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "inject.force_fixture_kinds()",
+      "id": "T-FORCE-FIVE-KINDS",
+      "output_tail": "loud_forced=5",
+      "result": "PASS"
+    },
+    {
+      "command": "inject.force_fixture_kinds() artifact_survived",
+      "id": "T-ARTIFACT-SURVIVES",
+      "output_tail": "artifacts_ok=True",
+      "result": "PASS"
+    },
+    {
+      "command": "fixtures/product.py:silent_debug_only",
+      "id": "T-SILENT-DEBUG-CONTROL",
+      "output_tail": "silent_ok=True",
+      "result": "PASS"
+    },
+    {
+      "command": "fixtures/product.py:no_fallback_strict",
+      "id": "T-NO-FALLBACK-CONTROL",
+      "output_tail": "no_fallback_absent=True",
+      "result": "PASS"
+    },
+    {
+      "command": "inject.force_live() _load_resolver",
+      "id": "T-LIVE-RESOLVER-LOUD",
+      "output_tail": "live_loud=True forced=3",
+      "result": "PASS"
+    },
+    {
+      "command": "inject.force_live() _prefix_predicate",
+      "id": "T-LIVE-PREFIX-SILENT",
+      "output_tail": "live_silent=True",
+      "result": "PASS"
+    },
+    {
+      "command": "schema_check.schema_rejects_garbage()",
+      "id": "T-SCHEMA-REJECTS-GARBAGE",
+      "output_tail": "[{\"name\": \"empty-object\", \"rejected\": true, \"n_errors\": 11}, {\"name\": \"unrelated-passing-tests\", \"rejected\": true, \"n_errors\": 12}, {\"name\": \"two-thousand-x\", \"rejected\": true, \"n_errors\": 12}]",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:56:04Z",
+    "started_at": "2026-08-25T00:56:04Z"
+  },
+  "unit_id": "BLD-0026"
+}

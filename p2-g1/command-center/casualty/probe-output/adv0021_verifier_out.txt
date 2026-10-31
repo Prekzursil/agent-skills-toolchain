@@ -1,0 +1,106 @@
+ADV0021_V_BEGIN
+{
+  "checks": {
+    "V1_semver_regex_executed": {
+      "accepts": {
+        "backslash": true,
+        "benign": true,
+        "control_must_reject": false,
+        "nul_adjacent": true,
+        "traversal_dash": true,
+        "traversal_plus": true
+      },
+      "detector_control_rejects_garbage": true,
+      "pattern_anchor": "platform/plugin/manifest.py:SEMVER_RE",
+      "pattern_literal": "^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$"
+    },
+    "V2_signature_calls_ast": {
+      "detector_control_hash_verb_callsites_count": 16,
+      "detector_control_sample": [
+        "lifecycle.py:314:archive_sha256",
+        "lifecycle.py:403:archive_sha256",
+        "lifecycle.py:210:content_hash",
+        "lifecycle.py:551:content_hash",
+        "lifecycle.py:579:content_hash",
+        "packager.py:146:sha256"
+      ],
+      "interpretation": "0 signature callsites WITH a non-zero hash-verb control proves the absence is real and the AST walker is not inert",
+      "signature_verb_callsites": [
+        "cli.py:287:verify"
+      ],
+      "signature_verb_count": 1
+    },
+    "V3_version_dir_containment_ast": {
+      "detector_control_count": 4,
+      "detector_control_functions_that_DO_call_safe_join": [
+        "deploy.py:_target_pairs:140",
+        "deploy.py:classify:167",
+        "deploy.py:sync:336",
+        "deploy.py:repair:412"
+      ],
+      "safe_join_in_version_dir": false,
+      "version_dir_callees": [],
+      "version_dir_found": true,
+      "version_dir_lineno": 81
+    },
+    "V4_expansion_bound_ast": {
+      "detector_control_freespace_comparisons_count": 2,
+      "detector_control_sample": [
+        "lifecycle.py:129:usage.free < required",
+        "lifecycle.py:103:usage.free < required"
+      ],
+      "interpretation": "0 size-ratio comparisons WITH >0 free-space comparisons proves the Compare-node walker fires and the ratio cap is genuinely absent",
+      "uncompressed_size_comparison_count": 0,
+      "uncompressed_size_comparisons": []
+    },
+    "V5_cli_exception_handlers_ast": {
+      "catches_broad_exception": false,
+      "handler_count": 3,
+      "handlers": [
+        "cli.py:377:SystemExit",
+        "cli.py:390:PluginError",
+        "cli.py:393:KeyboardInterrupt"
+      ]
+    },
+    "V6_test_gap_ast": {
+      "adjacent_coverage_weaker_reading": {
+        "any_traversal_test": [
+          "test_lifecycle.py:test_recovery_never_deletes_outside_the_prefix:66",
+          "test_package.py:test_unpack_refuses_a_zip_slip_entry:353"
+        ]
+      },
+      "behaviour_hits_at_the_specific_boundary": {
+        "package_signature": [],
+        "provenance_live_path_escape": [],
+        "version_string_traversal": [],
+        "zip_decompression_bomb": []
+      },
+      "behaviours_with_zero_tests_at_the_specific_boundary": [
+        "version_string_traversal",
+        "provenance_live_path_escape",
+        "zip_decompression_bomb",
+        "package_signature"
+      ],
+      "detector_control_count": 4,
+      "detector_control_diverged_test_functions": [
+        "test_cli.py:test_sync_exits_e_drift_when_a_decision_is_required:225",
+        "test_lifecycle.py:test_both_sides_unique_is_diverged:149",
+        "test_lifecycle.py:test_drift_document_enumerates_all_six_classes:207",
+        "test_lifecycle.py:test_sync_refuses_to_resolve_divergence:226"
+      ],
+      "detector_defect_found_and_fixed": "A substring pass reported 3 false zip_decompression_bomb hits because 'ratio' is a substring of 'migration'. Fixed with word-boundary + conjunctive matching. The false hits were test_dry_run_migration_moves_nothing, test_a_failing_step_rolls_the_migration_back, test_migration_ledger_serialises.",
+      "interpretation": "The AST walker is proven live by the 'diverged' positive control (4 test functions). behaviour_hits_at_the_specific_boundary answers the unit's actual question; adjacent_coverage_weaker_reading is reported separately so the finding is not overstated - traversal IS tested elsewhere in the suite, just not at the version-string boundary that D1b exploited.",
+      "modules_parsed": [
+        "test_cli.py",
+        "test_foundation.py",
+        "test_health.py",
+        "test_lifecycle.py",
+        "test_package.py",
+        "test_schemas.py"
+      ],
+      "test_functions_parsed": 161
+    }
+  },
+  "probe": "ADV-0021-verifier-ast-and-exec"
+}
+ADV0021_V_END

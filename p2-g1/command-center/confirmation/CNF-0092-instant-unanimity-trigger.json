@@ -1,0 +1,955 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1086,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/council-audit.schema.json",
+      "role": "supporting",
+      "sha256": "f9c68bc076970590c6395f0e71fc80e601d482d8a7c86af554d71b5b5e3dae40"
+    },
+    {
+      "bytes": 8357,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/unanimity.py",
+      "role": "control",
+      "sha256": "6e1025328ae5083b3bae61ec8c2e5512edef2ae5633a028f73b718ebafe4736a"
+    },
+    {
+      "bytes": 3958,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/fixtures.py",
+      "role": "fixture",
+      "sha256": "d1c861147d2b27be5063b6c8a456061900f6726c58ac1210148fee11f05b57bb"
+    },
+    {
+      "bytes": 5391,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/runtime.py",
+      "role": "supporting",
+      "sha256": "4b657b0cef11a4f86981adf3b8c528cac1bae7b59a5e34a563a85f2fd66dac73"
+    },
+    {
+      "bytes": 867,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/anchors.py",
+      "role": "supporting",
+      "sha256": "0a7b15fe95fdc87a28d7318a812542324afcbfd2fe45080860e972b73095b773"
+    },
+    {
+      "bytes": 2890,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/probe1_detector_control.py",
+      "role": "supporting",
+      "sha256": "607bdef9c5658008a808ed1e3981732415f033aa5bcafc072a7651d47d782dfc"
+    },
+    {
+      "bytes": 3663,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0092/probe2_audit_and_legitimate.py",
+      "role": "supporting",
+      "sha256": "ee7ce7cdd45f4829c73cf3a784f3be193ff688296594d13eec75e5fe87a1b681"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0092-instant-unanimity-trigger.json",
+      "consumer": "jsonschema.Draft202012Validator on command-center/schema/council-audit.schema.json (disk-local RefResolver, no network)",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "Draft202012Validator command-center/schema/council-audit.schema.json via disk store",
+        "exit_code": 0,
+        "fingerprint": "ec113b4a6d4a1d7b8f66e1039e999d56b97abbbc7c7be74e30118f2a5b8b15b0",
+        "method": "schema-validate",
+        "raw_output": "errors=[] garbage_rejected=true",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0092/unanimity.py:31",
+      "claim": "Round-1 clone unanimity with zero briefs fires INSTANT_UNANIMITY_TRIGGER; contested and post-brief unanimity stay silent.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0092/runtime.py",
+          "exit_code": 0,
+          "fingerprint": "fda695fc21bb6acf6182aa21a3d10633ca27d65b781af80dffdd95ba7cd1debc",
+          "method": "command",
+          "raw_output": "{\"all_expected\": true, \"blind_re_evaluation_in_transcript\": true, \"contested_silent\": true, \"contested_votes\": {\"advocate\": \"YES\", \"pragmatist\": \"YES\", \"skeptic\": \"NO\", \"user-proxy\": \"REWORK\"}, \"independent_position_recorded\": true, \"instant_fired\": true, \"instant_votes\": {\"clone-a\": \"YES\", \"clone-b\": \"YES\", \"clone-c\": \"YES\", \"clone-d\": \"YES\"}, \"legitimate_silent\": true, \"legitimate_votes\": {\"analyst\": \"YES\", \"experimentalist\": \"YES\", \"language-lawyer\": \"YES\", \"scribe\": \"YES\"}, \"threshold\": {\"max_evidence_nodes\": 0, \"max_independent_briefs\": 0, \"max_round_index\": 1, \"min_participants\": 2}, \"trigger_recorded_in_audit_log\": true}",
+          "role": "source"
+        },
+        {
+          "command": "unanimity.evaluate_trigger(runtime.snapshot_from_fixture(fixture)) for INSTANT_UNANIMITY, CONTESTED, POST_BRIEF_UNANIMITY",
+          "exit_code": 0,
+          "fingerprint": "9a301e2138915cfb498334f90be2aa82f3aa305612b693b1155dec0f69f3345e",
+          "method": "static-analysis",
+          "raw_output": "{\"contested\": {\"fired\": false, \"reason\": \"contested: unique_positions>1; trigger stays silent\"}, \"instant\": {\"fired\": true, \"reason\": \"round-1 unanimity with zero independent briefs and zero evidence nodes (spec:10944 instant-unanimity)\"}, \"legitimate\": {\"fired\": false, \"reason\": \"unanimity after independent briefs/evidence; legitimate, not instant\"}}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0092/runtime.py:115",
+      "claim": "The instant-run audit log records INSTANT_UNANIMITY_TRIGGER and the transcript contains a blind_re_evaluation round with an independent dissent position.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0092/runtime.py#audit-log",
+          "exit_code": 0,
+          "fingerprint": "f80ea436e9d54539d9b7cc98173f90578dc5304002fedc7546acc5871971518d",
+          "method": "command",
+          "raw_output": "{\"blind\": true, \"events\": [\"ROUND_ONE_VOTE\", \"INSTANT_UNANIMITY_TRIGGER\", \"INDEPENDENT_CRITIC_RECRUITED\", \"STRONGEST_COUNTEREXAMPLE\", \"ROLE_ROTATION\", \"FORCED_DISSENT\", \"BLIND_RE_EVALUATION\"], \"independent\": true, \"trigger_in_log\": true}",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/CNF-0092/unanimity.py:evaluate_trigger+remediate event names",
+          "exit_code": 0,
+          "fingerprint": "fae3027d6e48e1d1cab601ac1b668de4ef7a4a7531009df520633ee51753f50e",
+          "method": "file-read",
+          "raw_output": "{\"EVENT_BLIND_REEVAL\": \"BLIND_RE_EVALUATION\", \"EVENT_CRITIC\": \"INDEPENDENT_CRITIC_RECRUITED\", \"EVENT_FORCED_DISSENT\": \"FORCED_DISSENT\", \"EVENT_TRIGGER\": \"INSTANT_UNANIMITY_TRIGGER\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "CNF-0092",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0092/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "instant fired=True event=INSTANT_UNANIMITY_TRIGGER",
+      "description": "Genuinely contested YES/NO/YES/REWORK must stay silent while instant clones fire. A trigger that fires on every panel measures nothing.",
+      "fired_on_bad_state": true,
+      "good_state_output": "contested fired=False reason=contested: unique_positions>1; trigger stays silent",
+      "id": "NC-CONTESTED-SILENT",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "instant fired=True",
+      "description": "Unanimity after independent briefs with evidence nodes must stay silent; that is legitimate agreement, not instant groupthink.",
+      "fired_on_bad_state": true,
+      "good_state_output": "legitimate fired=False reason=unanimity after independent briefs/evidence; legitimate, not instant",
+      "id": "NC-POST-BRIEF-LEGITIMATE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "deliberation-integrity-engineer",
+    "vendor": "xai"
+  },
+  "report": {
+    "audit_log": [
+      {
+        "event": "ROUND_ONE_VOTE",
+        "evidence_nodes_cited": 0,
+        "fixture_id": "instant-unanimity-clones",
+        "independent_briefs_submitted": 0,
+        "round": 1,
+        "votes": {
+          "clone-a": "YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES"
+        }
+      },
+      {
+        "event": "INSTANT_UNANIMITY_TRIGGER",
+        "fired": true,
+        "fixture_id": "instant-unanimity-clones",
+        "metrics": {
+          "evidence_nodes_cited": 0,
+          "independent_briefs_submitted": 0,
+          "participant_count": 4,
+          "positions": [
+            "YES"
+          ],
+          "round_index": 1,
+          "unanimous": true,
+          "unique_positions": 1
+        },
+        "reason": "round-1 unanimity with zero independent briefs and zero evidence nodes (spec:10944 instant-unanimity)",
+        "threshold": {
+          "max_evidence_nodes": 0,
+          "max_independent_briefs": 0,
+          "max_round_index": 1,
+          "min_participants": 2
+        }
+      },
+      {
+        "critic_id": "independent-critic",
+        "event": "INDEPENDENT_CRITIC_RECRUITED",
+        "fixture_id": "instant-unanimity-clones",
+        "mandate": "independent critic; does not inherit round-1 ballots"
+      },
+      {
+        "against": "YES",
+        "event": "STRONGEST_COUNTEREXAMPLE",
+        "fixture_id": "instant-unanimity-clones",
+        "text": "Counterexample to 'YES' on 'Does the Python expression (1 + 1) == 2 evaluate to True? Answer YES or NO.': the round-1 panel cited zero evidence nodes and filed zero independent briefs, so the shared ballot is unsupported even if it happens to be true. The independent critic records dissent until evidence is produced."
+      },
+      {
+        "event": "ROLE_ROTATION",
+        "fixture_id": "instant-unanimity-clones",
+        "from_role": "clone",
+        "participant_id": "clone-a",
+        "to_role": "forced-skeptic"
+      },
+      {
+        "actor": "clone-a",
+        "event": "FORCED_DISSENT",
+        "fixture_id": "instant-unanimity-clones",
+        "mandate": "dissent the unanimous round-1 position without seeing peers",
+        "position": "DISSENT:YES"
+      },
+      {
+        "blind": true,
+        "event": "BLIND_RE_EVALUATION",
+        "fixture_id": "instant-unanimity-clones",
+        "round": 2,
+        "saw_peer_round1_ballots": false,
+        "votes": {
+          "clone-a": "DISSENT:YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES",
+          "independent-critic": "DISSENT:YES"
+        }
+      },
+      {
+        "event": "ROUND_ONE_VOTE",
+        "evidence_nodes_cited": 5,
+        "fixture_id": "contested-split",
+        "independent_briefs_submitted": 4,
+        "round": 1,
+        "votes": {
+          "advocate": "YES",
+          "pragmatist": "YES",
+          "skeptic": "NO",
+          "user-proxy": "REWORK"
+        }
+      },
+      {
+        "event": "INSTANT_UNANIMITY_SILENT",
+        "fired": false,
+        "fixture_id": "contested-split",
+        "metrics": {
+          "evidence_nodes_cited": 5,
+          "independent_briefs_submitted": 4,
+          "participant_count": 4,
+          "positions": [
+            "NO",
+            "REWORK",
+            "YES"
+          ],
+          "round_index": 1,
+          "unanimous": false,
+          "unique_positions": 3
+        },
+        "reason": "contested: unique_positions>1; trigger stays silent",
+        "threshold": {
+          "max_evidence_nodes": 0,
+          "max_independent_briefs": 0,
+          "max_round_index": 1,
+          "min_participants": 2
+        }
+      },
+      {
+        "event": "ROUND_ONE_VOTE",
+        "evidence_nodes_cited": 4,
+        "fixture_id": "legitimate-post-brief-unanimity",
+        "independent_briefs_submitted": 4,
+        "round": 1,
+        "votes": {
+          "analyst": "YES",
+          "experimentalist": "YES",
+          "language-lawyer": "YES",
+          "scribe": "YES"
+        }
+      },
+      {
+        "event": "INSTANT_UNANIMITY_SILENT",
+        "fired": false,
+        "fixture_id": "legitimate-post-brief-unanimity",
+        "metrics": {
+          "evidence_nodes_cited": 4,
+          "independent_briefs_submitted": 4,
+          "participant_count": 4,
+          "positions": [
+            "YES"
+          ],
+          "round_index": 1,
+          "unanimous": true,
+          "unique_positions": 1
+        },
+        "reason": "unanimity after independent briefs/evidence; legitimate, not instant",
+        "threshold": {
+          "max_evidence_nodes": 0,
+          "max_independent_briefs": 0,
+          "max_round_index": 1,
+          "min_participants": 2
+        }
+      }
+    ],
+    "claim_under_test": "Round-1 unanimity with zero independent briefs and zero evidence nodes must fire a recorded INSTANT_UNANIMITY_TRIGGER and execute blind re-evaluation / forced dissent / independent-critic recruitment. A genuinely contested fixture, and unanimity reached AFTER independent briefs, must stay silent.",
+    "completion_sentinel": "SUCCESS:CNF-0092 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the trigger fired on the unanimity fixture and stayed silent on the contested control. Any other terminal state is FAILED:CNF-0092 <classification> with the diagnostic tail attached.",
+    "control_ids": [
+      "instant-must-fire",
+      "contested-must-be-silent",
+      "post-brief-unanimity-must-be-silent",
+      "trigger-in-audit-log",
+      "blind-re-evaluation-executed"
+    ],
+    "controls": [
+      {
+        "expected": true,
+        "id": "instant-must-fire",
+        "observed": true,
+        "result": "PASS"
+      },
+      {
+        "expected": false,
+        "id": "contested-must-be-silent",
+        "observed": false,
+        "result": "PASS"
+      },
+      {
+        "expected": false,
+        "id": "post-brief-unanimity-must-be-silent",
+        "observed": false,
+        "result": "PASS"
+      },
+      {
+        "expected": true,
+        "id": "trigger-in-audit-log",
+        "observed": true,
+        "result": "PASS"
+      },
+      {
+        "expected": true,
+        "id": "blind-re-evaluation-executed",
+        "observed": true,
+        "result": "PASS"
+      }
+    ],
+    "evidence_anchors": [
+      {
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:29502",
+        "claim": "Catalog names CNF-0092 as the instant-unanimity confirmation unit.",
+        "kind": "catalog",
+        "line": 29502,
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "snippet": "\"id\": \"CNF-0092\""
+      },
+      {
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:29516",
+        "claim": "Catalog requires the contested fixture as a silent negative control.",
+        "kind": "catalog",
+        "line": 29516,
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "snippet": "a genuinely contested fixture must NOT fire the trigger, or it fires on everything"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/unanimity.py:31",
+        "claim": "The control names the audit event that must appear when the trigger fires.",
+        "kind": "control",
+        "line": 31,
+        "path": "command-center/p2-wave/probes/CNF-0092/unanimity.py",
+        "snippet": "EVENT_TRIGGER = \"INSTANT_UNANIMITY_TRIGGER\""
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/unanimity.py:87",
+        "claim": "Zero independent briefs is a load-bearing half of the trip-wire, not a comment.",
+        "kind": "control",
+        "line": 87,
+        "path": "command-center/p2-wave/probes/CNF-0092/unanimity.py",
+        "snippet": "and m[\"independent_briefs_submitted\"] <= THRESHOLD[\"max_independent_briefs\"]"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/fixtures.py:15",
+        "claim": "Known-broken fixture: four clones, one position, no briefs.",
+        "kind": "fixture",
+        "line": 15,
+        "path": "command-center/p2-wave/probes/CNF-0092/fixtures.py",
+        "snippet": "\"id\": \"instant-unanimity-clones\""
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/runtime.py:115",
+        "claim": "Live runner scores the trigger as present in the instant fixture audit log.",
+        "kind": "live-run",
+        "line": 115,
+        "path": "command-center/p2-wave/probes/CNF-0092/runtime.py",
+        "snippet": "e.get(\"event\") == U.EVENT_TRIGGER for e in instant[\"audit_events\"]"
+      }
+    ],
+    "findings": [
+      {
+        "detail": "Clones voting YES in round 1 with zero briefs fired INSTANT_UNANIMITY_TRIGGER; reason=round-1 unanimity with zero independent briefs and zero evidence nodes (spec:10944 instant-unanimity)",
+        "id": "instant-unanimity-detected",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "detail": "Contested split (YES/NO/YES/REWORK) stayed silent: contested: unique_positions>1; trigger stays silent",
+        "id": "contested-silent",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "detail": "Unanimous YES after four independent briefs with evidence stayed silent: unanimity after independent briefs/evidence; legitimate, not instant",
+        "id": "post-brief-unanimity-distinguished",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "detail": "The instant run audit log contains INSTANT_UNANIMITY_TRIGGER; remediation is not an unlogged behaviour change.",
+        "id": "trigger-recorded-not-invisible",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "detail": "critic-recruited+forced-dissent+counterexample+blind-re-eval; independent dissent recorded; majority unchanged",
+        "id": "blind-re-evaluation-and-forced-dissent",
+        "verdict": "CONFIRMED"
+      }
+    ],
+    "kind": "council-audit",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/unanimity.py:31",
+        "measured": true,
+        "method": "runtime.run_all",
+        "name": "instant_fired"
+      },
+      {
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:29516",
+        "measured": true,
+        "method": "runtime.run_all",
+        "name": "contested_silent"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/unanimity.py:87",
+        "measured": true,
+        "method": "runtime.run_all",
+        "name": "legitimate_silent"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/runtime.py:115",
+        "measured": true,
+        "method": "runtime.run_all",
+        "name": "trigger_recorded_in_audit_log"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0092/runtime.py:115",
+        "measured": true,
+        "method": "runtime.run_all",
+        "name": "blind_re_evaluation_in_transcript"
+      }
+    ],
+    "question": "What happens when a council agrees immediately? Feed it a fixture engineered to produce instant unanimity in round one and answer: does the runtime detect it, does it force blind re-evaluation, forced dissent, or an independent critic, and does the final output record that the trigger fired? Spec line 10944 requires exactly this behaviour.",
+    "reevaluation_transcript": [
+      {
+        "blind": false,
+        "independent_briefs": 0,
+        "kind": "vote",
+        "round": 1,
+        "votes": {
+          "clone-a": "YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES"
+        }
+      },
+      {
+        "blind": true,
+        "counterexample": "Counterexample to 'YES' on 'Does the Python expression (1 + 1) == 2 evaluate to True? Answer YES or NO.': the round-1 panel cited zero evidence nodes and filed zero independent briefs, so the shared ballot is unsupported even if it happens to be true. The independent critic records dissent until evidence is produced.",
+        "critic_id": "independent-critic",
+        "kind": "blind_re_evaluation",
+        "rotated_id": "clone-a",
+        "round": 2,
+        "saw_peer_round1_ballots": false,
+        "votes": {
+          "clone-a": "DISSENT:YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES",
+          "independent-critic": "DISSENT:YES"
+        }
+      }
+    ],
+    "round_one_vote_record": {
+      "contested-split": {
+        "advocate": "YES",
+        "pragmatist": "YES",
+        "skeptic": "NO",
+        "user-proxy": "REWORK"
+      },
+      "instant-unanimity-clones": {
+        "clone-a": "YES",
+        "clone-b": "YES",
+        "clone-c": "YES",
+        "clone-d": "YES"
+      },
+      "legitimate-post-brief-unanimity": {
+        "analyst": "YES",
+        "experimentalist": "YES",
+        "language-lawyer": "YES",
+        "scribe": "YES"
+      }
+    },
+    "runs": [
+      {
+        "audit_events": [
+          {
+            "event": "ROUND_ONE_VOTE",
+            "evidence_nodes_cited": 0,
+            "fixture_id": "instant-unanimity-clones",
+            "independent_briefs_submitted": 0,
+            "round": 1,
+            "votes": {
+              "clone-a": "YES",
+              "clone-b": "YES",
+              "clone-c": "YES",
+              "clone-d": "YES"
+            }
+          },
+          {
+            "event": "INSTANT_UNANIMITY_TRIGGER",
+            "fired": true,
+            "fixture_id": "instant-unanimity-clones",
+            "metrics": {
+              "evidence_nodes_cited": 0,
+              "independent_briefs_submitted": 0,
+              "participant_count": 4,
+              "positions": [
+                "YES"
+              ],
+              "round_index": 1,
+              "unanimous": true,
+              "unique_positions": 1
+            },
+            "reason": "round-1 unanimity with zero independent briefs and zero evidence nodes (spec:10944 instant-unanimity)",
+            "threshold": {
+              "max_evidence_nodes": 0,
+              "max_independent_briefs": 0,
+              "max_round_index": 1,
+              "min_participants": 2
+            }
+          },
+          {
+            "critic_id": "independent-critic",
+            "event": "INDEPENDENT_CRITIC_RECRUITED",
+            "fixture_id": "instant-unanimity-clones",
+            "mandate": "independent critic; does not inherit round-1 ballots"
+          },
+          {
+            "against": "YES",
+            "event": "STRONGEST_COUNTEREXAMPLE",
+            "fixture_id": "instant-unanimity-clones",
+            "text": "Counterexample to 'YES' on 'Does the Python expression (1 + 1) == 2 evaluate to True? Answer YES or NO.': the round-1 panel cited zero evidence nodes and filed zero independent briefs, so the shared ballot is unsupported even if it happens to be true. The independent critic records dissent until evidence is produced."
+          },
+          {
+            "event": "ROLE_ROTATION",
+            "fixture_id": "instant-unanimity-clones",
+            "from_role": "clone",
+            "participant_id": "clone-a",
+            "to_role": "forced-skeptic"
+          },
+          {
+            "actor": "clone-a",
+            "event": "FORCED_DISSENT",
+            "fixture_id": "instant-unanimity-clones",
+            "mandate": "dissent the unanimous round-1 position without seeing peers",
+            "position": "DISSENT:YES"
+          },
+          {
+            "blind": true,
+            "event": "BLIND_RE_EVALUATION",
+            "fixture_id": "instant-unanimity-clones",
+            "round": 2,
+            "saw_peer_round1_ballots": false,
+            "votes": {
+              "clone-a": "DISSENT:YES",
+              "clone-b": "YES",
+              "clone-c": "YES",
+              "clone-d": "YES",
+              "independent-critic": "DISSENT:YES"
+            }
+          }
+        ],
+        "completed": true,
+        "expected_trigger": true,
+        "final_verdict": "YES",
+        "fixture_class": "known-broken",
+        "fixture_id": "instant-unanimity-clones",
+        "independent_position_recorded": true,
+        "independent_positions": [
+          "DISSENT:YES"
+        ],
+        "outcome_changed": false,
+        "remediation": "critic-recruited+forced-dissent+counterexample+blind-re-eval; independent dissent recorded; majority unchanged",
+        "round_one_votes": {
+          "clone-a": "YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES"
+        },
+        "title": "Round-1 clones, zero briefs, zero evidence",
+        "transcript": [
+          {
+            "blind": false,
+            "independent_briefs": 0,
+            "kind": "vote",
+            "round": 1,
+            "votes": {
+              "clone-a": "YES",
+              "clone-b": "YES",
+              "clone-c": "YES",
+              "clone-d": "YES"
+            }
+          },
+          {
+            "blind": true,
+            "counterexample": "Counterexample to 'YES' on 'Does the Python expression (1 + 1) == 2 evaluate to True? Answer YES or NO.': the round-1 panel cited zero evidence nodes and filed zero independent briefs, so the shared ballot is unsupported even if it happens to be true. The independent critic records dissent until evidence is produced.",
+            "critic_id": "independent-critic",
+            "kind": "blind_re_evaluation",
+            "rotated_id": "clone-a",
+            "round": 2,
+            "saw_peer_round1_ballots": false,
+            "votes": {
+              "clone-a": "DISSENT:YES",
+              "clone-b": "YES",
+              "clone-c": "YES",
+              "clone-d": "YES",
+              "independent-critic": "DISSENT:YES"
+            }
+          }
+        ],
+        "trigger": {
+          "fired": true,
+          "metrics": {
+            "evidence_nodes_cited": 0,
+            "independent_briefs_submitted": 0,
+            "participant_count": 4,
+            "positions": [
+              "YES"
+            ],
+            "round_index": 1,
+            "unanimous": true,
+            "unique_positions": 1
+          },
+          "reason": "round-1 unanimity with zero independent briefs and zero evidence nodes (spec:10944 instant-unanimity)",
+          "threshold": {
+            "max_evidence_nodes": 0,
+            "max_independent_briefs": 0,
+            "max_round_index": 1,
+            "min_participants": 2
+          },
+          "units": {
+            "evidence_nodes_cited": "non-empty evidence node ids",
+            "independent_briefs_submitted": "briefs with non-empty text",
+            "round_index": "rounds elapsed at first vote"
+          }
+        },
+        "trigger_fired": true,
+        "trigger_match": true,
+        "votes": {
+          "clone-a": "YES",
+          "clone-b": "YES",
+          "clone-c": "YES",
+          "clone-d": "YES"
+        }
+      },
+      {
+        "audit_events": [
+          {
+            "event": "ROUND_ONE_VOTE",
+            "evidence_nodes_cited": 5,
+            "fixture_id": "contested-split",
+            "independent_briefs_submitted": 4,
+            "round": 1,
+            "votes": {
+              "advocate": "YES",
+              "pragmatist": "YES",
+              "skeptic": "NO",
+              "user-proxy": "REWORK"
+            }
+          },
+          {
+            "event": "INSTANT_UNANIMITY_SILENT",
+            "fired": false,
+            "fixture_id": "contested-split",
+            "metrics": {
+              "evidence_nodes_cited": 5,
+              "independent_briefs_submitted": 4,
+              "participant_count": 4,
+              "positions": [
+                "NO",
+                "REWORK",
+                "YES"
+              ],
+              "round_index": 1,
+              "unanimous": false,
+              "unique_positions": 3
+            },
+            "reason": "contested: unique_positions>1; trigger stays silent",
+            "threshold": {
+              "max_evidence_nodes": 0,
+              "max_independent_briefs": 0,
+              "max_round_index": 1,
+              "min_participants": 2
+            }
+          }
+        ],
+        "completed": true,
+        "expected_trigger": false,
+        "final_verdict": "YES",
+        "fixture_class": "negative-control",
+        "fixture_id": "contested-split",
+        "independent_position_recorded": false,
+        "independent_positions": [],
+        "outcome_changed": false,
+        "remediation": "not-applicable:trigger-silent",
+        "round_one_votes": {
+          "advocate": "YES",
+          "pragmatist": "YES",
+          "skeptic": "NO",
+          "user-proxy": "REWORK"
+        },
+        "title": "Genuinely contested round-1 ballots",
+        "transcript": [
+          {
+            "blind": false,
+            "independent_briefs": 4,
+            "kind": "vote",
+            "round": 1,
+            "votes": {
+              "advocate": "YES",
+              "pragmatist": "YES",
+              "skeptic": "NO",
+              "user-proxy": "REWORK"
+            }
+          }
+        ],
+        "trigger": {
+          "fired": false,
+          "metrics": {
+            "evidence_nodes_cited": 5,
+            "independent_briefs_submitted": 4,
+            "participant_count": 4,
+            "positions": [
+              "NO",
+              "REWORK",
+              "YES"
+            ],
+            "round_index": 1,
+            "unanimous": false,
+            "unique_positions": 3
+          },
+          "reason": "contested: unique_positions>1; trigger stays silent",
+          "threshold": {
+            "max_evidence_nodes": 0,
+            "max_independent_briefs": 0,
+            "max_round_index": 1,
+            "min_participants": 2
+          },
+          "units": {
+            "evidence_nodes_cited": "non-empty evidence node ids",
+            "independent_briefs_submitted": "briefs with non-empty text",
+            "round_index": "rounds elapsed at first vote"
+          }
+        },
+        "trigger_fired": false,
+        "trigger_match": true,
+        "votes": {
+          "advocate": "YES",
+          "pragmatist": "YES",
+          "skeptic": "NO",
+          "user-proxy": "REWORK"
+        }
+      },
+      {
+        "audit_events": [
+          {
+            "event": "ROUND_ONE_VOTE",
+            "evidence_nodes_cited": 4,
+            "fixture_id": "legitimate-post-brief-unanimity",
+            "independent_briefs_submitted": 4,
+            "round": 1,
+            "votes": {
+              "analyst": "YES",
+              "experimentalist": "YES",
+              "language-lawyer": "YES",
+              "scribe": "YES"
+            }
+          },
+          {
+            "event": "INSTANT_UNANIMITY_SILENT",
+            "fired": false,
+            "fixture_id": "legitimate-post-brief-unanimity",
+            "metrics": {
+              "evidence_nodes_cited": 4,
+              "independent_briefs_submitted": 4,
+              "participant_count": 4,
+              "positions": [
+                "YES"
+              ],
+              "round_index": 1,
+              "unanimous": true,
+              "unique_positions": 1
+            },
+            "reason": "unanimity after independent briefs/evidence; legitimate, not instant",
+            "threshold": {
+              "max_evidence_nodes": 0,
+              "max_independent_briefs": 0,
+              "max_round_index": 1,
+              "min_participants": 2
+            }
+          }
+        ],
+        "completed": true,
+        "expected_trigger": false,
+        "final_verdict": "YES",
+        "fixture_class": "legitimate-unanimity",
+        "fixture_id": "legitimate-post-brief-unanimity",
+        "independent_position_recorded": false,
+        "independent_positions": [],
+        "outcome_changed": false,
+        "remediation": "not-applicable:trigger-silent",
+        "round_one_votes": {
+          "analyst": "YES",
+          "experimentalist": "YES",
+          "language-lawyer": "YES",
+          "scribe": "YES"
+        },
+        "title": "Unanimous YES after independent briefs and evidence",
+        "transcript": [
+          {
+            "blind": false,
+            "independent_briefs": 4,
+            "kind": "vote",
+            "round": 1,
+            "votes": {
+              "analyst": "YES",
+              "experimentalist": "YES",
+              "language-lawyer": "YES",
+              "scribe": "YES"
+            }
+          }
+        ],
+        "trigger": {
+          "fired": false,
+          "metrics": {
+            "evidence_nodes_cited": 4,
+            "independent_briefs_submitted": 4,
+            "participant_count": 4,
+            "positions": [
+              "YES"
+            ],
+            "round_index": 1,
+            "unanimous": true,
+            "unique_positions": 1
+          },
+          "reason": "unanimity after independent briefs/evidence; legitimate, not instant",
+          "threshold": {
+            "max_evidence_nodes": 0,
+            "max_independent_briefs": 0,
+            "max_round_index": 1,
+            "min_participants": 2
+          },
+          "units": {
+            "evidence_nodes_cited": "non-empty evidence node ids",
+            "independent_briefs_submitted": "briefs with non-empty text",
+            "round_index": "rounds elapsed at first vote"
+          }
+        },
+        "trigger_fired": false,
+        "trigger_match": true,
+        "votes": {
+          "analyst": "YES",
+          "experimentalist": "YES",
+          "language-lawyer": "YES",
+          "scribe": "YES"
+        }
+      }
+    ],
+    "system_under_test": {
+      "module": "command-center/p2-wave/probes/CNF-0092/unanimity.py",
+      "note": "This confirmation measures the harness control at command-center/p2-wave/probes/CNF-0092/unanimity.py. tools/council/antifail/unanimity.py is not on this worktree (IMP-0318). No ADV-0091 rebuild.",
+      "spec_anchor": "_USER-PROMPTS.md:10944,11336",
+      "threshold": {
+        "max_evidence_nodes": 0,
+        "max_independent_briefs": 0,
+        "max_round_index": 1,
+        "min_participants": 2
+      },
+      "threshold_units": {
+        "max_evidence_nodes": "non-empty evidence node ids",
+        "max_independent_briefs": "briefs with non-empty text",
+        "max_round_index": "rounds elapsed at first vote",
+        "min_participants": "ballots required before scoring"
+      }
+    },
+    "ts": "2026-08-25T00:58:31Z"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Cloned brief text is not scored for independence here; an echo-chamber panel that pastes identical briefs would stay silent. That is CNL-0086 / ADV role-collapse, not this trip-wire.",
+      "settling_experiment": "CNF-0086 / ADV role-collapse: score pairwise brief Jaccard, not only non-empty text counts.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "This confirmation measures the deterministic control at command-center/p2-wave/probes/CNF-0092/unanimity.py. tools/council/antifail/unanimity.py is not on this worktree (IMP-0318). No ADV-0091 rebuild.",
+      "settling_experiment": "Re-run these probes against tools/council/antifail/unanimity.py if that module lands on this tree.",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "independent": true,
+    "notes": "Re-run the known-broken instant fixture and the contested control live. A re-read of this artifact is not the review.",
+    "reviewer_id": "CNF-0092-probe1-detector-control",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0092 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the trigger fired on the unanimity fixture and stayed silent on the contested control. Any other terminal state is FAILED:CNF-0092 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0092; _USER-PROMPTS.md:10944,11336; command-center/p2-wave/probes/CNF-0092/unanimity.py",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0092/probe1_detector_control.py",
+      "id": "probe1-detector-control",
+      "name": "Fire on known-broken instant clones; silent on contested",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0092/probe2_audit_and_legitimate.py",
+      "id": "probe2-audit-and-legitimate",
+      "name": "Post-brief silent; audit log; schema; anchors",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:31Z",
+    "started_at": "2026-08-25T00:58:31Z"
+  },
+  "unit_id": "CNF-0092"
+}

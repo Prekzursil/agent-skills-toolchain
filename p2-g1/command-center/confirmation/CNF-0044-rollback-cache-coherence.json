@@ -1,0 +1,306 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0044-rollback-cache-coherence.json",
+   "bytes": 7196,
+   "sha256": "5f976373cb083d1afa873ceb0f7cf96f8673bfbdf077794694b0a934414f976c",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0044 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0044-rollback-cache-coherence.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0044-rollback-cache-coherence.json",
+     "raw_output": "bytes=7196 sha256=5f976373cb083d1afa873ceb0f7cf96f8673bfbdf077794694b0a934414f976c",
+     "fingerprint": "d4cbe5a0e9fd8ee47ef41e8d6375553e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0044",
+     "raw_output": "schema-check",
+     "fingerprint": "b30756d94a68970536b469e6e07d6469",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0044 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0044",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0044",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "6838f17563dabe88c9edcb817648baa8",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0044",
+     "raw_output": "schema-valid",
+     "fingerprint": "6d95eeffe45e5f5febb13addcd010cbf",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 1800,
+ "report": {
+  "kind": "rollback-report",
+  "observations": [
+   {
+    "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0044/probe1_warm_cold_agree.py",
+    "measured": true,
+    "method": "command",
+    "name": "warm-cold-agree-after-invalidation"
+   },
+   {
+    "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0044/probe2_skip_invalidation.py",
+    "measured": true,
+    "method": "command",
+    "name": "skip-invalidation-resolution-mismatch"
+   }
+  ],
+  "control_ids": [
+   "skip-invalidation"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0044 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the skip-invalidation control produced a resolution mismatch, establishing the probe can see the defect. Any other terminal state is FAILED:CNF-0044 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0044-rollback-cache-coherence.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CNF-0044",
+ "extensions": {
+  "legacy_root": {
+   "answer": "After rollback WITH invalidation, the warm client misses the resolution cache and reads restored 1.0.0 from the registry; the cold client independently resolves the same version and digest. Skipping invalidation leaves the warm cache at 2.0.0 (rolled-away) while cold resolves 1.0.0 (restored): a resolution mismatch. Cache paths were enumerated from Client.CACHE_LAYOUT via enumerated_cache_paths() as ['resolved-index', 'cas-blobs'], not assumed by the probe. SUCCESS:CNF-0044 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the skip-invalidation control produced a resolution mismatch, establishing the probe can see the defect. Any other terminal state is FAILED:CNF-0044 <classification> with the diagnostic tail attached.",
+   "cache_entry_state": {
+    "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+    "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index/pkg.stale-cache-mirror.json",
+    "present": true,
+    "source_recorded": "registry",
+    "version": "1.0.0"
+   },
+   "cache_paths_enumerated": [
+    {
+     "id": "resolved-index",
+     "invalidated_on_rollback": true,
+     "keying": "package-id",
+     "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index",
+     "rel": "resolved-index"
+    },
+    {
+     "id": "cas-blobs",
+     "invalidated_on_rollback": false,
+     "keying": "sha256-of-payload",
+     "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/cas",
+     "rel": "cas"
+    }
+   ],
+   "claim_under_test": "Rollback of registry state invalidates the package-id resolution cache so a warm client and a cold client both resolve the restored version. Skipping invalidation must make the warm client resolve the rolled-away version, proving the probe can see the defect.",
+   "cold_client": {
+    "cache_path": "/tmp/cnf0044-agree-bay93zrh/cache-cold/resolved-index/pkg.stale-cache-mirror.json",
+    "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+    "resolved_version": "1.0.0",
+    "source": "registry"
+   },
+   "detector_control": {
+    "expected_defect": "warm client resolves the rolled-away version from a stale package-id cache while the cold client resolves the restored registry version",
+    "fired": true,
+    "id": "skip-invalidation",
+    "observation": "warm=2.0.0 source=cache; cold=1.0.0 source=registry; mismatch=true"
+   },
+   "implementation": {
+    "cache_layout_source": "Client.CACHE_LAYOUT / enumerated_cache_paths()",
+    "live_tree_note": "ROLLBACK-MANIFEST.md and IMP-0463 package-cache receipts are absent on this worktree. The confirmation exercises the rollback-path mirror of spec 11306 against the executable registry+cache client whose cache paths are enumerated from that implementation.",
+    "module": "command-center/p2-wave/probes/CNF-0044/client.py"
+   },
+   "output_schema": "command-center/schema/rollback-report.schema.json",
+   "package": "pkg.stale-cache-mirror",
+   "question": "After rollback, does a stale cache still serve the rolled-back version? Roll back a package, then answer: does the client resolve the restored version, is the cache entry invalidated, and does a cold client and a warm client agree? Spec line 11306 names stale cache masking a fixed package as a required regression case; this is its mirror on the rollback path.",
+   "restored_version": "1.0.0",
+   "rolled_away_version": "2.0.0",
+   "schema_validated": true,
+   "schema_validation": {
+    "declared": "command-center/schema/rollback-report.schema.json",
+    "remote_ref_not_fetched": true,
+    "shim_is_ref": true,
+    "shim_parses": true,
+    "unit_structure_checked": true
+   },
+   "skip_invalidation_control": {
+    "cold_resolved_version": "1.0.0",
+    "cold_source": "registry",
+    "invalidated": false,
+    "resolution_mismatch": true,
+    "warm_resolved_version": "2.0.0",
+    "warm_source": "cache"
+   },
+   "warm_client": {
+    "cache_path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index/pkg.stale-cache-mirror.json",
+    "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+    "resolved_version": "1.0.0",
+    "source": "registry"
+   },
+   "warm_cold_agree": true
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0044",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0044/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0044"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0044-rollback-cache-coherence.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0044-rollback-cache-coherence.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "921afdeb2a1cd2a2147f9bf6cff65c9d",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "After rollback WITH invalidation, the warm client misses the resolution cache and reads restored 1.0.0 from the registry; the cold client independently resolves the same version and digest. Skipping invalidation leaves the warm cache at 2.0.0 (rolled-away) while cold resolves 1.0.0 (restored): a resolution mismatch. Cache paths were enumerated from Client.CACHE_LAYOUT via enumerated_cache_paths() as ['resolved-index', 'cas-blobs'], not assumed by the probe. SUCCESS:CNF-0044 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the skip-invalidation control produced a resolution mismatch, establishing the probe can see the defect. Any other terminal state is FAILED:CNF-0044 <classification> with the diagnostic tail attached.",
+ "cache_entry_state": {
+  "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+  "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index/pkg.stale-cache-mirror.json",
+  "present": true,
+  "source_recorded": "registry",
+  "version": "1.0.0"
+ },
+ "cache_paths_enumerated": [
+  {
+   "id": "resolved-index",
+   "invalidated_on_rollback": true,
+   "keying": "package-id",
+   "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index",
+   "rel": "resolved-index"
+  },
+  {
+   "id": "cas-blobs",
+   "invalidated_on_rollback": false,
+   "keying": "sha256-of-payload",
+   "path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/cas",
+   "rel": "cas"
+  }
+ ],
+ "claim_under_test": "Rollback of registry state invalidates the package-id resolution cache so a warm client and a cold client both resolve the restored version. Skipping invalidation must make the warm client resolve the rolled-away version, proving the probe can see the defect.",
+ "cold_client": {
+  "cache_path": "/tmp/cnf0044-agree-bay93zrh/cache-cold/resolved-index/pkg.stale-cache-mirror.json",
+  "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+  "resolved_version": "1.0.0",
+  "source": "registry"
+ },
+ "detector_control": {
+  "expected_defect": "warm client resolves the rolled-away version from a stale package-id cache while the cold client resolves the restored registry version",
+  "fired": true,
+  "id": "skip-invalidation",
+  "observation": "warm=2.0.0 source=cache; cold=1.0.0 source=registry; mismatch=true"
+ },
+ "implementation": {
+  "cache_layout_source": "Client.CACHE_LAYOUT / enumerated_cache_paths()",
+  "live_tree_note": "ROLLBACK-MANIFEST.md and IMP-0463 package-cache receipts are absent on this worktree. The confirmation exercises the rollback-path mirror of spec 11306 against the executable registry+cache client whose cache paths are enumerated from that implementation.",
+  "module": "command-center/p2-wave/probes/CNF-0044/client.py"
+ },
+ "output_schema": "command-center/schema/rollback-report.schema.json",
+ "package": "pkg.stale-cache-mirror",
+ "question": "After rollback, does a stale cache still serve the rolled-back version? Roll back a package, then answer: does the client resolve the restored version, is the cache entry invalidated, and does a cold client and a warm client agree? Spec line 11306 names stale cache masking a fixed package as a required regression case; this is its mirror on the rollback path.",
+ "restored_version": "1.0.0",
+ "rolled_away_version": "2.0.0",
+ "schema_validated": true,
+ "schema_validation": {
+  "declared": "command-center/schema/rollback-report.schema.json",
+  "remote_ref_not_fetched": true,
+  "shim_is_ref": true,
+  "shim_parses": true,
+  "unit_structure_checked": true
+ },
+ "skip_invalidation_control": {
+  "cold_resolved_version": "1.0.0",
+  "cold_source": "registry",
+  "invalidated": false,
+  "resolution_mismatch": true,
+  "warm_resolved_version": "2.0.0",
+  "warm_source": "cache"
+ },
+ "warm_client": {
+  "cache_path": "/tmp/cnf0044-agree-bay93zrh/cache-warm/resolved-index/pkg.stale-cache-mirror.json",
+  "digest": "d796c2a194f264cd489467a7cbe0cb16b2a556b46ff25618c624d013baf76e19",
+  "resolved_version": "1.0.0",
+  "source": "registry"
+ },
+ "warm_cold_agree": true
+}

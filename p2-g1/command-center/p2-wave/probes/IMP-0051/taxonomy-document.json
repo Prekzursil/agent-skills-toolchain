@@ -1,0 +1,150 @@
+{
+ "artifact": "error-taxonomy",
+ "classes": [
+  {
+   "cause": "The command line did not parse, or a required argument was missing.",
+   "code": "E_USAGE",
+   "exit_code": 2,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was read and nothing was written.",
+   "next_command": "astplugin --help",
+   "title": "Command usage error"
+  },
+  {
+   "cause": "plugin.json is missing a required field, carries an unknown field outside the reserved 'x-' namespace, or declares two keys that differ only by case.",
+   "code": "E_MANIFEST",
+   "exit_code": 10,
+   "fail_mode": "fail-closed",
+   "impact": "The package is not installable; no file was staged.",
+   "next_command": "astplugin conform --package <zip>",
+   "title": "Manifest rejected by the strict parser"
+  },
+  {
+   "cause": "A staged path is not matched by the deny-by-default allowlist, or matches a forbidden pattern (.git, caches, logs, transcripts).",
+   "code": "E_PAYLOAD",
+   "exit_code": 11,
+   "fail_mode": "fail-closed",
+   "impact": "No archive was written.",
+   "next_command": "astplugin build --explain-payload",
+   "title": "Payload violates the include allowlist"
+  },
+  {
+   "cause": "The deny-by-default secret gate matched high-entropy or key-shaped content in a file that was about to be shipped.",
+   "code": "E_SECRET",
+   "exit_code": 12,
+   "fail_mode": "fail-closed",
+   "impact": "No archive was written. The finding names the file and the offset, never the value.",
+   "next_command": "astplugin build --report-secrets <path>",
+   "title": "Credential-shaped content found in the payload"
+  },
+  {
+   "cause": "The staged payload is larger than the declared budget, which is how a 2 GB accident is caught before it ships.",
+   "code": "E_BUDGET",
+   "exit_code": 13,
+   "fail_mode": "fail-closed",
+   "impact": "No archive was written.",
+   "next_command": "astplugin build --inventory <path>",
+   "title": "Package exceeds its size or file-count budget"
+  },
+  {
+   "cause": "Insufficient disk space, an unwritable prefix, or a missing parent directory.",
+   "code": "E_PREFLIGHT",
+   "exit_code": 20,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was mutated.",
+   "next_command": "astplugin health-check --prefix <prefix>",
+   "title": "Preflight refused the operation"
+  },
+  {
+   "cause": "A concurrent install/update/rollback/uninstall is in progress, or a previous run died holding the lock.",
+   "code": "E_LOCK",
+   "exit_code": 21,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was mutated.",
+   "next_command": "astplugin health-check --prefix <prefix>",
+   "title": "Another lifecycle operation holds the prefix lock"
+  },
+  {
+   "cause": "A staged step raised after the journal opened; the inverse of every applied step was replayed.",
+   "code": "E_TXN",
+   "exit_code": 22,
+   "fail_mode": "fail-closed",
+   "impact": "The prefix is back at its pre-operation state. No partial install remains.",
+   "next_command": "astplugin health-check --prefix <prefix>",
+   "title": "Transaction failed and was rolled back"
+  },
+  {
+   "cause": "Live and repo both hold unique content for the same path, so neither side can be overwritten without losing something.",
+   "code": "E_DRIFT",
+   "exit_code": 30,
+   "fail_mode": "fail-closed",
+   "impact": "The file was left untouched and a decision packet was written.",
+   "next_command": "astplugin sync --prefix <prefix> --decisions <path>",
+   "title": "Diverged file needs an owner decision"
+  },
+  {
+   "cause": "A content-addressed entry does not hash to its own key.",
+   "code": "E_CACHE",
+   "exit_code": 40,
+   "fail_mode": "fail-open",
+   "impact": "The entry was quarantined; the operation continues from source.",
+   "next_command": "astplugin cache --prefix <prefix> --invalidate",
+   "title": "Cache entry corrupted or unreadable"
+  },
+  {
+   "cause": "At least one registered probe returned FAIL.",
+   "code": "E_HEALTH",
+   "exit_code": 50,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was mutated. The report names each probe and its remediating command.",
+   "next_command": "astplugin doctor --prefix <prefix>",
+   "title": "Health check reported a failing probe"
+  },
+  {
+   "cause": "The package violates the plugin contract (manifest, interpreters, layout, or schema of an emitted artifact).",
+   "code": "E_CONFORM",
+   "exit_code": 51,
+   "fail_mode": "fail-closed",
+   "impact": "The package is not publishable.",
+   "next_command": "astplugin conform --package <zip> --json <path>",
+   "title": "Conformance validator rejected the package"
+  },
+  {
+   "cause": "A migration step raised, or a legacy fingerprint matched two mutually exclusive layouts.",
+   "code": "E_MIGRATE",
+   "exit_code": 60,
+   "fail_mode": "fail-closed",
+   "impact": "The ledger holds the inverse of every applied step; nothing is half-migrated.",
+   "next_command": "astplugin migrate --prefix <prefix> --dry-run",
+   "title": "Migration from an old layout failed"
+  },
+  {
+   "cause": "The manifest's compatibility range excludes the detected client version, or the platform has no launch adapter.",
+   "code": "E_COMPAT",
+   "exit_code": 70,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was mutated.",
+   "next_command": "astplugin diagnose",
+   "title": "Client, OS, or shell is not supported"
+  },
+  {
+   "cause": "A script entrypoint names an interpreter that is absent from PATH or older than the declared floor.",
+   "code": "E_INTERP",
+   "exit_code": 80,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was mutated. Scripts are never run through an inferred interpreter.",
+   "next_command": "astplugin diagnose --json <path>",
+   "title": "Declared interpreter missing or below its version floor"
+  },
+  {
+   "cause": "A path escaped its root, used a reserved device name, or exceeded the platform path limit.",
+   "code": "E_IO",
+   "exit_code": 90,
+   "fail_mode": "fail-closed",
+   "impact": "Nothing was written at that path.",
+   "next_command": "astplugin health-check --prefix <prefix>",
+   "title": "Filesystem operation refused"
+  }
+ ],
+ "version": 1
+}

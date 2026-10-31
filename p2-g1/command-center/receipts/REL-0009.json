@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "unit_id": "REL-0009",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:REL-0009",
+  "spec_anchor": "_USER-PROMPTS.md:10842",
+  "min_bytes_threshold": 1500,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "release-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/bundle-scan-receipt.schema.json",
+      "bytes": 1068,
+      "sha256": "daffff23948dab90f3a3ea36eca5bcf0b1ceea127e3649aba1d8840492fd78a3",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/release/payload-allowlist.json",
+      "bytes": 277,
+      "sha256": "4f8164d13f1bb922a1a5bdc4496e153499c9a233abbdefc9ae8d569540defd9f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/release/archive_gate.py",
+      "bytes": 8032,
+      "sha256": "2f6b4cee96c2a68230cc859e26b4a866b45bae1c74ba465a01e6d1b7c0790248",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0009/scenario.py",
+      "bytes": 3281,
+      "sha256": "eca0e4fe3e0134418e668a6c6ba156724ffdad6a07b67767ef135fdfc33e0e77",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0009/controls.py",
+      "bytes": 4016,
+      "sha256": "751a8810c5d1a9a838017769cfd1f2b58e7b9a91519c88fd4d278db350cb3ece",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+      "bytes": 4083,
+      "sha256": "e32c49b16691a5e1a844b3b7269372653163f87a6efb0edef05c90fd94cc6fb4",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+      "bytes": 6180,
+      "sha256": "01cf109f198852d8473aeda1febff0c85e8cf95445ba5dd091c47396442fa159",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Clean archive listing total_bytes, entry_count, top-ten and both headrooms were read from the zip entry list, not a source-tree walk.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/release/archive_gate.py:evaluate_archive",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "evaluate_archive(pack_clean(...), load_policy())",
+          "raw_output": "archive listing: total_bytes=1645 entry_count=8 byte_headroom=10484115 (ceiling 10485760) file_count_headroom=40 (ceiling 48); top_ten_by_size=[{\"path\":\"docs/doc.overview.md\",\"bytes\":362},{\"path\":\"README.md\",\"bytes\":317},{\"path\":\"LICENSE\",\"bytes\":263},{\"path\":\"plugin.json\",\"bytes\":226},{\"path\":\"skills/skill.council/SKILL.md\",\"bytes\":170},{\"path\":\"hooks/hook.pre-tool.json\",\"bytes\":111},{\"path\":\"scripts/check.py\",\"bytes\":107},{\"path\":\"marketplace.json\",\"bytes\":89}]",
+          "fingerprint": "f8dde9444c78445fdc5ce4cab653968745d491784db68f3c6485a2188cab1d9a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+          "raw_output": "pending-live-rerun",
+          "fingerprint": "7fd1b1069ffd7d20406fb7bad2effbb85239dd12c75ef9d3c7575f57a3f8bfe7",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": ".git plant is allowlist-rejected by member name, a 200 MiB blob fires the byte ceiling naming docs/unrelated-200m.bin, and a gitignored packed file is visible in the archive listing while a gitignore tree walk misses it.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "control_dotgit+control_blob+control_gitignored",
+          "raw_output": "dotgit=['.git/HEAD', '.git/config'] blob=docs/unrelated-200m.bin gitignored=['.gitignore', 'untracked-packed.bin']",
+          "fingerprint": "6b881a7fa453744b28a017e324a56deab013aef54c1668b8ac5f80ebf760f40d",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+          "raw_output": "pending-live-rerun",
+          "fingerprint": "83ebb7868dc45100f9c42e74c86cc8a71020ed0f5adb99c9720e10a60e9f060e",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "dotgit-reject",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "blob-ceiling-names-entry",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "clean-headroom",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "gitignored-from-archive",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "dotgit-reject",
+      "kind": "mutation",
+      "description": "Stage .git/HEAD into the pack input; deny-by-default allowlist must reject the archive member.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": ".git/HEAD,.git/config",
+      "good_state_output": "clean-pass"
+    },
+    {
+      "id": "blob-ceiling-names-entry",
+      "kind": "adversarial-payload",
+      "description": "Stage a 200 MiB blob on an allowlisted path; the byte ceiling must fire and name the offending entry.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "docs/unrelated-200m.bin",
+      "good_state_output": "clean-pass"
+    },
+    {
+      "id": "gitignored-from-archive",
+      "kind": "known-broken-fixture",
+      "description": "Pack a gitignored file; archive listing detects it. A gitignore-respecting tree walk misses it.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "untracked-packed.bin",
+      "good_state_output": "tree-walk-miss"
+    },
+    {
+      "id": "schema-rejects-garbage",
+      "kind": "malformed-input",
+      "description": "Empty / unrelated / blob documents are rejected by the resolved bundle-scan-receipt schema.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "REL-0009-probe2-reviewer-mutations",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Named probe2 re-packs each mutation, lists members from the ZIP central directory (not ZipFile.infolist), and confirms each control turns the gate red. A catch-all ** glob would accept .git; a gitignore tree walk misses the packed ignored file."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/REL-0009/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+      "artifact_path": "command-center/receipts/REL-0009.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe1_archive_controls.py",
+        "raw_output": "pending-live-rerun",
+        "fingerprint": "7fd1b1069ffd7d20406fb7bad2effbb85239dd12c75ef9d3c7575f57a3f8bfe7",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+      "artifact_path": "command-center/receipts/REL-0009.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0009/probe2_reviewer_mutations.py",
+        "raw_output": "pending-live-rerun",
+        "fingerprint": "83ebb7868dc45100f9c42e74c86cc8a71020ed0f5adb99c9720e10a60e9f060e",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:01:38Z",
+    "ended_at": "2026-08-25T01:01:38Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is filed, never retried"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "_USER-PROMPTS.md:10842 is named by the catalog and is absent on this worktree; the unit is executed from the catalog question_or_target and tests_required.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run after _USER-PROMPTS.md is present and confirm line 10842 still matches the archive-not-tree gate."
+    }
+  ],
+  "report": {
+    "kind": "bundle-scan-receipt",
+    "observations": [
+      {
+        "name": "clean-archive-total-bytes",
+        "measured": 1645,
+        "method": "zipfile.ZipFile.infolist-uncompressed",
+        "anchor": "tools/release/archive_gate.py:evaluate_archive"
+      },
+      {
+        "name": "clean-archive-entry-count",
+        "measured": 8,
+        "method": "zipfile.ZipFile.infolist-file-members",
+        "anchor": "tools/release/archive_gate.py:list_zip_entries"
+      },
+      {
+        "name": "byte-headroom",
+        "measured": 10484115,
+        "method": "byte_ceiling-minus-archive-total",
+        "anchor": "tools/release/payload-allowlist.json"
+      },
+      {
+        "name": "file-count-headroom",
+        "measured": 40,
+        "method": "file_count_ceiling-minus-archive-count",
+        "anchor": "tools/release/payload-allowlist.json"
+      },
+      {
+        "name": "source-tree-consulted",
+        "measured": false,
+        "method": "gate-reads-archive-entry-list-only",
+        "anchor": "tools/release/archive_gate.py:evaluate"
+      }
+    ],
+    "control_ids": [
+      "dotgit-reject",
+      "blob-ceiling-names-entry",
+      "clean-headroom",
+      "gitignored-from-archive"
+    ],
+    "title": "Distributable content allowlist and byte ceiling from the archive entry list",
+    "question": "Implementation target: enforce spec line 10842 mechanically. The shipped package must not carry the repository .git directory, caches, logs, transcripts, worktrees, dependency folders or gigabytes of unrelated material. Express what may ship as an explicit glob allowlist plus a total-byte ceiling and a file-count ceiling, and evaluate all three against the ARCHIVE ENTRY LIST read back out of the built package -- never against the source tree, because the source tree is not what ships and a tree that looks clean can still be packed dirty.",
+    "answer": "Allowlist is deny-by-default globs in tools/release/payload-allowlist.json. Clean archive lists 8 members totalling 1645 uncompressed bytes from the zip entry list (byte_headroom=10484115, file_count_headroom=40). .git plant rejected (['.git/HEAD', '.git/config']). 200 MiB blob fired the byte ceiling naming docs/unrelated-200m.bin. Gitignored untracked-packed.bin is in the archive listing and in allowlist violations; a gitignore tree walk does not see it. SUCCESS:REL-0009",
+    "evaluation_surface": "archive-entry-list",
+    "source_tree_consulted": false,
+    "allowlist": {
+      "path": "tools/release/payload-allowlist.json",
+      "deny_by_default": true,
+      "globs": [
+        "README.md",
+        "LICENSE",
+        "plugin.json",
+        "marketplace.json",
+        "docs/**",
+        "scripts/**",
+        "hooks/**",
+        "skills/**"
+      ]
+    },
+    "ceilings": {
+      "byte_ceiling": 10485760,
+      "file_count_ceiling": 48
+    },
+    "clean_archive": {
+      "format": "zip",
+      "total_bytes": 1645,
+      "entry_count": 8,
+      "top_ten_by_size": [
+        {
+          "path": "docs/doc.overview.md",
+          "bytes": 362
+        },
+        {
+          "path": "README.md",
+          "bytes": 317
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 263
+        },
+        {
+          "path": "plugin.json",
+          "bytes": 226
+        },
+        {
+          "path": "skills/skill.council/SKILL.md",
+          "bytes": 170
+        },
+        {
+          "path": "hooks/hook.pre-tool.json",
+          "bytes": 111
+        },
+        {
+          "path": "scripts/check.py",
+          "bytes": 107
+        },
+        {
+          "path": "marketplace.json",
+          "bytes": 89
+        }
+      ],
+      "byte_headroom": 10484115,
+      "file_count_headroom": 40,
+      "verdict": "PASS",
+      "members": [
+        {
+          "path": "LICENSE",
+          "bytes": 263
+        },
+        {
+          "path": "README.md",
+          "bytes": 317
+        },
+        {
+          "path": "docs/doc.overview.md",
+          "bytes": 362
+        },
+        {
+          "path": "hooks/hook.pre-tool.json",
+          "bytes": 111
+        },
+        {
+          "path": "marketplace.json",
+          "bytes": 89
+        },
+        {
+          "path": "plugin.json",
+          "bytes": 226
+        },
+        {
+          "path": "scripts/check.py",
+          "bytes": 107
+        },
+        {
+          "path": "skills/skill.council/SKILL.md",
+          "bytes": 170
+        }
+      ]
+    },
+    "tests": [
+      {
+        "id": "dotgit-reject",
+        "title": "Stage a .git directory into the packaging input; allowlist gate rejects",
+        "verdict": "PASS",
+        "surface": "archive-entry-list",
+        "named_members": [
+          ".git/HEAD",
+          ".git/config"
+        ]
+      },
+      {
+        "id": "blob-ceiling-names-entry",
+        "title": "Stage a 200 MiB unrelated blob; byte ceiling fires and names the entry",
+        "verdict": "PASS",
+        "surface": "archive-entry-list",
+        "offending_entry": "docs/unrelated-200m.bin",
+        "offending_entry_bytes": 209715200,
+        "planted_arcname": "docs/unrelated-200m.bin",
+        "planted_bytes": 209715200
+      },
+      {
+        "id": "clean-headroom",
+        "title": "Legitimate build passes with headroom against both ceilings",
+        "verdict": "PASS",
+        "surface": "archive-entry-list",
+        "byte_headroom": 10484115,
+        "file_count_headroom": 40
+      },
+      {
+        "id": "gitignored-from-archive",
+        "title": "Pack a gitignored file; gate detects it from the archive, not the tree",
+        "verdict": "PASS",
+        "surface": "archive-entry-list",
+        "detected_member": "untracked-packed.bin",
+        "tree_walk_saw_member": false,
+        "named_members": [
+          ".gitignore",
+          "untracked-packed.bin"
+        ]
+      }
+    ],
+    "evidence": {
+      "total_bytes": 1645,
+      "entry_count": 8,
+      "top_ten_by_size": [
+        {
+          "path": "docs/doc.overview.md",
+          "bytes": 362
+        },
+        {
+          "path": "README.md",
+          "bytes": 317
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 263
+        },
+        {
+          "path": "plugin.json",
+          "bytes": 226
+        },
+        {
+          "path": "skills/skill.council/SKILL.md",
+          "bytes": 170
+        },
+        {
+          "path": "hooks/hook.pre-tool.json",
+          "bytes": 111
+        },
+        {
+          "path": "scripts/check.py",
+          "bytes": 107
+        },
+        {
+          "path": "marketplace.json",
+          "bytes": 89
+        }
+      ],
+      "byte_headroom": 10484115,
+      "file_count_headroom": 40,
+      "pasted": "archive listing: total_bytes=1645 entry_count=8 byte_headroom=10484115 (ceiling 10485760) file_count_headroom=40 (ceiling 48); top_ten_by_size=[{\"path\":\"docs/doc.overview.md\",\"bytes\":362},{\"path\":\"README.md\",\"bytes\":317},{\"path\":\"LICENSE\",\"bytes\":263},{\"path\":\"plugin.json\",\"bytes\":226},{\"path\":\"skills/skill.council/SKILL.md\",\"bytes\":170},{\"path\":\"hooks/hook.pre-tool.json\",\"bytes\":111},{\"path\":\"scripts/check.py\",\"bytes\":107},{\"path\":\"marketplace.json\",\"bytes\":89}]"
+    }
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s13-council-4voice-classic",
+  "preset": "product_strategy_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Work a genuine trade-off with four voices - architect, skeptic, pragmatist, critic - and return a synthesis that names what each voice would trade away.",
+    "charter": "The general-purpose council. Its defining mechanism is anti-anchoring: the external seats receive the QUESTION ONLY, never the running transcript, so they cannot converge on the convening session's framing. Two rounds minimum; a one-round council is a poll.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "each voice states the trade it would accept and the one it refuses",
+      "the synthesis names the disagreement rather than averaging it",
+      "at least two rounds elapsed and every voice spoke in both"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.75,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 12 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "adversarial", "model_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 4, "min": 4, "max": 4 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      {
+        "participant_id": "architect",
+        "display_name": "Architect (what structure survives contact with change)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["architecture", "long-horizon cost"],
+        "role": "architect",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true },
+        "context": { "briefing": "You receive the QUESTION ONLY. You do not receive the convening session's transcript or its preferred answer." }
+      },
+      {
+        "participant_id": "skeptic",
+        "display_name": "Skeptic (why the premise may be wrong)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["premise examination", "falsification"],
+        "role": "critic",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true },
+        "context": { "briefing": "You receive the QUESTION ONLY. Attack the premise before the options." }
+      },
+      {
+        "participant_id": "pragmatist",
+        "display_name": "Pragmatist (what ships this week)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["delivery", "sequencing"],
+        "role": "custom:pragmatist",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true },
+        "context": { "briefing": "You receive the QUESTION ONLY. Cost of delay is a real cost; say what it is." }
+      },
+      {
+        "participant_id": "critic",
+        "display_name": "Critic (steelmans the option it likes least, then attacks it)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["adversarial review"],
+        "role": "steelman",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true },
+        "context": { "briefing": "You receive the QUESTION ONLY. Steelman before you rebut; an unsteelmanned rebuttal is discarded." }
+      }
+    ],
+    "role_templates": ["architect", "critic", "custom:pragmatist", "steelman"],
+    "duplicate_detection": { "enabled": true, "dimensions": ["prompt", "position_similarity"], "max_similarity": 0.9 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": false, "independent_prep": true, "min_sources": 1, "required_artifacts": ["position_memo"] },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "openings", "independent": true },
+      { "kind": "round_robin", "stage_id": "exchange", "rounds": 1 },
+      { "kind": "steelman_before_rebuttal", "stage_id": "steelman", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "synthesis" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 2, "max": 4, "divergence_before_convergence": true },
+    "turn": { "max_words": 600 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "max_experiments": 2, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 12, "tokens": 70000, "tool_calls": 60, "turns": 12, "min_engagement_turns": 2, "max_inactivity_rounds": 1, "rebuttal_depth": 2 },
+  "targets": { "objections": 4, "counterexamples": 2, "evidence_items": 6, "diversity_index": 0.7 },
+  "voting": {
+    "method": "synthesis_only",
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true }
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 2 AND all_participants_spoke == true",
+    "expression": {
+      "all_of": [
+        { "metric": "rounds_elapsed", "op": ">=", "value": 2 },
+        { "metric": "all_participants_spoke", "op": "==", "value": true }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4
+    },
+    "hard_caps": { "max_rounds": 4, "max_minutes": 12, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "minority_report", "dissent"],
+    "conditional_decision_requires": ["the trade the synthesis defers is revisited when its trigger fires"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["strongest_counterexample", "rotate_roles", "split_question", "run_experiment", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "sycophancy", "participant_dominance", "circular_debate", "role_collapse", "premature_convergence", "lost_dissent", "weak_synthesis", "prompt_injection"],
+    "fast_unanimity_response": ["strongest_counterexample", "forced_dissent", "role_rotation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "option_cards", "argument_ledger", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 90 },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-S13 council-4voice-classic",
+    "notes": "HUMAN-STOP: rounds_elapsed >= 2 AND all_participants_spoke == true | EDITABLE-DIALS: participants.roster (voices) . protocol.rounds.min together with the 2 in stopping and minimum_deliberation.min_rounds (rounds) | ANTI-ANCHORING: the question-only briefing on all four seats plus independence.sees_peers_before_first_position=false is the mechanism, not decoration; deleting the briefings turns this preset into a poll | CHAIR: there is deliberately NO chair seat - topology is flat and voting.method=synthesis_only, because the synthesiser is the CONVENING session, which is an orchestrator and not a participant. That is why voting.tie_break is omitted: with no chair seat, a chair tie-break would be a dangling reference. | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | PRESET-NAME: mapped to the schema enum value product_strategy_council as the nearest required-list member for an open trade-off council; the design row is the general-purpose 4-voice council | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11182-11185",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1329-1342"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-S13 council-4voice-classic",
+      "protocol P01 free-form-moderated-panel",
+      "protocol P23 silent-start-pooling"
+    ]
+  }
+}

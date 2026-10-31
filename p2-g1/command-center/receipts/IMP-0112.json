@@ -1,0 +1,225 @@
+{
+ "answer": "Structural PR-ONLY guard is live. Every enumerated publishing entry point (publish, list_remote, expose, yank, deprecate, revoke, promote) returns BLOCKED-NEEDS-OWNER under the binding PR-ONLY config and never reaches the unique sink _outbound_publish. The same path proceeds under a PUBLIC_MARKETPLACE fixture, so the guard is mode-driven and not a stub. An AST audit of tools/marketplace (tests excluded) finds zero outbound-publish-capable calls outside pr_only_guard.py; a planted urllib.request.urlopen bypass is detected and the auditor is silent after removal. SUCCESS:IMP-0112",
+ "artifacts": [
+  {
+   "bytes": 4818,
+   "exists": true,
+   "path": "tools/marketplace/pr_only_guard.py",
+   "sha256": "06270bd4b31935383cc46cbd1011d6a8d73ed71731b55e563c2dd379945a5958"
+  },
+  {
+   "bytes": 4774,
+   "exists": true,
+   "path": "tools/marketplace/pr_only_audit.py",
+   "sha256": "4caebaa053d63e590b683f0644cc0068afa27150f080a62dbb8dabbf0044f85e"
+  },
+  {
+   "bytes": 2189,
+   "exists": true,
+   "path": "tools/marketplace/publishing.py",
+   "sha256": "b5459348d3d028d64f07d6987eb774342e433c956fc66880d8e0a2e05fa8ba69"
+  },
+  {
+   "bytes": 2270,
+   "exists": true,
+   "path": "tools/marketplace/release_mode.py",
+   "sha256": "3ccb2203fc2884a7fdb5c013ab8a6281f3a850e07f6d923e5e94bed5f453f9dd"
+  },
+  {
+   "bytes": 4893,
+   "exists": true,
+   "path": "tools/marketplace/tests/test_pr_only_guard.py",
+   "sha256": "3e56511baafec3a6dd15854ceb0fa28762a64f8a93d5f7a96cb26d1024017712"
+  },
+  {
+   "bytes": 84,
+   "exists": true,
+   "path": "tools/marketplace/fixtures/release-mode.pr-only.json",
+   "sha256": "5e274219abdf4fa010ed21032e5fd2b08613f39f2da7fbc5c145273de241cf5a"
+  },
+  {
+   "bytes": 152,
+   "exists": true,
+   "path": "tools/marketplace/fixtures/release-mode.public.json",
+   "sha256": "7d4ecd0be88fe19d5e2196e674c230bb7975520515cdc8b8d548c0fdd1e04d16"
+  },
+  {
+   "bytes": 3023,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0112/probe1_entry_points.py",
+   "sha256": "fb1826e79ff8a17f488261fcfad7fe66fcc668aaff45a5a514499b0672cf11db"
+  },
+  {
+   "bytes": 4290,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0112/probe2_audit_bypass.py",
+   "sha256": "a4f45e98e895cdc9ed8176b1fcde001db6d84c619ceb40324a8da20968225631"
+  }
+ ],
+ "binding_owner_decision": {
+  "fail_closed": true,
+  "release_mode": "PR-ONLY",
+  "source": "catalog OWNER-DECISIONS + IMP-0112 inputs"
+ },
+ "entry_points": [
+  "publish",
+  "list_remote",
+  "expose",
+  "yank",
+  "deprecate",
+  "revoke",
+  "promote"
+ ],
+ "evidence": {
+  "signal_1_entry_points_blocked": {
+   "local_list_under_pr_only": "PROCEEDED",
+   "local_pack_under_pr_only": "PROCEEDED",
+   "outbound_log_after_pr_only_invocations_empty_before_public_pass": true,
+   "rows": [
+    {
+     "entry_point": "publish",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "list_remote",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "expose",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "yank",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "deprecate",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "revoke",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    },
+    {
+     "entry_point": "promote",
+     "owner_approval_emitted": true,
+     "pr_only_status": "BLOCKED-NEEDS-OWNER",
+     "public_sink": "_outbound_publish",
+     "public_status": "PROCEEDED"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  "signal_2_static_audit": {
+   "clean": true,
+   "detector_control_ok": true,
+   "finding_count": 0,
+   "planted_found": true,
+   "scanned": [
+    "__init__.py",
+    "blob_store.py",
+    "pr_only_audit.py",
+    "pr_only_guard.py",
+    "publishing.py",
+    "release_mode.py",
+    "tag_gate.py"
+   ],
+   "silent_after_removal": true,
+   "verdict": "CONFIRMED"
+  }
+ },
+ "id": "IMP-0112",
+ "implementation": {
+  "audit_module": "tools/marketplace/pr_only_audit.py",
+  "entry_point_module": "tools/marketplace/publishing.py",
+  "guard_module": "tools/marketplace/pr_only_guard.py",
+  "tests": "tools/marketplace/tests/test_pr_only_guard.py",
+  "unique_sink": "_outbound_publish"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0112/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "negative_controls": [
+  {
+   "all_entry_points_proceeded": true,
+   "id": "public-mode-same-path-proceeds",
+   "kind": "mode-driven-not-stub",
+   "public_mode": "PUBLIC_MARKETPLACE"
+  },
+  {
+   "fired_on_bad": true,
+   "id": "planted-bypass-must-fail-audit",
+   "kind": "detector-control",
+   "silent_on_good": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question_or_target": "Implement a hard guard that refuses any operation that would publish, list, or expose a package outside the local/private boundary while release mode is PR-ONLY, emitting an owner-approval request instead.",
+ "residuals": [
+  {
+   "claim": "_outbound_publish is importable from outside tools/marketplace because it is a Python function, not an OS sandbox.",
+   "scope": "in-tree marketplace publishing paths",
+   "verdict": "DISCLOSED"
+  },
+  {
+   "claim": "IMP-0111 (governance policy) and IMP-0071 (channels) are not present in this worktree. This unit ships the PR-ONLY chokepoint those units compose onto; it does not pretend those receipts exist.",
+   "verdict": "OUT-OF-SCOPE-FOR-THIS-UNIT"
+  }
+ ],
+ "reviewer": {
+  "attempt": "Tried to reach a publish path around the guard by planting urllib.request.urlopen in tools/marketplace/_planted_bypass.py and by invoking each entry point without going through a special-case allow list. The auditor classified the plant; live invoke() under PR-ONLY still returned BLOCKED-NEEDS-OWNER. Residual: Python can import _outbound_publish from a file outside tools/marketplace; this unit's claim is the in-tree chokepoint plus the AST audit of that tree.",
+  "independent": true,
+  "reviewer_id": "IMP-0112-probe2-audit-bypass-scope",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:IMP-0112",
+ "state": "SUCCESS",
+ "status": "SUCCESS",
+ "tests": [
+  {
+   "command": "python3 tools/marketplace/tests/test_pr_only_guard.py",
+   "exit_code": 0,
+   "id": "tools/marketplace/tests/test_pr_only_guard.py",
+   "output_tail": "test_coverage_lists_every_catalog_entry_point (__main__.TestPrOnlyGuard.test_coverage_lists_every_catalog_entry_point) ... ok\ntest_each_publishing_entry_point_blocked_under_pr_only (__main__.TestPrOnlyGuard.test_each_publishing_entry_point_blocked_under_pr_only) ... ok\ntest_local_pack_and_list_proceed_under_pr_only (__main__.TestPrOnlyGuard.test_local_pack_and_list_proceed_under_pr_only) ... ok\ntest_missing_config_fail_closed_to_binding (__main__.TestPrOnlyGuard.test_missing_config_fail_closed_to_binding) ... ok\ntest_planted_bypass_must_fail_audit (__main__.TestPrOnlyGuard.test_planted_bypass_must_fail_audit) ... ok\ntest_public_mode_same_path_proceeds (__main__.TestPrOnlyGuard.test_public_mode_same_path_proceeds) ... ok\ntest_unknown_mode_fail_closed (__main__.TestPrOnlyGuard.test_unknown_mode_fail_closed) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.040s\n\nOK",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0112/probe1_entry_points.py",
+   "exit_code": 0,
+   "id": "probe1_entry_points",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0112/probe2_audit_bypass.py",
+   "exit_code": 0,
+   "id": "probe2_audit_bypass_public_mode",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:47:00Z",
+  "started_at": "2026-08-25T00:46:59Z"
+ },
+ "title": "PR-ONLY release-mode guard on every publishing path",
+ "unit_id": "IMP-0112"
+}

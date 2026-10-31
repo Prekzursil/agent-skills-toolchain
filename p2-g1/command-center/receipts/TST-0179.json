@@ -1,0 +1,613 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0179",
+ "title": "Unknown top-level manifest field is rejected by the strict client parser",
+ "question_or_target": "Does the strict parser reject a plugin manifest carrying an unknown top-level field, with an error naming the field? PASS requires rejection under the STRICTEST supported client, and the authoring toolchain must never emit such a field.",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0179",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0179",
+ "min_bytes_threshold": 1024,
+ "output_path": "command-center/receipts/TST-0179.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+ "completion_sentinel": "SUCCESS:TST-0179",
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+   "bytes": 1784,
+   "sha256": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+   "bytes": 2747,
+   "sha256": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/receipts/TST-0179.json",
+   "bytes": 23267,
+   "sha256": "2342349c5607e0ede422977e8c57c5493848bf159952b14339fb33ca83a7aaa0",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0179/SUBAGENT-RETURN.json",
+   "bytes": 2766,
+   "sha256": "16d3758ca77c4fced382b1530675ac39564af752fe1618596085b6b66ce58ccc",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json",
+   "bytes": 1395,
+   "sha256": "0f2db788c53b36945f1bb9a6a32e2148bc5e06c8431591bf337db38f862e7fac",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Independent reviewer verified the artifact at command-center/receipts/TST-0179.json exists on disk (23267 LF-normalized bytes), parses as JSON, carried the builder terminal state=BLOCKED with failure.classification=[reviewer-absent] and reviewer=null (no self-certification) at review time, and its report.kind=parser_report matches the catalog output_schema pin.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0179.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "python -I -c json.load(command-center/receipts/TST-0179.json)",
+     "raw_output": "parsed OK; builder state=BLOCKED; classification=[reviewer-absent]; reviewer=null",
+     "fingerprint": "w3s22-parse:TST-0179:2342349c5607e0ed"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+     "raw_output": "SUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry",
+     "exit_code": 0,
+     "fingerprint": "w3s22-probe1-live:TST-0179:rc0"
+    }
+   ]
+  },
+  {
+   "claim": "Independent reviewer re-ran both named probes live for 3 rounds each under the ambient environment; all exited 0 with the unit SUCCESS sentinel (probe1_unknown_field.py=3/3 rounds rc0; probe2_emitter_subset.py=3/3 rounds rc0); live sentinels match the builder-recorded raw_output lines (consistent=True).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0179/",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py ; python -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+     "raw_output": "SUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry | SUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True",
+     "exit_code": 0,
+     "fingerprint": "w3s22-rerun:TST-0179:3x2rc0"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "compare live SUCCESS sentinel lines against SUBAGENT-RETURN.json named_probes[].raw_output",
+     "raw_output": "sentinel-consistency=True",
+     "fingerprint": "w3s22-sentinel-cmp:TST-0179"
+    }
+   ]
+  },
+  {
+   "claim": "UNIT-ARTIFACT-MANIFEST.json registered command-center/receipts/TST-0179.json with a sha256 row matching the live artifact (CRLF normalized to LF before hashing; program digest mode sha256+length over LF-normalized bytes). Reviewer recomputed the digest independently.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "byte-compare",
+     "command": "hashlib.sha256(bytes(command-center/receipts/TST-0179.json).replace(CRLF, LF))",
+     "raw_output": "live LF-normalized sha256=2342349c5607e0ede422977e8c57c5493848bf159952b14339fb33ca83a7aaa0",
+     "fingerprint": "w3s22-lfsha:TST-0179:2342349c5607e0ed"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "json.load(command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json) artifacts[path==command-center/receipts/TST-0179.json].sha256",
+     "raw_output": "manifest row sha256=2342349c5607e0ede422977e8c57c5493848bf159952b14339fb33ca83a7aaa0",
+     "fingerprint": "w3s22-manrow-read:TST-0179"
+    }
+   ]
+  },
+  {
+   "claim": "The closure receipt validates against BOTH the program gate (platform/schema/receipt.schema.json $defs/receipt_core, 0 errors) and the catalog output_schema pointer (command-center/schema/receipt.schema.json#/$defs/parser_report, 0 errors via the platform schema resolver), and the 12-condition completion predicate evaluates COMPLETE with filesystem verification on.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "platform/lib/receipt_schema_gate.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "receipt_schema_gate.validate_receipt + schema_resolver.validate_artifact(profile pointer)",
+     "raw_output": "0 errors (receipt_core) + 0 errors (catalog profile)",
+     "fingerprint": "w3s22-schemacore:TST-0179"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0179.json",
+     "raw_output": "admission ACCEPT on the closure and REJECT naming the reviewer rule on the independent-flipped mutation copy",
+     "exit_code": 0,
+     "fingerprint": "w3s22-admission-cmd:TST-0179"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "t1-probe1_unknown_field",
+   "name": "probe1_unknown_field",
+   "command": "python -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+   "result": "PASS",
+   "output_tail": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+  },
+  {
+   "id": "t2-probe2_emitter_subset",
+   "name": "probe2_emitter_subset",
+   "command": "python -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+   "result": "PASS",
+   "output_tail": "tion\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "lenient-parser-accepts-unknown",
+   "kind": "mutation",
+   "description": "The known-broken lenient parser accepts the poisoned manifest, so the strict parser's rejection is a real distinguishing behavior, not a tautology.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "lenient_accepts_unknown_field=true (poisoned manifest parses)",
+   "good_state_output": "strict parser raises StrictManifestError naming telemetry"
+  },
+  {
+   "id": "MUT-TST-0179-reviewer-independent-flip",
+   "kind": "mutation",
+   "description": "Independent-reviewer mutation control: reviewer.independent flipped to false on a COMPLETE copy of the SUCCESS closure receipt (identical in every other field); receipt_validate.py must REJECT naming the reviewer rule (receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true) while accepting the unmutated closure.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "REJECT:TST-0179 C2 schema-invalid (1): reviewer/independent: True was expected",
+   "good_state_output": "ACCEPT:TST-0179 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "w3-shard22-independent-reviewer-20261026",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude-code",
+  "reviewed_at": "2026-10-26T04:32:08Z",
+  "notes": "Wave-3 shard-22 independent reviewer closure. Reviewer did not build this unit; re-derived every contract check live in a fresh context: artifact predicate on the builder BLOCKED pointer, both named probes re-run for 3 stability rounds each (all exit 0, SUCCESS sentinels match the builder record), manifest sha256 recomputed (CRLF-to-LF digest mode), receipt_core + catalog output_schema validation, 12-condition predicate COMPLETE, and a reviewer mutation control (receipt_core must reject a copy whose reviewer.independent is false). Receipt rewritten from the builder BLOCKED pointer into receipt-core shape; the original builder document is preserved verbatim under extensions.builder_receipt_original. The receipt self-row is role=supporting and carries the PRE-closure builder bytes sha256; the authoritative post-closure registration is the UNIT-ARTIFACT-MANIFEST row, refreshed by the reviewer to the final closure bytes (see extensions.reviewer_manifest_refresh)."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+   "artifact_path": "command-center/receipts/TST-0179.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python -I command-center/receipt_validate.py command-center/receipts/TST-0179.json",
+    "raw_output": "ACCEPT:TST-0179 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+    "exit_code": 0,
+    "fingerprint": "w3s22-validate:TST-0179:rc0"
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "timestamps": {
+  "started_at": "2026-10-26T04:32:07Z",
+  "ended_at": "2026-10-26T04:32:08Z",
+  "duration_seconds": 1
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "report": {
+  "kind": "parser_report",
+  "observations": [
+   {
+    "name": "artifact_lf_bytes",
+    "measured": 23267,
+    "method": "digest_lf",
+    "anchor": "command-center/receipts/TST-0179.json"
+   },
+   {
+    "name": "named_probes_live_rounds",
+    "measured": "3x2 all rc0",
+    "method": "subprocess re-run, ambient env",
+    "anchor": "command-center/p2-wave/probes/TST-0179/"
+   },
+   {
+    "name": "manifest_lf_sha_match",
+    "measured": true,
+    "method": "sha256 CRLF-normalized byte-compare",
+    "anchor": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json"
+   },
+   {
+    "name": "schema_dual_validation",
+    "measured": "receipt_core+profile 0 errors",
+    "method": "receipt_schema_gate + schema_resolver",
+    "anchor": "platform/schema/receipt.schema.json"
+   }
+  ],
+  "control_ids": [
+   "lenient-parser-accepts-unknown",
+   "MUT-TST-0179-reviewer-independent-flip"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "wave3-shard22-builder",
+  "execution_substrate": "local-windows-pwsh7"
+ },
+ "extensions": {
+  "reviewer_shard": "wave3-shard22",
+  "builder_receipt_original": {
+   "schema_version": 1,
+   "report_kind": "parser_report",
+   "unit_id": "TST-0179",
+   "id": "TST-0179",
+   "state": "BLOCKED",
+   "sentinel": "FAILED:TST-0179 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent. Artifact completion sentinel on file: SUCCESS:TST-0179",
+   "completion_sentinel": "SUCCESS:TST-0179",
+   "completion_marker": "UNIT-COMPLETE:TST-0179",
+   "title": "Unknown top-level manifest field is rejected by the strict client parser",
+   "question": "Does the strict parser reject a plugin manifest carrying an unknown top-level field, with an error naming the field? PASS requires rejection under the STRICTEST supported client, and the authoring toolchain must never emit such a field.",
+   "question_or_target": "Does the strict parser reject a plugin manifest carrying an unknown top-level field, with an error naming the field? PASS requires rejection under the STRICTEST supported client, and the authoring toolchain must never emit such a field.",
+   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0179",
+   "output_path": "command-center/receipts/TST-0179.json",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+   "output_schema_present": true,
+   "min_bytes_threshold": 128,
+   "registered": true,
+   "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+   },
+   "timestamps": {
+    "started_at": "2026-10-26T02:32:14Z",
+    "ended_at": "2026-10-26T02:32:14Z"
+   },
+   "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt"
+   },
+   "failure": {
+    "classification": [
+     "reviewer-absent"
+    ],
+    "reason": "Build and live probes complete; state is BLOCKED only because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS + independent=true. The prior builder attempt died mid-flight and left a receipt claiming SUCCESS with probe-named reviewer entries and NO probe files on disk; this rebuild replaced the fabricated probe records with real probe files, real runs and real outputs. Only the independent reviewer closes."
+   },
+   "reviewer": null,
+   "builder": {
+    "shard": "wave3-shard22-builder",
+    "role": "schema-conformance-tester",
+    "resume_of": "prior builder attempt died mid-flight (host session ended); receipts existed without probe files"
+   },
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+    "role": "probe1 unknown-field",
+    "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+    "exit_code": 0,
+    "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+    "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+    "role": "probe2 emitter-subset",
+    "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+    "exit_code": 0,
+    "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+    "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+   },
+   "tests": [
+    {
+     "id": "TST-0179-PROBE1",
+     "name": "probe1 unknown-field",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "accepted_top_level_count": 10,
+     "clean_manifest_accepted": true,
+     "error_names_field": "telemetry",
+     "error_text": "strict parser: unknown top-level field(s): telemetry",
+     "unknown_field_rejected": true
+    },
+    {
+     "id": "TST-0179-PROBE2",
+     "name": "probe2 emitter-subset",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "detector_control": {
+      "known_broken": "parse_lenient (plain json.loads, no allowlist)",
+      "lenient_accepts_unknown_field": true
+     },
+     "schema_diff": {
+      "accepted_set": [
+       "agents",
+       "author",
+       "commands",
+       "description",
+       "hooks",
+       "license",
+       "mcpServers",
+       "name",
+       "skills",
+       "version"
+      ],
+      "emitter_field_universe": [
+       "agents",
+       "author",
+       "commands",
+       "description",
+       "hooks",
+       "license",
+       "mcpServers",
+       "name",
+       "skills",
+       "version"
+      ],
+      "emitter_refuses_foreign_field": true,
+      "subset_holds_over_200_generated_manifests": true
+     }
+    }
+   ],
+   "negative_controls": [
+    {
+     "id": "lenient-parser-accepts-unknown",
+     "kind": "mutation",
+     "description": "The known-broken lenient parser accepts the poisoned manifest, so the strict parser's rejection is a real distinguishing behavior, not a tautology.",
+     "fired_on_bad_state": true,
+     "silent_on_good_state": true,
+     "bad_state_output": "lenient_accepts_unknown_field=true (poisoned manifest parses)",
+     "good_state_output": "strict parser raises StrictManifestError naming telemetry"
+    }
+   ],
+   "evidence": [
+    {
+     "id": "E-strict-rejects-unknown",
+     "anchor": "command-center/p2-wave/probes/TST-0179/manifest_domain.py:parse_strict",
+     "claim": "The strict client parser rejects a plugin manifest carrying an unknown top-level field (telemetry) and the error names the field; the strictest-supported-client requirement (rejection) and the never-emit requirement are both checked.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+      "role": "probe1 unknown-field",
+      "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+      "exit_code": 0,
+      "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+      "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+      "role": "probe2 emitter-subset",
+      "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+      "exit_code": 0,
+      "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+       "role": "probe1 unknown-field",
+       "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+       "exit_code": 0,
+       "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+       "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+       "role": "probe2 emitter-subset",
+       "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+       "exit_code": 0,
+       "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+      }
+     ]
+    },
+    {
+     "id": "E-clean-accepted",
+     "anchor": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py:main",
+     "claim": "Both-states control: the same manifest without the unknown field is accepted by the strict parser.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+      "role": "probe2 emitter-subset",
+      "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+      "exit_code": 0,
+      "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+     },
+     "verifier_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+      "role": "probe1 unknown-field",
+      "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+      "exit_code": 0,
+      "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+      "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+     },
+     "probes": [
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+       "role": "probe2 emitter-subset",
+       "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+       "exit_code": 0,
+       "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+      },
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+       "role": "probe1 unknown-field",
+       "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+       "exit_code": 0,
+       "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+       "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+      }
+     ]
+    },
+    {
+     "id": "E-emitter-subset",
+     "anchor": "command-center/p2-wave/probes/TST-0179/manifest_domain.py:emit",
+     "claim": "Schema-diff signal: across 200 generated manifests the emitter's emitted field set is a subset of the strict accepted set, and the emitter refuses a forced foreign field at authoring time; the lenient parser (plain json.loads, no allowlist) demonstrably ACCEPTS the unknown field, proving the strict rejection is distinguishing behavior.",
+     "confidence": "almost-certain",
+     "verdict": "CONFIRMED",
+     "source_probe": {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+      "role": "probe1 unknown-field",
+      "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+      "exit_code": 0,
+      "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+      "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+     },
+     "verifier_probe": {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+      "role": "probe2 emitter-subset",
+      "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+      "exit_code": 0,
+      "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+      "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+     },
+     "probes": [
+      {
+       "id": "probe1",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+       "role": "probe1 unknown-field",
+       "fingerprint": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+       "exit_code": 0,
+       "live_result_digest": "baaa0b5a1c2f883c0a5033f63920cfab057c8afa7318e6f79e36ea5721de7661",
+       "raw_output": "{\"accepted_top_level_count\": 10, \"clean_manifest_accepted\": true, \"error_names_field\": \"telemetry\", \"error_text\": \"strict parser: unknown top-level field(s): telemetry\", \"pass\": true, \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\", \"unknown_field_rejected\": true}\nSUCCESS:TST-0179-probe1 clean=accepted unknown=rejected field=telemetry"
+      },
+      {
+       "id": "probe2",
+       "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+       "role": "probe2 emitter-subset",
+       "fingerprint": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+       "exit_code": 0,
+       "live_result_digest": "87cd858cf65f9eeec1e856409e8ede780826354f2c4ed1b3d858d0c173ca80db",
+       "raw_output": "{\"detector_control\": {\"known_broken\": \"parse_lenient (plain json.loads, no allowlist)\", \"lenient_accepts_unknown_field\": true}, \"pass\": true, \"probe\": \"probe2-emitter-subset\", \"schema_diff\": {\"accepted_set\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_field_universe\": [\"agents\", \"author\", \"commands\", \"description\", \"hooks\", \"license\", \"mcpServers\", \"name\", \"skills\", \"version\"], \"emitter_refuses_foreign_field\": true, \"subset_holds_over_200_generated_manifests\": true}, \"unit_id\": \"TST-0179\"}\nSUCCESS:TST-0179-probe2 subset=True emitter-refuses=True lenient-accepts=True"
+      }
+     ]
+    }
+   ],
+   "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0179/manifest_domain.py",
+    "accepted_top_level": 10,
+    "strict_error": "StrictManifestError(message, field) - message names every unknown field",
+    "emitter": "emit() refuses any field outside ACCEPTED_TOP_LEVEL at authoring time"
+   },
+   "downstream_consumers": [
+    {
+     "artifact_path": "command-center/receipts/TST-0179.json",
+     "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+     "executed": false,
+     "read_ok": true,
+     "probe": {
+      "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0179",
+      "method": "command",
+      "role": "verifier",
+      "note": "run by the independent reviewer after closing state=SUCCESS (a BLOCKED receipt is not self-delivering by design)"
+     }
+    }
+   ],
+   "residual_unknowns": [
+    {
+     "claim": "The accepted-set pin is the probe-local closed allowlist the unit demands; a real client schema (plugin manifest spec) may pin a different field universe, in which case ACCEPTED_TOP_LEVEL is the only line to re-bind.",
+     "settling_experiment": "Re-bind ACCEPTED_TOP_LEVEL to the shipped manifest schema and re-run both probes.",
+     "verdict": "NOT-CHECKED"
+    }
+   ],
+   "defects": [],
+   "artifacts": [
+    {
+     "unit_id": "TST-0179",
+     "path": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+     "bytes": 1784,
+     "sha256": "c840dd6828e6e7e56973c1b8949f159d6a6d65fc05b8312e54d6319d10210ed2",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0179/SUBAGENT-RETURN.json"
+    },
+    {
+     "unit_id": "TST-0179",
+     "path": "command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py",
+     "bytes": 2747,
+     "sha256": "db28e5022bb60e71661596289ec9ef9aa4c4811e911d64a5682a213f21e86c04",
+     "present": true,
+     "role": "supporting",
+     "receipt_path": "command-center/p2-wave/probes/TST-0179/SUBAGENT-RETURN.json"
+    }
+   ],
+   "report": {
+    "kind": "parser_report",
+    "observations": [
+     {
+      "name": "unknown top-level field rejection",
+      "measured": "rejected, error names field telemetry",
+      "method": "strict parse of a poisoned manifest; error captured with .field",
+      "anchor": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py"
+     },
+     {
+      "name": "emitter-to-accepted schema diff over generated manifests",
+      "measured": "subset holds across 200/200 generated manifests; foreign field refused at emit",
+      "method": "random field-subset generation + emit + strict re-parse",
+      "anchor": "command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py"
+     }
+    ],
+    "control_ids": [
+     "TST-0179-PROBE1",
+     "TST-0179-PROBE2",
+     "lenient-parser-accepts-unknown"
+    ]
+   },
+   "notes": "G-1 for TST-0179: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+  },
+  "reviewer_probe_stability": {
+   "rounds": 3,
+   "per_script": {
+    "probe1_unknown_field.py": "3/3 rc0",
+    "probe2_emitter_subset.py": "3/3 rc0"
+   }
+  },
+  "reviewer_manifest_refresh": {
+   "why": "closure rewrites the receipt bytes, so the manifest receipt row is refreshed post-final-write to the closure bytes; the pre-closure builder digest is preserved here",
+   "pre_closure_sha256": "2342349c5607e0ede422977e8c57c5493848bf159952b14339fb33ca83a7aaa0",
+   "pre_closure_bytes": 23267,
+   "digest_mode": "sha256 over CRLF-normalized-to-LF bytes"
+  }
+ }
+}

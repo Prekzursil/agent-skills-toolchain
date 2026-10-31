@@ -1,0 +1,1359 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "rejected.fused.bp-res-05-briefed-fact-reprobe-council.live-to-repo.eda962d422b4",
+  "name": "Fused (best-of-breed): Briefed-Fact Re-Probe Council + Live-to-repo harness drift reconcile - with a both-states control on the tool itself",
+  "description": "Forged by workflow-forge with strategy 'best-of-breed' from bp-res-05-briefed-fact-reprobe-council (base) and live-to-repo-drift-reconcile (donor). Grafted 1 of 10 donor top-level stages. This document is NOT accepted for being larger: see x_extensions.foundry.certification for the measured axis deltas that justify it, per spec _USER-PROMPTS.md:11282.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "pre-fanout-barrier",
+    "probe-wins-over-votes",
+    "reprobe"
+  ],
+  "flagship": false,
+  "params": {
+    "brief": {
+      "type": "path",
+      "required": true,
+      "description": "The orchestrator brief whose asserted facts are under test"
+    },
+    "planned_fanout_size": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "maximum": 1024,
+      "description": "How many agents the brief is about to launch; the reason this gate is cheap by comparison"
+    },
+    "cross_vendor_on_blast_radius": {
+      "type": "boolean",
+      "default": true,
+      "description": "Re-probe cross-vendor any fact whose falsity would invalidate more than two lanes"
+    },
+    "max_facts": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 400,
+      "description": "Cap on briefed facts extracted from one brief"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/preflight/bp-res-05",
+      "description": "Every write is confined here"
+    },
+    "live_roots": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "ABSOLUTE live harness roots (e.g. the skills, hooks and rules trees). Live-only work is architecturally orphaned until it lands in the repo."
+    },
+    "repo_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE repo root - the source of truth. The live tree is a deploy target, never the authority."
+    },
+    "mode": {
+      "type": "enum",
+      "enum": [
+        "drift",
+        "apply"
+      ],
+      "default": "drift",
+      "description": "drift = measure only. apply = write. A bare report flag is NOT a mode: on the measured tool it selects the OUTPUT FORMAT and still writes."
+    },
+    "scratch_copy_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to a throwaway copy where the both-states control on the tool is run. The control must never run against the real repo."
+    },
+    "allow_apply_with_dirty_repo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Must stay false. The tool's pre-write guard reads STAGED paths only, so unstaged and untracked repo work is unprotected during an apply."
+    }
+  },
+  "roles": {
+    "fact-extractor": {
+      "description": "Pulls every factual assertion out of the brief together with the probe and timestamp the brief cites for it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/preflight/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "instrument-assigner": {
+      "description": "Assigns each fact a re-probe that is mechanically DIFFERENT from the brief's own probe and must say why it differs",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/preflight/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "reprober": {
+      "description": "Re-probes ONE fact. Is told the original probe explicitly and is FORBIDDEN from re-running it; re-running the briefed probe is not a second signal",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Bash:pwsh",
+        "Write(command-center/preflight/**)"
+      ],
+      "min_participants": 1,
+      "max_participants": 40,
+      "speaking_rights": "always"
+    },
+    "cross-vendor-reprober": {
+      "description": "Second-vendor re-probe for a fact whose falsity would invalidate more than two lanes",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "reconciler": {
+      "description": "Resolves a split verdict by READING THE PROBES, never by counting agents; a specific probe beats an agent majority",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "judge",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/preflight/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may accept a corrected brief or authorise launching anyway",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    },
+    "control-runner": {
+      "description": "Runs the both-states control on the sync tool in a scratch copy and reports whether the footgun reproduces on THIS box today",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:git",
+        "Bash:pwsh",
+        "Write(command-center/drift/**)"
+      ],
+      "write_paths": [
+        "command-center/drift/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "merge-author": {
+      "description": "Performs the two-directional hand merge for files where both the live tree and the repo hold unique content",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:git",
+        "Write(command-center/drift/**)"
+      ],
+      "write_paths": [
+        "command-center/drift/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "d1.owner": {
+      "description": "The human owner - decides which branch carries the reconciliation PR and authorises any apply",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Bash:pwsh",
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/drift/**)",
+      "Write(command-center/preflight/**)",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write(command-center/research/**)"
+    ],
+    "require_owner_approval": [
+      "Bash:pwsh"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/drift/**",
+      "command-center/preflight/**"
+    ],
+    "forbid_write_paths": [
+      ".claude/agent-worktrees/**",
+      "Documents/GitHub/Reframe/**",
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'cross-vendor-reprober'",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "a same-vendor re-probe can share the mechanism that produced the false fact"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "mechanism-independence": {
+      "predicate": "custom-expression",
+      "expression": "reprobes_sharing_mechanism_with_original == 0 AND facts_without_assigned_instrument == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "retry"
+    },
+    "brief-corrected": {
+      "predicate": "custom-expression",
+      "expression": "facts_without_verdict == 0 AND corrections_emitted == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "footgun-control-passed": {
+      "predicate": "custom-expression",
+      "expression": "control_fired_in_broken_state == true AND control_silent_in_fixed_state == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "repo-clean-before-apply": {
+      "predicate": "custom-expression",
+      "expression": "mode == drift OR repo_uncommitted_paths == 0 OR allow_apply_with_dirty_repo == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "clean-verdict-is-not-evidence": {
+      "predicate": "custom-expression",
+      "expression": "verdict_source_run_was_nonwriting == true AND NOT clean_verdict_from_writing_run",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "extract-facts",
+      "title": "Extract every asserted fact with its stated probe and timestamp",
+      "kind": "task",
+      "role": "fact-extractor",
+      "checkpoint": true,
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0501",
+        "title": "Enumerate the brief's factual assertions, each with the probe and date the brief cites",
+        "phase": "2B",
+        "question_or_target": "List every factual claim the brief asserts as ground truth. For each, record the probe the brief cites and its timestamp, or record that the brief cites NONE - an undeclared source probe is zero signals, not one.",
+        "inputs": [
+          "params.brief",
+          "params.max_facts"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "fact-extractor",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/preflight/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/preflight/bp-res-05/briefed-facts.json",
+        "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+        "evidence_requirement": "each fact carries its brief offset, the cited probe text or an explicit null, the timestamp, and the count of lanes that would be invalidated if it were false",
+        "tests_required": [
+          "a brief sentence asserting a fact with NO probe must be recorded with probe null, not skipped",
+          "both-states: a fact WITH a cited probe in the same brief must carry that probe verbatim"
+        ],
+        "reviewer_requirement": "the instrument assigner rejects any fact whose blast-radius count is missing, because that count drives cross-vendor selection",
+        "completion_sentinel": "SUCCESS:BPR-0501 emitted only when every asserted fact appears once with a probe field (present or null), a timestamp and a blast-radius count; otherwise FAILED:BPR-0501 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two extractions the owner is asked whether the brief is even fact-shaped",
+        "failure_classification": [
+          "brief-unreadable",
+          "spec-underspecified"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "briefed-fact-extraction-with-probe"
+      },
+      "produces": [
+        {
+          "path": "command-center/preflight/bp-res-05/briefed-facts.json",
+          "schema_ref": "command-center/schema/stale-premise-reprobe.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0501",
+          "consumers": [
+            "assign-different-instrument"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assign-different-instrument",
+      "title": "Assign a mechanically different re-probe per fact",
+      "kind": "task",
+      "depends_on": [
+        "extract-facts"
+      ],
+      "role": "instrument-assigner",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0502",
+        "title": "Pick a different shell, a different data field or a different measurement per fact",
+        "phase": "2B",
+        "question_or_target": "For each briefed fact choose a re-probe that differs from the brief's own probe in MECHANISM - a different shell, a different data field, a different instrument - and state the difference in one line. Where no different instrument exists, mark the fact NO-INDEPENDENT-INSTRUMENT.",
+        "inputs": [
+          "command-center/preflight/bp-res-05/briefed-facts.json"
+        ],
+        "dependencies": [
+          "BPR-0501"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-assigner",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/preflight/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/preflight/bp-res-05/reprobe-assignments.json",
+        "output_schema": "command-center/schema/assignment-matrix.schema.json",
+        "evidence_requirement": "each row states the original mechanism, the assigned mechanism, and the one-line reason they differ",
+        "tests_required": [
+          "a fact whose brief probe was a Git-Bash `which` must NOT be assigned another Git-Bash `which`; the assignment must name a different shell",
+          "a fact with no available alternative instrument must be marked NO-INDEPENDENT-INSTRUMENT rather than assigned the original"
+        ],
+        "reviewer_requirement": "the independence gate recomputes mechanism equality independently of this stage's own claim",
+        "completion_sentinel": "SUCCESS:BPR-0502 emitted only when every fact has an assignment with two distinct mechanisms, or an explicit NO-INDEPENDENT-INSTRUMENT marker; otherwise FAILED:BPR-0502 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 3 attempts; the gate returns rejected assignments here for re-assignment",
+        "failure_classification": [
+          "same-probe-rerun",
+          "instrument-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "different-mechanism-assignment"
+      },
+      "produces": [
+        {
+          "path": "command-center/preflight/bp-res-05/reprobe-assignments.json",
+          "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0502",
+          "consumers": [
+            "independence-gate",
+            "reprobe-fanout"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "independence-gate",
+      "title": "Reject and re-assign any re-probe that shares a mechanism with the original",
+      "kind": "gate",
+      "depends_on": [
+        "assign-different-instrument"
+      ],
+      "gate_ref": "mechanism-independence"
+    },
+    {
+      "id": "reprobe-fanout",
+      "title": "One short agent per fact, each forbidden from re-running the briefed probe",
+      "kind": "fanout",
+      "depends_on": [
+        "independence-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/preflight/bp-res-05/reprobe-assignments.json",
+        "item_var": "fact",
+        "key_field": "fact_id"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 250,
+      "max_items": 400,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "reprobe-fact",
+          "title": "Re-probe one briefed fact with the assigned different instrument",
+          "kind": "task",
+          "role": "reprober",
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "BPR-0503",
+            "title": "Confirm or refute one briefed fact using a mechanically different probe",
+            "phase": "2B",
+            "question_or_target": "Run the assigned instrument. Emit CONFIRMED, REFUTED or UNRESOLVED plus the verbatim probe and output. Re-running the briefed probe does NOT count and must never be reported as CONFIRMED - if that is all you can do, return UNRESOLVED.",
+            "inputs": [
+              "command-center/preflight/bp-res-05/reprobe-assignments.json",
+              "command-center/preflight/bp-res-05/briefed-facts.json"
+            ],
+            "dependencies": [
+              "BPR-0502"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "reprober",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Bash:python",
+              "Bash:pwsh",
+              "Write(command-center/preflight/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 600,
+            "output_path": "command-center/preflight/bp-res-05/reprobes/fact-verdict.json",
+            "output_schema": "command-center/schema/reprobe-record.schema.json",
+            "evidence_requirement": "verdict + the exact command or field read + its raw output + a one-line statement of how this differs from the briefed probe",
+            "tests_required": [
+              "a fact whose obvious probe is BROKEN (a Git-Bash `which` against a .cmd shim) must yield: PROBE refuted, FACT confirmed - the two are separate verdicts",
+              "a re-probe that ends up re-running the original mechanism must self-report UNRESOLVED with that reason"
+            ],
+            "reviewer_requirement": "no re-prober sees another's verdict; reconciliation reads probes centrally",
+            "completion_sentinel": "SUCCESS:BPR-0503 emitted only when exactly one verdict exists for the fact, carrying its probe, its output and the difference statement; otherwise FAILED:BPR-0503 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: after two instrument failures return UNRESOLVED and demote the fact to a low-confidence assumption",
+            "failure_classification": [
+              "instrument-unavailable",
+              "same-probe-rerun",
+              "detector-failure"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "forbidden-original-probe-reprobe"
+          },
+          "produces": [
+            {
+              "path": "command-center/preflight/bp-res-05/reprobes/fact-verdict.json",
+              "schema_ref": "command-center/schema/reprobe-record.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0503",
+              "consumers": [
+                "reconcile-by-probe"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "reprobe-fact"
+        ],
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "cross-vendor-reprobe",
+      "title": "Cross-vendor re-probe for any fact that would invalidate more than two lanes",
+      "kind": "task",
+      "depends_on": [
+        "reprobe-fanout"
+      ],
+      "when": "cross_vendor_on_blast_radius == true",
+      "role": "cross-vendor-reprober",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0504",
+        "title": "Second-vendor re-probe of the high-blast-radius facts",
+        "phase": "2B",
+        "question_or_target": "For every fact whose falsity would invalidate more than two planned lanes, re-probe from a different vendor with no sight of the in-vendor verdict, and record agreement or disagreement.",
+        "inputs": [
+          "command-center/preflight/bp-res-05/reprobes/fact-verdict.json",
+          "command-center/preflight/bp-res-05/briefed-facts.json"
+        ],
+        "dependencies": [
+          "BPR-0503"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "cross-vendor-reprober",
+          "basis": "vendor independence on exactly the facts whose falsity is most expensive"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "cross-vendor-codex",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/preflight/bp-res-05/cross-vendor-reprobe.json",
+        "output_schema": "command-center/schema/independence-audit.schema.json",
+        "evidence_requirement": "per fact: the second-vendor probe, its output, and the agreement flag; a severed dispatch is NOT-CHECKED, never agreement",
+        "tests_required": [
+          "a killed dispatch must produce NOT-CHECKED with the diagnostic tail, never silence",
+          "a background receipt string must be rejected outright, never parsed as a verdict"
+        ],
+        "reviewer_requirement": "the reconciler treats NOT-CHECKED as absent evidence and says so in the correction record",
+        "completion_sentinel": "SUCCESS:BPR-0504 emitted only when every high-blast fact has a second-vendor row carrying a probe and an agreement flag or NOT-CHECKED; otherwise FAILED:BPR-0504 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two severed dispatches record NOT-CHECKED and stop",
+        "failure_classification": [
+          "severed-stream",
+          "codex-exit-nonzero",
+          "win-arg-limit"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "blast-radius-scoped-cross-vendor-reprobe"
+      },
+      "produces": [
+        {
+          "path": "command-center/preflight/bp-res-05/cross-vendor-reprobe.json",
+          "schema_ref": "command-center/schema/independence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0504",
+          "consumers": [
+            "reconcile-by-probe"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reconcile-by-probe",
+      "title": "Resolve every split verdict by reading probes, never by counting agents",
+      "kind": "task",
+      "depends_on": [
+        "reprobe-fanout",
+        "cross-vendor-reprobe"
+      ],
+      "role": "reconciler",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0505",
+        "title": "Rule on each fact from the probes and emit the brief corrections",
+        "phase": "2B",
+        "question_or_target": "For each fact, read every probe and rule CONFIRMED / REFUTED / UNRESOLVED. On a split, the more specific probe wins - agent counts are not evidence. Emit the brief corrections, and demote any UNRESOLVED fact from 'ground truth' to 'assumption (low confidence)'.",
+        "inputs": [
+          "command-center/preflight/bp-res-05/reprobes/fact-verdict.json",
+          "command-center/preflight/bp-res-05/cross-vendor-reprobe.json"
+        ],
+        "dependencies": [
+          "BPR-0503",
+          "BPR-0504"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/preflight/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/preflight/bp-res-05/brief-corrections.json",
+        "output_schema": "command-center/schema/divergence-ruling.schema.json",
+        "evidence_requirement": "each ruling names the winning probe and why it is more specific than the loser; a ruling justified by a vote count is invalid",
+        "tests_required": [
+          "seed a 4-refute / 2-confirm split where the 2 re-ran the broken briefed probe - the ruling must be REFUTED and must cite the probe, not the 4",
+          "both-states: the same split with the 2 using a genuinely different instrument must NOT be auto-resolved; it must be UNRESOLVED and escalate"
+        ],
+        "reviewer_requirement": "the owner checkpoint sees the ruling and the raw probes side by side, so the reconciler cannot launder a vote count as a probe",
+        "completion_sentinel": "SUCCESS:BPR-0505 emitted only when every fact has a ruling naming its winning probe, and the corrections list exists even when empty; otherwise FAILED:BPR-0505 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: a second failure escalates the whole brief to the owner rather than guessing",
+        "failure_classification": [
+          "split-unresolvable",
+          "overclaim"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "probe-wins-over-vote-count"
+      },
+      "produces": [
+        {
+          "path": "command-center/preflight/bp-res-05/brief-corrections.json",
+          "schema_ref": "command-center/schema/divergence-ruling.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0505",
+          "consumers": [
+            "zero-correction-audit",
+            "launch-barrier",
+            "owner-accept"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zero-correction-audit",
+      "title": "A zero-correction result is itself suspicious - spot-audit it",
+      "kind": "task",
+      "depends_on": [
+        "reconcile-by-probe"
+      ],
+      "when": "corrections_found == 0",
+      "role": "reconciler",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPR-0506",
+        "title": "Spot-audit three facts by hand when the council found nothing to correct",
+        "phase": "2B",
+        "question_or_target": "The measured baseline had FOUR false 'VERIFIED GROUND TRUTH' facts in one run, so a zero-correction verdict is more likely a broken council than a perfect brief. Hand-audit three facts, including the highest-blast one, and record whether the council's instruments could have detected a falsehood at all.",
+        "inputs": [
+          "command-center/preflight/bp-res-05/brief-corrections.json",
+          "command-center/preflight/bp-res-05/reprobes/fact-verdict.json"
+        ],
+        "dependencies": [
+          "BPR-0505"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/preflight/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/preflight/bp-res-05/zero-correction-audit.json",
+        "output_schema": "command-center/schema/negative-evidence-audit.schema.json",
+        "evidence_requirement": "for each audited fact: the instrument used, and an explicit statement of what a FALSE version of this fact would have looked like to that instrument",
+        "tests_required": [
+          "MANDATORY detector control: inject one KNOWN-FALSE fact into the brief - the council must refute it, and this audit must show the instrument that caught it",
+          "an instrument that cannot distinguish the true from the false version must be reported as measuring nothing"
+        ],
+        "reviewer_requirement": "the owner sees this audit before accepting a zero-correction brief",
+        "completion_sentinel": "SUCCESS:BPR-0506 emitted only when three facts are audited and each carries the would-a-falsehood-be-visible answer; otherwise FAILED:BPR-0506 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "detector-failure",
+          "instrument-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "zero-result-is-suspicious-audit"
+      },
+      "produces": [
+        {
+          "path": "command-center/preflight/bp-res-05/zero-correction-audit.json",
+          "schema_ref": "command-center/schema/negative-evidence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0506",
+          "consumers": [
+            "launch-barrier",
+            "owner-accept"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corrections-gate",
+      "title": "Every briefed fact has a verdict and the corrections are emitted",
+      "kind": "gate",
+      "depends_on": [
+        "reconcile-by-probe",
+        "zero-correction-audit"
+      ],
+      "gate_ref": "brief-corrected"
+    },
+    {
+      "id": "launch-barrier",
+      "title": "HARD BARRIER: the real fan-out may not start before this point",
+      "kind": "barrier",
+      "depends_on": [
+        "corrections-gate"
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "reconcile-by-probe",
+          "corrections-gate"
+        ],
+        "reject_result_matching": [
+          "started in the background"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "reconcile-by-probe",
+        "zero-correction-audit"
+      ]
+    },
+    {
+      "id": "owner-accept",
+      "title": "Owner accepts the corrected brief, or authorises launching anyway",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "launch-barrier"
+      ],
+      "when": "corrections_found > 0",
+      "prompt": "The re-probe council corrected the brief. Accept the corrections before the fan-out launches, dispute a specific ruling (the probes are attached), or authorise launching on the uncorrected brief and accept the lane risk.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": [
+        "accept-corrections",
+        "dispute-a-ruling",
+        "launch-uncorrected"
+      ],
+      "decision_artifact": {
+        "path": "command-center/preflight/bp-res-05/owner-decision.json",
+        "schema_ref": "command-center/schema/decision-record.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "command-center/DECISION-LOG.json"
+        ]
+      }
+    },
+    {
+      "id": "d1.classify-drift",
+      "title": "Delegate the deterministic classification to the plumbing mirror",
+      "kind": "subworkflow",
+      "depends_on": [
+        "owner-accept"
+      ],
+      "timeout_seconds": 7200,
+      "workflow": {
+        "workflow_id": "dual-tree-plumbing-mirror",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "normalize_eol_before_compare": true,
+        "baseline_ref": "MIRROR_BASELINE"
+      },
+      "isolation": "worktree",
+      "propagate_failure": true,
+      "produces": [
+        {
+          "path": "command-center/mirror/blob-classification.json",
+          "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "hand-merge-two-sided",
+            "emit-drift-report"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-fact-has-a-verdict",
+      "expression": "facts_without_verdict == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "facts_extracted >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-instrument-diversity-left",
+      "expression": "facts_with_no_independent_instrument > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "unresolved-empty-or-deferred",
+      "expression": "unresolved_count == 0 OR unresolved_explicitly_deferred == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "control_fired_in_broken_state == true AND control_silent_in_fixed_state == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "control-inconclusive",
+      "expression": "control_fired_in_broken_state == false OR control_silent_in_fixed_state == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "weighted-reconcile-quality",
+      "expression": {
+        "weighted": {
+          "terms": [
+            {
+              "expr": "unique_line_assertion_passed == true",
+              "weight": 0.5
+            },
+            {
+              "expr": "eol_only_separated == true",
+              "weight": 0.2
+            },
+            {
+              "expr": "verdict_source_run_was_nonwriting == true",
+              "weight": 0.3
+            }
+          ],
+          "threshold": 1.0
+        }
+      },
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "instrument-unavailable",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-accept"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "same-probe-rerun",
+      "instrument-unavailable",
+      "split-unresolvable",
+      "detector-failure"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-accept",
+    "quarantine_path": "command-center/preflight/bp-res-05/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/preflight/bp-res-05/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/preflight/bp-res-05/replay/assignments.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "random"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/preflight/bp-res-05/dry-run-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Bash:pwsh",
+      "Write(command-center/preflight/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.2,
+      "expected": 0.9,
+      "max": 3.5
+    },
+    "wallclock_seconds": {
+      "min": 180,
+      "expected": 900,
+      "max": 3600
+    },
+    "tokens": {
+      "min": 30000,
+      "expected": 150000,
+      "max": 600000
+    },
+    "tool_calls": {
+      "expected": 40,
+      "max": 300
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the brief and the estate; writes only under command-center/preflight/bp-res-05/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-05.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "bp-res-05-briefed-fact-reprobe-council",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "measured: 4 of 6 agents refuted, 2 CONFIRMED by re-running the orchestrator's broken probe, the resolution rule: on a split verdict the specific probe wins over the agent count, owner, program design corpus"
+      },
+      {
+        "source": "live-to-repo-drift-reconcile",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "program design corpus, owner - the repo-is-truth / live-is-a-deploy-target rule, blueprint 91 - the deterministic classification half"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "bp-res-05-briefed-fact-reprobe-council@1.0.0",
+      "live-to-repo-drift-reconcile@1.0.0"
+    ]
+  },
+  "outputs": {
+    "corrections": {
+      "path": "command-center/preflight/bp-res-05/brief-corrections.json",
+      "schema_ref": "command-center/schema/divergence-ruling.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "the fan-out this gate precedes"
+      ]
+    },
+    "facts": {
+      "path": "command-center/preflight/bp-res-05/briefed-facts.json",
+      "schema_ref": "command-center/schema/stale-premise-reprobe.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "reconcile-by-probe"
+      ]
+    },
+    "drift": {
+      "path": "command-center/drift/drift-report.json",
+      "schema_ref": "command-center/schema/drift-report.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9204",
+      "consumers": [
+        "owner",
+        "anchor-checked-per-file-deploy"
+      ]
+    },
+    "control": {
+      "path": "command-center/drift/sync-tool-both-states-control.json",
+      "schema_ref": "command-center/schema/detector-control.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-05",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 378
+    },
+    "acquisition_route_from_card": "BUILD-NEW",
+    "mechanism_signature": [
+      "briefed-fact-extraction-with-stated-probe",
+      "different-mechanism-assignment",
+      "original-probe-rerun-forbidden",
+      "probe-wins-over-vote-count-reconciliation",
+      "zero-result-is-suspicious-audit",
+      "hard-barrier-before-fanout-launch"
+    ],
+    "contraindications": [
+      "NOT for facts that are cheap to re-measure inline - just measure them",
+      "NOT when the brief asserts no facts",
+      "the serial barrier is the cost: it delays the fan-out by one short agent per fact"
+    ],
+    "measured_baseline": "One run: 4 agents correctly refuted a briefed fact while 2 'CONFIRMED' it by re-running the orchestrator's own broken Git-Bash `which` - complete with dutiful evidence tags. Four briefed 'VERIFIED GROUND TRUTH' facts were false in that single run. That base rate is why zero corrections triggers an audit.",
+    "unverified": [
+      "UNVERIFIED on this estate post-build; settling experiment = a seeded-false-fact run measuring the refutation rate against the 4-of-6 baseline the rule records."
+    ],
+    "worked_example": {
+      "name": "gate a 40-agent program brief carrying five asserted ground truths",
+      "params": {
+        "brief": "command-center/PROGRAM-BRIEF.md",
+        "planned_fanout_size": 40,
+        "cross_vendor_on_blast_radius": true,
+        "max_facts": 20
+      },
+      "facts": {
+        "corrections_found": 2
+      },
+      "expected_stage_order": [
+        "extract-facts",
+        "assign-different-instrument",
+        "independence-gate",
+        "reprobe-fanout",
+        "cross-vendor-reprobe",
+        "reconcile-by-probe",
+        "zero-correction-audit",
+        "corrections-gate",
+        "launch-barrier",
+        "owner-accept"
+      ],
+      "expected_skipped": [
+        "zero-correction-audit"
+      ],
+      "expected_max_parallel": 6,
+      "expected_gate_ids": [
+        "independence-gate",
+        "corrections-gate"
+      ],
+      "fact_variants": [
+        {
+          "facts": {
+            "corrections_found": 2
+          },
+          "expected_skipped": [
+            "zero-correction-audit"
+          ]
+        },
+        {
+          "facts": {
+            "corrections_found": 0
+          },
+          "expected_skipped": [
+            "owner-accept"
+          ]
+        }
+      ],
+      "acceptance": [
+        "a seeded KNOWN-FALSE briefed fact is refuted",
+        "a true fact whose obvious probe is broken yields: PROBE refuted, FACT confirmed",
+        "the barrier blocks the fan-out until every fact carries a verdict"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "every-fact-has-a-verdict",
+          "why": "the floor prevents a brief that extracted zero facts from reading as a clean pass",
+          "fires_on": {
+            "facts_without_verdict": 0,
+            "facts_extracted": 5,
+            "facts_with_no_independent_instrument": 0
+          },
+          "does_not_fire_on": {
+            "facts_without_verdict": 0,
+            "facts_extracted": 0,
+            "facts_with_no_independent_instrument": 0
+          }
+        },
+        {
+          "rule": "no-instrument-diversity-left",
+          "why": "a fact with no independent instrument must escalate, never silently pass as ground truth",
+          "fires_on": {
+            "facts_without_verdict": 1,
+            "facts_extracted": 5,
+            "facts_with_no_independent_instrument": 2
+          },
+          "does_not_fire_on": {
+            "facts_without_verdict": 1,
+            "facts_extracted": 5,
+            "facts_with_no_independent_instrument": 0
+          }
+        }
+      ]
+    },
+    "foundry": {
+      "tool": "workflow-forge",
+      "version": "1.0.0",
+      "spec_anchor": "_USER-PROMPTS.md:10843-10854",
+      "decomposition": {
+        "strategy": "best-of-breed",
+        "base": {
+          "id": "bp-res-05-briefed-fact-reprobe-council",
+          "version": "1.0.0"
+        },
+        "donor": {
+          "id": "live-to-repo-drift-reconcile",
+          "version": "1.0.0"
+        },
+        "donor_prefix": "d1.",
+        "stage_origin": {
+          "extract-facts": "bp-res-05-briefed-fact-reprobe-council",
+          "assign-different-instrument": "bp-res-05-briefed-fact-reprobe-council",
+          "independence-gate": "bp-res-05-briefed-fact-reprobe-council",
+          "reprobe-fanout": "bp-res-05-briefed-fact-reprobe-council",
+          "cross-vendor-reprobe": "bp-res-05-briefed-fact-reprobe-council",
+          "reconcile-by-probe": "bp-res-05-briefed-fact-reprobe-council",
+          "zero-correction-audit": "bp-res-05-briefed-fact-reprobe-council",
+          "corrections-gate": "bp-res-05-briefed-fact-reprobe-council",
+          "launch-barrier": "bp-res-05-briefed-fact-reprobe-council",
+          "owner-accept": "bp-res-05-briefed-fact-reprobe-council",
+          "d1.classify-drift": "live-to-repo-drift-reconcile"
+        },
+        "donated_stage_ids": [
+          "classify-drift"
+        ],
+        "donated_original_to_fused": {
+          "classify-drift": "d1.classify-drift"
+        },
+        "not_donated_stage_ids": [
+          "control-the-tool",
+          "emit-drift-report",
+          "gate-clean",
+          "gate-control",
+          "gate-unit-complete",
+          "gate-verdict-provenance",
+          "hand-merge-two-sided",
+          "owner-branch-decision",
+          "stage-repo-first"
+        ],
+        "role_map": {
+          "control-runner": "control-runner",
+          "merge-author": "merge-author",
+          "owner": "d1.owner"
+        },
+        "gate_map": {
+          "footgun-control-passed": "footgun-control-passed",
+          "repo-clean-before-apply": "repo-clean-before-apply",
+          "clean-verdict-is-not-evidence": "clean-verdict-is-not-evidence",
+          "unit-complete": "unit-complete"
+        },
+        "subworkflow_map": {
+          "dual-tree-plumbing-mirror": "dual-tree-plumbing-mirror"
+        },
+        "param_origin": {
+          "brief": "bp-res-05-briefed-fact-reprobe-council",
+          "planned_fanout_size": "bp-res-05-briefed-fact-reprobe-council",
+          "cross_vendor_on_blast_radius": "bp-res-05-briefed-fact-reprobe-council",
+          "max_facts": "bp-res-05-briefed-fact-reprobe-council",
+          "artifact_root": "bp-res-05-briefed-fact-reprobe-council",
+          "live_roots": "live-to-repo-drift-reconcile",
+          "repo_root": "live-to-repo-drift-reconcile",
+          "mode": "live-to-repo-drift-reconcile",
+          "scratch_copy_root": "live-to-repo-drift-reconcile",
+          "allow_apply_with_dirty_repo": "live-to-repo-drift-reconcile"
+        },
+        "policy_block_origin": {
+          "retry_policy": "bp-res-05-briefed-fact-reprobe-council",
+          "failure_policy": "bp-res-05-briefed-fact-reprobe-council",
+          "resume": "bp-res-05-briefed-fact-reprobe-council",
+          "replay": "bp-res-05-briefed-fact-reprobe-council",
+          "cache": "bp-res-05-briefed-fact-reprobe-council",
+          "dry_run": "bp-res-05-briefed-fact-reprobe-council",
+          "estimate": "bp-res-05-briefed-fact-reprobe-council",
+          "portability": "bp-res-05-briefed-fact-reprobe-council",
+          "model_routing": "bp-res-05-briefed-fact-reprobe-council",
+          "tool_policy": "merged(bp-res-05-briefed-fact-reprobe-council+live-to-repo-drift-reconcile)"
+        },
+        "artifact_path_rewrites": {},
+        "dependency_rewires": [
+          {
+            "stage": "d1.classify-drift",
+            "dropped_reference": "gate-clean",
+            "rewired_to": "owner-accept",
+            "reason": "referenced a source stage that was not donated"
+          }
+        ],
+        "synthesized_edges": [],
+        "conflicts": [
+          {
+            "namespace": "roles",
+            "id": "owner",
+            "resolution": "donor kept as d1.owner"
+          }
+        ]
+      },
+      "certification": {
+        "verdict": "REJECTED",
+        "reasons": [
+          "no-axis-improved: the fusion does not beat the best source on correctness, coverage, recovery or usability by more than 0.01 - and per spec :11282 a larger stage count (delta +1) is NOT an acceptance reason",
+          "gratuitous-cost: 1 grafted stage(s) ['d1.classify-drift'] change NO axis when ablated - the fusion carries them for free. Per spec :11282 a merged workflow is not accepted because it contains more stages, so a stage that measures nothing must not ride along"
+        ],
+        "axis_improvements_over_best_source": {},
+        "axis_regressions_against_best_source": {},
+        "cost_delta_vs_largest_source": {
+          "stage_count": 1,
+          "timeout_budget_seconds": 7200,
+          "human_checkpoints": 0,
+          "max_fanout_concurrency": 0
+        },
+        "cases": [
+          "c1-wide-fanout-build",
+          "c2-long-resumable-program",
+          "c3-adversarial-review",
+          "c4-untrusted-input-handling",
+          "c5-irreversible-ship",
+          "c6-repair-until-green"
+        ],
+        "acceptance_bar": "_USER-PROMPTS.md:11282",
+        "stage_count_is_not_an_axis": true,
+        "grafted_stages": [
+          "d1.classify-drift"
+        ],
+        "gratuitous_stages_measured_by_ablation": [
+          "d1.classify-drift"
+        ]
+      }
+    }
+  },
+  "subworkflows": {
+    "dual-tree-plumbing-mirror": {
+      "workflow_id": "dual-tree-plumbing-mirror",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/dual-tree-plumbing-mirror.json"
+    }
+  }
+}

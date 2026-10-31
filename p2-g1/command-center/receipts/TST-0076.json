@@ -1,0 +1,511 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0076",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0076",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0076; tools/command-center/validate.py V-FIELDS; .github/workflows/quality.yml gate-tests-coverage command-center",
+ "min_bytes_threshold": 1024,
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "detector-auditor",
+  "execution_substrate": "linux-local"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/schema/detector-control.schema.json",
+   "bytes": 1103,
+   "sha256": "bf941281e8fe5fbb47fe2e32ba0299cae93c29256daacad3f6bbd4ef584f798b",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "tools/command-center/validate.py",
+   "bytes": 16153,
+   "sha256": "abb4af7e7a80f602525928733bacdaa08632f10fb96db894bba61cbdbe6895b1",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "tools/command-center/tests/test_validate.py",
+   "bytes": 16197,
+   "sha256": "edbeb5bce4bc606ad46e053770691abd36c7b0e844b35e9bc17ecf7e9982d90b",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": ".github/workflows/quality.yml",
+   "bytes": 121950,
+   "sha256": "0c687e4220ad63909950d559677894c4064a2f6314e35d229e3d846286aa18f9",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0076/battery.py",
+   "bytes": 19317,
+   "sha256": "b54dce3e7d0eea37193b345b1d3e4d4bb068aaa48dcd186f3682da8af81c800f",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0076/probe1_ci_invocation.py",
+   "bytes": 4310,
+   "sha256": "90b8faf52d5f8366eeeea9086a3caca5a15db0c7df931a73f65ecb4f308dec19",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0076/probe2_reviewer_armed_delta.py",
+   "bytes": 6473,
+   "sha256": "322bfc0830aba9a622732c528ef6f7157877a2301c705f8d448f9668405aef4c",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0076/schema_check.py",
+   "bytes": 2113,
+   "sha256": "e33189caf60b9f46ab757c210cc092c31ebfa8854012ef87c18a2bb011d3e273",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Deleting catalog['defaults'] under the CI argv (no --require-complete) exits 0 with status=DISARMED",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/command-center/validate.py:303",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/battery.py",
+     "raw_output": "defaults=DISARMED ci_exit=0 armed_exit=1 fired=10 disarmed=2",
+     "fingerprint": "tst0076-battery-defaults-row",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/probe2_reviewer_armed_delta.py",
+     "raw_output": "independent defaults-delete recount (bare vs --require-complete) plus REACH-1 control",
+     "fingerprint": "tst0076-probe2-armed-delta"
+    }
+   ]
+  },
+  {
+   "claim": "The same defaults deletion with --require-complete exits nonzero and emits V-FIELDS (armed_exit=1)",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/command-center/validate.py:340",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 tools/command-center/validate.py --catalog <isolated> --graph <isolated> --require-complete",
+     "raw_output": "armed_exit=1 armed_fired=True armed_checks=['V-FIELDS']",
+     "fingerprint": "tst0076-armed-require-complete",
+     "exit_code": 1
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/probe1_ci_invocation.py",
+     "raw_output": "probe1 re-runs the mutation table and requires V-FIELDS DISARMED rows to name --require-complete",
+     "fingerprint": "tst0076-probe1-ci-table"
+    }
+   ]
+  },
+  {
+   "claim": "Every non-V-FIELDS check claimed by validate.py fires under the CI-equivalent argv",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0076/battery.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/battery.py",
+     "raw_output": "n_fired=10 n_disarmed=2 claimed=['V-EMPTY', 'V-ID', 'REACH-1', 'REACH-2', 'REACH-4', 'REACH-3', 'REACH-5', 'REACH-6', 'V-GRAPH', 'V-FIELDS']",
+     "fingerprint": "tst0076-battery-non-vfields-fired",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/probe2_reviewer_armed_delta.py",
+     "raw_output": "REACH-1 independent fire ci_exit=1 status=FIRED",
+     "fingerprint": "tst0076-probe2-reach1-control"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_every_validator_rule_fires_under_the_ci_invocation",
+   "name": "Every claimed validate.py check is FIRED or DISARMED under the reconstructed CI argv",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/probe1_ci_invocation.py",
+   "result": "PASS",
+   "output_tail": "n_rows=12 n_fired=10 n_disarmed=2 claimed=['V-EMPTY', 'V-ID', 'REACH-1', 'REACH-2', 'REACH-4', 'REACH-3', 'REACH-5', 'REACH-6', 'V-GRAPH', 'V-FIELDS']"
+  },
+  {
+   "id": "test_deleting_the_defaults_block_turns_ci_red",
+   "name": "Defaults-block deletion classified under the CI argv (PASS = measurement ran; subject may be DISARMED)",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0076/probe2_reviewer_armed_delta.py",
+   "result": "PASS",
+   "output_tail": "measured status=DISARMED ci_exit=0 armed_exit=1 arming_flag=--require-complete PASS here means the named check RAN and classified the CI argv; DISARMED means deleting defaults did not turn CI red."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "REACH-1-dangling-dependency",
+   "kind": "mutation",
+   "description": "R-M01.dependencies=['R-DOES-NOT-EXIST'] must emit REACH-1 under the bare CI argv and stay silent on the unmutated catalog",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "ci_exit=1 checks=['REACH-1']",
+   "good_state_output": "baseline_ci_exit=0 SUCCESS:cc-validate"
+  },
+  {
+   "id": "schema-garbage",
+   "kind": "malformed-input",
+   "description": "detector-control schema with on-disk $ref store must reject garbage documents",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "TST-0076-probe2-reviewer-armed-delta",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Probe 2 independently deletes defaults, invokes validate.py bare and with --require-complete, re-runs a REACH-1 positive control, and requires the schema to reject garbage. control_executed=true."
+ },
+ "defects": [],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0076/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0076"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "jsonschema.Draft202012Validator detector-control (on-disk store)",
+   "artifact_path": "command-center/receipts/TST-0076.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python3 -B command-center/p2-wave/probes/TST-0076/schema_check.py",
+    "raw_output": "offline RefResolver store; garbage rejected",
+    "fingerprint": "tst0076-schema-offline-resolver",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:07:32Z",
+  "ended_at": "2026-08-25T01:07:34Z",
+  "duration_seconds": 0
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "validate.py does not inspect catalog work_units; this unit mutation-tests the 103-item register catalog under the CI argv.",
+   "verdict": "CONFIRMED",
+   "settling_experiment": "Tree-wide gate census (IMP-0437 consumer / wudeps) covers work_units; re-run this battery if CI adds --require-complete."
+  }
+ ],
+ "report": {
+  "kind": "detector-control",
+  "observations": [
+   {
+    "name": "defaults_block_deleted_under_ci",
+    "measured": "DISARMED",
+    "method": "isolated catalog mutation through validate.py CLI",
+    "anchor": "tools/command-center/validate.py:303"
+   },
+   {
+    "name": "defaults_block_deleted_with_require_complete",
+    "measured": true,
+    "method": "same mutation plus --require-complete",
+    "anchor": "tools/command-center/validate.py:340"
+   },
+   {
+    "name": "mutation_rows_fired",
+    "measured": 10,
+    "method": "rule-by-rule mutation table under reconstructed CI argv",
+    "anchor": "command-center/p2-wave/probes/TST-0076/battery.py"
+   },
+   {
+    "name": "mutation_rows_disarmed",
+    "measured": 2,
+    "method": "rule-by-rule mutation table under reconstructed CI argv",
+    "anchor": "command-center/p2-wave/probes/TST-0076/battery.py"
+   }
+  ],
+  "control_ids": [
+   "REACH-1-dangling-dependency",
+   "schema-garbage"
+  ],
+  "question": "Measured defect: tools/command-center/validate.py's field-completeness check is disarmed because require_complete defaults False and CI invokes the tool bare, so deleting the entire defaults block exits 0. Target: mutation-test the validator itself - every rule it claims to enforce must be shown to fire under the ACTUAL CI invocation, not under a hand-picked flag.",
+  "answer": "Under the reconstructed CI argv (python tools/command-center/validate.py, no --require-complete) every REACH-* / V-EMPTY / V-ID / V-GRAPH mutation exits nonzero. V-FIELDS does not: deleting the entire defaults block exits 0 and prints SUCCESS:cc-validate. The same mutation with --require-complete exits 1 and emits V-FIELDS. Isolated catalog+graph copies keep CI's arming flags so a missing or stale live DEPENDENCY-GRAPH.json cannot mask a disarmed rule. SUCCESS:TST-0076",
+  "ci_invocation": {
+   "workflow_path": ".github/workflows/quality.yml",
+   "workflow_present": true,
+   "inventory": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+   "inventory_hit": {
+    "workflow": ".github/workflows/quality.yml",
+    "job_id": "test-python",
+    "step_name": "gate-tests-coverage command-center",
+    "command": "python tools/command-center/validate.py"
+   },
+   "argv": [
+    "python",
+    "tools/command-center/validate.py"
+   ],
+   "require_complete_passed": false,
+   "arming_flag": "--require-complete",
+   "note": "CI invokes `python tools/command-center/validate.py` with no --require-complete; V-FIELDS is gated on that flag defaulting False."
+  },
+  "live_bare": {
+   "exit_code": 0,
+   "graph_present": true,
+   "register_present": true,
+   "quality_yml_present": true,
+   "tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all"
+  },
+  "baseline": {
+   "ci_exit": 0,
+   "armed_exit": 0,
+   "silent_on_good_state": true
+  },
+  "claimed_checks": [
+   "V-EMPTY",
+   "V-ID",
+   "REACH-1",
+   "REACH-2",
+   "REACH-4",
+   "REACH-3",
+   "REACH-5",
+   "REACH-6",
+   "V-GRAPH",
+   "V-FIELDS"
+  ],
+  "mutation_table": [
+   {
+    "id": "V-EMPTY-zero-items",
+    "check": "V-EMPTY",
+    "mutation": "items=[]",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "V-EMPTY"
+    ],
+    "armed_checks": [
+     "V-EMPTY"
+    ]
+   },
+   {
+    "id": "V-ID-duplicate-and-malformed",
+    "check": "V-ID",
+    "mutation": "duplicate R-M01 plus id='R-'",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "V-ID"
+    ],
+    "armed_checks": [
+     "V-ID"
+    ]
+   },
+   {
+    "id": "REACH-1-dangling-dependency",
+    "check": "REACH-1",
+    "mutation": "R-M01.dependencies=['R-DOES-NOT-EXIST']",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-1"
+    ],
+    "armed_checks": [
+     "REACH-1"
+    ]
+   },
+   {
+    "id": "REACH-2-cycle",
+    "check": "REACH-2",
+    "mutation": "R-M01.dependencies=['R-M04'] (R-M04 already depends on R-M01)",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-1",
+     "REACH-2"
+    ],
+    "armed_checks": [
+     "REACH-1",
+     "REACH-2"
+    ]
+   },
+   {
+    "id": "REACH-3-dead-end",
+    "check": "REACH-3",
+    "mutation": "R-M08.next_smallest_action=UNKNOWN",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-3"
+    ],
+    "armed_checks": [
+     "REACH-3"
+    ]
+   },
+   {
+    "id": "REACH-4-unknown-owner-gate",
+    "check": "REACH-4",
+    "mutation": "R-B08.owner_gate=['OQ-999']",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-4"
+    ],
+    "armed_checks": [
+     "REACH-4"
+    ]
+   },
+   {
+    "id": "REACH-5-disposition-without-evidence",
+    "check": "REACH-5",
+    "mutation": "T-05.disposition_evidence blank",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-5"
+    ],
+    "armed_checks": [
+     "REACH-5"
+    ]
+   },
+   {
+    "id": "REACH-6-dropped-register-row",
+    "check": "REACH-6",
+    "mutation": "delete R-B06 from catalog, keep register snapshot",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-6"
+    ],
+    "armed_checks": [
+     "REACH-6"
+    ]
+   },
+   {
+    "id": "REACH-6-blank-digest",
+    "check": "REACH-6",
+    "mutation": "provenance.register_sha256=''",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "REACH-6"
+    ],
+    "armed_checks": [
+     "REACH-6"
+    ]
+   },
+   {
+    "id": "V-GRAPH-stale-edge-count",
+    "check": "V-GRAPH",
+    "mutation": "DEPENDENCY-GRAPH.json edge_count=999",
+    "status": "FIRED",
+    "arming_flag": null,
+    "ci_exit": 1,
+    "armed_exit": 1,
+    "ci_fired": true,
+    "armed_fired": true,
+    "ci_checks": [
+     "V-GRAPH"
+    ],
+    "armed_checks": [
+     "V-GRAPH"
+    ]
+   },
+   {
+    "id": "V-FIELDS-defaults-block-deleted",
+    "check": "V-FIELDS",
+    "mutation": "delete entire catalog['defaults'] block",
+    "status": "DISARMED",
+    "arming_flag": "--require-complete",
+    "ci_exit": 0,
+    "armed_exit": 1,
+    "ci_fired": false,
+    "armed_fired": true,
+    "ci_checks": [],
+    "armed_checks": [
+     "V-FIELDS"
+    ]
+   },
+   {
+    "id": "V-FIELDS-blank-item-field",
+    "check": "V-FIELDS",
+    "mutation": "R-M01.completion_sentinel=''",
+    "status": "DISARMED",
+    "arming_flag": "--require-complete",
+    "ci_exit": 0,
+    "armed_exit": 1,
+    "ci_fired": false,
+    "armed_fired": true,
+    "ci_checks": [],
+    "armed_checks": [
+     "V-FIELDS"
+    ]
+   }
+  ]
+ }
+}

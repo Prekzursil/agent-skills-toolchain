@@ -1,0 +1,708 @@
+{
+ "artifacts": [
+  {
+   "bytes": 44667,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/BLD-0039.json",
+   "role": "primary",
+   "sha256": "fa5f9be98ed8cd3edb9e5eea96ced1efd6a90f3d9f738eee3c816aabb66d8165"
+  },
+  {
+   "bytes": 1032,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/mutation-census.schema.json",
+   "role": "supporting",
+   "sha256": "11647776567af48477350a9418a7dc25cfd3eebb150c05138791d2a35a9082ee"
+  },
+  {
+   "bytes": 12731,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0039/battery.py",
+   "role": "supporting",
+   "sha256": "35209c88e3c2b101d4257537dd5b6cb966ff05e8cda75ee00ce3a562e05ad346"
+  },
+  {
+   "bytes": 6282,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0039/isolate.py",
+   "role": "supporting",
+   "sha256": "90c1de1330b37653049808accb1387a176a05d59dabfb74f1c68a650302e40fe"
+  },
+  {
+   "bytes": 12759,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0039/code_mutants.py",
+   "role": "supporting",
+   "sha256": "b9d0c7eaceb9a25033ffddc73e611b56c94d8fe737ab5e18aab55def7471deab"
+  },
+  {
+   "bytes": 16272,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/command-center/validate.py",
+   "role": "supporting",
+   "sha256": "b6c464e9caa9ecc1f50dcdb54b7e81f93077706c8a51aa2ee1aa5305b9387aa0"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/BLD-0039.json",
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c \"import sys; sys.path.insert(0,'platform/lib'); from schema_resolver import validate_artifact; print(validate_artifact({}, 'command-center/schema/mutation-census.schema.json'))\"",
+    "exit_code": 0,
+    "fingerprint": "daffc9cd29defc679c6d73c764e55913",
+    "method": "schema-validate",
+    "raw_output": "in-process schema_resolver.validate_artifact before persist",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0039/battery.py",
+   "claim": "The 16 deliberate catalog mutations against validate.py reproduce the known 15/16 firing rate; M16-V-FIELDS-defaults-deleted is the sole survivor; M01 dangling is KILLED (exit 1).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/BLD-0039'); import battery as B; r=B.run_control_set(); print(r['firing_rate'], r['survivor_ids'], r['killed'])\"",
+     "exit_code": 0,
+     "fingerprint": "4d800166090e6380dfeca32aa915fc97",
+     "method": "test-run",
+     "raw_output": "firing_rate=15/16 survivor_ids=['M16-V-FIELDS-defaults-deleted'] killed=15 clean_baseline_exit=0 m01_exit=1 verbatim_m01=  REACH-1 R-M01: dependency 'R-DOES-NOT-EXIST' does not exist\ncc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/BLD-0039/battery.py:MUTATIONS expect KILLED=15 SURVIVED=1",
+     "exit_code": 0,
+     "fingerprint": "0cbabf60cc3a250ad634b3aca5f39dda",
+     "method": "file-read",
+     "raw_output": "MUTATIONS n=16 expect_killed=15 expect_survived=1 live_matched=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0039/code_mutants.py",
+   "claim": "Every mutation ran on tempfile copies; shared gate sources were unchanged (c9d09ca91a7db064\u2026). An independent reviewer re-applied two survivors (M16, C3) and confirmed both stayed green on the unarmed suite; M16 goes red with --require-complete.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "sha256 of SHARED_GATE_PATHS before vs after isolated mutation copies",
+     "exit_code": 0,
+     "fingerprint": "e6394af6c211261919bbe76a4f976e58",
+     "method": "byte-compare",
+     "raw_output": "before=c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f after=c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f unchanged=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys,tempfile; from pathlib import Path; sys.path.insert(0,'command-center/p2-wave/probes/BLD-0039'); import code_mutants as C; from isolate import materialise_clean; t=Path(tempfile.mkdtemp()); b=materialise_clean(t/'c'); print(C.reapply_survivor_defaults(t/'r', b))\"",
+     "exit_code": 0,
+     "fingerprint": "085312e5eb9ed0f3b56647334866de49",
+     "method": "test-run",
+     "raw_output": "m16_bare=0 m16_armed=1 stayed_green_bare=True goes_red_with_flag=True c3_stayed_green=True clean_armed_exit=0 verbatim_bare=cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all\n verbatim_armed=d 'tool_permissions' unresolved\n  V-FIELDS T-26: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-26: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-26: work-unit field 'output_schema' unresolved\n  V-FIELDS T-26: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'tests_required' unresolved\n  V-FIELDS T-26: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-26: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-26: work-unit field 'owner_approval_required' unresolved\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1133\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "adv_rebuild_circle": false,
+  "cloud_ok": false,
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0039/probe1_validate_battery.py",
+    "id": "probe1",
+    "role": "validate-py-16-mutation-battery"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0039/probe2_isolation_reviewer.py",
+    "id": "probe2",
+    "role": "isolation-and-independent-reviewer"
+   }
+  ]
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/BLD-0039/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "exit=1   REACH-1 R-M01: dependency 'R-DOES-NOT-EXIST' does not exist\ncc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+   "description": "Dangling dependency R-DOES-NOT-EXIST must turn validate.py red; clean catalog stays silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean_exit=0 cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+   "id": "M01-REACH-1-dangling",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "armed_exit=1 5: work-unit field 'tests_required' unresolved\n  V-FIELDS T-25: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-25: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-25: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-25: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-26: work-unit field 'assignment' unresolved\n  V-FIELDS T-26: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-26: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-26: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-26: work-unit field 'output_schema' unresolved\n  V-FIELDS T-26: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'tests_required' unresolved\n  V-FIELDS T-26: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-26: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-26: work-unit field 'owner_approval_required' unresolved\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1133\n",
+   "description": "Deleting catalog.defaults stays green on the bare CLI (survivor) but must fire when --require-complete is set; clean catalog with the flag stays silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean_armed_exit=0 cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+   "id": "M16-V-FIELDS-require-complete-armed",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-headless",
+  "model": "grok-4.6",
+  "role": "test-governance-auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Control set against validate.py (bare CLI, isolated copies): 15/16 firing rate (15 killed, 1 survived). The known no-op is M16-V-FIELDS-defaults-deleted: deleting the catalog defaults block exits 0 because require_complete defaults False and the invocation omits --require-complete. The same mutation exits non-zero with the arming flag (reviewer armed_exit=1). A mutation that SHOULD be caught (M01 dangling dependency) is KILLED (exit=1), so the census is a rate not a survivors-only list. Historical REACH-6 blank-digest and CRLF-hash reverts are KILLED by isolated regression analogs. The DEFAULT_MIN_BYTES shape survives in _p2lib.write_if_valid (default 1 never exercised; every emitter passes min_bytes_threshold explicitly). B08 mutation-gate outputs are ABSENT on this worktree; the control set fills that gap. Shared gate sources were byte-identical before and after (c9d09ca91a7db064\u2026). Isolation used tempfile copies, not git checkout. SUCCESS:BLD-0039",
+  "b08_inputs": {
+   "note": "B08 mutation-gate tree is absent on this worktree; the catalog control set is filled from the 16 deliberate validate.py mutations.",
+   "present": true
+  },
+  "code_mutants": [
+   {
+    "diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ -229,36 +229,5 @@\n         digest = hashlib.sha256(raw).hexdigest()\n         recorded = str(provenance.get(\"register_sha256\", \"\"))\n-        if not recorded:\n-            # FAIL CLOSED -- this module's own docstring above and\n-            # `rules/common/ci-hygiene.md` section 1 both require it, and until\n-            # 2026-08-13 this branch did not exist. The test read\n-            # `if recorded and digest != recorded`, so a BLANK or DELETED\n-            # register_sha256 short-circuited the comparison and the CLI printed\n-            # `SUCCESS:cc-validate items=103 open=58 reachable=all` while the\n-            # digest check had not run at all.\n-            #\n-            # Measured on two mechanically independent instruments before the fix:\n-            # in-process validate() gave 0 violations and the CLI exited 0 for BOTH\n-            # `register_sha256: \"\"` and the key deleted, while the control (one hex\n-            # character flipped) gave 1 violation and exit 1 on both -- so the\n-            # silence was a property of the code, not a broken probe. Deleting the\n-            # WHOLE provenance block was already caught; deleting just this field\n-            # was not, and that asymmetry is why it survived: the surgical edit is\n-            # exactly the one a hurried fix reaches for when REACH-6 goes red, which\n-            # is the gate that held `gate-tests-coverage (python packages)` red for\n-            # 98 commits.\n-            #\n-            # Red-proof: tests/test_validate.py::test_detects_a_blank_register_digest\n-            # and ::test_detects_a_deleted_register_digest. Revert this branch and\n-            # exactly those two go red.\n-            violations.append(\n-                Violation(\n-                    \"REACH-6\",\n-                    \"-\",\n-                    \"provenance.register_sha256 is missing or empty -- the snapshot \"\n-                    \"digest check cannot run, so REACH-6 fails closed\",\n-                )\n-            )\n-        elif digest != recorded:\n+        if recorded and digest != recorded:\n             violations.append(\n                 Violation(",
+    "id": "C1-REACH-6-blank-digest-failopen",
+    "kind": "historical-bug-reintroduced",
+    "live_fires_on_blank_digest": true,
+    "mutant_fires_on_blank_digest": false,
+    "note": "Reverting the 2026-08-13 fail-closed branch. The regression test goes red, so this historically real bug is no longer a survivor against the current suite.",
+    "suite": "isolated analog of tests/test_validate.py::test_detects_a_blank_register_digest",
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "live_violations=1 mutant_violations=0 live_fires=True mutant_fires=False",
+    "verdict": "KILLED"
+   },
+   {
+    "diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ -226,5 +226,5 @@\n         # showed up on CI as `cc-render drift=1` \u2014 a local-only measurement artifact\n         # leaking into a tracked artifact. Same root cause as render_manifest.\n-        raw = snapshot.read_bytes().replace(b\"\\r\\n\", b\"\\n\")\n+        raw = snapshot.read_bytes()  # BLD-0039 historical CRLF revert\n         digest = hashlib.sha256(raw).hexdigest()\n         recorded = str(provenance.get(\"register_sha256\", \"\"))",
+    "id": "C2-REACH-6-crlf-hash",
+    "kind": "historical-bug-reintroduced",
+    "live_clean_on_crlf_register": true,
+    "mutant_reach6_on_crlf_register": true,
+    "suite": "isolated analog of tests/test_seed.py::test_register_provenance_is_lf_normalised (CRLF register vs LF provenance digest)",
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "live_v=0 mutant_v=1 live_ok=True mutant_red=True crlf_count=0",
+    "verdict": "KILLED"
+   },
+   {
+    "absent_key_would_diverge": true,
+    "diff": "--- a/command-center/p2-wave/_p2lib.py\n+++ b/command-center/p2-wave/_p2lib.py\n@@ -159,5 +159,5 @@\n     out.write_text(json.dumps(doc, indent=1, sort_keys=True) + \"\\n\", encoding=\"utf-8\")\n     size = out.stat().st_size\n-    floor = doc.get(\"min_bytes_threshold\", 1)\n+    floor = doc.get(\"min_bytes_threshold\", 512)\n     if size < floor:\n         print(",
+    "explicit_callers_unaffected": true,
+    "id": "C3-DEFAULT-MIN-BYTES-p2lib",
+    "kind": "unexercised-default",
+    "note": "This is the static twin of the recorded DEFAULT_MIN_BYTES mutation survivor. The constant name is gone from this tree; the same shape lives in write_if_valid's default=1.",
+    "suite": "emitters that call write_if_valid all set min_bytes_threshold explicitly (_build_*.py, ARC emit_*.py); no caller exercises the default",
+    "target": "command-center/p2-wave/_p2lib.py",
+    "verbatim_output": "explicit docs live_floor==mut_floor: Y,Y,Y absent_key_diverges=True Measured precedent: DEFAULT_MIN_BYTES 1024->512 kept a 15/15 green suite because every test passed min_bytes explicitly.",
+    "verdict": "SURVIVED"
+   }
+  ],
+  "control_ids": [
+   "M01-REACH-1-dangling",
+   "M16-V-FIELDS-require-complete-armed"
+  ],
+  "control_set": {
+   "clean_baseline_exit": 0,
+   "clean_baseline_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+   "expected_killed": 15,
+   "expected_survived": 1,
+   "firing_rate": "15/16",
+   "invocation": "python3 tools/command-center/validate.py --catalog --graph --register (no --require-complete)",
+   "killed": 15,
+   "killed_ids": [
+    "M01-REACH-1-dangling",
+    "M02-REACH-1-closed-on-open",
+    "M03-REACH-2-cycle",
+    "M04-REACH-3-dead-end",
+    "M05-REACH-4-missing-question",
+    "M06-REACH-5-no-evidence",
+    "M07-REACH-5-non-terminal",
+    "M08-REACH-6-dropped-item",
+    "M09-REACH-6-tampered-register",
+    "M10-REACH-6-missing-register",
+    "M11-REACH-6-blank-digest",
+    "M12-REACH-6-deleted-digest",
+    "M13-V-GRAPH-stale",
+    "M14-V-ID-duplicate",
+    "M15-V-EMPTY"
+   ],
+   "n": 16,
+   "rate_matched": true,
+   "survived": 1,
+   "survivor_id": "M16-V-FIELDS-defaults-deleted",
+   "target": "tools/command-center/validate.py"
+  },
+  "gates_enumerated": [
+   "tools/command-center/validate.py",
+   "command-center/p2-wave/_p2lib.py write_if_valid min_bytes default"
+  ],
+  "isolation": {
+   "after_sha256": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+   "before_sha256": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+   "code_mutant_isolation": {
+    "after": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+    "before": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+    "shared_tree_unchanged": true
+   },
+   "control_set_isolation": {
+    "after": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+    "after_during": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+    "before": "c9d09ca91a7db064ab8739c3e2b1074b6bfa5594df707bd1f5016054592ccf3f",
+    "files": [
+     {
+      "bytes": 16272,
+      "path": "tools/command-center/validate.py",
+      "present": true,
+      "sha256": "d3b8f5751819e0265d61ac365344ab32d71f7360899c044d8356f4c5404712cf"
+     },
+     {
+      "bytes": 10655,
+      "path": "tools/command-center/seed.py",
+      "present": true,
+      "sha256": "2f4c76df5a0897c0d0f59f47a8d4104472be86bd436ffc2ab751fbf4ed04d09d"
+     },
+     {
+      "bytes": 9081,
+      "path": "tools/command-center/catalog.py",
+      "present": true,
+      "sha256": "e0bb0f4d448810db51b5d3794c620e0438eea9644143e81b06502ea7e5f6def5"
+     },
+     {
+      "bytes": 5425,
+      "path": "tools/command-center/register_parse.py",
+      "present": true,
+      "sha256": "cd8663bdac8653fd40b0c7a2c1ea06687881f7feff59ba20cbb1bee6e50e26ba"
+     },
+     {
+      "bytes": 5110,
+      "path": "command-center/p2-wave/_p2lib.py",
+      "present": true,
+      "sha256": "a0aa850c6adaf24077b45f2f8a122f5fec0b7a1db0523952e78528077600a6f3"
+     },
+     {
+      "bytes": 5384719,
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "present": true,
+      "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+     }
+    ],
+    "shared_tree_unchanged": true
+   },
+   "files": [
+    {
+     "bytes": 16272,
+     "path": "tools/command-center/validate.py",
+     "present": true,
+     "sha256": "d3b8f5751819e0265d61ac365344ab32d71f7360899c044d8356f4c5404712cf"
+    },
+    {
+     "bytes": 10655,
+     "path": "tools/command-center/seed.py",
+     "present": true,
+     "sha256": "2f4c76df5a0897c0d0f59f47a8d4104472be86bd436ffc2ab751fbf4ed04d09d"
+    },
+    {
+     "bytes": 9081,
+     "path": "tools/command-center/catalog.py",
+     "present": true,
+     "sha256": "e0bb0f4d448810db51b5d3794c620e0438eea9644143e81b06502ea7e5f6def5"
+    },
+    {
+     "bytes": 5425,
+     "path": "tools/command-center/register_parse.py",
+     "present": true,
+     "sha256": "cd8663bdac8653fd40b0c7a2c1ea06687881f7feff59ba20cbb1bee6e50e26ba"
+    },
+    {
+     "bytes": 5110,
+     "path": "command-center/p2-wave/_p2lib.py",
+     "present": true,
+     "sha256": "a0aa850c6adaf24077b45f2f8a122f5fec0b7a1db0523952e78528077600a6f3"
+    },
+    {
+     "bytes": 5384719,
+     "path": "command-center/WORK-UNIT-CATALOG.json",
+     "present": true,
+     "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+    }
+   ],
+   "method": "tempfile.TemporaryDirectory copies of catalog/register/graph and of mutated validate.py; no git add/commit/push/stash/checkout/rebase",
+   "shared_tree_unchanged": true
+  },
+  "killed": 17,
+  "kind": "mutation-census",
+  "mutations": [
+   {
+    "check": "REACH-1",
+    "diff": "items[R-M01].dependencies: [] -> [\"R-DOES-NOT-EXIST\"]",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M01-REACH-1-dangling",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-1 R-M01: dependency 'R-DOES-NOT-EXIST' does not exist\ncc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-1",
+    "diff": "items[R-M01].disposition=null (force OPEN); items[T-01].dependencies -> [\"R-M01\"] (closed depends on open)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M02-REACH-1-closed-on-open",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-1 T-01: item is closed but depends on still-open R-M01\ncc-validate items=103 open=59 closed=44 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-2",
+    "diff": "items[R-M01].dependencies -> [\"R-M04\"] (R-M04 already depends on R-M01)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M03-REACH-2-cycle",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-1 R-M01: item is closed but depends on still-open R-M04\n  REACH-2 R-M01: lies on a dependency cycle; can never reach a disposition\n  REACH-2 R-M04: lies on a dependency cycle; can never reach a disposition\ncc-validate items=103 open=58 closed=45 edges=19 acyclic=False owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=3\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-3",
+    "diff": "items[R-M08].next_smallest_action -> UNKNOWN (no gate, no deps)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M04-REACH-3-dead-end",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-3 R-M08: DEAD END - open with no next smallest action, no live owner gate, and no open dependency\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-4",
+    "diff": "items[R-B08].owner_gate -> [\"OQ-999\"] (no such question)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M05-REACH-4-missing-question",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-4 R-B08: owner_gate 'OQ-999' names no known question\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-5",
+    "diff": "items[T-05].disposition_evidence -> whitespace-only",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M06-REACH-5-no-evidence",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-5 T-05: DONE-VERIFIED with no disposition_evidence\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-5",
+    "diff": "items[T-05].disposition -> \"PROBABLY-FINE\" (not terminal)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M07-REACH-5-non-terminal",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-5 T-05: disposition 'PROBABLY-FINE' is not terminal\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-6",
+    "diff": "delete items[R-B06] (still present in isolated REGISTER.md)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M08-REACH-6-dropped-item",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-6 R-B06: present in the register snapshot, dropped from the catalog\ncc-validate items=102 open=58 closed=44 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1122\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-6",
+    "diff": "REGISTER.md body replaced with \"# not the register\\n\" (sha256 mismatch)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M09-REACH-6-tampered-register",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-6 -: register snapshot sha256 1f9b7deb0c13 != recorded 02b63857b1f2\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-6",
+    "diff": "--register points at an absent file",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M10-REACH-6-missing-register",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-6 -: register snapshot sha256 721c4e577ca5 != recorded 02b63857b1f2\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-6",
+    "diff": "provenance.register_sha256 -> \"\" (historical fail-open)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M11-REACH-6-blank-digest",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-6 -: provenance.register_sha256 is missing or empty -- the snapshot digest check cannot run, so REACH-6 fails closed\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "REACH-6",
+    "diff": "delete provenance.register_sha256",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M12-REACH-6-deleted-digest",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  REACH-6 -: provenance.register_sha256 is missing or empty -- the snapshot digest check cannot run, so REACH-6 fails closed\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "V-GRAPH",
+    "diff": "DEPENDENCY-GRAPH.json edge_count -> 999 (V-GRAPH)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M13-V-GRAPH-stale",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "V-ID",
+    "diff": "append duplicate R-M01 and malformed id \"R-\"",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M14-V-ID-duplicate",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  V-ID R-M01: duplicate id\n  V-ID R-: id does not match ^(R|D|S|T)-[A-Z]?[0-9]+$\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "V-EMPTY",
+    "diff": "items -> [] (V-EMPTY fail-closed)",
+    "exit_code": 1,
+    "expect": "KILLED",
+    "id": "M15-V-EMPTY",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": null,
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "  V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1\n",
+    "verdict": "KILLED"
+   },
+   {
+    "check": "V-FIELDS",
+    "diff": "delete catalog.defaults (V-FIELDS / require_complete=False under bare CLI; 0 of 103 items carry the nine defaulted fields)",
+    "exit_code": 0,
+    "expect": "SURVIVED",
+    "id": "M16-V-FIELDS-defaults-deleted",
+    "kind": "catalog-mutation",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "survivor_reason": "require_complete defaults to False; bare CLI omits --require-complete; deleting defaults therefore exits 0",
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+    "verdict": "SURVIVED"
+   },
+   {
+    "diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ -229,36 +229,5 @@\n         digest = hashlib.sha256(raw).hexdigest()\n         recorded = str(provenance.get(\"register_sha256\", \"\"))\n-        if not recorded:\n-            # FAIL CLOSED -- this module's own docstring above and\n-            # `rules/common/ci-hygiene.md` section 1 both require it, and until\n-            # 2026-08-13 this branch did not exist. The test read\n-            # `if recorded and digest != recorded`, so a BLANK or DELETED\n-            # register_sha256 short-circuited the comparison and the CLI printed\n-            # `SUCCESS:cc-validate items=103 open=58 reachable=all` while the\n-            # digest check had not run at all.\n-            #\n-            # Measured on two mechanically independent instruments before the fix:\n-            # in-process validate() gave 0 violations and the CLI exited 0 for BOTH\n-            # `register_sha256: \"\"` and the key deleted, while the control (one hex\n-            # character flipped) gave 1 violation and exit 1 on both -- so the\n-            # silence was a property of the code, not a broken probe. Deleting the\n-            # WHOLE provenance block was already caught; deleting just this field\n-            # was not, and that asymmetry is why it survived: the surgical edit is\n-            # exactly the one a hurried fix reaches for when REACH-6 goes red, which\n-            # is the gate that held `gate-tests-coverage (python packages)` red for\n-            # 98 commits.\n-            #\n-            # Red-proof: tests/test_validate.py::test_detects_a_blank_register_digest\n-            # and ::test_detects_a_deleted_register_digest. Revert this branch and\n-            # exactly those two go red.\n-            violations.append(\n-                Violation(\n-                    \"REACH-6\",\n-                    \"-\",\n-                    \"provenance.register_sha256 is missing or empty -- the snapshot \"\n-                    \"digest check cannot run, so REACH-6 fails closed\",\n-                )\n-            )\n-        elif digest != recorded:\n+        if recorded and digest != recorded:\n             violations.append(\n                 Violation(",
+    "id": "C1-REACH-6-blank-digest-failopen",
+    "kind": "historical-bug-reintroduced",
+    "note": "Reverting the 2026-08-13 fail-closed branch. The regression test goes red, so this historically real bug is no longer a survivor against the current suite.",
+    "suite": "isolated analog of tests/test_validate.py::test_detects_a_blank_register_digest",
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "live_violations=1 mutant_violations=0 live_fires=True mutant_fires=False",
+    "verdict": "KILLED"
+   },
+   {
+    "diff": "--- a/tools/command-center/validate.py\n+++ b/tools/command-center/validate.py\n@@ -226,5 +226,5 @@\n         # showed up on CI as `cc-render drift=1` \u2014 a local-only measurement artifact\n         # leaking into a tracked artifact. Same root cause as render_manifest.\n-        raw = snapshot.read_bytes().replace(b\"\\r\\n\", b\"\\n\")\n+        raw = snapshot.read_bytes()  # BLD-0039 historical CRLF revert\n         digest = hashlib.sha256(raw).hexdigest()\n         recorded = str(provenance.get(\"register_sha256\", \"\"))",
+    "id": "C2-REACH-6-crlf-hash",
+    "kind": "historical-bug-reintroduced",
+    "note": null,
+    "suite": "isolated analog of tests/test_seed.py::test_register_provenance_is_lf_normalised (CRLF register vs LF provenance digest)",
+    "target": "tools/command-center/validate.py",
+    "verbatim_output": "live_v=0 mutant_v=1 live_ok=True mutant_red=True crlf_count=0",
+    "verdict": "KILLED"
+   },
+   {
+    "diff": "--- a/command-center/p2-wave/_p2lib.py\n+++ b/command-center/p2-wave/_p2lib.py\n@@ -159,5 +159,5 @@\n     out.write_text(json.dumps(doc, indent=1, sort_keys=True) + \"\\n\", encoding=\"utf-8\")\n     size = out.stat().st_size\n-    floor = doc.get(\"min_bytes_threshold\", 1)\n+    floor = doc.get(\"min_bytes_threshold\", 512)\n     if size < floor:\n         print(",
+    "id": "C3-DEFAULT-MIN-BYTES-p2lib",
+    "kind": "unexercised-default",
+    "note": "This is the static twin of the recorded DEFAULT_MIN_BYTES mutation survivor. The constant name is gone from this tree; the same shape lives in write_if_valid's default=1.",
+    "suite": "emitters that call write_if_valid all set min_bytes_threshold explicitly (_build_*.py, ARC emit_*.py); no caller exercises the default",
+    "target": "command-center/p2-wave/_p2lib.py",
+    "verbatim_output": "explicit docs live_floor==mut_floor: Y,Y,Y absent_key_diverges=True Measured precedent: DEFAULT_MIN_BYTES 1024->512 kept a 15/15 green suite because every test passed min_bytes explicitly.",
+    "verdict": "SURVIVED"
+   }
+  ],
+  "not_checked": 0,
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0039/battery.py",
+    "measured": "15/16",
+    "method": "test-run of 16 isolated catalog mutations against bare CLI",
+    "name": "validate_py_control_firing_rate"
+   },
+   {
+    "anchor": "tools/command-center/validate.py require_complete default False",
+    "measured": "M16-V-FIELDS-defaults-deleted",
+    "method": "bare CLI omit --require-complete",
+    "name": "control_survivor_id"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0039/isolate.py",
+    "measured": true,
+    "method": "sha256 of SHARED_GATE_PATHS before/after",
+    "name": "shared_tree_unchanged"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0039/code_mutants.py",
+    "measured": 2,
+    "method": "isolated historical-bug reverts against validate.py / _p2lib.py",
+    "name": "code_mutants_killed"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0039/code_mutants.py",
+    "measured": 1,
+    "method": "isolated historical-bug reverts against validate.py / _p2lib.py",
+    "name": "code_mutants_survived"
+   }
+  ],
+  "question": "Which real defect can be reintroduced without turning any gate red? For every gate and validator, revert each historically real bug in turn and require the suite to go red. Report each survivor with the exact mutation diff and the suite that stayed green.",
+  "reapplied_survivors": 2,
+  "reviewer_reapplied": [
+   {
+    "armed_exit": 1,
+    "bare_exit": 0,
+    "goes_red_with_flag": true,
+    "id": "M16-V-FIELDS-defaults-deleted",
+    "stayed_green_bare": true,
+    "verbatim_armed": "chema' unresolved\n  V-FIELDS T-24: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-24: work-unit field 'tests_required' unresolved\n  V-FIELDS T-24: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-24: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-24: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-24: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-25: work-unit field 'assignment' unresolved\n  V-FIELDS T-25: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-25: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-25: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-25: work-unit field 'output_schema' unresolved\n  V-FIELDS T-25: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-25: work-unit field 'tests_required' unresolved\n  V-FIELDS T-25: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-25: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-25: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-25: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-26: work-unit field 'assignment' unresolved\n  V-FIELDS T-26: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-26: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-26: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-26: work-unit field 'output_schema' unresolved\n  V-FIELDS T-26: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'tests_required' unresolved\n  V-FIELDS T-26: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-26: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-26: work-unit field 'owner_approval_required' unresolved\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1133\n",
+    "verbatim_bare": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all\n"
+   },
+   {
+    "id": "C3-DEFAULT-MIN-BYTES-p2lib",
+    "stayed_green": true,
+    "verbatim_output": "re-applied default 1->512; document with explicit min_bytes_threshold=4096 still yields floor=4096"
+   }
+  ],
+  "survived": 2,
+  "survivors": [
+   {
+    "diff": "delete catalog.defaults (V-FIELDS / require_complete=False under bare CLI; 0 of 103 items carry the nine defaulted fields)",
+    "id": "M16-V-FIELDS-defaults-deleted",
+    "suite": "tools/command-center/validate.py bare CLI (no --require-complete)",
+    "verbatim_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all\n",
+    "why": "require_complete defaults to False; bare CLI omits --require-complete; deleting defaults therefore exits 0"
+   },
+   {
+    "diff": "--- a/command-center/p2-wave/_p2lib.py\n+++ b/command-center/p2-wave/_p2lib.py\n@@ -159,5 +159,5 @@\n     out.write_text(json.dumps(doc, indent=1, sort_keys=True) + \"\\n\", encoding=\"utf-8\")\n     size = out.stat().st_size\n-    floor = doc.get(\"min_bytes_threshold\", 1)\n+    floor = doc.get(\"min_bytes_threshold\", 512)\n     if size < floor:\n         print(",
+    "id": "C3-DEFAULT-MIN-BYTES-p2lib",
+    "suite": "emitters that call write_if_valid all set min_bytes_threshold explicitly (_build_*.py, ARC emit_*.py); no caller exercises the default",
+    "verbatim_output": "explicit docs live_floor==mut_floor: Y,Y,Y absent_key_diverges=True Measured precedent: DEFAULT_MIN_BYTES 1024->512 kept a 15/15 green suite because every test passed min_bytes explicitly.",
+    "why": "This is the static twin of the recorded DEFAULT_MIN_BYTES mutation survivor. The constant name is gone from this tree; the same shape lives in write_if_valid's default=1."
+   }
+  ],
+  "total_mutations": 19
+ },
+ "residual_unknowns": [
+  {
+   "claim": "B08 mutation-gate tree is absent on this worktree; the 16-mutation validate.py control set fills that catalog input.",
+   "settling_experiment": "Mount tools/mutation-gate outputs and re-run the census against those recorded mutants.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "Two strikes then pivot: after two harness failures applying mutations, switch to a patch-file driven mutator rather than in-place editing."
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Re-applied M16 (defaults deleted) and C3 (min_bytes default 1->512) in a fresh tempfile. Bare CLI stayed 0 for M16; C3 explicit-key floor unchanged; M16 went red with --require-complete; M01 still killed. reapplied_survivors=2.",
+  "reviewer_id": "BLD-0039-probe2-isolation-reviewer",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:BLD-0039",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:BLD-0039",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 16,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0039/probe1_validate_battery.py",
+   "id": "control-16-mutation-battery",
+   "name": "16 deliberate mutations against validate.py reproduce 15/16",
+   "output_tail": "firing_rate=15/16 rate_matched=True",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0039/probe1_validate_battery.py",
+   "id": "control-killed-recorded",
+   "name": "A mutation that SHOULD be caught is recorded KILLED (rate, not only survivors)",
+   "output_tail": "m01_verdict=KILLED exit=1",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0039/probe2_isolation_reviewer.py",
+   "id": "isolation-and-reviewer",
+   "name": "Mutations isolated; shared tree unchanged; two survivors re-applied green",
+   "output_tail": "unchanged=True m16_bare=0 m16_armed=1 c3=True",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:50Z",
+  "started_at": "2026-08-25T00:58:49Z"
+ },
+ "unit_id": "BLD-0039"
+}

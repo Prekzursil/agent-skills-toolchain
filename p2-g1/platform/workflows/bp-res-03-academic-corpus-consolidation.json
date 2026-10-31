@@ -1,0 +1,1025 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-res-03-academic-corpus-consolidation",
+  "name": "Academic Corpus Consolidation",
+  "description": "Turn identifiers (DOI / PMID / arXiv id) or a topic query into canonical metadata, a LEGAL access-status table, span-cited extractions and a T1-T4 evidence-graded shortlist. The distinguishing machine is the access gate: a paper whose PDF is not open-access is reported metadata-only and may never be paraphrased from its abstract as though it had been read, and the paywall-circumvention route is DENIED in tool_policy rather than merely discouraged. Because identifiers are stable this is the one research blueprint in the set that is genuinely replayable - with verify=schema-equal, because access_status is time-varying.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence",
+    "data-science-knowledge-and-creative"
+  ],
+  "tags": [
+    "literature",
+    "open-access-gate",
+    "evidence-tiering"
+  ],
+  "flagship": false,
+  "params": {
+    "input_mode": {
+      "type": "enum",
+      "enum": [
+        "identifiers",
+        "topic"
+      ],
+      "required": true,
+      "description": "Which resolve path runs; the other is skipped by its `when`"
+    },
+    "identifiers": {
+      "type": "array",
+      "default": [],
+      "max_items": 500,
+      "items": {
+        "type": "string",
+        "min_length": 4
+      },
+      "description": "DOIs / PMIDs / arXiv ids when input_mode is identifiers"
+    },
+    "topic_query": {
+      "type": "string",
+      "default": "",
+      "max_length": 500,
+      "description": "Free-text query when input_mode is topic"
+    },
+    "evidence_scheme": {
+      "type": "enum",
+      "enum": [
+        "t1t4",
+        "none"
+      ],
+      "default": "t1t4",
+      "description": "t1t4 = human / animal / in-vitro / mechanistic tiering"
+    },
+    "max_papers": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 1,
+      "maximum": 500,
+      "description": "Hard cap on papers read"
+    },
+    "expand_citation_graph": {
+      "type": "boolean",
+      "default": false,
+      "description": "Optional S1b: one hop, to catch the paper everyone cites and nobody listed"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/research/bp-res-03",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "resolver": {
+      "description": "Resolves each identifier to canonical metadata; a miss is returned in `unresolved` with the failing probe, never a plausible-looking title",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__scholarly-access__paper_resolve",
+        "mcp__scholarly-access__paper_batch_resolve",
+        "mcp__scholarly-access__paper_fetch_metadata",
+        "mcp__paper-search__search_openalex",
+        "mcp__paper-search__search_pubmed",
+        "mcp__paper-search__search_europepmc",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "access-classifier": {
+      "description": "Decides open-access vs paywalled per paper and owns the legal gate; has VETO over any downstream read",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__scholarly-access__paper_access_status",
+        "mcp__scholarly-access__paper_find_oa_pdf",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "span-reader": {
+      "description": "Extracts findings only as quoted spans with a page location; never summarises a paper it could not open",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__scholarly-access__paper_download_oa_pdf",
+        "mcp__pdf-reader__read_pdf",
+        "Read",
+        "Write(command-center/research/**)"
+      ],
+      "min_participants": 1,
+      "max_participants": 8,
+      "speaking_rights": "always"
+    },
+    "evidence-grader": {
+      "description": "Assigns T1-T4 and records that the tier is a model judgement over the stated study design, not a measurement",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "shortlist-synthesiser": {
+      "description": "Ranks and summarises; may cite only span-backed findings and must carry the metadata-only rows through visibly",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/research/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Write(command-center/research/**)",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_batch_resolve",
+      "mcp__scholarly-access__paper_access_status",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "mcp__scholarly-access__paper_download_oa_pdf",
+      "mcp__scholarly-access__paper_citation_graph",
+      "mcp__scholarly-access__paper_fetch_metadata",
+      "mcp__paper-search__search_openalex",
+      "mcp__paper-search__search_pubmed",
+      "mcp__paper-search__search_europepmc",
+      "mcp__pdf-reader__read_pdf"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__paper-search__download_scihub",
+      "mcp__sci-hub__*"
+    ],
+    "network": "read-only",
+    "write_paths": [
+      "command-center/research/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": false,
+      "license_allowlist": [
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC0-1.0",
+        "publisher-open-access"
+      ],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "open-access-only": {
+      "predicate": "custom-expression",
+      "expression": "paywalled_papers_paraphrased == 0 AND claims_without_cited_span == 0 AND circumvention_tool_calls == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-hallucinated-identifier": {
+      "predicate": "custom-expression",
+      "expression": "identifiers_resolved_without_registry_hit == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "resolve-identifiers",
+      "title": "Resolve supplied identifiers to canonical metadata",
+      "kind": "task",
+      "when": "input_mode == 'identifiers'",
+      "role": "resolver",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0301",
+        "title": "Resolve every supplied identifier, or return it as unresolved with the failing probe",
+        "phase": "2B",
+        "question_or_target": "For each supplied identifier, fetch canonical metadata from a registry. An identifier with no registry hit is returned under `unresolved` with the probe that missed - never as a fabricated title.",
+        "inputs": [
+          "params.identifiers",
+          "params.max_papers"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "resolver",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__scholarly-access__paper_batch_resolve",
+          "mcp__scholarly-access__paper_fetch_metadata",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-03/resolved-metadata.json",
+        "output_schema": "command-center/schema/reference-resolution.schema.json",
+        "evidence_requirement": "each row carries the registry queried and its raw response id; each unresolved row carries the probe and the miss",
+        "tests_required": [
+          "a syntactically valid but non-existent DOI must land in `unresolved`; a real DOI in the same batch must resolve (both-states in one run)"
+        ],
+        "reviewer_requirement": "the access classifier refuses to classify any row lacking a registry response id",
+        "completion_sentinel": "SUCCESS:BPR-0301 emitted only when every supplied identifier appears exactly once, either resolved with a registry id or unresolved with a probe; otherwise FAILED:BPR-0301 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 3 attempts per identifier; a third miss is recorded unresolved rather than retried further",
+        "failure_classification": [
+          "identifier-unresolvable",
+          "registry-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "identifier-anchored-resolution"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/resolved-metadata.json",
+          "schema_ref": "command-center/schema/reference-resolution.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0301",
+          "consumers": [
+            "classify-access"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resolve-topic",
+      "title": "Resolve a topic query to a candidate paper set",
+      "kind": "task",
+      "when": "input_mode == 'topic'",
+      "role": "resolver",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0302",
+        "title": "Search the scholarly indexes for the topic and cap the candidate set",
+        "phase": "2B",
+        "question_or_target": "Search the scholarly indexes for the topic query and emit at most max_papers candidates, each already carrying a canonical identifier so the rest of the pipeline is identifier-anchored.",
+        "inputs": [
+          "params.topic_query",
+          "params.max_papers"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "resolver",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__paper-search__search_openalex",
+          "mcp__paper-search__search_pubmed",
+          "mcp__paper-search__search_europepmc",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-03/topic-candidates.json",
+        "output_schema": "command-center/schema/sampling-frame.schema.json",
+        "evidence_requirement": "the sampling frame records every index queried, the query string, the returned count and the cap that was applied",
+        "tests_required": [
+          "a topic with more hits than max_papers must record the truncation as a declared cap, never present the floor as the total"
+        ],
+        "reviewer_requirement": "one independent reviewer checks the frame is not silently biased to one index",
+        "completion_sentinel": "SUCCESS:BPR-0302 emitted only when the frame exists, parses, names every index queried, and every candidate carries a canonical identifier; otherwise FAILED:BPR-0302 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts per index",
+        "failure_classification": [
+          "registry-unreachable",
+          "detector-truncation"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "topic-to-identifier-frame"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/topic-candidates.json",
+          "schema_ref": "command-center/schema/sampling-frame.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0302",
+          "consumers": [
+            "classify-access"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "identifier-gate",
+      "title": "No resolved paper without a registry hit",
+      "kind": "gate",
+      "depends_on": [
+        "resolve-identifiers",
+        "resolve-topic"
+      ],
+      "gate_ref": "no-hallucinated-identifier"
+    },
+    {
+      "id": "classify-access",
+      "title": "Legal access classification per paper (the veto stage)",
+      "kind": "task",
+      "depends_on": [
+        "identifier-gate"
+      ],
+      "role": "access-classifier",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0303",
+        "title": "Classify each paper open-access or paywalled and record the licence evidence",
+        "phase": "2B",
+        "question_or_target": "For every resolved paper decide OPEN-ACCESS (with the OA PDF URL and its licence) or PAYWALLED. A PAYWALLED paper is marked metadata-only and its row forbids any downstream read.",
+        "inputs": [
+          "command-center/research/bp-res-03/resolved-metadata.json",
+          "command-center/research/bp-res-03/topic-candidates.json"
+        ],
+        "dependencies": [
+          "BPR-0301",
+          "BPR-0302"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "access-classifier",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__scholarly-access__paper_access_status",
+          "mcp__scholarly-access__paper_find_oa_pdf",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-03/access-table.json",
+        "output_schema": "command-center/schema/license-and-rights-record.schema.json",
+        "evidence_requirement": "each row carries the licence string, the OA URL when open, and the measurement date - access status is time-varying and must be dated",
+        "tests_required": [
+          "a set with a known-paywalled paper must yield exactly that many metadata-only rows",
+          "both-states: a known-OA paper in the same set must be classified open with its licence named"
+        ],
+        "reviewer_requirement": "the span reader treats this table as authoritative and cannot open a paper it marks metadata-only",
+        "completion_sentinel": "SUCCESS:BPR-0303 emitted only when every paper has an access row carrying a licence or an explicit paywalled marker plus a measurement date; otherwise FAILED:BPR-0303 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; an indeterminate status resolves to PAYWALLED (adverse inference on a blank required field)",
+        "failure_classification": [
+          "licence-indeterminate",
+          "registry-unreachable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "legal-access-classification-veto"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/access-table.json",
+          "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0303",
+          "consumers": [
+            "span-read-fanout",
+            "access-gate",
+            "shortlist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "span-read-fanout",
+      "title": "Read only the open-access PDFs, as quoted spans",
+      "kind": "fanout",
+      "depends_on": [
+        "classify-access"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/research/bp-res-03/access-table.json",
+        "item_var": "paper",
+        "key_field": "doi"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 300,
+      "max_items": 500,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "span-read",
+          "title": "Extract span-cited findings from one open-access paper",
+          "kind": "task",
+          "role": "span-reader",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "BPR-0304",
+            "title": "Extract each finding as a quoted span with a page location",
+            "phase": "2B",
+            "question_or_target": "Open the OA PDF and extract findings ONLY as quoted spans with a page location. If the access table marks this paper metadata-only, emit nothing and record the refusal.",
+            "inputs": [
+              "command-center/research/bp-res-03/access-table.json"
+            ],
+            "dependencies": [
+              "BPR-0303"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "span-reader",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "mcp__scholarly-access__paper_download_oa_pdf",
+              "mcp__pdf-reader__read_pdf",
+              "Write(command-center/research/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/research/bp-res-03/spans/paper-spans.json",
+            "output_schema": "command-center/schema/citation-audit.schema.json",
+            "evidence_requirement": "every finding carries cited_text plus a page location; a finding without a span is dropped with that reason recorded",
+            "tests_required": [
+              "a metadata-only paper must produce a recorded refusal and zero findings - never an abstract-derived summary"
+            ],
+            "reviewer_requirement": "the evidence grader may grade only span-backed findings and must reject a finding with no page location",
+            "completion_sentinel": "SUCCESS:BPR-0304 emitted only when the span file exists, parses, and every finding carries cited_text and a page location; otherwise FAILED:BPR-0304 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: after two failed PDF opens, mark the paper unreadable rather than paraphrasing the abstract",
+            "failure_classification": [
+              "pdf-unreadable",
+              "licence-indeterminate",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "span-cited-extraction"
+          },
+          "produces": [
+            {
+              "path": "command-center/research/bp-res-03/spans/paper-spans.json",
+              "schema_ref": "command-center/schema/citation-audit.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0304",
+              "consumers": [
+                "grade-evidence"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "grade-evidence",
+      "title": "Assign T1-T4 evidence tiers over the stated study design",
+      "kind": "task",
+      "depends_on": [
+        "span-read-fanout"
+      ],
+      "when": "evidence_scheme == 't1t4'",
+      "role": "evidence-grader",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0305",
+        "title": "Grade each paper T1-T4 from its stated design and record the judgement disclaimer",
+        "phase": "2B",
+        "question_or_target": "Assign an evidence tier per paper from the design stated in its own quoted spans (T1 human trial, T2 human observational, T3 animal, T4 in-vitro or mechanistic), citing the span that establishes the design.",
+        "inputs": [
+          "command-center/research/bp-res-03/spans/paper-spans.json"
+        ],
+        "dependencies": [
+          "BPR-0304"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "evidence-grader",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-03/evidence-tiers.json",
+        "output_schema": "command-center/schema/reliability-weighting.schema.json",
+        "evidence_requirement": "each tier cites the span that states the design; the artifact records in-band that tiering is judgement over a stated design, not a measurement",
+        "tests_required": [
+          "a paper whose spans never state a design must be tiered UNKNOWN, not guessed into T4"
+        ],
+        "reviewer_requirement": "one independent reviewer re-grades three papers blind to the first grade and any disagreement is recorded, not averaged away",
+        "completion_sentinel": "SUCCESS:BPR-0305 emitted only when every span-backed paper has a tier or an explicit UNKNOWN plus the citing span; otherwise FAILED:BPR-0305 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "overclaim",
+          "design-unstated"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "t1t4-design-tiering"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/evidence-tiers.json",
+          "schema_ref": "command-center/schema/reliability-weighting.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0305",
+          "consumers": [
+            "shortlist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "citation-expand",
+      "title": "Optional S1b: one-hop citation expansion",
+      "kind": "task",
+      "depends_on": [
+        "grade-evidence"
+      ],
+      "when": "expand_citation_graph == true",
+      "role": "resolver",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0306",
+        "title": "Expand one citation hop and keep only papers above the tier floor",
+        "phase": "2B",
+        "question_or_target": "Walk one hop of the citation graph from the highest-tier papers and keep only new papers that would sit at or above the current tier floor; the expansion re-enters the access gate like any other paper.",
+        "inputs": [
+          "command-center/research/bp-res-03/evidence-tiers.json",
+          "command-center/research/bp-res-03/access-table.json"
+        ],
+        "dependencies": [
+          "BPR-0305"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "resolver",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "mcp__scholarly-access__paper_citation_graph",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/research/bp-res-03/citation-expansion.json",
+        "output_schema": "command-center/schema/lineage-report.schema.json",
+        "evidence_requirement": "each expanded paper names the paper it was reached from and the hop direction (cites / cited-by)",
+        "tests_required": [
+          "an expansion that adds no paper above the tier floor must record an empty result with that reason, not an empty file"
+        ],
+        "reviewer_requirement": "the access classifier re-runs over every expanded paper; expansion does not bypass the legal gate",
+        "completion_sentinel": "SUCCESS:BPR-0306 emitted only when the expansion exists, parses, and every row names its parent paper and hop direction; otherwise FAILED:BPR-0306 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "registry-unreachable",
+          "identifier-unresolvable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "one-hop-citation-graph"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/citation-expansion.json",
+          "schema_ref": "command-center/schema/lineage-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0306",
+          "consumers": [
+            "shortlist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "access-gate",
+      "title": "No paraphrase of a paywalled paper; no claim without a span; no circumvention call",
+      "kind": "gate",
+      "depends_on": [
+        "grade-evidence",
+        "citation-expand"
+      ],
+      "gate_ref": "open-access-only"
+    },
+    {
+      "id": "shortlist",
+      "title": "Rank and summarise, carrying the metadata-only rows through visibly",
+      "kind": "task",
+      "depends_on": [
+        "access-gate"
+      ],
+      "role": "shortlist-synthesiser",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0307",
+        "title": "Emit the ranked shortlist plus the access summary and the unresolved set",
+        "phase": "2B",
+        "question_or_target": "Produce the ranked shortlist: one line per paper with its tier, its one-line span-backed finding, and its access status. Metadata-only and unresolved rows stay visible in the output.",
+        "inputs": [
+          "command-center/research/bp-res-03/evidence-tiers.json",
+          "command-center/research/bp-res-03/access-table.json",
+          "command-center/research/bp-res-03/citation-expansion.json"
+        ],
+        "dependencies": [
+          "BPR-0303",
+          "BPR-0305"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "shortlist-synthesiser",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/research/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/bp-res-03/shortlist.json",
+        "output_schema": "command-center/schema/research-registry.schema.json",
+        "evidence_requirement": "every ranked line cites the span behind its finding; the access summary states the open / paywalled / unresolved counts numerically",
+        "tests_required": [
+          "the sum of open + paywalled + unresolved rows must equal the input identifier count exactly - a dropped paper is a defect, not a rounding"
+        ],
+        "reviewer_requirement": "one adversarial reviewer in a fresh context checks no metadata-only paper has acquired a finding",
+        "completion_sentinel": "SUCCESS:BPR-0307 emitted only when the shortlist exists, parses, reconciles its counts against the input set, and shows every metadata-only row; otherwise FAILED:BPR-0307 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failures emit the partial shortlist plus the blocking reason",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "access-aware-ranked-shortlist"
+      },
+      "produces": [
+        {
+          "path": "command-center/research/bp-res-03/shortlist.json",
+          "schema_ref": "command-center/schema/research-registry.schema.json",
+          "min_bytes": 1024,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0307",
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "identifier-list-exhausted",
+      "expression": "identifiers_remaining == 0 AND papers_without_verdict == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "expansion-below-tier-floor",
+      "expression": "expansion_papers_above_floor == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "papers_graded >= 5",
+      "on_stop": "complete"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "registry-unreachable",
+      "pdf-unreadable"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "shortlist"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "identifier-unresolvable",
+      "licence-indeterminate",
+      "pdf-unreadable",
+      "registry-unreachable"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "shortlist",
+    "quarantine_path": "command-center/research/bp-res-03/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/research/bp-res-03/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/research/bp-res-03/replay/journal.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/research/bp-res-03/cache",
+    "ttl_seconds": 2592000,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/research/bp-res-03/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__scholarly-access__paper_download_oa_pdf",
+      "mcp__pdf-reader__read_pdf",
+      "Write(command-center/research/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 1.0,
+      "expected": 3.5,
+      "max": 11.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 2700,
+      "max": 9000
+    },
+    "tokens": {
+      "min": 120000,
+      "expected": 700000,
+      "max": 2200000
+    },
+    "tool_calls": {
+      "expected": 150,
+      "max": 900
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/research/bp-res-03/**; no paywall circumvention route is reachable",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-03.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/scholarly-literature-review",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/biomedical-paper-triage",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-RES-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/scholarly-literature-review@1.0.0",
+      "skills/biomedical-paper-triage@1.0.0"
+    ]
+  },
+  "outputs": {
+    "shortlist": {
+      "path": "command-center/research/bp-res-03/shortlist.json",
+      "schema_ref": "command-center/schema/research-registry.schema.json",
+      "min_bytes": 1024,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    },
+    "access-table": {
+      "path": "command-center/research/bp-res-03/access-table.json",
+      "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "shortlist"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-03",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 290
+    },
+    "acquisition_route_from_card": "ADAPT",
+    "mechanism_signature": [
+      "identifier-anchored-resolution",
+      "legal-access-classification-veto",
+      "open-access-only-hard-deny",
+      "span-cited-extraction",
+      "t1t4-design-tiering",
+      "count-reconciliation-against-input-set"
+    ],
+    "contraindications": [
+      "NOT for a general web question - it is identifier-anchored by construction",
+      "NOT for grey literature or vendor whitepapers: no DOI means the tiering collapses",
+      "NEVER route through a paywall-circumvention proxy - that route is in tool_policy.deny, not merely discouraged"
+    ],
+    "replay_note": "the only genuinely replayable research blueprint of the twelve, because DOIs are stable. verify is schema-equal rather than hash-equal on purpose: access_status is time-varying, so a byte-equal replay would fail for a legitimate reason.",
+    "unverified": [
+      "UNVERIFIED at scale; settling experiment = a 30-DOI run auditing every access_status against the publisher page and reporting the disagreement count."
+    ],
+    "worked_example": {
+      "name": "ten-DOI set with three known paywalled papers",
+      "params": {
+        "input_mode": "identifiers",
+        "identifiers": [
+          "10.1038/s41586-020-2649-2",
+          "10.1093/nar/gkaa942",
+          "10.1016/j.cell.2019.05.031"
+        ],
+        "evidence_scheme": "t1t4",
+        "max_papers": 10,
+        "expand_citation_graph": false
+      },
+      "expected_stage_order": [
+        "resolve-identifiers",
+        "resolve-topic",
+        "identifier-gate",
+        "classify-access",
+        "span-read-fanout",
+        "grade-evidence",
+        "citation-expand",
+        "access-gate",
+        "shortlist"
+      ],
+      "expected_skipped": [
+        "resolve-topic",
+        "citation-expand"
+      ],
+      "expected_max_parallel": 4,
+      "expected_gate_ids": [
+        "identifier-gate",
+        "access-gate"
+      ],
+      "acceptance": [
+        "exactly as many metadata-only rows as there are paywalled papers",
+        "a fabricated DOI appears under unresolved with the failing probe",
+        "open + paywalled + unresolved == the supplied identifier count"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "identifier-list-exhausted",
+          "why": "the run may not stop while any paper still lacks a verdict",
+          "fires_on": {
+            "identifiers_remaining": 0,
+            "papers_without_verdict": 0,
+            "expansion_papers_above_floor": 2,
+            "papers_graded": 9
+          },
+          "does_not_fire_on": {
+            "identifiers_remaining": 0,
+            "papers_without_verdict": 3,
+            "expansion_papers_above_floor": 2,
+            "papers_graded": 9
+          }
+        },
+        {
+          "rule": "expansion-below-tier-floor",
+          "why": "a barren expansion stops the walk only after enough papers have been graded to say so",
+          "fires_on": {
+            "identifiers_remaining": 4,
+            "papers_without_verdict": 1,
+            "expansion_papers_above_floor": 0,
+            "papers_graded": 7
+          },
+          "does_not_fire_on": {
+            "identifiers_remaining": 4,
+            "papers_without_verdict": 1,
+            "expansion_papers_above_floor": 0,
+            "papers_graded": 2
+          }
+        }
+      ]
+    }
+  }
+}

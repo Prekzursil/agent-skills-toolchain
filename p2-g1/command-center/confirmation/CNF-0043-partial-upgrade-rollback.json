@@ -1,0 +1,880 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0043",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0043 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three kill points were exercised and each has a recorded post-rollback health-check result. Any other terminal state is FAILED:CNF-0043 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0043",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/rollback-report.schema.json",
+      "bytes": 1096,
+      "sha256": "87596674365da8442079b872f52e48e0acab808a23f2b2ea3d663014cf41d429",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0043/installer.py",
+      "bytes": 3013,
+      "sha256": "7db08403b2dd09c21775d56e38b34c8ba60fb4958b986383f0dbf3dfb233487d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0043/rollback.py",
+      "bytes": 2090,
+      "sha256": "f3ae3e7045c76c243402806e3baaa02acf98c7d3a021652fb52b2f07f331bdfd",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0043/health.py",
+      "bytes": 5444,
+      "sha256": "0dab1f95bdf6d0aa3e8c192cce3cebe44f610da4bac76d57ab745732e7446b71",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0043/trial.py",
+      "bytes": 6762,
+      "sha256": "74aedec702574014de877cc8f7765b509e265e828a978ea8d8788ec65c29fbbb",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/ROLLBACK-MANIFEST.md",
+      "bytes": 3057,
+      "sha256": "ca0281ccb3101f7222b5dc7b2758da397fdeeff998a5eb0616189498fce18923",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Killing the three-phase upgrade after file_copy, after manifest_write, and after cache_invalidation, then restoring the pre-upgrade snapshot, recovers a byte-identical pre-state whose coherence health check passes.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0043/trial.py:run_all_kill_points",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe1_kill_points.py",
+          "raw_output": "live kill-point trials recovered=file_copy:True,manifest_write:True,cache_invalidation:True",
+          "fingerprint": "cnf0043:source:kill-points",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python3 -c \"from trial import run_all_kill_points; ks=run_all_kill_points(); print([k['hash_comparison']['identical'] for k in ks])\"",
+          "raw_output": "[true, true, true]",
+          "fingerprint": "cnf0043:verifier:hash-identity",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A file_copy hybrid still has three plugin files so file-count health reports ok, while coherence health flags hybrid=true and ok=false. That false-healthy is the named worst outcome.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0043/trial.py:run_hybrid_control",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe2_hybrid.py",
+          "raw_output": "hybrid discriminated=True file_count_ok=True coherence_ok=False",
+          "fingerprint": "cnf0043:source:hybrid",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python3 -c \"from health import file_count_health, coherence_health\"",
+          "raw_output": "file_count_health.kind=file-count-only coherence_health.kind=coherence discriminated=True",
+          "fingerprint": "cnf0043:verifier:health-kinds",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "all-three-kill-points",
+      "name": "file_copy, manifest_write, cache_invalidation each recovered",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe1_kill_points.py",
+      "result": "PASS",
+      "assertions": 3
+    },
+    {
+      "id": "post-rollback-coherence-not-file-count",
+      "name": "health_check.kind is coherence and ok after each rollback",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe1_kill_points.py",
+      "result": "PASS",
+      "assertions": 3
+    },
+    {
+      "id": "hybrid-false-healthy",
+      "name": "file-count healthy + coherence fail on unrolled-back hybrid",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe2_hybrid.py",
+      "result": "PASS",
+      "assertions": 1
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-HYBRID-FILE-COUNT",
+      "kind": "known-broken-fixture",
+      "description": "Leave the file_copy window in place. File-count must still report healthy; coherence must fail. A probe that agrees with file-count on this hybrid does not discriminate.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "hybrid discriminated=True file_count_ok=True coherence_ok=False",
+      "good_state_output": "live kill-point trials recovered=file_copy:True,manifest_write:True,cache_invalidation:True"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0043-probe2-hybrid",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe2 constructs the hybrid and requires file-count healthy plus coherence failure. It does not read probe1's kill-point verdicts. Catalog cross-vendor scoring is independent of G-1 probe-green."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0043/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0043"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft202012Validator (offline rollback-report)",
+      "artifact_path": "command-center/schema/rollback-report.schema.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 command-center/p2-wave/probes/CNF-0043/emit_report.py",
+        "raw_output": "offline validator compiled; garbage rejected",
+        "fingerprint": "cnf0043:consumer:schema",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:25Z",
+    "ended_at": "2026-08-25T00:56:25Z",
+    "duration_seconds": 0.02935
+  },
+  "retry": {
+    "count": 0,
+    "policy": "at most 3 attempts, each with a DIFFERENT substrate or interpreter; this attempt is python3-tempfile-linux"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "platform/marketplace/mkt/install.py has no named kill_after hooks for file_copy/manifest_write/cache_invalidation. The three windows were exercised on a disposable installer fixture whose phases match the catalog question.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Instrument mkt.install.Installer.install with kill_after= after payload copy, after installed.json write, and after journal append, then re-run these trials against a signed fixture registry."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "crash-recovery-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "rollback-report",
+    "observations": [
+      {
+        "name": "kill-after-file_copy-recovered",
+        "measured": true,
+        "method": "tempdir-kill-then-snapshot-restore plus coherence health",
+        "anchor": "command-center/p2-wave/probes/CNF-0043/trial.py:run_kill_trial"
+      },
+      {
+        "name": "kill-after-manifest_write-recovered",
+        "measured": true,
+        "method": "tempdir-kill-then-snapshot-restore plus coherence health",
+        "anchor": "command-center/p2-wave/probes/CNF-0043/trial.py:run_kill_trial"
+      },
+      {
+        "name": "kill-after-cache_invalidation-recovered",
+        "measured": true,
+        "method": "tempdir-kill-then-snapshot-restore plus coherence health",
+        "anchor": "command-center/p2-wave/probes/CNF-0043/trial.py:run_kill_trial"
+      },
+      {
+        "name": "hybrid-file-count-reports-healthy",
+        "measured": true,
+        "method": "file-count-only health on unrolled-back file_copy hybrid",
+        "anchor": "command-center/p2-wave/probes/CNF-0043/health.py:file_count_health"
+      },
+      {
+        "name": "hybrid-coherence-reports-unhealthy",
+        "measured": false,
+        "method": "coherence health on the same hybrid (must be false)",
+        "anchor": "command-center/p2-wave/probes/CNF-0043/health.py:coherence_health"
+      }
+    ],
+    "control_ids": [
+      "hybrid-false-healthy",
+      "file-count-vs-coherence"
+    ],
+    "title": "Rollback from a partially applied upgrade killed mid-install",
+    "question": "Can the system roll back from a half-applied upgrade? Kill the installer at three different points - after file copy, after manifest write, after cache invalidation - then run rollback from each state and answer: does each recover to a consistent pre-state, or does any leave an unusable hybrid?",
+    "completion_sentinel": "SUCCESS:CNF-0043 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three kill points were exercised and each has a recorded post-rollback health-check result. Any other terminal state is FAILED:CNF-0043 <classification> with the diagnostic tail attached.",
+    "verdict": "each-kill-recovered-to-consistent-pre-state",
+    "kill_points": [
+      {
+        "id": "kill-after-file-copy",
+        "phase": "file_copy",
+        "kill_landed": true,
+        "kill_signature": {
+          "ok": true,
+          "phase": "file_copy",
+          "observed": {
+            "files": "2.0.0",
+            "manifest": "1.0.0",
+            "cache": "1.0.0"
+          },
+          "expected": {
+            "files": "2.0.0",
+            "manifest": "1.0.0",
+            "cache": "1.0.0"
+          },
+          "hybrid": true,
+          "reason": "kill landed: files/manifest/cache match the named window"
+        },
+        "installer": {
+          "killed_after": "file_copy",
+          "completed_phases": [
+            "file_copy"
+          ],
+          "complete": false,
+          "versions_at_kill": {
+            "files": "2.0.0",
+            "manifest": "1.0.0",
+            "cache": "1.0.0"
+          }
+        },
+        "state_inventory_at_kill": [
+          {
+            "path": "cache/blobs/1.0.0.json",
+            "sha256": "9626094086ff92419045583cf0ae35f7b2cc2e32feed55583e674c69e1fd0d74",
+            "bytes": 143
+          },
+          {
+            "path": "cache/resolved.json",
+            "sha256": "07a350cd43ba15167cbbedd8994d68828110f6d53e2c47645c40ea8c203b38ef",
+            "bytes": 88
+          },
+          {
+            "path": "manifest.json",
+            "sha256": "0c44dca6b0eb411e67b2335e9c834313484f82d349fe778a1f7dc8407db1e737",
+            "bytes": 144
+          },
+          {
+            "path": "plugin/core.py",
+            "sha256": "9aeceb394979d7c336ccc2a096f8493f75a9321800e12f99e1638b489da7cb5d",
+            "bytes": 75
+          },
+          {
+            "path": "plugin/hook.json",
+            "sha256": "395a74d66b71b7cbb61520948343af1cc2d465381adb6c73798bc637815c8c23",
+            "bytes": 97
+          },
+          {
+            "path": "plugin/skill.md",
+            "sha256": "141258113c60bc586240e2b30ebff60e54445cd4cf141dee814462078bd4dc91",
+            "bytes": 57
+          },
+          {
+            "path": "user/notes.md",
+            "sha256": "2a1851c19f53d6b083c057a381328593a4a58ead71c4fe39d00ccd605da9c8c8",
+            "bytes": 77
+          },
+          {
+            "path": "user/settings.json",
+            "sha256": "a7883cadf1d8c7437fb75aa3cb1f493e07fabe48787b8a1fb75a5ffd392afc3b",
+            "bytes": 86
+          }
+        ],
+        "naive_file_count_at_kill": {
+          "ok": true,
+          "kind": "file-count-only",
+          "plugin_files_present": 3
+        },
+        "coherence_at_kill": {
+          "ok": false,
+          "hybrid": true,
+          "files_version": "2.0.0",
+          "manifest_version": "1.0.0",
+          "cache_version": "1.0.0"
+        },
+        "rollback_transcript": {
+          "ok": true,
+          "restored_paths": [
+            "cache/blobs/1.0.0.json",
+            "cache/resolved.json",
+            "manifest.json",
+            "plugin/core.py",
+            "plugin/hook.json",
+            "plugin/skill.md",
+            "user/notes.md",
+            "user/settings.json"
+          ],
+          "removed_residue": [],
+          "user_paths_preserved": [
+            "user/settings.json",
+            "user/notes.md"
+          ],
+          "step_ops": [
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore"
+          ],
+          "step_count": 8
+        },
+        "hash_comparison": {
+          "pre_count": 8,
+          "post_rollback_count": 8,
+          "identical": true,
+          "only_pre": [],
+          "only_post": [],
+          "content_differ": []
+        },
+        "health_check": {
+          "ok": true,
+          "kind": "coherence",
+          "expected_version": "1.0.0",
+          "hybrid": false,
+          "files_version": "1.0.0",
+          "manifest_version": "1.0.0",
+          "cache_version": "1.0.0",
+          "probes": [
+            {
+              "id": "files-version",
+              "state": "SUCCESS",
+              "evidence": "plugin/core.py VERSION=1.0.0"
+            },
+            {
+              "id": "manifest-version",
+              "state": "SUCCESS",
+              "evidence": "manifest.json version=1.0.0"
+            },
+            {
+              "id": "cache-resolved",
+              "state": "SUCCESS",
+              "evidence": "cache/resolved.json version=1.0.0"
+            },
+            {
+              "id": "cache-blob-matches-files",
+              "state": "SUCCESS",
+              "evidence": "blob version=1.0.0 sha match=True"
+            },
+            {
+              "id": "hook-loadable",
+              "state": "SUCCESS",
+              "evidence": "hook version=1.0.0 fires=True"
+            },
+            {
+              "id": "version-coherence",
+              "state": "SUCCESS",
+              "evidence": "files=1.0.0 manifest=1.0.0 cache=1.0.0 expected=1.0.0 hybrid=False"
+            },
+            {
+              "id": "user-data-user.settings.json",
+              "state": "SUCCESS",
+              "evidence": "user/settings.json byte-identical=True"
+            },
+            {
+              "id": "user-data-user.notes.md",
+              "state": "SUCCESS",
+              "evidence": "user/notes.md byte-identical=True"
+            }
+          ],
+          "aggregate_refuses_blocked": true
+        },
+        "naive_file_count_after_rollback": {
+          "ok": true,
+          "kind": "file-count-only"
+        },
+        "recovered_to_pre_state": true
+      },
+      {
+        "id": "kill-after-manifest-write",
+        "phase": "manifest_write",
+        "kill_landed": true,
+        "kill_signature": {
+          "ok": true,
+          "phase": "manifest_write",
+          "observed": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "1.0.0"
+          },
+          "expected": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "1.0.0"
+          },
+          "hybrid": true,
+          "reason": "kill landed: files/manifest/cache match the named window"
+        },
+        "installer": {
+          "killed_after": "manifest_write",
+          "completed_phases": [
+            "file_copy",
+            "manifest_write"
+          ],
+          "complete": false,
+          "versions_at_kill": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "1.0.0"
+          }
+        },
+        "state_inventory_at_kill": [
+          {
+            "path": "cache/blobs/1.0.0.json",
+            "sha256": "9626094086ff92419045583cf0ae35f7b2cc2e32feed55583e674c69e1fd0d74",
+            "bytes": 143
+          },
+          {
+            "path": "cache/resolved.json",
+            "sha256": "07a350cd43ba15167cbbedd8994d68828110f6d53e2c47645c40ea8c203b38ef",
+            "bytes": 88
+          },
+          {
+            "path": "manifest.json",
+            "sha256": "32b779c4f5cbed5fc2a15e49d1e5babcfb6ef20f8026460bf061762763cb092c",
+            "bytes": 144
+          },
+          {
+            "path": "plugin/core.py",
+            "sha256": "9aeceb394979d7c336ccc2a096f8493f75a9321800e12f99e1638b489da7cb5d",
+            "bytes": 75
+          },
+          {
+            "path": "plugin/hook.json",
+            "sha256": "395a74d66b71b7cbb61520948343af1cc2d465381adb6c73798bc637815c8c23",
+            "bytes": 97
+          },
+          {
+            "path": "plugin/skill.md",
+            "sha256": "141258113c60bc586240e2b30ebff60e54445cd4cf141dee814462078bd4dc91",
+            "bytes": 57
+          },
+          {
+            "path": "user/notes.md",
+            "sha256": "2a1851c19f53d6b083c057a381328593a4a58ead71c4fe39d00ccd605da9c8c8",
+            "bytes": 77
+          },
+          {
+            "path": "user/settings.json",
+            "sha256": "a7883cadf1d8c7437fb75aa3cb1f493e07fabe48787b8a1fb75a5ffd392afc3b",
+            "bytes": 86
+          }
+        ],
+        "naive_file_count_at_kill": {
+          "ok": true,
+          "kind": "file-count-only",
+          "plugin_files_present": 3
+        },
+        "coherence_at_kill": {
+          "ok": false,
+          "hybrid": true,
+          "files_version": "2.0.0",
+          "manifest_version": "2.0.0",
+          "cache_version": "1.0.0"
+        },
+        "rollback_transcript": {
+          "ok": true,
+          "restored_paths": [
+            "cache/blobs/1.0.0.json",
+            "cache/resolved.json",
+            "manifest.json",
+            "plugin/core.py",
+            "plugin/hook.json",
+            "plugin/skill.md",
+            "user/notes.md",
+            "user/settings.json"
+          ],
+          "removed_residue": [],
+          "user_paths_preserved": [
+            "user/settings.json",
+            "user/notes.md"
+          ],
+          "step_ops": [
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore"
+          ],
+          "step_count": 8
+        },
+        "hash_comparison": {
+          "pre_count": 8,
+          "post_rollback_count": 8,
+          "identical": true,
+          "only_pre": [],
+          "only_post": [],
+          "content_differ": []
+        },
+        "health_check": {
+          "ok": true,
+          "kind": "coherence",
+          "expected_version": "1.0.0",
+          "hybrid": false,
+          "files_version": "1.0.0",
+          "manifest_version": "1.0.0",
+          "cache_version": "1.0.0",
+          "probes": [
+            {
+              "id": "files-version",
+              "state": "SUCCESS",
+              "evidence": "plugin/core.py VERSION=1.0.0"
+            },
+            {
+              "id": "manifest-version",
+              "state": "SUCCESS",
+              "evidence": "manifest.json version=1.0.0"
+            },
+            {
+              "id": "cache-resolved",
+              "state": "SUCCESS",
+              "evidence": "cache/resolved.json version=1.0.0"
+            },
+            {
+              "id": "cache-blob-matches-files",
+              "state": "SUCCESS",
+              "evidence": "blob version=1.0.0 sha match=True"
+            },
+            {
+              "id": "hook-loadable",
+              "state": "SUCCESS",
+              "evidence": "hook version=1.0.0 fires=True"
+            },
+            {
+              "id": "version-coherence",
+              "state": "SUCCESS",
+              "evidence": "files=1.0.0 manifest=1.0.0 cache=1.0.0 expected=1.0.0 hybrid=False"
+            },
+            {
+              "id": "user-data-user.settings.json",
+              "state": "SUCCESS",
+              "evidence": "user/settings.json byte-identical=True"
+            },
+            {
+              "id": "user-data-user.notes.md",
+              "state": "SUCCESS",
+              "evidence": "user/notes.md byte-identical=True"
+            }
+          ],
+          "aggregate_refuses_blocked": true
+        },
+        "naive_file_count_after_rollback": {
+          "ok": true,
+          "kind": "file-count-only"
+        },
+        "recovered_to_pre_state": true
+      },
+      {
+        "id": "kill-after-cache-invalidation",
+        "phase": "cache_invalidation",
+        "kill_landed": true,
+        "kill_signature": {
+          "ok": true,
+          "phase": "cache_invalidation",
+          "observed": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "2.0.0"
+          },
+          "expected": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "2.0.0"
+          },
+          "hybrid": false,
+          "reason": "kill landed: files/manifest/cache match the named window"
+        },
+        "installer": {
+          "killed_after": "cache_invalidation",
+          "completed_phases": [
+            "file_copy",
+            "manifest_write",
+            "cache_invalidation"
+          ],
+          "complete": false,
+          "versions_at_kill": {
+            "files": "2.0.0",
+            "manifest": "2.0.0",
+            "cache": "2.0.0"
+          }
+        },
+        "state_inventory_at_kill": [
+          {
+            "path": "cache/blobs/2.0.0.json",
+            "sha256": "cd017abd3660e90be8597e491bc9e97505dc9bbe7461fa5d4833d7c22d2697e0",
+            "bytes": 143
+          },
+          {
+            "path": "cache/resolved.json",
+            "sha256": "08fa1345de7725f897ba660d75fc859fec42d2844186dc7853a454713448d275",
+            "bytes": 88
+          },
+          {
+            "path": "manifest.json",
+            "sha256": "32b779c4f5cbed5fc2a15e49d1e5babcfb6ef20f8026460bf061762763cb092c",
+            "bytes": 144
+          },
+          {
+            "path": "plugin/core.py",
+            "sha256": "9aeceb394979d7c336ccc2a096f8493f75a9321800e12f99e1638b489da7cb5d",
+            "bytes": 75
+          },
+          {
+            "path": "plugin/hook.json",
+            "sha256": "395a74d66b71b7cbb61520948343af1cc2d465381adb6c73798bc637815c8c23",
+            "bytes": 97
+          },
+          {
+            "path": "plugin/skill.md",
+            "sha256": "141258113c60bc586240e2b30ebff60e54445cd4cf141dee814462078bd4dc91",
+            "bytes": 57
+          },
+          {
+            "path": "user/notes.md",
+            "sha256": "2a1851c19f53d6b083c057a381328593a4a58ead71c4fe39d00ccd605da9c8c8",
+            "bytes": 77
+          },
+          {
+            "path": "user/settings.json",
+            "sha256": "a7883cadf1d8c7437fb75aa3cb1f493e07fabe48787b8a1fb75a5ffd392afc3b",
+            "bytes": 86
+          }
+        ],
+        "naive_file_count_at_kill": {
+          "ok": true,
+          "kind": "file-count-only",
+          "plugin_files_present": 3
+        },
+        "coherence_at_kill": {
+          "ok": false,
+          "hybrid": false,
+          "files_version": "2.0.0",
+          "manifest_version": "2.0.0",
+          "cache_version": "2.0.0"
+        },
+        "rollback_transcript": {
+          "ok": true,
+          "restored_paths": [
+            "cache/blobs/1.0.0.json",
+            "cache/resolved.json",
+            "manifest.json",
+            "plugin/core.py",
+            "plugin/hook.json",
+            "plugin/skill.md",
+            "user/notes.md",
+            "user/settings.json"
+          ],
+          "removed_residue": [
+            "cache/blobs/2.0.0.json"
+          ],
+          "user_paths_preserved": [
+            "user/settings.json",
+            "user/notes.md"
+          ],
+          "step_ops": [
+            "remove-installer-residue",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore",
+            "restore"
+          ],
+          "step_count": 9
+        },
+        "hash_comparison": {
+          "pre_count": 8,
+          "post_rollback_count": 8,
+          "identical": true,
+          "only_pre": [],
+          "only_post": [],
+          "content_differ": []
+        },
+        "health_check": {
+          "ok": true,
+          "kind": "coherence",
+          "expected_version": "1.0.0",
+          "hybrid": false,
+          "files_version": "1.0.0",
+          "manifest_version": "1.0.0",
+          "cache_version": "1.0.0",
+          "probes": [
+            {
+              "id": "files-version",
+              "state": "SUCCESS",
+              "evidence": "plugin/core.py VERSION=1.0.0"
+            },
+            {
+              "id": "manifest-version",
+              "state": "SUCCESS",
+              "evidence": "manifest.json version=1.0.0"
+            },
+            {
+              "id": "cache-resolved",
+              "state": "SUCCESS",
+              "evidence": "cache/resolved.json version=1.0.0"
+            },
+            {
+              "id": "cache-blob-matches-files",
+              "state": "SUCCESS",
+              "evidence": "blob version=1.0.0 sha match=True"
+            },
+            {
+              "id": "hook-loadable",
+              "state": "SUCCESS",
+              "evidence": "hook version=1.0.0 fires=True"
+            },
+            {
+              "id": "version-coherence",
+              "state": "SUCCESS",
+              "evidence": "files=1.0.0 manifest=1.0.0 cache=1.0.0 expected=1.0.0 hybrid=False"
+            },
+            {
+              "id": "user-data-user.settings.json",
+              "state": "SUCCESS",
+              "evidence": "user/settings.json byte-identical=True"
+            },
+            {
+              "id": "user-data-user.notes.md",
+              "state": "SUCCESS",
+              "evidence": "user/notes.md byte-identical=True"
+            }
+          ],
+          "aggregate_refuses_blocked": true
+        },
+        "naive_file_count_after_rollback": {
+          "ok": true,
+          "kind": "file-count-only"
+        },
+        "recovered_to_pre_state": true
+      }
+    ],
+    "hybrid_probe": {
+      "constructed": true,
+      "kill_window": "file_copy",
+      "kill_landed": true,
+      "observed": {
+        "files": "2.0.0",
+        "manifest": "1.0.0",
+        "cache": "1.0.0"
+      },
+      "naive_file_count": {
+        "ok": true,
+        "kind": "file-count-only",
+        "plugin_files_present": 3
+      },
+      "coherence_against_n": {
+        "ok": false,
+        "hybrid": true,
+        "kind": "coherence",
+        "files_version": "2.0.0",
+        "manifest_version": "1.0.0",
+        "cache_version": "1.0.0"
+      },
+      "coherence_against_n1": {
+        "ok": false,
+        "hybrid": true
+      },
+      "false_healthy_under_file_count": true,
+      "coherence_rejects_hybrid": true,
+      "discriminated": true,
+      "note": "A hybrid of N files + N-1 manifest + N-1 cache still has three plugin files, so file-count reports healthy. Coherence must fail. That false-healthy is the worst outcome this unit probes for."
+    },
+    "hash_manifests": {
+      "pre_change_counts": 8,
+      "post_rollback_identical_per_kill": [
+        true,
+        true,
+        true
+      ]
+    },
+    "tests_required": {
+      "all_three_kill_points_exercised": true,
+      "post_rollback_health_not_file_count": true,
+      "hybrid_false_healthy_probed": true
+    },
+    "installer_surface": {
+      "catalog_input": "the installer implementation and its ordered phases",
+      "marketplace_install_present": true,
+      "marketplace_install_path": "platform/marketplace/mkt/install.py",
+      "platform_plugin_present": true,
+      "kill_windows": [
+        "file_copy",
+        "manifest_write",
+        "cache_invalidation"
+      ],
+      "rollback_inverse": "snapshot restore in command-center/p2-wave/probes/CNF-0043/rollback.py"
+    },
+    "rollback_manifest": {
+      "catalog_path": "command-center/ROLLBACK-MANIFEST.md",
+      "present": true
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "three-kill-point-rollback",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe1_kill_points.py"
+      },
+      {
+        "id": "probe2",
+        "role": "hybrid-false-healthy-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0043/probe2_hybrid.py"
+      }
+    ],
+    "reviewers": [
+      {
+        "reviewer_id": "CNF-0043-probe1-kill-points",
+        "verdict": "PASS",
+        "independent": true,
+        "blind_until_filed": true
+      },
+      {
+        "reviewer_id": "CNF-0043-probe2-hybrid",
+        "verdict": "PASS",
+        "independent": true,
+        "blind_until_filed": true
+      }
+    ]
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "output_path": "command-center/confirmation/CNF-0043-partial-upgrade-rollback.json",
+    "disposable_target": true
+  }
+}

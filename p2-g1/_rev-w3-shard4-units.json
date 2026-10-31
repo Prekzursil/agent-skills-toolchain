@@ -1,0 +1,551 @@
+[
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0044 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "evidence_requirement": "Probe 1: the ruleset required_status_checks list from the API. Probe 2: the distinct check-run names reported on a recent merged PR - a required context whose name no workflow emits is permanently pending and a produced context that is not required gates nothing.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "scope-mismatch",
+   "credential-absent",
+   "detector-failure"
+  ],
+  "id": "AUD-0044",
+  "inputs": [
+   "the branch protection ruleset for main",
+   "the context names emitted by each workflow job",
+   "the standing rule to gate merges on REQUIRED contexts only"
+  ],
+  "output_path": "command-center/audit/AUD-0044-required-context-audit.json",
+  "output_schema": "command-center/schema/audit-drift.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which check contexts are REQUIRED by the branch protection ruleset, which contexts do the workflows actually produce, and where do those two sets disagree?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: confirm the comparator reports a non-empty symmetric difference on a deliberately renamed job in a scratch workflow"
+  ],
+  "timeout_seconds": 1500,
+  "title": "Branch-protection required-context set versus the checks that actually run",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "mcp__github__list_branches",
+   "mcp__github__list_pull_requests",
+   "mcp__github__pull_request_read"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0047 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "evidence_requirement": "Probe 1: evaluate each filter pattern against the gate's protected file list. Probe 2: search recent real runs for a commit that touched a protected file and confirm the gate job actually ran on it - the pattern evaluation is the model and the run history is the receipt.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "scope-mismatch",
+   "green-not-live"
+  ],
+  "id": "AUD-0047",
+  "inputs": [
+   "workflow on.push and on.pull_request path filters",
+   "each gate's declared protected file set"
+  ],
+  "output_path": "command-center/audit/AUD-0047-workflow-path-filter-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "For every workflow with a paths or paths-ignore filter, is there a file the gate claims to protect that the filter would prevent the gate from ever seeing?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: the evaluator must report a miss for a protected file deliberately excluded by a paths-ignore entry in a fixture workflow"
+  ],
+  "timeout_seconds": 1500,
+  "title": "Path-filter audit: triggers that exclude the very files the gate protects",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0053 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "evidence_requirement": "Probe 1: run the suite with egress blocked and record every test that changes outcome. Probe 2: a socket-level trace on an unblocked run naming the destination hosts - the blocked run finds tests that DEPEND on the network and the trace finds tests that merely TOUCH it.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "egress-blocked",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "AUD-0053",
+  "inputs": [
+   "the full test suite",
+   "an egress-blocking execution environment",
+   "the measured precedent of 14 tests silently downloading get-pip.py despite comments saying otherwise"
+  ],
+  "output_path": "command-center/audit/AUD-0053-network-egress-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which tests reach the network during execution, whether or not they claim to be hermetic, and what do they fetch?",
+  "retry_policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "both-states control: the blocked environment must be proven to block - assert that a deliberate fetch fails inside it before trusting any test that passes there"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Network-egress dependency census across the test suite",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0055 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "evidence_requirement": "Probe 1: extract each marker with its reason and its git blame age. Probe 2: for a stratified sample, REMOVE the marker in a scratch worktree and run the test - the only way to know whether the stated reason still holds is to try it.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "AUD-0055",
+  "inputs": [
+   "every skip and xfail marker with its reason string",
+   "the referenced issue or condition for each",
+   "marker age from git blame"
+  ],
+  "output_path": "command-center/audit/AUD-0055-skip-xfail-reason-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "For every skipped or xfail-marked test, is the stated reason still true today, and how many are permanently disabled tests masquerading as temporary?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: an xfail whose underlying bug is fixed must show as XPASS when unmarked; assert at least the sample is executed rather than reasoned about"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Skip and xfail census with reason validity",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0057 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "evidence_requirement": "Probe 1: an AST pass computing, per parameter with a default, whether any test invokes the function without supplying it. Probe 2: for the highest-risk findings, an actual value mutation of the default in a scratch worktree, requiring the suite to stay GREEN to confirm the hole.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live"
+  ],
+  "id": "AUD-0057",
+  "inputs": [
+   "every test call site and the signature defaults of the functions under test",
+   "the recorded DEFAULT_MIN_BYTES mutation that survived a green suite"
+  ],
+  "output_path": "command-center/audit/AUD-0057-assertion-strength-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which tests pass an argument explicitly on every path such that the function's DEFAULT value is never exercised - the exact shape that let a 1024-to-512 default change survive a 15-of-15 green suite?",
+  "retry_policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "both-states control: mutate a default that IS covered and require the suite to turn RED, proving the mutation harness can produce a red at all"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Assertion-strength census: tests that never exercise the default they claim to protect",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0064 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: the dispatcher routing table enumerated statically. Probe 2: launch each route once and assert a non-empty, changing render - a pane that renders a fixed empty frame is indistinguishable from a working one on a static screenshot.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "AUD-0064",
+  "inputs": [
+   "the mon dispatcher routing table",
+   "every monitor renderer script",
+   "the 2026-08-09 observation that 5 panes render via mon cockpit"
+  ],
+  "output_path": "command-center/audit/AUD-0064-monitor-surface-reachability.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which monitors exist, which are wired into the mon dispatcher, and which of those actually render live data rather than an empty or stale pane?",
+  "retry_policy": "at most 3 attempts, each in a DIFFERENT shell (pwsh7, git-bash, wsl bash); a repeat in the same shell is not a retry and must not be counted as one",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: point one monitor at a deliberately empty data source and confirm it is reported as EMPTY rather than OK; stall detection from mtimes alone is banned and must not appear in the receipt"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Monitor and cockpit surface inventory and reachability",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "PowerShell"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0066 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: the scheduled-task and service state as reported by the OS. Probe 2: an endpoint health check for each service that exposes one - a task reported as Running whose endpoint refuses connections is the finding, and the task state alone cannot show it.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "AUD-0066",
+  "inputs": [
+   "the scheduled task list filtered to program-relevant tasks",
+   "the MCPAgentMailSupervisor logon task and its health-poll behaviour",
+   "any monitor or memory-guard daemon"
+  ],
+  "output_path": "command-center/audit/AUD-0066-scheduled-service-dependency.json",
+  "output_schema": "command-center/schema/audit-inventory.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which Windows scheduled tasks and background services must be running for this program's rails to work, what is each one's current state, and what is the observed recovery behaviour when one dies?",
+  "retry_policy": "at most 3 attempts, each in a DIFFERENT shell (pwsh7, git-bash, wsl bash); a repeat in the same shell is not a retry and must not be counted as one",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: confirm the health probe returns a failure for a deliberately wrong port before trusting any success it reports"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Scheduled tasks and background services the program depends on",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "PowerShell"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0069 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0068"
+  ],
+  "evidence_requirement": "Probe 1: lexical near-duplicate detection over card bodies with planted-mutant calibration. Probe 2: an embedding-cosine rescan using the SAME planted mutants as controls, because a full rewrite lands in the same lexical band as a genuinely distinct card.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "AUD-0069",
+  "inputs": [
+   "the 283 option cards in 07-OPTION-UNIVERSE with full bodies",
+   "the recorded residual that only ids and titles were compared, never bodies",
+   "the recorded finding that lexical Jaccard cannot see a full rewrite"
+  ],
+  "output_path": "command-center/audit/AUD-0069-option-card-body-dedup.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Do any two of the 283 option cards describe the SAME mechanism under different ids and different wording - measured on card bodies, not on ids and titles?",
+  "retry_policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "planted-mutant control: insert an exact rename, a paraphrase, and a one-parameter fork; both probes must catch the rename, and the embedding probe must additionally catch the paraphrase"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Body-level deduplication over the 283 option cards",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "corpus-normalizer",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0071 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0068",
+   "AUD-0074"
+  ],
+  "evidence_requirement": "Probe 1: build support edges from explicit citation. Probe 2: collapse supports that share an upstream source into a single independent signal, then recount - the raw support count and the independent-source count are different numbers and only the second may be used for ranking.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "single-signal",
+   "detector-failure"
+  ],
+  "id": "AUD-0071",
+  "inputs": [
+   "the canonical claim records",
+   "the source lineage of each claim",
+   "the standing rule to rank by independent evidence, not by how many agents repeated an idea"
+  ],
+  "output_path": "command-center/audit/AUD-0071-support-edge-graph.json",
+  "output_schema": "command-center/schema/audit-graph.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "For each claim, which other claims independently support it, and how many of those supports are genuinely independent rather than derived from the same upstream source?",
+  "retry_policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: a claim supported by five records all citing one upstream document must score as ONE independent support, not five; assert that exact case"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Support-edge and independent-corroboration graph",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "corpus-normalizer",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0072 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0068"
+  ],
+  "evidence_requirement": "Probe 1: lexical mapping of each phrase to a band. Probe 2: an unmapped-residue report listing every hedge that received no band - a normalizer that maps everything has almost certainly guessed, and the residue list is the honest output.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "AUD-0072",
+  "inputs": [
+   "all confidence phrases and verdict tags across the corpus",
+   "the Sherman-Kent band definitions and the CONFIRMED/REFUTED/PARTIAL/NOT-CHECKED/BLOCKED vocabulary"
+  ],
+  "output_path": "command-center/audit/AUD-0072-confidence-status-normalization.json",
+  "output_schema": "command-center/schema/claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Map every confidence expression and verification status found in the corpus onto the single Sherman-Kent band plus verdict vocabulary, and list every expression that does not map cleanly.",
+  "retry_policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: a bare should work with no band must land in the residue list, not be silently assigned likely"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Confidence and verification-status normalization onto one vocabulary",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0075 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: for each pinned fact, a re-measurement using a different shell, a different data field, or a different instrument than the one named in the pin. Probe 2: an explicit record of WHICH probe produced the original claim - an undeclared source probe means zero signals, not one, and must be reported as such.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-premise",
+   "single-signal",
+   "detector-failure"
+  ],
+  "id": "AUD-0075",
+  "inputs": [
+   "the pinned ground-truth block for this program",
+   "the recorded precedent that four briefed VERIFIED GROUND TRUTH facts were false in one run",
+   "the recorded precedent that two agents CONFIRMED a false fact by re-running the broken probe"
+  ],
+  "output_path": "command-center/audit/AUD-0075-stale-premise-sweep.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "For each fact currently pinned as program ground truth, is it still true today when re-measured by a probe MECHANICALLY DIFFERENT from the one that produced it?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "two reviewers, one fresh-context Claude and one Codex; on disagreement escalate to the owner with both probes attached - do NOT resolve by vote",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: re-running the ORIGINALLY NAMED probe must be rejected by the harness rather than counted; assert the harness refuses a same-fingerprint re-probe"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Stale-premise sweep over pinned ground-truth facts with mechanically different re-probes",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0080 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0016"
+  ],
+  "evidence_requirement": "Probe 1: enumerate allow entries per scope and compute the effective merged set. Probe 2: for each hook, construct a command that satisfies an allow entry while matching the hook's intent, and check whether the hook's matcher actually catches it - the config read is the model and the matcher test is the receipt.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "use-vs-mention",
+   "scope-mismatch",
+   "detector-failure"
+  ],
+  "id": "AUD-0080",
+  "inputs": [
+   "permissions.allow and permissions.deny in every settings file scope",
+   "each hook's matcher pattern",
+   "the recorded false-positive class where a guard read a payload body instead of the tool verb"
+  ],
+  "output_path": "command-center/audit/AUD-0080-permission-surface-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which command patterns are pre-approved in the permissions allow-lists across all settings scopes, and which of those would let a caller bypass a hook that is supposed to gate them?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "use-vs-mention control: a command whose PAYLOAD quotes a dangerous string but whose VERB is benign must NOT be flagged; the two recorded false positives were exactly this shape"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Permission-surface audit: allow-lists and hook bypass paths",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "PowerShell"
+  ]
+ }
+]

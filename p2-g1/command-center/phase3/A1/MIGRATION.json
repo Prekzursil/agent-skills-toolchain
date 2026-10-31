@@ -1,0 +1,1154 @@
+{
+  "schema_version": 1,
+  "unit_id": "ARC-0007",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0007",
+  "min_bytes_threshold": 2048,
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0007]",
+  "report": {
+    "kind": "migration-plan",
+    "observations": [
+      {
+        "name": "sample-size",
+        "measured": 10,
+        "method": "count of measured fixture paths in SAMPLE",
+        "anchor": "command-center/p2-wave/probes/ARC-0007/emit_migration.py"
+      },
+      {
+        "name": "live-larger-in-sample",
+        "measured": 4,
+        "method": "len(live_bytes) > len(repo_bytes) on the 10-file fixture",
+        "anchor": "command-center/p2-wave/probes/ARC-0007/fixtures/live/"
+      },
+      {
+        "name": "negative-control-refused",
+        "measured": true,
+        "method": "apply_merge(..., requested=TAKE-REPO) while live holds a unique line",
+        "anchor": "command-center/p2-wave/probes/ARC-0007/procedure.py:negative_control_refuse_overwrite"
+      }
+    ],
+    "control_ids": [
+      "negative-control-refuse-one-directional-overwrite",
+      "content-preservation-union"
+    ]
+  },
+  "tests": [
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/phase3/A1/MIGRATION.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "ARC-0007 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/phase3/A1/MIGRATION.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/phase3/A1/MIGRATION.json",
+          "raw_output": "bytes=24268 sha256=e3656cbb4a033fa27e026e0bddd816dcb5c6a670755e4c9ced1e6618b43f2ff8",
+          "fingerprint": "234491439386c69237698fc7ac906ea8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact ARC-0007",
+          "raw_output": "schema-check",
+          "fingerprint": "617155ae194b40d6c9a0c523fee6434d",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "ARC-0007 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0007",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0007",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "fb786d4da3707d7952e931feeef9e122",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered ARC-0007",
+          "raw_output": "schema-valid",
+          "fingerprint": "077565b47eefc3eb8ca9d688a3c62d36",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "migration-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "reviewer": {
+    "reviewer_id": "schema-resolver",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/phase3/A1/MIGRATION.json",
+      "bytes": 24268,
+      "sha256": "e3656cbb4a033fa27e026e0bddd816dcb5c6a670755e4c9ced1e6618b43f2ff8",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "architecture_id": "A1",
+      "completion_sentinel": "SUCCESS:ARC-0007",
+      "report_kind": "migration-plan",
+      "title": "Content-preserving migration into the config-first layout",
+      "question": "Design the migration from today's de-facto layout (repo rules/, live rules, two skills trees, hooks/_dispatch/manifest.json) into the config-first layout WITHOUT destroying content, given that the divergence is two-directional.",
+      "source_layout": {
+        "roots": [
+          "rules/ (repo fixture)",
+          "rules/ (live fixture)",
+          "skills/ (repo tree + live tree)",
+          "hooks/_dispatch/manifest.json"
+        ],
+        "divergence": {
+          "two_directional": true,
+          "catalog_pinned_live_larger": [
+            "rules/common/owner-ops-authorization.md",
+            "rules/common/performance.md",
+            "rules/common/security.md"
+          ],
+          "catalog_pin": "WORK-UNIT-CATALOG evidence pins: only 5 of 88 rules files byte-identical, 28 content-differing, 25 repo-larger, 3 live-larger (owner-ops-authorization, performance, security)."
+        }
+      },
+      "target_layout": {
+        "root": "config/",
+        "load_order": [
+          "config/load-order.json",
+          "config/rules/** (preserved bodies; A1 wraps to *.rule.json later)",
+          "config/skills/**",
+          "config/hooks/manifest.json"
+        ],
+        "mapping": [
+          {
+            "from": "rules/",
+            "to": "config/rules/"
+          },
+          {
+            "from": "skills/",
+            "to": "config/skills/"
+          },
+          {
+            "from": "hooks/_dispatch/",
+            "to": "config/hooks/"
+          }
+        ]
+      },
+      "provenance_procedure": {
+        "timestamps_do_not_authorise_overwrite": true,
+        "notes": "Signal 1 is git log -1 --format=%cI on the repo path (or the fixture committer ledger when git is absent). Signal 2 is live mtime plus the LF-normalised line diff. Classification is by line-set inclusion, not by which clock is newer. A unique line on either side forbids taking the other side as a one-directional overwrite.",
+        "signals": [
+          {
+            "id": "signal-1-repo-git-committer",
+            "command_or_method": "git log -1 --format=%cI -- <path>",
+            "reads": "repo committer timestamp (independent of filesystem mtime)"
+          },
+          {
+            "id": "signal-2-live-mtime-and-content-diff",
+            "command_or_method": "stat.st_mtime + set(lines_live) - set(lines_repo)",
+            "reads": "live mtime plus unique-line counts after LF normalisation"
+          }
+        ],
+        "decision_table": [
+          {
+            "when": "BYTE-IDENTICAL-LF or EOL-ONLY",
+            "do": "IDENTICAL / take repo bytes after LF"
+          },
+          {
+            "when": "REPO-ONLY",
+            "do": "TAKE-REPO-LIVE-ABSENT"
+          },
+          {
+            "when": "LIVE-ONLY",
+            "do": "TAKE-LIVE-REPO-ABSENT"
+          },
+          {
+            "when": "LIVE-SUPERSET",
+            "do": "TAKE-LIVE (repo lines already present)"
+          },
+          {
+            "when": "REPO-SUPERSET",
+            "do": "TAKE-REPO (live lines already present)"
+          },
+          {
+            "when": "BOTH-UNIQUE",
+            "do": "ADJUDICATE; hold both unique-line sets; preview = UNION-MERGE"
+          },
+          {
+            "when": "requested TAKE-REPO while live has unique lines",
+            "do": "REFUSE-ONE-DIRECTIONAL-OVERWRITE"
+          }
+        ]
+      },
+      "adjudication_queue": [
+        {
+          "path": "rules/common/owner-ops-authorization.md",
+          "classification": "BOTH-UNIQUE",
+          "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+          "held_repo_unique_lines": 1,
+          "held_live_unique_lines": 14,
+          "preview_is_union": true
+        },
+        {
+          "path": "skills/repo-tree/skill-beta.md",
+          "classification": "BOTH-UNIQUE",
+          "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+          "held_repo_unique_lines": 1,
+          "held_live_unique_lines": 1,
+          "preview_is_union": true
+        },
+        {
+          "path": "hooks/_dispatch/manifest.json",
+          "classification": "BOTH-UNIQUE",
+          "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+          "held_repo_unique_lines": 2,
+          "held_live_unique_lines": 4,
+          "preview_is_union": true
+        }
+      ],
+      "rollback": {
+        "unit": "the rollback snapshot of the target tree taken BEFORE any write",
+        "steps": [
+          "1. snapshot mapped files to probes/ARC-0007/fixtures/rollback-snapshot/",
+          "2. apply forward merge only after snapshot hashes are recorded",
+          "3. on abort, restore_tree(snapshot, dest) byte-for-byte; never re-run the forward merge as rollback"
+        ],
+        "restore_command": "python3 -c \"from pathlib import Path; import sys; sys.path.insert(0,'command-center/p2-wave/probes/ARC-0007'); import procedure as P; P.restore_tree(Path('command-center/p2-wave/probes/ARC-0007/fixtures/rollback-snapshot'), Path('command-center/p2-wave/probes/ARC-0007/fixtures/migrated'))\"",
+        "forbids": [
+          "one-directional Copy-Item -Force / cp -f of live onto repo",
+          "one-directional copy of repo onto live",
+          "scripts/sync-from-live.ps1"
+        ]
+      },
+      "sample": [
+        {
+          "path": "rules/common/owner-ops-authorization.md",
+          "target_path": "config/rules/common/owner-ops-authorization.md",
+          "classification": "BOTH-UNIQUE",
+          "decision": "ADJUDICATE",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 179,
+          "live_bytes": 1176,
+          "live_larger": true,
+          "repo_sha256": "5a92aac5e2a5880b23837cfc49a0753e14ed75b8d22ab18906267a3951363ba9",
+          "live_sha256": "702837665c0a724cf59069192e344255f337da92930b4c0f608426aae0413af1",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/owner-ops-authorization.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-07-11T15:02:00Z",
+            "used": "2026-07-11T15:02:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T16:00:00Z",
+            "repo_unique_line_count": 1,
+            "live_unique_line_count": 14,
+            "shared_line_count": 4
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "1183a36f43374a8bce3e28b96f764b9e2e7ad4917c6dc2e5663697a0d1d2ee61",
+          "refused_overwrite": false,
+          "reason": "neither side is a superset; queued for human adjudication; preview is union"
+        },
+        {
+          "path": "rules/common/performance.md",
+          "target_path": "config/rules/common/performance.md",
+          "classification": "LIVE-SUPERSET",
+          "decision": "TAKE-LIVE",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 78,
+          "live_bytes": 273,
+          "live_larger": true,
+          "repo_sha256": "1c44db282784e91219f2afb94d7a3999ae5b3b3e854e84ec9265a9d2e752adf2",
+          "live_sha256": "5d19ed415d58a0cedb5c083ce09550f273da9e37ce8fd4785ea0d25002616b8e",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/performance.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-07-18T09:41:00Z",
+            "used": "2026-07-18T09:41:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T17:00:00Z",
+            "repo_unique_line_count": 0,
+            "live_unique_line_count": 3,
+            "shared_line_count": 3
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "5d19ed415d58a0cedb5c083ce09550f273da9e37ce8fd4785ea0d25002616b8e",
+          "refused_overwrite": false,
+          "reason": "take live"
+        },
+        {
+          "path": "rules/common/security.md",
+          "target_path": "config/rules/common/security.md",
+          "classification": "LIVE-SUPERSET",
+          "decision": "TAKE-LIVE",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 73,
+          "live_bytes": 197,
+          "live_larger": true,
+          "repo_sha256": "40d9a45f48d1e58cf8fa869d04ee4387b5276e76e9eed20bb56c7112d73f7722",
+          "live_sha256": "c09e13a91149e79386dad07162cbc39af0b2350d1b152e9685b4665f4b52af0c",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/security.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-07-20T11:08:00Z",
+            "used": "2026-07-20T11:08:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T18:00:00Z",
+            "repo_unique_line_count": 0,
+            "live_unique_line_count": 2,
+            "shared_line_count": 3
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "c09e13a91149e79386dad07162cbc39af0b2350d1b152e9685b4665f4b52af0c",
+          "refused_overwrite": false,
+          "reason": "take live"
+        },
+        {
+          "path": "rules/common/agents.md",
+          "target_path": "config/rules/common/agents.md",
+          "classification": "REPO-SUPERSET",
+          "decision": "TAKE-REPO",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 398,
+          "live_bytes": 32,
+          "live_larger": false,
+          "repo_sha256": "6bd0e5c0942ff969f2e7468e577360a29b9edd71e7df66a21080d62f52411523",
+          "live_sha256": "ee8d8037376867de65f575582c753d8747663dfffea8f6fa5538b0c2ce829214",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/agents.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-08-02T08:15:00Z",
+            "used": "2026-08-02T08:15:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T19:00:00Z",
+            "repo_unique_line_count": 2,
+            "live_unique_line_count": 0,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "6bd0e5c0942ff969f2e7468e577360a29b9edd71e7df66a21080d62f52411523",
+          "refused_overwrite": false,
+          "reason": "take repo"
+        },
+        {
+          "path": "rules/common/hooks.md",
+          "target_path": "config/rules/common/hooks.md",
+          "classification": "REPO-SUPERSET",
+          "decision": "TAKE-REPO",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 581,
+          "live_bytes": 61,
+          "live_larger": false,
+          "repo_sha256": "377d6fbf9c14987893aedaa9711e0b40ddb4fb4dc5d91477924e179c5423c30a",
+          "live_sha256": "e64c5b9e96775d93a8f9034f4f304617b466540dffcb3c2b9d9b75d570480ddb",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/hooks.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-08-02T08:16:00Z",
+            "used": "2026-08-02T08:16:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T20:00:00Z",
+            "repo_unique_line_count": 1,
+            "live_unique_line_count": 0,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "377d6fbf9c14987893aedaa9711e0b40ddb4fb4dc5d91477924e179c5423c30a",
+          "refused_overwrite": false,
+          "reason": "take repo"
+        },
+        {
+          "path": "rules/common/ci-hygiene.md",
+          "target_path": "config/rules/common/ci-hygiene.md",
+          "classification": "REPO-SUPERSET",
+          "decision": "TAKE-REPO",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 402,
+          "live_bytes": 43,
+          "live_larger": false,
+          "repo_sha256": "4d1bddaa73afe76b510df34ffdd32b2743186d2942a1540d271128f812354455",
+          "live_sha256": "86fb56266fbb5f52ed25d16681ac320545f91b326e7615da7782f81527e4b184",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/ci-hygiene.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-08-05T19:22:00Z",
+            "used": "2026-08-05T19:22:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T21:00:00Z",
+            "repo_unique_line_count": 2,
+            "live_unique_line_count": 0,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "4d1bddaa73afe76b510df34ffdd32b2743186d2942a1540d271128f812354455",
+          "refused_overwrite": false,
+          "reason": "take repo"
+        },
+        {
+          "path": "rules/common/windows-shell.md",
+          "target_path": "config/rules/common/windows-shell.md",
+          "classification": "REPO-SUPERSET",
+          "decision": "TAKE-REPO",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 92,
+          "live_bytes": 51,
+          "live_larger": false,
+          "repo_sha256": "8b3fb39aa1c6591d5cede889d270e3cdfde5e5c73e8f01e8ca170997fc234c8a",
+          "live_sha256": "40773b43f3301034095174d23c982bb285d31a25a4200df8f121f263a7375efa",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- rules/common/windows-shell.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-08-06T04:03:00Z",
+            "used": "2026-08-06T04:03:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T22:00:00Z",
+            "repo_unique_line_count": 1,
+            "live_unique_line_count": 0,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "8b3fb39aa1c6591d5cede889d270e3cdfde5e5c73e8f01e8ca170997fc234c8a",
+          "refused_overwrite": false,
+          "reason": "take repo"
+        },
+        {
+          "path": "skills/repo-tree/skill-alpha.md",
+          "target_path": "config/skills/repo-tree/skill-alpha.md",
+          "classification": "BYTE-IDENTICAL-LF",
+          "decision": "IDENTICAL",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 39,
+          "live_bytes": 39,
+          "live_larger": false,
+          "repo_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+          "live_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- skills/repo-tree/skill-alpha.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-06-01T12:00:00Z",
+            "used": "2026-06-01T12:00:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-09T23:00:00Z",
+            "repo_unique_line_count": 0,
+            "live_unique_line_count": 0,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+          "refused_overwrite": false,
+          "reason": "take repo"
+        },
+        {
+          "path": "skills/repo-tree/skill-beta.md",
+          "target_path": "config/skills/repo-tree/skill-beta.md",
+          "classification": "BOTH-UNIQUE",
+          "decision": "ADJUDICATE",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 84,
+          "live_bytes": 80,
+          "live_larger": false,
+          "repo_sha256": "da0cb82ea0739c3c3090fe0d2c46b55364043df8d22a9f8801e97d6f9481b1b5",
+          "live_sha256": "6df43f91e5e0d48d80b0741c0a1b2518fa0e146e0339073c463477dc092bb091",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- skills/repo-tree/skill-beta.md",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-06-12T12:00:00Z",
+            "used": "2026-06-12T12:00:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-10T00:00:00Z",
+            "repo_unique_line_count": 1,
+            "live_unique_line_count": 1,
+            "shared_line_count": 2
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "1e751a2135b1ceffdc0526e72c25eaad58403926870d8dee172bf3904f1525ac",
+          "refused_overwrite": false,
+          "reason": "neither side is a superset; queued for human adjudication; preview is union"
+        },
+        {
+          "path": "hooks/_dispatch/manifest.json",
+          "target_path": "config/hooks/manifest.json",
+          "classification": "BOTH-UNIQUE",
+          "decision": "ADJUDICATE",
+          "repo_exists": true,
+          "live_exists": true,
+          "repo_bytes": 81,
+          "live_bytes": 119,
+          "live_larger": true,
+          "repo_sha256": "c764eab5e2159fc227e809a5e06ed8a0e122f1fb18da39b3d303801bc696177e",
+          "live_sha256": "e08a61eb9c9aa1accf15369bc0441905f0f64b7f0c00cce926b5fd71fd683701",
+          "signal1_git_log_cI": {
+            "command": "git log -1 --format=%cI -- hooks/_dispatch/manifest.json",
+            "exit_code": 128,
+            "raw": "fatal: not a git repository (or any of the parent directories): .git",
+            "iso": null,
+            "independent_ledger_iso": "2026-07-01T00:00:00Z",
+            "used": "2026-07-01T00:00:00Z",
+            "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+          },
+          "signal2_live_mtime_plus_diff": {
+            "live_mtime_iso": "2026-08-10T01:00:00Z",
+            "repo_unique_line_count": 2,
+            "live_unique_line_count": 4,
+            "shared_line_count": 7
+          },
+          "unique_lines_preserved": true,
+          "migrated_sha256": "f38ae1acee6f67e72f5fd1806a0588b6fe47c69023c5e279625dbc335b55239e",
+          "refused_overwrite": false,
+          "reason": "neither side is a superset; queued for human adjudication; preview is union"
+        }
+      ],
+      "scope": {
+        "live_estate_present": false,
+        "repo_rules_present": true,
+        "proof_surface": "executable procedure + 10-file fixture sample including the three catalog-pinned live-larger names; not a claim that C:\\Users\\Prekzursil live files were read on this host",
+        "does_not_claim": [
+          "cloud ok=true is delivery",
+          "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+          "independent reviewer PASS",
+          "production trees were mutated"
+        ]
+      },
+      "cloud_ok": false,
+      "registered": false,
+      "named_probes": [
+        {
+          "id": "probe1",
+          "role": "provenance-two-signal",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0007/probe1_provenance.py"
+        },
+        {
+          "id": "probe2",
+          "role": "preservation-and-negative-control",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0007/probe2_preservation.py"
+        }
+      ]
+    }
+  },
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ARC-0007/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ARC-0007"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/phase3/A1/MIGRATION.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/phase3/A1/MIGRATION.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "c08b23d7368e019769c7b41c2b479898",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "architecture_id": "A1",
+  "completion_sentinel": "SUCCESS:ARC-0007",
+  "report_kind": "migration-plan",
+  "title": "Content-preserving migration into the config-first layout",
+  "question": "Design the migration from today's de-facto layout (repo rules/, live rules, two skills trees, hooks/_dispatch/manifest.json) into the config-first layout WITHOUT destroying content, given that the divergence is two-directional.",
+  "source_layout": {
+    "roots": [
+      "rules/ (repo fixture)",
+      "rules/ (live fixture)",
+      "skills/ (repo tree + live tree)",
+      "hooks/_dispatch/manifest.json"
+    ],
+    "divergence": {
+      "two_directional": true,
+      "catalog_pinned_live_larger": [
+        "rules/common/owner-ops-authorization.md",
+        "rules/common/performance.md",
+        "rules/common/security.md"
+      ],
+      "catalog_pin": "WORK-UNIT-CATALOG evidence pins: only 5 of 88 rules files byte-identical, 28 content-differing, 25 repo-larger, 3 live-larger (owner-ops-authorization, performance, security)."
+    }
+  },
+  "target_layout": {
+    "root": "config/",
+    "load_order": [
+      "config/load-order.json",
+      "config/rules/** (preserved bodies; A1 wraps to *.rule.json later)",
+      "config/skills/**",
+      "config/hooks/manifest.json"
+    ],
+    "mapping": [
+      {
+        "from": "rules/",
+        "to": "config/rules/"
+      },
+      {
+        "from": "skills/",
+        "to": "config/skills/"
+      },
+      {
+        "from": "hooks/_dispatch/",
+        "to": "config/hooks/"
+      }
+    ]
+  },
+  "provenance_procedure": {
+    "timestamps_do_not_authorise_overwrite": true,
+    "notes": "Signal 1 is git log -1 --format=%cI on the repo path (or the fixture committer ledger when git is absent). Signal 2 is live mtime plus the LF-normalised line diff. Classification is by line-set inclusion, not by which clock is newer. A unique line on either side forbids taking the other side as a one-directional overwrite.",
+    "signals": [
+      {
+        "id": "signal-1-repo-git-committer",
+        "command_or_method": "git log -1 --format=%cI -- <path>",
+        "reads": "repo committer timestamp (independent of filesystem mtime)"
+      },
+      {
+        "id": "signal-2-live-mtime-and-content-diff",
+        "command_or_method": "stat.st_mtime + set(lines_live) - set(lines_repo)",
+        "reads": "live mtime plus unique-line counts after LF normalisation"
+      }
+    ],
+    "decision_table": [
+      {
+        "when": "BYTE-IDENTICAL-LF or EOL-ONLY",
+        "do": "IDENTICAL / take repo bytes after LF"
+      },
+      {
+        "when": "REPO-ONLY",
+        "do": "TAKE-REPO-LIVE-ABSENT"
+      },
+      {
+        "when": "LIVE-ONLY",
+        "do": "TAKE-LIVE-REPO-ABSENT"
+      },
+      {
+        "when": "LIVE-SUPERSET",
+        "do": "TAKE-LIVE (repo lines already present)"
+      },
+      {
+        "when": "REPO-SUPERSET",
+        "do": "TAKE-REPO (live lines already present)"
+      },
+      {
+        "when": "BOTH-UNIQUE",
+        "do": "ADJUDICATE; hold both unique-line sets; preview = UNION-MERGE"
+      },
+      {
+        "when": "requested TAKE-REPO while live has unique lines",
+        "do": "REFUSE-ONE-DIRECTIONAL-OVERWRITE"
+      }
+    ]
+  },
+  "adjudication_queue": [
+    {
+      "path": "rules/common/owner-ops-authorization.md",
+      "classification": "BOTH-UNIQUE",
+      "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+      "held_repo_unique_lines": 1,
+      "held_live_unique_lines": 14,
+      "preview_is_union": true
+    },
+    {
+      "path": "skills/repo-tree/skill-beta.md",
+      "classification": "BOTH-UNIQUE",
+      "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+      "held_repo_unique_lines": 1,
+      "held_live_unique_lines": 1,
+      "preview_is_union": true
+    },
+    {
+      "path": "hooks/_dispatch/manifest.json",
+      "classification": "BOTH-UNIQUE",
+      "why_queued": "neither side is a superset; queued for human adjudication; preview is union",
+      "held_repo_unique_lines": 2,
+      "held_live_unique_lines": 4,
+      "preview_is_union": true
+    }
+  ],
+  "rollback": {
+    "unit": "the rollback snapshot of the target tree taken BEFORE any write",
+    "steps": [
+      "1. snapshot mapped files to probes/ARC-0007/fixtures/rollback-snapshot/",
+      "2. apply forward merge only after snapshot hashes are recorded",
+      "3. on abort, restore_tree(snapshot, dest) byte-for-byte; never re-run the forward merge as rollback"
+    ],
+    "restore_command": "python3 -c \"from pathlib import Path; import sys; sys.path.insert(0,'command-center/p2-wave/probes/ARC-0007'); import procedure as P; P.restore_tree(Path('command-center/p2-wave/probes/ARC-0007/fixtures/rollback-snapshot'), Path('command-center/p2-wave/probes/ARC-0007/fixtures/migrated'))\"",
+    "forbids": [
+      "one-directional Copy-Item -Force / cp -f of live onto repo",
+      "one-directional copy of repo onto live",
+      "scripts/sync-from-live.ps1"
+    ]
+  },
+  "sample": [
+    {
+      "path": "rules/common/owner-ops-authorization.md",
+      "target_path": "config/rules/common/owner-ops-authorization.md",
+      "classification": "BOTH-UNIQUE",
+      "decision": "ADJUDICATE",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 179,
+      "live_bytes": 1176,
+      "live_larger": true,
+      "repo_sha256": "5a92aac5e2a5880b23837cfc49a0753e14ed75b8d22ab18906267a3951363ba9",
+      "live_sha256": "702837665c0a724cf59069192e344255f337da92930b4c0f608426aae0413af1",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/owner-ops-authorization.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-07-11T15:02:00Z",
+        "used": "2026-07-11T15:02:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T16:00:00Z",
+        "repo_unique_line_count": 1,
+        "live_unique_line_count": 14,
+        "shared_line_count": 4
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "1183a36f43374a8bce3e28b96f764b9e2e7ad4917c6dc2e5663697a0d1d2ee61",
+      "refused_overwrite": false,
+      "reason": "neither side is a superset; queued for human adjudication; preview is union"
+    },
+    {
+      "path": "rules/common/performance.md",
+      "target_path": "config/rules/common/performance.md",
+      "classification": "LIVE-SUPERSET",
+      "decision": "TAKE-LIVE",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 78,
+      "live_bytes": 273,
+      "live_larger": true,
+      "repo_sha256": "1c44db282784e91219f2afb94d7a3999ae5b3b3e854e84ec9265a9d2e752adf2",
+      "live_sha256": "5d19ed415d58a0cedb5c083ce09550f273da9e37ce8fd4785ea0d25002616b8e",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/performance.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-07-18T09:41:00Z",
+        "used": "2026-07-18T09:41:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T17:00:00Z",
+        "repo_unique_line_count": 0,
+        "live_unique_line_count": 3,
+        "shared_line_count": 3
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "5d19ed415d58a0cedb5c083ce09550f273da9e37ce8fd4785ea0d25002616b8e",
+      "refused_overwrite": false,
+      "reason": "take live"
+    },
+    {
+      "path": "rules/common/security.md",
+      "target_path": "config/rules/common/security.md",
+      "classification": "LIVE-SUPERSET",
+      "decision": "TAKE-LIVE",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 73,
+      "live_bytes": 197,
+      "live_larger": true,
+      "repo_sha256": "40d9a45f48d1e58cf8fa869d04ee4387b5276e76e9eed20bb56c7112d73f7722",
+      "live_sha256": "c09e13a91149e79386dad07162cbc39af0b2350d1b152e9685b4665f4b52af0c",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/security.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-07-20T11:08:00Z",
+        "used": "2026-07-20T11:08:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T18:00:00Z",
+        "repo_unique_line_count": 0,
+        "live_unique_line_count": 2,
+        "shared_line_count": 3
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "c09e13a91149e79386dad07162cbc39af0b2350d1b152e9685b4665f4b52af0c",
+      "refused_overwrite": false,
+      "reason": "take live"
+    },
+    {
+      "path": "rules/common/agents.md",
+      "target_path": "config/rules/common/agents.md",
+      "classification": "REPO-SUPERSET",
+      "decision": "TAKE-REPO",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 398,
+      "live_bytes": 32,
+      "live_larger": false,
+      "repo_sha256": "6bd0e5c0942ff969f2e7468e577360a29b9edd71e7df66a21080d62f52411523",
+      "live_sha256": "ee8d8037376867de65f575582c753d8747663dfffea8f6fa5538b0c2ce829214",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/agents.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-08-02T08:15:00Z",
+        "used": "2026-08-02T08:15:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T19:00:00Z",
+        "repo_unique_line_count": 2,
+        "live_unique_line_count": 0,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "6bd0e5c0942ff969f2e7468e577360a29b9edd71e7df66a21080d62f52411523",
+      "refused_overwrite": false,
+      "reason": "take repo"
+    },
+    {
+      "path": "rules/common/hooks.md",
+      "target_path": "config/rules/common/hooks.md",
+      "classification": "REPO-SUPERSET",
+      "decision": "TAKE-REPO",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 581,
+      "live_bytes": 61,
+      "live_larger": false,
+      "repo_sha256": "377d6fbf9c14987893aedaa9711e0b40ddb4fb4dc5d91477924e179c5423c30a",
+      "live_sha256": "e64c5b9e96775d93a8f9034f4f304617b466540dffcb3c2b9d9b75d570480ddb",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/hooks.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-08-02T08:16:00Z",
+        "used": "2026-08-02T08:16:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T20:00:00Z",
+        "repo_unique_line_count": 1,
+        "live_unique_line_count": 0,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "377d6fbf9c14987893aedaa9711e0b40ddb4fb4dc5d91477924e179c5423c30a",
+      "refused_overwrite": false,
+      "reason": "take repo"
+    },
+    {
+      "path": "rules/common/ci-hygiene.md",
+      "target_path": "config/rules/common/ci-hygiene.md",
+      "classification": "REPO-SUPERSET",
+      "decision": "TAKE-REPO",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 402,
+      "live_bytes": 43,
+      "live_larger": false,
+      "repo_sha256": "4d1bddaa73afe76b510df34ffdd32b2743186d2942a1540d271128f812354455",
+      "live_sha256": "86fb56266fbb5f52ed25d16681ac320545f91b326e7615da7782f81527e4b184",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/ci-hygiene.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-08-05T19:22:00Z",
+        "used": "2026-08-05T19:22:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T21:00:00Z",
+        "repo_unique_line_count": 2,
+        "live_unique_line_count": 0,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "4d1bddaa73afe76b510df34ffdd32b2743186d2942a1540d271128f812354455",
+      "refused_overwrite": false,
+      "reason": "take repo"
+    },
+    {
+      "path": "rules/common/windows-shell.md",
+      "target_path": "config/rules/common/windows-shell.md",
+      "classification": "REPO-SUPERSET",
+      "decision": "TAKE-REPO",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 92,
+      "live_bytes": 51,
+      "live_larger": false,
+      "repo_sha256": "8b3fb39aa1c6591d5cede889d270e3cdfde5e5c73e8f01e8ca170997fc234c8a",
+      "live_sha256": "40773b43f3301034095174d23c982bb285d31a25a4200df8f121f263a7375efa",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- rules/common/windows-shell.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-08-06T04:03:00Z",
+        "used": "2026-08-06T04:03:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T22:00:00Z",
+        "repo_unique_line_count": 1,
+        "live_unique_line_count": 0,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "8b3fb39aa1c6591d5cede889d270e3cdfde5e5c73e8f01e8ca170997fc234c8a",
+      "refused_overwrite": false,
+      "reason": "take repo"
+    },
+    {
+      "path": "skills/repo-tree/skill-alpha.md",
+      "target_path": "config/skills/repo-tree/skill-alpha.md",
+      "classification": "BYTE-IDENTICAL-LF",
+      "decision": "IDENTICAL",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 39,
+      "live_bytes": 39,
+      "live_larger": false,
+      "repo_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+      "live_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- skills/repo-tree/skill-alpha.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-06-01T12:00:00Z",
+        "used": "2026-06-01T12:00:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-09T23:00:00Z",
+        "repo_unique_line_count": 0,
+        "live_unique_line_count": 0,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "87685bf3ab76fc297ed110c0ce35e828d11375c408698b1092dc4fa47968bb60",
+      "refused_overwrite": false,
+      "reason": "take repo"
+    },
+    {
+      "path": "skills/repo-tree/skill-beta.md",
+      "target_path": "config/skills/repo-tree/skill-beta.md",
+      "classification": "BOTH-UNIQUE",
+      "decision": "ADJUDICATE",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 84,
+      "live_bytes": 80,
+      "live_larger": false,
+      "repo_sha256": "da0cb82ea0739c3c3090fe0d2c46b55364043df8d22a9f8801e97d6f9481b1b5",
+      "live_sha256": "6df43f91e5e0d48d80b0741c0a1b2518fa0e146e0339073c463477dc092bb091",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- skills/repo-tree/skill-beta.md",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-06-12T12:00:00Z",
+        "used": "2026-06-12T12:00:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-10T00:00:00Z",
+        "repo_unique_line_count": 1,
+        "live_unique_line_count": 1,
+        "shared_line_count": 2
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "1e751a2135b1ceffdc0526e72c25eaad58403926870d8dee172bf3904f1525ac",
+      "refused_overwrite": false,
+      "reason": "neither side is a superset; queued for human adjudication; preview is union"
+    },
+    {
+      "path": "hooks/_dispatch/manifest.json",
+      "target_path": "config/hooks/manifest.json",
+      "classification": "BOTH-UNIQUE",
+      "decision": "ADJUDICATE",
+      "repo_exists": true,
+      "live_exists": true,
+      "repo_bytes": 81,
+      "live_bytes": 119,
+      "live_larger": true,
+      "repo_sha256": "c764eab5e2159fc227e809a5e06ed8a0e122f1fb18da39b3d303801bc696177e",
+      "live_sha256": "e08a61eb9c9aa1accf15369bc0441905f0f64b7f0c00cce926b5fd71fd683701",
+      "signal1_git_log_cI": {
+        "command": "git log -1 --format=%cI -- hooks/_dispatch/manifest.json",
+        "exit_code": 128,
+        "raw": "fatal: not a git repository (or any of the parent directories): .git",
+        "iso": null,
+        "independent_ledger_iso": "2026-07-01T00:00:00Z",
+        "used": "2026-07-01T00:00:00Z",
+        "note": "git log is signal 1 when a repo is present; this worktree has no .git at the estate root, so the fixture ledger ISO is the independent repo-side timestamp analogue (not derived from live mtime)."
+      },
+      "signal2_live_mtime_plus_diff": {
+        "live_mtime_iso": "2026-08-10T01:00:00Z",
+        "repo_unique_line_count": 2,
+        "live_unique_line_count": 4,
+        "shared_line_count": 7
+      },
+      "unique_lines_preserved": true,
+      "migrated_sha256": "f38ae1acee6f67e72f5fd1806a0588b6fe47c69023c5e279625dbc335b55239e",
+      "refused_overwrite": false,
+      "reason": "neither side is a superset; queued for human adjudication; preview is union"
+    }
+  ],
+  "scope": {
+    "live_estate_present": false,
+    "repo_rules_present": true,
+    "proof_surface": "executable procedure + 10-file fixture sample including the three catalog-pinned live-larger names; not a claim that C:\\Users\\Prekzursil live files were read on this host",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "independent reviewer PASS",
+      "production trees were mutated"
+    ]
+  },
+  "cloud_ok": false,
+  "registered": false,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "provenance-two-signal",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0007/probe1_provenance.py"
+    },
+    {
+      "id": "probe2",
+      "role": "preservation-and-negative-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0007/probe2_preservation.py"
+    }
+  ],
+  "kind": "migration-plan",
+  "observations": [
+    {
+      "name": "sample-size",
+      "measured": 10,
+      "method": "count of measured fixture paths in SAMPLE",
+      "anchor": "command-center/p2-wave/probes/ARC-0007/emit_migration.py"
+    },
+    {
+      "name": "live-larger-in-sample",
+      "measured": 4,
+      "method": "len(live_bytes) > len(repo_bytes) on the 10-file fixture",
+      "anchor": "command-center/p2-wave/probes/ARC-0007/fixtures/live/"
+    },
+    {
+      "name": "negative-control-refused",
+      "measured": true,
+      "method": "apply_merge(..., requested=TAKE-REPO) while live holds a unique line",
+      "anchor": "command-center/p2-wave/probes/ARC-0007/procedure.py:negative_control_refuse_overwrite"
+    }
+  ],
+  "control_ids": [
+    "negative-control-refuse-one-directional-overwrite",
+    "content-preservation-union"
+  ]
+}

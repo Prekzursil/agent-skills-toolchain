@@ -1,0 +1,777 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "marketplace-publication-governance",
+  "name": "Marketplace publication governance - publish nothing without a measured context cost",
+  "description": "Blueprint 90 of 96 (design BP-REL-04). Publish a skill or plugin only once its licence, its MEASURED per-turn context cost, its default enable scope and its deprecation path are all decided. Mechanism: publication is treated as a CONTRACT WITH CONSUMERS, and the binding step is a measurement - an artifact whose context cost cannot be measured cannot be published, because a consumer cannot budget for an unmeasured tax. The admission decision itself goes to a council rather than to the author, since the author is the party with the least incentive to count the cost.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk"
+  ],
+  "tags": [
+    "marketplace",
+    "governance",
+    "context-budget",
+    "deprecation"
+  ],
+  "flagship": false,
+  "params": {
+    "artifact_path": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to the skill or plugin being published"
+    },
+    "target_marketplace": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The marketplace that will register it. A marketplace with no on-disk source is a dangling reference and is rejected."
+    },
+    "licence": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "SPDX identifier or an explicit proprietary statement. There is no default: an unstated licence is a licence question pushed onto every consumer."
+    },
+    "declared_context_cost_tokens": {
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "maximum": 200000,
+      "description": "The per-turn cost the publisher CLAIMS. It is compared against a measurement; a mismatch beyond tolerance blocks publication."
+    },
+    "cost_tolerance_ratio": {
+      "type": "number",
+      "default": 0.2,
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Allowed |measured - declared| / measured before the declaration counts as wrong"
+    },
+    "default_enable_scope": {
+      "type": "enum",
+      "enum": [
+        "user",
+        "project",
+        "none"
+      ],
+      "default": "user",
+      "description": "USER scope only. A project-scope default returns the moment a consumer changes cwd, which is why disabling at project scope was never a durable cure."
+    },
+    "ships_hooks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the artifact carries hooks. A published artifact that ships hooks is an execution surface for every consumer and must say so prominently."
+    },
+    "deprecation_policy": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "How this artifact will be RETIRED, written before it is published. A retired artifact must be DEREGISTERED, not merely disabled."
+    }
+  },
+  "roles": {
+    "publication-author": {
+      "description": "Prepares the manifest, the licence declaration and the deprecation plan",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Write(command-center/publication/**)"
+      ],
+      "write_paths": [
+        "command-center/publication/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "cost-measurer": {
+      "description": "Measures the per-turn context cost the artifact imposes on a consumer, independently of the author's estimate",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/publication/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "governance-council-member": {
+      "description": "A council seat on the admission decision - is this worth publishing at all, given that every published artifact taxes its consumers?",
+      "model": "opus",
+      "vendor": "mixed",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep"
+      ],
+      "speaking_rights": "always",
+      "min_participants": 3,
+      "max_participants": 5
+    },
+    "owner": {
+      "description": "The human owner - decides which internal artifacts are worth publishing at all",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/publication/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Write(command-center/publication/**)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/publication/**"
+    ],
+    "forbid_write_paths": [
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "owner-proprietary"
+      ],
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_kind == council",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "at least one council seat must be cross-vendor or the admission vote inherits one vendor's blind spot about its own ecosystem"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "licence-declared": {
+      "predicate": "custom-expression",
+      "expression": "licence_declared == true AND licence_in_allowlist == true AND obligations_enumerated == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "cost-measured-matches-declared": {
+      "predicate": "custom-expression",
+      "expression": "cost_measured == true AND declared_within_tolerance == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "user-scope-and-deprecation": {
+      "predicate": "custom-expression",
+      "expression": "default_enable_scope == user AND deprecation_path_written == true AND deregistration_step_present == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "hooks-disclosed": {
+      "predicate": "custom-expression",
+      "expression": "ships_hooks == false OR hook_execution_surface_disclosed == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "declare-licence",
+      "title": "Licence and its obligations, enumerated",
+      "kind": "task",
+      "role": "publication-author",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9001",
+        "title": "Declare the artifact licence and enumerate every obligation it imposes on a consumer",
+        "phase": "7",
+        "question_or_target": "State the licence and enumerate its obligations for a CONSUMER (attribution, share-alike, field-of-use restrictions, ML-training riders). Check every vendored dependency inside the artifact for a licence that is stricter than the declared one - the strictest inherited term governs.",
+        "inputs": [
+          "params.artifact_path",
+          "params.licence"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "publication-author",
+          "basis": "reading obligations out of licence text and reconciling inherited terms is substantive"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Write(command-center/publication/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/publication/licence-declaration.json",
+        "output_schema": "command-center/schema/license-and-rights-record.schema.json",
+        "evidence_requirement": "per obligation the licence clause it comes from, and for each vendored dependency its own licence with the file the notice was read from; this is a licence RECORD, not legal advice, and must say so",
+        "tests_required": [
+          "a vendored dependency under a stricter licence must force the declared licence to the stricter term or FAIL the stage",
+          "an artifact with no licence file must FAIL rather than default to permissive"
+        ],
+        "reviewer_requirement": "one independent reader who spot-checks at least one obligation against the quoted clause",
+        "completion_sentinel": "SUCCESS:BPW-9001 emitted only when the licence is declared, obligations are enumerated with clause anchors, and every vendored dependency is accounted for; otherwise FAILED:BPW-9001 <reason>",
+        "retry_policy": "no retry on a missing licence file - that is an authoring gap the publisher must close, not a transient failure",
+        "failure_classification": [
+          "licence-absent",
+          "inherited-term-stricter",
+          "obligation-unenumerated"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/publication/licence-declaration.json",
+          "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9001",
+          "consumers": [
+            "admission-council",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-licence",
+      "title": "No publication without an enumerated licence",
+      "kind": "gate",
+      "depends_on": [
+        "declare-licence"
+      ],
+      "gate_ref": "licence-declared"
+    },
+    {
+      "id": "measure-context-cost",
+      "title": "Measure what a consumer will pay per turn",
+      "kind": "task",
+      "role": "cost-measurer",
+      "depends_on": [
+        "gate-licence"
+      ],
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "BPW-9002",
+        "title": "Measure the per-turn context cost the artifact imposes when enabled, and compare it to the declaration",
+        "phase": "7",
+        "question_or_target": "Measure the artifact's contribution to a consumer's per-turn context: its always-loaded surface (description, frontmatter, tool schemas) as distinct from its lazily-loaded body. Compare the measurement to declared_context_cost_tokens and compute the deviation ratio.",
+        "inputs": [
+          "params.artifact_path",
+          "params.declared_context_cost_tokens",
+          "params.cost_tolerance_ratio"
+        ],
+        "dependencies": [
+          "BPW-9001"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "cost-measurer",
+          "basis": "independent of the author, because the author's declaration is the thing under test"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/publication/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/publication/context-cost-measurement.json",
+        "output_schema": "command-center/schema/measurement-run.schema.json",
+        "evidence_requirement": "the token count with the tokeniser named, split into always-loaded and lazily-loaded, plus the deviation from the declaration; a single total with no split hides whether the cost is paid every turn or only on use",
+        "tests_required": [
+          "an artifact whose always-loaded surface is measured must produce a NON-ZERO always-loaded figure; a zero there means the measurement missed the description and frontmatter",
+          "both-states control: measuring with the artifact enabled and disabled must produce DIFFERENT totals - if they match, the instrument is not seeing the artifact at all",
+          "a declaration outside tolerance must FAIL the gate rather than be silently corrected"
+        ],
+        "reviewer_requirement": "the admission council reads the measurement; the author may not revise the declaration after seeing it without recording that it was revised",
+        "completion_sentinel": "SUCCESS:BPW-9002 emitted only when the enabled/disabled control shows a difference AND the always-loaded split is non-zero; otherwise FAILED:BPW-9002 <reason>",
+        "retry_policy": "one retry with a different tokeniser if the first measurement returns zero; a second zero means the instrument is blind and the artifact must not be published",
+        "failure_classification": [
+          "measurement-zero",
+          "declared-outside-tolerance",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/publication/context-cost-measurement.json",
+          "schema_ref": "command-center/schema/measurement-run.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9002",
+          "consumers": [
+            "admission-council",
+            "gate-cost"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-cost",
+      "title": "An unmeasured artifact cannot be budgeted by a consumer",
+      "kind": "gate",
+      "depends_on": [
+        "measure-context-cost"
+      ],
+      "gate_ref": "cost-measured-matches-declared"
+    },
+    {
+      "id": "write-deprecation-path",
+      "title": "The retirement plan is written BEFORE publication",
+      "kind": "task",
+      "role": "publication-author",
+      "depends_on": [
+        "gate-cost"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPW-9003",
+        "title": "Write the deprecation path, including the DEREGISTRATION step",
+        "phase": "7",
+        "question_or_target": "Write how this artifact is retired: the signal that retirement is due, the migration a consumer must make, and the explicit DEREGISTRATION step. Disabling is not retiring - a declared-RETIRED artifact that stays registered is still a live reference in every consumer's catalogue.",
+        "inputs": [
+          "params.deprecation_policy",
+          "params.default_enable_scope",
+          "params.ships_hooks"
+        ],
+        "dependencies": [
+          "BPW-9002"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "publication-author",
+          "basis": "designing a migration path for unknown future consumers is judgement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/publication/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/publication/publication-manifest.json",
+        "output_schema": "command-center/schema/packaging-report.schema.json",
+        "evidence_requirement": "the manifest with licence, measured cost split, enable scope, hook disclosure, and a deprecation section containing a named deregistration step; a deprecation section without deregistration is the measured failure mode",
+        "tests_required": [
+          "a manifest whose deprecation section lacks a deregistration step must FAIL",
+          "an artifact with ships_hooks true whose manifest does not disclose the execution surface must FAIL",
+          "default_enable_scope project must FAIL - it returns when the consumer changes cwd"
+        ],
+        "reviewer_requirement": "the admission council reviews the manifest as a whole before the vote",
+        "completion_sentinel": "SUCCESS:BPW-9003 emitted only when the manifest carries licence, measured cost, USER enable scope, hook disclosure and a deregistration step; otherwise FAILED:BPW-9003 <reason>",
+        "retry_policy": "one retry after adding the missing manifest section; a second failure means the policy input itself is incomplete and returns to the publisher",
+        "failure_classification": [
+          "deregistration-missing",
+          "scope-not-user",
+          "hooks-undisclosed"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/publication/publication-manifest.json",
+          "schema_ref": "command-center/schema/packaging-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9003",
+          "consumers": [
+            "admission-council",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-scope-deprecation",
+      "title": "USER scope, with a deregistration step",
+      "kind": "gate",
+      "depends_on": [
+        "write-deprecation-path"
+      ],
+      "gate_ref": "user-scope-and-deprecation"
+    },
+    {
+      "id": "gate-hooks",
+      "title": "A published artifact that ships hooks is an execution surface",
+      "kind": "gate",
+      "depends_on": [
+        "gate-scope-deprecation"
+      ],
+      "gate_ref": "hooks-disclosed"
+    },
+    {
+      "id": "admission-council",
+      "title": "Is this worth publishing at all?",
+      "kind": "council",
+      "depends_on": [
+        "gate-hooks"
+      ],
+      "timeout_seconds": 7200,
+      "council_spec_ref": "command-center/schema/councilspec.v2.schema.json",
+      "participants_min": 3,
+      "participants_max": 5,
+      "stopping_rules": [
+        {
+          "id": "admission-consensus",
+          "expression": "consensus >= 0.8 AND no_new_objection_rounds >= 1",
+          "applies_to": "council",
+          "minimum_conditions": "cost_measured == true AND licence_declared == true",
+          "on_stop": "complete"
+        },
+        {
+          "id": "objection-stuck",
+          "expression": "objections_open >= 1 AND no_new_objection_rounds >= 2",
+          "applies_to": "council",
+          "on_stop": "escalate"
+        }
+      ]
+    },
+    {
+      "id": "owner-publication-decision",
+      "title": "Publication is an owner call - every published artifact taxes its consumers",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "admission-council"
+      ],
+      "prompt": "Licence enumerated, context cost measured against the declaration, USER enable scope, hook surface disclosed, deprecation path written with a deregistration step, council advised. Publish, publish narrowed, or keep private?",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "publish",
+        "publish-narrowed-split-artifact",
+        "keep-private",
+        "abandon"
+      ],
+      "decision_artifact": {
+        "path": "command-center/publication/publication-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "owner"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "registered-with-complete-record",
+      "expression": "manifest_complete == true AND registration_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "cost_measured == true AND deprecation_path_written == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "cost-unmeasurable",
+      "expression": "cost_measured == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": [
+      "measurement-zero",
+      "deregistration-missing"
+    ],
+    "no_retry_on": [
+      "licence-absent",
+      "declared-outside-tolerance",
+      "scope-not-user"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "licence-absent",
+      "measurement-zero",
+      "deregistration-missing",
+      "hooks-undisclosed"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-publication-decision",
+    "quarantine_path": "command-center/quarantine/publication"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/publication",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/publication.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/publication-plan.json",
+    "forbid_tools": [
+      "Write(command-center/publication/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-04 - the catalogue-tax measurement (98 installed / 9 enabled, two orphaned marketplace clones on disk, one unregistered clone shipping hooks, and a declared-RETIRED marketplace still registered)",
+    "cost": {
+      "currency": "USD",
+      "min": 0.2,
+      "expected": 1.5,
+      "max": 6.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 3600,
+      "max": 86400
+    },
+    "tokens": {
+      "min": 30000,
+      "expected": 200000,
+      "max": 800000
+    },
+    "tool_calls": {
+      "min": 10,
+      "expected": 45,
+      "max": 150
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "a published artifact propagates to every consumer of the marketplace; unpublishing does not retract copies already installed, which is why the deprecation path is written before publication rather than after",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/publication.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/mcp-fleet-curation",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - install-means-enabled-by-default and the USER-scope cure"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "a plain marketplace registration with no governance record"
+    ]
+  },
+  "outputs": {
+    "manifest": {
+      "path": "command-center/publication/publication-manifest.json",
+      "schema_ref": "command-center/schema/packaging-report.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9003",
+      "consumers": [
+        "owner",
+        "skill-plugin-portfolio-stocktake"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 90,
+      "of": 96,
+      "design_card": "BP-REL-04",
+      "design_family": "D17-release",
+      "spec_category": "security-governance-and-risk",
+      "acquisition_route": "BUILD-NEW",
+      "flagship": false
+    },
+    "mechanism": "publication is blocked on a MEASUREMENT, not on a declaration: the always-loaded context cost is measured with an enabled/disabled control and compared to the publisher's claim within a tolerance. The admission vote sits with a cross-vendor council because the author is the party least motivated to count the tax it imposes.",
+    "council_preset_available": "platform/council/presets/C-H60-marketplace-plugin-admission.councilspec.json - the program already designed a marketplace-plugin-admission preset; the council stage here references the CouncilSpec CONTRACT (the schema), and a runner should bind that preset as the concrete seat allocation.",
+    "not_a_duplicate_because": {
+      "vs_skill-plugin-portfolio-stocktake": "that is the CONSUMER side - it prunes what is already installed against a context budget. This is the PUBLISHER side and it runs once, before an artifact exists in anyone's catalogue.",
+      "vs_license-and-rights-governance-register": "a licence register records rights across a corpus; this gates ONE publication on four coupled preconditions of which licence is only the first, and its binding step is a cost measurement rather than a rights record.",
+      "vs_pr-shepherd-to-merge": "that lands code into a repo; this admits an artifact into a catalogue that other consumers load every turn"
+    },
+    "contraindications": [
+      "NOT for a private one-off skill only this estate uses - though the licence and scope questions still apply",
+      "NOT for republishing an unchanged artifact - the cost measurement is the expensive part and it is keyed to the artifact's content"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "declared-vs-measured",
+        "given": "an artifact published with a declared per-turn cost",
+        "expect": "a consumer's measured cost matches the declaration within cost_tolerance_ratio"
+      },
+      {
+        "id": "enabled-disabled-control",
+        "given": "the cost instrument run with the artifact enabled and disabled",
+        "expect": "DIFFERENT totals - identical totals mean the instrument cannot see the artifact"
+      },
+      {
+        "id": "deprecate-means-deregister",
+        "given": "an artifact marked RETIRED",
+        "expect": "it is DEREGISTERED, not merely disabled - the measured failure mode is a declared-RETIRED marketplace that stayed registered"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "publish-a-review-skill",
+        "params": {
+          "artifact_path": "C:/Users/Prekzursil/source/agent-skills-toolchain/skills/refactor-equivalence",
+          "target_marketplace": "prekzursil-internal",
+          "licence": "MIT",
+          "declared_context_cost_tokens": 300,
+          "cost_tolerance_ratio": 0.2,
+          "default_enable_scope": "user",
+          "ships_hooks": false,
+          "deprecation_policy": "Retire when CrossHair supports the language surface natively; migration is to call the tool directly; the deregistration step removes the marketplace entry, not merely the enable flag."
+        },
+        "licence_record": {
+          "declared": "MIT",
+          "obligations": [
+            "attribution in redistributed copies"
+          ],
+          "vendored_dependencies": [
+            {
+              "name": "crosshair-tool",
+              "licence": "MIT",
+              "notice_read_from": "LICENSE"
+            }
+          ],
+          "strictest_inherited": "MIT"
+        },
+        "cost_measurement": {
+          "tokeniser": "cl100k_base",
+          "always_loaded_tokens": 268,
+          "lazily_loaded_tokens": 4120,
+          "enabled_disabled_delta": 268,
+          "declared": 300,
+          "deviation_ratio": 0.119,
+          "within_tolerance": true
+        },
+        "council": {
+          "seats": 3,
+          "cross_vendor_seats": 1,
+          "consensus": 0.83,
+          "objections_resolved": 1
+        },
+        "terminal_state": "SUCCESS:BPW-9003 -> owner decision: publish",
+        "note": "The declaration (300) was close but not exact; 268 measured is a 11.9% deviation, inside the 20% tolerance. Publishing on the DECLARED figure alone would have shipped a number nobody had counted - which is how a catalogue accumulates 98 installed artifacts and no budget."
+      }
+    ],
+    "owner_decision": "YES - which internal skills are worth publishing at all, given that every published artifact adds catalogue tax for its consumers. Represented as the owner-publication-decision human checkpoint with a publish-narrowed option, so 'split it so consumers can enable only what they need' is a first-class outcome rather than an afterthought.",
+    "unverified": [
+      "That a consumer's measured per-turn cost will match this workflow's measurement is UNVERIFIED - the measurement is taken on the publisher's box with the publisher's tokeniser. Settling experiment = the declared-vs-measured benchmark run by an actual consumer after publication; a systematic gap would mean the instrument, not the declaration, needs fixing.",
+      "The catalogue-tax figures (98 installed / 9 enabled) are quoted from the design card and are NOT re-measured here. Settling experiment = audit the currently-registered marketplaces and count how many have a source on disk and a declared licence."
+    ]
+  }
+}

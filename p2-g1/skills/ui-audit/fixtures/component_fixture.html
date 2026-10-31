@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Audit Component-Tree Fixture</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 16px; }
+    .grid { display: flex; gap: 16px; }
+    .card {
+      border: 1px solid #cccccc;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    /* card-link / card-btn deliberately carry NO id/data-testid/aria-label.
+       In a component tree each is the FIRST <a>/<button> inside its own .card,
+       so a regenerated `a:nth-of-type(1)` / `button:nth-of-type(1)` selector is
+       globally AMBIGUOUS across all cards — the exact bug that broke the old
+       selector-based crawl (strict-mode reject -> false effect:'none'). */
+    .card-link { cursor: pointer; color: #0050b3; }
+    .card-btn, .ghost, .icon-only, [data-testid], [aria-label], #primary-action {
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .icon-only { width: 24px; height: 24px; min-height: 24px; padding: 0; }
+    .brand { cursor: pointer; font-weight: 700; color: #0050b3; }
+  </style>
+</head>
+<body>
+  <header>
+    <!-- Wired anchor, no href so it mutates instead of navigating -->
+    <a class="brand" onclick="hit()">Home</a>
+  </header>
+
+  <main class="grid">
+    <!-- Card 1: wired link + wired button (no ids -> nth-of-type collision bait) -->
+    <div class="card">
+      <a class="card-link" onclick="hit()">Open 1</a>
+      <button class="card-btn" type="button" onclick="hit()">Save 1</button>
+    </div>
+
+    <!-- Card 2: wired link + wired button (same nth-of-type position as card 1) -->
+    <div class="card">
+      <a class="card-link" onclick="hit()">Open 2</a>
+      <button class="card-btn" type="button" onclick="hit()">Save 2</button>
+    </div>
+
+    <!-- Card 3: wired link + DEAD button (no handler) -->
+    <div class="card">
+      <a class="card-link" onclick="hit()">Open 3</a>
+      <button class="card-btn" type="button">Dead Save</button>
+    </div>
+  </main>
+
+  <section class="controls">
+    <!-- Identifier branch: data-testid (wired) -->
+    <button data-testid="submit-cta" type="button" onclick="hit()">Submit</button>
+    <!-- Identifier branch: aria-label (DEAD) -->
+    <button aria-label="Close panel" type="button">&times;</button>
+    <!-- Identifier branch: id (wired) -->
+    <button id="primary-action" type="button" onclick="hit()">Go</button>
+    <!-- Identifier branch: visible text (DEAD) -->
+    <button class="ghost" type="button">Ghost</button>
+    <!-- Identifier branch: tag + class, no text (DEAD) -->
+    <button class="icon-only" type="button"></button>
+  </section>
+
+  <!-- Mutation sink: wired controls write here so the observer sees a DOM delta -->
+  <output id="out"></output>
+
+  <script>
+    let __n = 0;
+    function hit() {
+      __n += 1;
+      document.getElementById('out').textContent = 'hit ' + __n;
+    }
+  </script>
+</body>
+</html>

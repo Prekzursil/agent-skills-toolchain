@@ -1,0 +1,28 @@
+# LANE CASUALTY -- EOL pinning for the two receipts whose sha256 is PUBLISHED.
+#
+# WHY (measured in build round 2, not assumed). Each receipt publishes an elided sha256 of its
+# own bytes, and `verify_elided_digest.py` reads with newline="" so it hashes the file exactly as
+# it sits on disk. This repo has core.autocrlf=true and the root .gitattributes covers only
+# *.sh and *.ps1, so a checkout was converting these LF blobs to CRLF. Measured with a REAL
+# fresh clone of commit ea9a6eee (`verify_blob_parity.py --fresh-clone`):
+#
+#     ADV-0021  clone blob     176468 B  CRLF    0   digest MATCH=True
+#               clone CHECKOUT 177741 B  CRLF 1273   digest MATCH=False
+#     ADV-0022  clone blob     114103 B  CRLF    0   digest MATCH=True
+#               clone CHECKOUT 114776 B  CRLF  673   digest MATCH=False
+#
+# So a reviewer who cloned this repo on Windows could NOT reproduce either published digest, and
+# the declared artifacts[0].bytes disagreed with the file they got. Round 1 asserted the opposite
+# ("a reviewer who clones this repo reproduces both declared digests") without ever making a
+# clone; that sentence is recorded as REFUTED in COMMIT-PROVENANCE.md and LANE-CASUALTY-REPORT.md.
+#
+# -text = no conversion in either direction, so the bytes that were hashed are the bytes a
+# checkout produces, on every platform. Verified safe first: all 84 tracked lane blobs are pure
+# LF (`_r2_blob_eol_scan.py`), so nothing CRLF gets frozen in place.
+#
+# DELIBERATELY NOT lane-wide. 30 lane files currently hold CRLF in the WORKING TREE while their
+# blobs are LF; autocrlf hides that on diff. A blanket `* -text` would immediately surface 30
+# EOL-only phantom modifications on a shared worktree, which is exactly the churn a sibling's
+# whole-index commit would then sweep up. Scoped to the two files whose correctness depends on it.
+ADV-0021-install-path-stride-threat-model.json -text
+ADV-0022-declared-permission-escape.json       -text

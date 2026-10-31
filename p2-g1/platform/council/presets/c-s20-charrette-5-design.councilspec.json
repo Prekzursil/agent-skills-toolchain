@@ -1,0 +1,356 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s20-charrette-5-design",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Choose a design direction by having every seat ship a COMPLETE competing candidate each cycle, then comparing candidates pairwise.",
+    "charter": "Design charrette. A partial sketch is not a candidate. Candidates must stay far apart in design space - convergence before divergence is the failure mode.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "at least two full cycles ran",
+      "every seat shipped a COMPLETE candidate in every cycle",
+      "candidate-to-candidate distance stayed above the diversity floor"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any"
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_models": 3
+    },
+    "roster": [
+      {
+        "participant_id": "designer-1",
+        "display_name": "Designer 1",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "designer",
+        "authority": "voter",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "designer-2",
+        "display_name": "Designer 2",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "designer",
+        "authority": "voter",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "designer-3",
+        "display_name": "Designer 3",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "designer",
+        "authority": "voter",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "designer-4",
+        "display_name": "Designer 4",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "designer",
+        "authority": "voter",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "user-advocate",
+        "display_name": "User advocate (speaks for the person who has to use it)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "user_advocate",
+        "authority": "voter",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt"
+      ],
+      "max_similarity": 0.7
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "prior_art_scan"
+    ]
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": {
+      "pairing": "round_robin",
+      "comparisons_per_pair": 1,
+      "aggregation": "copeland"
+    }
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "cycle-1",
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 1
+        }
+      },
+      {
+        "kind": "brainstorm",
+        "stage_id": "cycle-2",
+        "quotas": {
+          "ideas_per_participant": 1,
+          "novel_ideas_per_round": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "pairwise",
+        "custom_name": "pairwise candidate comparison"
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "direction"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 800
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 60,
+    "tool_calls": 150,
+    "turns": 30
+  },
+  "targets": {
+    "unique_ideas": 10,
+    "raw_ideas": 10,
+    "diversity_index": 0.6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.7,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "condorcet",
+    "quorum": {
+      "min_voters": 4,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "counts_toward_quorum": false
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "pairwise_agreement",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 2 AND diversity_index >= 0.6",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "metric": "diversity_index",
+          "op": ">=",
+          "value": 0.6
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 60,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "no_decision",
+      "conditional_decision"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85
+    },
+    "resolution": [
+      "rotate_roles",
+      "blind_re_evaluation",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "premature_convergence",
+      "duplicate_novelty",
+      "instant_unanimity",
+      "sycophancy",
+      "participant_dominance",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "idea_catalog",
+      "votes_by_round",
+      "transcript",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 60
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Design charrette (4 designers + user advocate)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S20 charrette-5-design",
+      "P27 design-charrette"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1429-1442"
+    ],
+    "notes": "DESIGN LINEAGE: C-S20 charrette-5-design in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: designer_x4,user_advocate).\nPRESET LABEL: custom - no design-direction archetype exists among the 24 required preset names.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.protocol.rounds.min + $.stopping.expression rounds_elapsed : cycles dial (keep the two aligned)\n  - $.stopping.expression diversity_index + $.targets.diversity_index : distance_floor dial\n  - $.targets.dedup.max_similarity : how close two candidates may be before one is rejected as a trivial variant\ntargets.unique_ideas is set to 10 (5 seats x 2 cycles) so the idea accounting matches the protocol; the stopping rule does NOT gate on an idea count, so no SEM-007 obligation is created.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

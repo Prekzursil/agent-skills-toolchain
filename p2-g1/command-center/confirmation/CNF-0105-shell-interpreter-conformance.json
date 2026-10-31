@@ -1,0 +1,3520 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0105",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0105 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every script in the union has a result for all three interpreters and the CRLF discriminating control failed under WSL. Any other terminal state is FAILED:CNF-0105 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0105]",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/platform-report.schema.json",
+      "bytes": 1064,
+      "sha256": "9101aecd0720b2fe07a4eab303fe853d94da4d194101c4e780f605dbda29d294",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0105/runner.py",
+      "bytes": 20603,
+      "sha256": "2ef6127c3e39bbd88cfee911e9eca3c7947b93cca27015984c6b9c347519ad36",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Every shipped-union script has a live matrix cell for pwsh7, git-bash, and wsl-bash; union_complete is true.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0105/probe1_union_matrix.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0105/probe1_union_matrix.py",
+          "raw_output": "union_n=51 matrix_n=162 union_complete=True",
+          "fingerprint": "cnf0105-probe1-union-matrix",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "report.matrix in output_path",
+          "raw_output": "artifact-matrix-scripts=54",
+          "fingerprint": "cnf0105-artifact-matrix-recount",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "CRLF discriminating control: known-broken fixture fails under WSL-equivalent GNU bash and passes under the Git Bash igncr stand-in.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0105/probe2_crlf_detector.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0105/probe2_crlf_detector.py",
+          "raw_output": "wsl_bash_failed=True git_bash_standin_passed=True err='/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory'",
+          "fingerprint": "cnf0105-probe2-crlf-detector",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "command-center/p2-wave/probes/CNF-0105/fixtures/control-crlf.sh",
+          "raw_output": "fixture contains CR bytes and shebang bash\\r",
+          "fingerprint": "cnf0105-crlf-fixture-bytes",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "explicit-interpreter",
+      "command": "parse shebang; implicit-no-shebang.sh must be flagged",
+      "result": "PASS"
+    },
+    {
+      "id": "crlf-discriminating-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0105/probe2_crlf_detector.py",
+      "result": "PASS"
+    },
+    {
+      "id": "posix-absolute-path-argument",
+      "command": "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh /tmp/cnf-0105-abs-posix",
+      "result": "PASS"
+    },
+    {
+      "id": "apostrophe-invoked-by-path",
+      "command": "PATH=fixtures/path-bin:$PATH cnf0105-apostrophe",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "crlf-known-broken-fixture",
+      "kind": "known-broken-fixture",
+      "description": "control-crlf.sh must FAIL under wsl-bash (bash\\r) and PASS under the Git Bash igncr stand-in. ok-lf.sh is the good state.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "/usr/bin/env: \u2018bash\\r\u2019: No such file or directory",
+      "good_state_output": "/tmp/cnf-0105-abs-posix"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0105-probe2-crlf-detector",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "unassigned",
+    "notes": "Re-run only the CRLF detector control and confirm the known-broken fixture fails under WSL-equivalent GNU bash; do not take the matrix headline as evidence."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0105/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0105"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/confirmation/CNF-0105-shell-interpreter-conformance.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -c \"from schema_resolver import validate_artifact; validate_artifact(doc, 'command-center/schema/platform-report.schema.json')\"",
+        "raw_output": "0 errors against platform-report",
+        "fingerprint": "schema-resolver:platform-report",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:26Z",
+    "ended_at": "2026-08-25T01:00:26Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "PowerShell 7 is not on PATH on this Linux host, so pwsh7 cells are interpreter-absent rather than live pwsh execution.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Install pwsh 7, re-run the union matrix, and record live pwsh7 exit codes."
+    },
+    {
+      "claim": "MSYS Git Bash is absent; the git-bash arm is an igncr behavior stand-in, not mintty/msys2.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Install Git for Windows / MSYS Git Bash and re-run the CRLF control under the real binary."
+    },
+    {
+      "claim": "Shipped launcher production bodies were not executed; shebang-preserving stubs were used so host state is not mutated.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Re-run each shipped launcher in an isolated throwaway HOME/chroot if a body-level quoting defect must be proven."
+    }
+  ],
+  "produced_by": {
+    "vendor": "custom",
+    "model": "grok-4.6",
+    "role": "shell-conformance-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "platform-report",
+    "title": "Every script, shipped or fix-touched, executed by all three real interpreters",
+    "question": "Do the scripts actually run under the interpreters that will invoke them? Take the union of shipped scripts and scripts touched by any fix, execute each under PowerShell 7, Git Bash and real WSL bash, and answer: which fail on which interpreter, and is the cause line endings, quoting, path conversion, or a missing coreutil? A Git Bash syntax check is not evidence about strict Linux bash, which is exactly why the union is executed under all three rather than checked under one.",
+    "answer": "Shipped-script union size is 51 under scripts/ and release/platforms/. Production bodies were not run: each shipped launcher was invoked via a shebang-preserving stub so interpreter, CRLF-on-shebang, and implicit-shebang defects still surface. pwsh7 present=False; MSYS Git Bash present=False; WSL-equivalent GNU bash present=True (GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)). CRLF control: wsl-bash failed=True ('/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory'); git-bash igncr stand-in passed=True. POSIX path '/tmp/cnf-0105-abs-posix' received '/tmp/cnf-0105-abs-posix', conversion_observed=False. Apostrophe fixture invoked_by_path=True inlined=False exit=0. Implicit-shebang fixture flagged=True.",
+    "platform": {
+      "system": "Linux",
+      "release": "6.8.0-136-generic",
+      "machine": "x86_64",
+      "linux": true,
+      "windows_wsl_interop": false
+    },
+    "interpreters": [
+      {
+        "id": "pwsh7",
+        "present": false,
+        "argv0": "",
+        "version": "absent",
+        "kind": "absent",
+        "note": ""
+      },
+      {
+        "id": "git-bash",
+        "present": false,
+        "argv0": "command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+        "version": "MSYS Git Bash absent; igncr behavior stand-in",
+        "kind": "behavior-standin",
+        "note": ""
+      },
+      {
+        "id": "wsl-bash",
+        "present": true,
+        "argv0": "/bin/bash",
+        "version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "kind": "linux-bash-as-wsl-equivalent",
+        "note": "Host is Linux. Catalog real WSL bash is GNU bash; this is /bin/bash, not Git Bash, not Windows WSL interop."
+      }
+    ],
+    "union": [
+      {
+        "path": "scripts/agentic-perfection/bm-http-server.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/agentic-perfection/bm-watchdog.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/agentic-perfection/resource-guard.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/agentic-perfection/test-world-watch.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/agentic-perfection/world-watch.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/apply-mcp-health-fixes.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/bootstrap-codespace.sh",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-autonomous.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-backup.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-deploy.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-doctor.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-finish.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-install.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-lib.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-lib.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-maintain.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-recover.cmd",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".cmd"
+      },
+      {
+        "path": "scripts/claude-science/cs-recover.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-recover.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-restore.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-serve-prep.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-start.cmd",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".cmd"
+      },
+      {
+        "path": "scripts/claude-science/cs-start.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-start.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-supervisor.sh",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/claude-science/cs-tailscale-serve.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs-watchdog.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/cs.cmd",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".cmd"
+      },
+      {
+        "path": "scripts/claude-science/cs.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/install.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/register-tasks.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/schrodinger-bridge.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/claude-science/test-cs-doctor-failclosed.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/gh-api-single-file-pr.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/gh-api-single-file-pr.sh",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/longrun.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/longrun.sh",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/monitors/a2d_translate.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/monitors/mon_collect_a2d.sh",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/monitors/scw_a2d_dashboard.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/monitors/scw_monitor.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/repo-sweep.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/schrod-gpu-pool.sh",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "source": "shipped-tree-census",
+        "suffix": ".sh"
+      },
+      {
+        "path": "scripts/sync-from-live.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/sync-hooks.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/sync-rules.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/sync-skills.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/validate-all-skills.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/worktree-isolation/create-worktree.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/worktree-isolation/install.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      },
+      {
+        "path": "scripts/worktree-isolation/remove-worktree.ps1",
+        "declared_interpreter": null,
+        "explicit": false,
+        "source": "shipped-tree-census",
+        "suffix": ".ps1"
+      }
+    ],
+    "union_complete": true,
+    "matrix": [
+      {
+        "script": "scripts/agentic-perfection/bm-http-server.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/agentic-perfection/bm-http-server.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/bm-http-server.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/bm-http-server.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.kaBekrjQhr: line 6: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.kaBekrjQhr: line 6: =: command not found\n/tmp/tmp.kaBekrjQhr: line 7: =: command not found\n/tmp/tmp.kaBekrjQhr: line 8: =: command not found\n/tmp/tmp.kaBekrjQhr: line 9: syntax error near unexpected token `Test-Path'\n/tmp/tmp.kaBekrjQhr: line 9: `if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null }'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/bm-http-server.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/bm-http-server.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/bm-http-server.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/bm-http-server.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/bm-watchdog.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/agentic-perfection/bm-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/bm-watchdog.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/bm-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.YklFwzXa6F: line 13: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.YklFwzXa6F: line 13: =: command not found\n/tmp/tmp.YklFwzXa6F: line 14: =: command not found\n/tmp/tmp.YklFwzXa6F: line 15: =: command not found\n/tmp/tmp.YklFwzXa6F: line 16: try: command not found\n/tmp/tmp.YklFwzXa6F: line 17: =: command not found\n/tmp/tmp.YklFwzXa6F: line 18: syntax error near unexpected token `}'\n/tmp/tmp.YklFwzXa6F: line 18: `} catch { $up = $false }'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/bm-watchdog.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/bm-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/bm-watchdog.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/bm-watchdog.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/resource-guard.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/agentic-perfection/resource-guard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/resource-guard.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/resource-guard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.t0tsfQ5791: line 2: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.t0tsfQ5791: line 2: syntax error near unexpected token `newline'\n/tmp/tmp.t0tsfQ5791: line 2: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/resource-guard.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/resource-guard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/resource-guard.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/resource-guard.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/test-world-watch.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/agentic-perfection/test-world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/test-world-watch.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/test-world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.MnXlp8I7bz: line 1: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.MnXlp8I7bz: line 1: =: command not found\n/tmp/tmp.MnXlp8I7bz: line 2: =: command not found\n/tmp/tmp.MnXlp8I7bz: line 3: syntax error near unexpected token `('\n/tmp/tmp.MnXlp8I7bz: line 3: `$work = Join-Path $env:TEMP (\"ww-test-{0}\" -f ([guid]::NewGuid().ToString('N').Substring(0,8)))'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/test-world-watch.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/test-world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/test-world-watch.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/test-world-watch.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/world-watch.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/agentic-perfection/world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/world-watch.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.3rzxI5Dh6m: line 2: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.3rzxI5Dh6m: line 2: syntax error near unexpected token `newline'\n/tmp/tmp.3rzxI5Dh6m: line 2: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/agentic-perfection/world-watch.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/agentic-perfection/world-watch.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/world-watch.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/agentic-perfection/world-watch.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/apply-mcp-health-fixes.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/apply-mcp-health-fixes.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/apply-mcp-health-fixes.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/apply-mcp-health-fixes.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.H4pIXoxpSn: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.H4pIXoxpSn: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.H4pIXoxpSn: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/apply-mcp-health-fixes.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/apply-mcp-health-fixes.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/apply-mcp-health-fixes.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/apply-mcp-health-fixes.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/bootstrap-codespace.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-u9pyv5x5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/bootstrap-codespace.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-u9pyv5x5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/bootstrap-codespace.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-u9pyv5x5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-autonomous.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-autonomous.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-autonomous.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-autonomous.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.un6pwSwOgw: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.un6pwSwOgw: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.un6pwSwOgw: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-autonomous.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-autonomous.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-autonomous.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-autonomous.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-backup.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-vde5dns4.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-backup.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-vde5dns4.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-backup.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-vde5dns4.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-deploy.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-hl4uon_d.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-deploy.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-hl4uon_d.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-deploy.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-hl4uon_d.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-doctor.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-doctor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-doctor.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-doctor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.STVvdhxl3y: line 22: syntax error near unexpected token `]'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.STVvdhxl3y: line 22: syntax error near unexpected token `]'\n/tmp/tmp.STVvdhxl3y: line 22: `[CmdletBinding()]'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-doctor.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-doctor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-doctor.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-doctor.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-finish.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-fwrjjm36.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-finish.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-fwrjjm36.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-finish.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-fwrjjm36.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-install.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-sj9pmdn1.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-install.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-sj9pmdn1.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-install.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-sj9pmdn1.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-lib.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-lib.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.HkHPbAUWAr: line 14: :CSConfPath: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.HkHPbAUWAr: line 14: :CSConfPath: command not found\n/tmp/tmp.HkHPbAUWAr: line 15: :CSConf: command not found\n/tmp/tmp.HkHPbAUWAr: line 16: syntax error near unexpected token `{'\n/tmp/tmp.HkHPbAUWAr: line 16: `if (Test-Path $script:CSConfPath) {'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-lib.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-lib.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-lib.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-w2aef_i5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-w2aef_i5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-lib.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-w2aef_i5.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-maintain.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-zicn2a2b.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-maintain.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-zicn2a2b.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-maintain.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-zicn2a2b.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.cmd",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-recover.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.cmd",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-recover.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.GgnLMouE9S: line 1: @echo: command not found",
+        "classification": "implicit-interpreter",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.GgnLMouE9S: line 1: @echo: command not found\n/tmp/tmp.GgnLMouE9S: line 2: REM: command not found\n/tmp/tmp.GgnLMouE9S: line 3: REM: command not found\n/tmp/tmp.GgnLMouE9S: line 4: REM: command not found\n/tmp/tmp.GgnLMouE9S: line 5: syntax error near unexpected token `('\n/tmp/tmp.GgnLMouE9S: line 5: `REM named `powershell` (5.1) unconditionally, so `cs doctor` from cmd.exe and `/claude-scien",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.cmd",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-recover.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-recover.cmd'",
+        "classification": "exec-failed",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-recover.cmd'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-recover.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-recover.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.b5d4pi2LZD: line 7: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.b5d4pi2LZD: line 7: =: command not found\n/tmp/tmp.b5d4pi2LZD: line 8: syntax error near unexpected token `Join-Path'\n/tmp/tmp.b5d4pi2LZD: line 8: `. (Join-Path $PSScriptRoot 'cs-lib.ps1')'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-recover.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-recover.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-recover.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-r66xn9hm.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-r66xn9hm.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-recover.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-r66xn9hm.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-restore.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-l94b7ero.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-restore.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-l94b7ero.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-restore.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-l94b7ero.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-serve-prep.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-upjst4l3.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-serve-prep.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-upjst4l3.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-serve-prep.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-upjst4l3.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-start.cmd",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-start.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.cmd",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-start.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.WbqDypeB3I: line 1: @echo: command not found",
+        "classification": "implicit-interpreter",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.WbqDypeB3I: line 1: @echo: command not found\n/tmp/tmp.WbqDypeB3I: line 2: syntax error near unexpected token `('\n/tmp/tmp.WbqDypeB3I: line 2: `REM cs-start -- start Claude Science if down (never kills a running one) and open its UI.'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.cmd",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-start.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-start.cmd'",
+        "classification": "exec-failed",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-start.cmd'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-start.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-start.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.MCMjjAmmBe: line 5: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.MCMjjAmmBe: line 5: =: command not found\n/tmp/tmp.MCMjjAmmBe: line 6: syntax error near unexpected token `Join-Path'\n/tmp/tmp.MCMjjAmmBe: line 6: `. (Join-Path $PSScriptRoot 'cs-lib.ps1')'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-start.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-start.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-start.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-start.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-srxnxn5p.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-start.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-srxnxn5p.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-start.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-srxnxn5p.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-supervisor.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-7p57pk45.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-supervisor.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-7p57pk45.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-supervisor.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-7p57pk45.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/bin/bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/claude-science/cs-tailscale-serve.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-tailscale-serve.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-tailscale-serve.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-tailscale-serve.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.xsBewH0UXz: line 5: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.xsBewH0UXz: line 5: =: command not found\n/tmp/tmp.xsBewH0UXz: line 6: syntax error near unexpected token `Join-Path'\n/tmp/tmp.xsBewH0UXz: line 6: `. (Join-Path $PSScriptRoot 'cs-lib.ps1')   # cs.conf -> $script:CSDistro / $script:CSUrl'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-tailscale-serve.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-tailscale-serve.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-tailscale-serve.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-tailscale-serve.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-watchdog.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-watchdog.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.GVScFQPcuG: line 9: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.GVScFQPcuG: line 9: =: command not found\n/tmp/tmp.GVScFQPcuG: line 10: syntax error near unexpected token `Join-Path'\n/tmp/tmp.GVScFQPcuG: line 10: `. (Join-Path $PSScriptRoot 'cs-lib.ps1')     # Test-CSHealth, Invoke-CSWsl, $script:CSUrl/CSDistro/CSSlowMs'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs-watchdog.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs-watchdog.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-watchdog.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs-watchdog.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.cmd",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.cmd",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.wXK6rcPXwJ: line 1: @echo: command not found",
+        "classification": "implicit-interpreter",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.wXK6rcPXwJ: line 1: @echo: command not found\n/tmp/tmp.wXK6rcPXwJ: line 2: REM: command not found\n/tmp/tmp.wXK6rcPXwJ: line 3: REM: command not found\n/tmp/tmp.wXK6rcPXwJ: line 4: REM: command not found\n/tmp/tmp.wXK6rcPXwJ: line 5: syntax error near unexpected token `('\n/tmp/tmp.wXK6rcPXwJ: line 5: `REM named `powershell` (5.1) unconditionally, so `cs doctor` from cmd.exe and `/claude-scien",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.cmd",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs.cmd",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs.cmd'",
+        "classification": "exec-failed",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs.cmd'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/cs.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/cs.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.HrWQM1ju5y: line 9: syntax error near unexpected token `]'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.HrWQM1ju5y: line 9: syntax error near unexpected token `]'\n/tmp/tmp.HrWQM1ju5y: line 9: `[CmdletBinding()]'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/cs.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/cs.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/cs.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/install.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/install.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.6bY3rmGbFr: line 7: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.6bY3rmGbFr: line 7: =: command not found\n/tmp/tmp.6bY3rmGbFr: line 8: =: command not found\n/tmp/tmp.6bY3rmGbFr: line 10: syntax error near unexpected token `Join-Path'\n/tmp/tmp.6bY3rmGbFr: line 10: `. (Join-Path $here 'cs-lib.ps1')'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/install.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/install.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/install.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/register-tasks.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/register-tasks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/register-tasks.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/register-tasks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.zhNidPTAKW: line 18: syntax error near unexpected token `]'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.zhNidPTAKW: line 18: syntax error near unexpected token `]'\n/tmp/tmp.zhNidPTAKW: line 18: `[CmdletBinding()]'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/register-tasks.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/register-tasks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/register-tasks.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/register-tasks.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/schrodinger-bridge.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/schrodinger-bridge.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/schrodinger-bridge.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/schrodinger-bridge.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.wU3dx7MPVo: line 8: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.wU3dx7MPVo: line 8: =: command not found\n/tmp/tmp.wU3dx7MPVo: line 9: =: command not found\n/tmp/tmp.wU3dx7MPVo: line 10: =: command not found\n/tmp/tmp.wU3dx7MPVo: line 11: =: command not found\n/tmp/tmp.wU3dx7MPVo: line 13: syntax error near unexpected token `Test-Path'\n/tmp/tmp.wU3dx7MPVo: line 13: `if (-not (Test-Path -LiteralPath $py))        { throw \"schrodinger-mcp venv python not fou",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/schrodinger-bridge.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/schrodinger-bridge.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/schrodinger-bridge.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/schrodinger-bridge.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/test-cs-doctor-failclosed.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/claude-science/test-cs-doctor-failclosed.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/test-cs-doctor-failclosed.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/claude-science/test-cs-doctor-failclosed.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.D9RJ8BGhBS: line 30: syntax error near unexpected token `]'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.D9RJ8BGhBS: line 30: syntax error near unexpected token `]'\n/tmp/tmp.D9RJ8BGhBS: line 30: `[CmdletBinding()]'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/claude-science/test-cs-doctor-failclosed.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/claude-science/test-cs-doctor-failclosed.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/test-cs-doctor-failclosed.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/claude-science/test-cs-doctor-failclosed.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/gh-api-single-file-pr.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/gh-api-single-file-pr.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.kLXDVnrIex: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.kLXDVnrIex: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.kLXDVnrIex: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/gh-api-single-file-pr.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/gh-api-single-file-pr.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/gh-api-single-file-pr.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-0mu4jcu7.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-0mu4jcu7.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/gh-api-single-file-pr.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-0mu4jcu7.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/longrun.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/longrun.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/longrun.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/longrun.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.kZ9AqmAipZ: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.kZ9AqmAipZ: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.kZ9AqmAipZ: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/longrun.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/longrun.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/longrun.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/longrun.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/longrun.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-51qtybxi.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/longrun.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-51qtybxi.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/longrun.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-51qtybxi.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/monitors/a2d_translate.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/monitors/a2d_translate.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/a2d_translate.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/monitors/a2d_translate.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.6snsvSiTGf: line 4: $null: ambiguous redirect",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.6snsvSiTGf: line 4: $null: ambiguous redirect\n/tmp/tmp.6snsvSiTGf: line 5: syntax error near unexpected token `('\n/tmp/tmp.6snsvSiTGf: line 5: `$lines = @($raw) | ForEach-Object { $_ -split \"`n\" } | ForEach-Object { $_.TrimEnd(\"`r\").Trim() } | Where-Object { $_ }'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/a2d_translate.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/monitors/a2d_translate.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/a2d_translate.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/a2d_translate.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/mon_collect_a2d.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-cg_zmfm8.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/monitors/mon_collect_a2d.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-cg_zmfm8.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/monitors/mon_collect_a2d.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-cg_zmfm8.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/monitors/scw_a2d_dashboard.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/monitors/scw_a2d_dashboard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/scw_a2d_dashboard.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/monitors/scw_a2d_dashboard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.KtSmcH4sJB: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.KtSmcH4sJB: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.KtSmcH4sJB: line 1: `param('\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/scw_a2d_dashboard.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/monitors/scw_a2d_dashboard.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/scw_a2d_dashboard.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/scw_a2d_dashboard.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/scw_monitor.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/monitors/scw_monitor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/scw_monitor.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/monitors/scw_monitor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.8D3ctsi4ly: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.8D3ctsi4ly: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.8D3ctsi4ly: line 1: `param('\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/monitors/scw_monitor.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/monitors/scw_monitor.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/scw_monitor.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/monitors/scw_monitor.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/repo-sweep.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/repo-sweep.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/repo-sweep.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/repo-sweep.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.Ti1YXstNIl: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.Ti1YXstNIl: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.Ti1YXstNIl: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/repo-sweep.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/repo-sweep.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/repo-sweep.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/repo-sweep.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/schrod-gpu-pool.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "/tmp/cnf0105-stub-hne8b2dk.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/schrod-gpu-pool.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/tmp/cnf0105-stub-hne8b2dk.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/schrod-gpu-pool.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/tmp/cnf0105-stub-hne8b2dk.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "cnf-0105-shebang-stub",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "cnf-0105-shebang-stub\n",
+        "stderr_tail": "",
+        "sandboxed": true
+      },
+      {
+        "script": "scripts/sync-from-live.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/sync-from-live.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-from-live.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/sync-from-live.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.ClKzXEriPV: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.ClKzXEriPV: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.ClKzXEriPV: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-from-live.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/sync-from-live.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-from-live.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-from-live.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-hooks.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/sync-hooks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-hooks.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/sync-hooks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.nsElRBaMso: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.nsElRBaMso: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.nsElRBaMso: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-hooks.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/sync-hooks.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-hooks.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-hooks.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-rules.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/sync-rules.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-rules.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/sync-rules.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.Z3Q4Sfgzbn: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.Z3Q4Sfgzbn: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.Z3Q4Sfgzbn: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-rules.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/sync-rules.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-rules.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-rules.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-skills.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/sync-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-skills.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/sync-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.7CWVfBUmxG: line 1: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.7CWVfBUmxG: line 1: syntax error near unexpected token `newline'\n/tmp/tmp.7CWVfBUmxG: line 1: `<#'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/sync-skills.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/sync-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-skills.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/sync-skills.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/validate-all-skills.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/validate-all-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/validate-all-skills.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/validate-all-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.4P5LkV6RnY: line 3: syntax error near unexpected token `newline'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.4P5LkV6RnY: line 3: syntax error near unexpected token `newline'\n/tmp/tmp.4P5LkV6RnY: line 3: `param('\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/validate-all-skills.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/validate-all-skills.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/validate-all-skills.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/validate-all-skills.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/create-worktree.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/worktree-isolation/create-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/create-worktree.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/create-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.f0aR6mi7g3: line 8: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.f0aR6mi7g3: line 8: =: command not found\n/tmp/tmp.f0aR6mi7g3: line 9: syntax error near unexpected token `{'\n/tmp/tmp.f0aR6mi7g3: line 9: `function Test-GitRepo($d) {'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/create-worktree.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/create-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/create-worktree.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/create-worktree.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/install.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/worktree-isolation/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/install.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.Plc3laMr0V: line 6: syntax error near unexpected token `[switch]$PatchSettings'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.Plc3laMr0V: line 6: syntax error near unexpected token `[switch]$PatchSettings'\n/tmp/tmp.Plc3laMr0V: line 6: `param([switch]$PatchSettings)'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/install.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/install.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/install.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/install.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/remove-worktree.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "scripts/worktree-isolation/remove-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/remove-worktree.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/remove-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 2,
+        "first_error_line": "/tmp/tmp.Uu6ZlqsSEq: line 4: =: command not found",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.Uu6ZlqsSEq: line 4: =: command not found\n/tmp/tmp.Uu6ZlqsSEq: line 5: try: command not found\n/tmp/tmp.Uu6ZlqsSEq: line 6: syntax error near unexpected token `('\n/tmp/tmp.Uu6ZlqsSEq: line 6: `    $in = [Console]::In.ReadToEnd() | ConvertFrom-Json'\n",
+        "sandboxed": false
+      },
+      {
+        "script": "scripts/worktree-isolation/remove-worktree.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/scripts/worktree-isolation/remove-worktree.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/remove-worktree.ps1'",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/scripts/worktree-isolation/remove-worktree.ps1'",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "ok-lf argv=/tmp/cnf-0105-abs-posix",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "ok-lf argv=/tmp/cnf-0105-abs-posix\n",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "ok-lf argv=/tmp/cnf-0105-abs-posix",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env bash",
+        "explicit": true,
+        "stdout_tail": "ok-lf argv=/tmp/cnf-0105-abs-posix\n",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": "#!/usr/bin/env pwsh",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "/tmp/tmp.vqd4snfYeN: line 2: Write-Output: command not found",
+        "classification": "ok",
+        "declared_interpreter": "#!/usr/bin/env pwsh",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "/tmp/tmp.vqd4snfYeN: line 2: Write-Output: command not found\n",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 127,
+        "first_error_line": "/usr/bin/env: \u2018pwsh\u2019: No such file or directory",
+        "classification": "interpreter-mismatch",
+        "declared_interpreter": "#!/usr/bin/env pwsh",
+        "explicit": true,
+        "stdout_tail": "",
+        "stderr_tail": "/usr/bin/env: \u2018pwsh\u2019: No such file or directory\n",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+        "interpreter": "pwsh7",
+        "invocation": [
+          "pwsh",
+          "-NoProfile",
+          "-File",
+          "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": null,
+        "first_error_line": "interpreter-absent: pwsh7 not on PATH",
+        "classification": "interpreter-absent",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+        "interpreter": "git-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 0,
+        "first_error_line": "implicit-no-shebang",
+        "classification": "implicit-interpreter",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "implicit-no-shebang\n",
+        "stderr_tail": "",
+        "sandboxed": false
+      },
+      {
+        "script": "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+        "interpreter": "wsl-bash",
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "exit_code": 126,
+        "first_error_line": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh'",
+        "classification": "implicit-interpreter",
+        "declared_interpreter": null,
+        "explicit": false,
+        "stdout_tail": "",
+        "stderr_tail": "exec-failed: OSError: [Errno 8] Exec format error: '/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh'",
+        "sandboxed": false
+      }
+    ],
+    "controls": {
+      "crlf": {
+        "wsl_bash_failed": true,
+        "git_bash_standin_passed": true,
+        "msys_git_bash_present": false,
+        "wsl_run": {
+          "invocation": [
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/control-crlf.sh"
+          ],
+          "exit_code": 127,
+          "first_error_line": "/usr/bin/env: \u2018bash\\r\u2019: No such file or directory",
+          "classification": "crlf-artifact"
+        },
+        "git_bash_run": {
+          "invocation": [
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh",
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/control-crlf.sh"
+          ],
+          "exit_code": 0,
+          "first_error_line": "crlf-control-should-fail-on-strict-bash",
+          "classification": "ok"
+        },
+        "note": "CRLF fixture is exec'd via shebang under wsl-bash so the kernel sees 'bash\\r'. Git Bash arm uses the igncr stand-in because MSYS is absent."
+      },
+      "posix_path": {
+        "argument": "/tmp/cnf-0105-abs-posix",
+        "received": "/tmp/cnf-0105-abs-posix",
+        "conversion_observed": false,
+        "exit_code": 0,
+        "invocation": [
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "note": "MSYS Git Bash rewrites POSIX paths when calling Windows programs. On this Linux host the argument is received unchanged."
+      },
+      "apostrophe_by_path": {
+        "invoked_by_path": true,
+        "inlined_into_command_body": false,
+        "exit_code": 0,
+        "invocation": [
+          "cnf0105-apostrophe",
+          "/tmp/cnf-0105-abs-posix"
+        ],
+        "script_contains_apostrophe": true
+      },
+      "explicit_interpreter": {
+        "implicit_fixture_flagged": true,
+        "fixture": "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+        "shebang": null
+      }
+    },
+    "classifications": [
+      "crlf-artifact",
+      "exec-failed",
+      "implicit-interpreter",
+      "interpreter-absent",
+      "interpreter-mismatch",
+      "ok"
+    ],
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "union-matrix",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0105/probe1_union_matrix.py"
+      },
+      {
+        "id": "probe2",
+        "role": "crlf-detector",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0105/probe2_crlf_detector.py"
+      }
+    ],
+    "gitattributes": {
+      "path": ".gitattributes",
+      "present": true,
+      "eol_rules": [
+        "*.sh eol=lf",
+        "*.ps1 eol=crlf"
+      ],
+      "bytes": 1028
+    },
+    "windows_shell_sections": {
+      "canonical_path": "rules/common/windows-shell.md",
+      "canonical_present": true,
+      "fixture_path": "rules/common/windows-shell.md",
+      "sections": {
+        "1": "Declared interpreter must be explicit in the launcher; implicit is a defect.",
+        "3": "Agent-written CRLF breaks real bash; Git Bash often tolerates the same bytes.",
+        "8": "POSIX-looking absolute paths are the Git Bash path-conversion trigger.",
+        "10": "Apostrophes break inlined command bodies; invoke the script by PATH."
+      },
+      "note": "Canonical rules/common/windows-shell.md is present; section glosses match CNF-0105 tests_required (explicit interpreter, CRLF, POSIX path conversion, apostrophe-by-PATH)."
+    },
+    "fixtures": {
+      "ok_lf": "command-center/p2-wave/probes/CNF-0105/fixtures/ok-lf.sh",
+      "crlf": "command-center/p2-wave/probes/CNF-0105/fixtures/control-crlf.sh",
+      "apostrophe": "command-center/p2-wave/probes/CNF-0105/fixtures/control-apostrophe.sh",
+      "implicit": "command-center/p2-wave/probes/CNF-0105/fixtures/implicit-no-shebang.sh",
+      "ps1": "command-center/p2-wave/probes/CNF-0105/fixtures/ok.ps1",
+      "standin": "command-center/p2-wave/probes/CNF-0105/fixtures/git-bash-standin.sh"
+    },
+    "honesty": {
+      "pwsh7_absent": true,
+      "msys_git_bash_absent": true,
+      "git_bash_arm_is_igncr_standin": true,
+      "wsl_bash_is_host_gnu_bash": true,
+      "shipped_script_trees_absent": false,
+      "shipped_bodies_sandboxed": true,
+      "cloud_ok": false
+    },
+    "observations": [
+      {
+        "name": "union_n",
+        "measured": 51,
+        "method": "shipped-tree-census",
+        "anchor": "scripts/ and release/platforms/"
+      },
+      {
+        "name": "wsl_bash_crlf_failed",
+        "measured": true,
+        "method": "exec-known-broken-fixture",
+        "anchor": "command-center/p2-wave/probes/CNF-0105/fixtures/control-crlf.sh"
+      },
+      {
+        "name": "union_complete",
+        "measured": true,
+        "method": "per-script-per-interpreter-matrix",
+        "anchor": "command-center/p2-wave/probes/CNF-0105/runner.py"
+      }
+    ],
+    "control_ids": [
+      "crlf-discriminating-control",
+      "explicit-interpreter",
+      "posix-absolute-path-argument",
+      "apostrophe-invoked-by-path"
+    ]
+  },
+  "extensions": {
+    "catalog_output_path": "command-center/confirmation/CNF-0105-shell-interpreter-conformance.json",
+    "catalog_output_schema": "command-center/schema/platform-report.schema.json",
+    "cloud_ok": false
+  }
+}

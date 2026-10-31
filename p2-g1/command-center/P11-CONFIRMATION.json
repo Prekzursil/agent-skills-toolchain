@@ -1,0 +1,396 @@
+{
+  "unit": "depth/p11-confirmation",
+  "spec_anchor": "_USER-PROMPTS.md:11140-11153",
+  "method": "Every number re-derived by probes written for this unit. Baseline arms read committed bytes with `git cat-file -p <named-commit>:<path>`; `git archive` deliberately not used (returns CRLF on this box). Current arm reads the working tree. No implementer conclusion was accepted as input.",
+  "anchors": {
+    "W1_END": "edcf9f5b",
+    "W2_END": "0aa6f8fa",
+    "W3_END_and_HEAD_at_probe_time": "04e4736c",
+    "intermediate": [
+      "5e54207e",
+      "964cfa05",
+      "29f4c72a",
+      "c1c51852"
+    ]
+  },
+  "probe_scripts": [
+    "command-center/p11_probe_mutation.py",
+    "command-center/p11_probe_floors.py",
+    "command-center/p11_probe_registry2.py",
+    "command-center/p11_probe_tracking.py",
+    "command-center/p11_probe_reruns.py",
+    "command-center/p11_probe_wave3.py",
+    "command-center/p11_probe_d1.py",
+    "command-center/p11_probe_expand.py",
+    "command-center/p11_probe_testdelta.py"
+  ],
+  "raw_outputs": [
+    "command-center/P11-MUTATION-BOTHSTATES.json",
+    "command-center/P11-FLOORS.json",
+    "command-center/P11-REGISTRY.json",
+    "command-center/P11-TRACKING-AND-IDS.json",
+    "command-center/P11-RERUNS.json",
+    "command-center/P11-WAVE3.json",
+    "command-center/P11-D1.json",
+    "command-center/P11-EXPANSION.json",
+    "command-center/P11-TEST-DELTA.json",
+    "command-center/p11_suite_full.log",
+    "command-center/p11_suite_platform.log"
+  ],
+  "escalation_rule": {
+    "declared_before_measuring": ">20% of a wave's sampled claims REFUTED or PARTIAL expands that wave's whole claim class",
+    "wave1": {
+      "claims": 8,
+      "non_confirmed": 3,
+      "rate": 0.375,
+      "tripped": true
+    },
+    "wave2": {
+      "claims": 10,
+      "non_confirmed": 2,
+      "rate": 0.2,
+      "tripped": false,
+      "note": "exactly at, not above, the threshold - stated rather than rounded up"
+    },
+    "wave3": {
+      "claims": 6,
+      "non_confirmed": 3,
+      "rate": 0.5,
+      "tripped": true
+    },
+    "expansion_performed": "Wave 1 expanded into its sub-section detector-control claim (E1); Wave 3 expanded from the D1 lane's 45-row sample to the registry's ENTIRE alias surface (223 pairs at the pin, 247 now), from a D4 summary to the whole 6-commit chain, and from a 4-path D3 sample to all 231 generator outputs. Wave 2 did not trip but E2 was still re-derived.",
+    "expansion_result": "The expanded sub-claims reproduce EXACTLY. The failure class is therefore NOT 'the audits are unreliable' - it is bounded to (a) exact counts asserted as stable against a tree ~20 agents were mutating, and (b) consequence sentences wider than the measurement that produced them."
+  },
+  "headline": "The Wave-1 12/12 mutation battery scores 0/12 at the committed HEAD. Wave 3's D1 fix made completion_predicate.py import vendor_identity at module top level; _mutation_selfcheck.py was never updated, so all 12 mutants fail to import and the tool emits FAILED:predicate-mutation-selfcheck survivors=[1..12], exit 1. The repair exists ONLY as an uncommitted working-tree edit that no lane claims, the tool is in NO CI workflow, and the pytest suite is green throughout - so nothing on the committed tree detects it.",
+  "claims": [
+    {
+      "id": "W1-06",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "mutation battery 12/12 killed, 0 survived, exit 0",
+      "verdict": "REFUTED at HEAD (CONFIRMED as of Wave 1)",
+      "confidence": "almost-certain",
+      "baseline_reproduced": "yes - same HEAD tool bytes score 12/12 against a reconstructed Wave-1 tree (edcf9f5b predicate + schemas)",
+      "corrected_behaviour_reproduced": "yes - the uncommitted worktree version scores 12/12 killed, 12/12 importable, exit 0",
+      "rollback_verified": "yes - the tool-vs-tree reconstruction IS the rollback arm: reverting the tree to Wave 1 restores 12/12 with unchanged tool bytes, locating the regression in the tree",
+      "evidence": "P11-MUTATION-BOTHSTATES.json: HEAD arm killed_count=0, mutants_importable=0/12, tail 'ERROR: found no collectors'; worktree arm killed_count=12, importable 12/12. P11-RERUNS.json D arm: killed_count=12 against the edcf9f5b tree with HEAD tool bytes.",
+      "breaking_commit": "f5d1d4f2 (git log -S vendor_identity -- platform/lib/completion_predicate.py); _mutation_selfcheck.py last touched at 0e4a6751 (Wave 1)",
+      "blast_radius": "grep over the repo: the tool is referenced by platform/lib/_verify_all.py and docs only; zero references in .github/workflows or ci/. Nothing gates on it."
+    },
+    {
+      "id": "W3-06",
+      "wave": 3,
+      "severity": "P1",
+      "claim": "check6 regression NONE",
+      "verdict": "REFUTED as stated",
+      "confidence": "almost-certain",
+      "detail": "True as scoped to `python -m pytest platform` (0 failed, twice). Stated unqualified it is false: W1-06's mutation gate regressed INSIDE Wave 3 and is invisible to pytest because the tool is a script, not a test. This is the overclaim class - the code measurement was right, the sentence was wider than it.",
+      "evidence": "WAVE3-FLOOR-AUDIT.json check6_regression.REGRESSION = 'NONE - 0 failed in both clean-tree runs'; contradicted by P11-MUTATION-BOTHSTATES.json HEAD arm."
+    },
+    {
+      "id": "W3-02",
+      "wave": 3,
+      "severity": "P0",
+      "claim": "D4 duplicate workflow ids CLOSED",
+      "verdict": "REFUTED at the pinned Wave-3 commit; CONFIRMED closed at HEAD",
+      "confidence": "almost-certain",
+      "commit_chain_measured": {
+        "0aa6f8fa": "1 colliding id, 3 files (fused.dc5b5f0b10f7 incl. the REJECTED 18-stage union)",
+        "5e54207e": "1 colliding id, 3 files",
+        "964cfa05": "1 colliding id, 2 files (REJECTED correctly separated)",
+        "29f4c72a": "1 colliding id, 2 files - the Wave-3 CLOSED claim is false here",
+        "c1c51852": "0",
+        "04e4736c": "0",
+        "worktree": "0"
+      },
+      "evidence": "P11-TRACKING-AND-IDS.json W2_08_W3_02_id_collision_chain"
+    },
+    {
+      "id": "W1-07",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "F-W1-01: 269 distinct output_schema paths, 0 of 269 exist, 1,896 references",
+      "verdict": "PARTIAL - direction CONFIRMED, denominator REFUTED",
+      "confidence": "almost-certain",
+      "measured": "at edcf9f5b: 272 distinct path tokens, 0 resolving, 2,025 token references (1,859 of them in the command-center/schema namespace), 0 of 2,007 units loadable",
+      "detail": "The load-bearing half - ZERO resolve - reproduces exactly. The 269/1,896 figures do not: I measure 272 tokens, and my 1,859 cc-schema references match the Wave-2 audit's 1,859 exactly. Two independent probes now agree on 272 and disagree with 269, so 269 is the outlier."
+    },
+    {
+      "id": "W1-08",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "F-W1-07: 4 marketplace shells duplicate an already-counted upstream_repo, so 161-4=157",
+      "verdict": "PARTIAL - the four named identities CONFIRMED, the arithmetic UNDERSTATED",
+      "confidence": "almost-certain",
+      "measured": "4 duplicate upstream_repo groups covering 12 of 161 rows; excess over one-row-per-upstream = 8, so a uniform rule gives 153, not 157",
+      "detail": "All four named pairs hold (WFA3-078/073, 079/072, 080/068, 076/{067,069,071,NEW-01,NEW-02}). But the anthropics/claude-plugins-official group has SIX members and the audit collapsed only one of them, so its own data shows upstream identity is not a duplication proof. Floor verdict by rule: count-all 161 MET; audit rule 157 MISSED by 3; uniform rule 153 MISSED by 7.",
+      "detector_note": "My pass-1 matcher read a top-level upstream_repo and returned 0 duplicate groups. The field lives under `provenance`. That 0 was a detector failure, not a refutation; pass 2 asserts it finds the known-present WFA3-078/073 pair before reporting any count."
+    },
+    {
+      "id": "W2-05",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "substrate: 233/233 command-center/schema tokens resolve, 36 unresolved, 1,947/2,007 units loadable",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "measured": "at 0aa6f8fa: 232/233 cc-schema tokens resolve, 39 unresolved, 1,946/2,007 loadable. Now: 253 resolving, 19 unresolved, 1,967 loadable.",
+      "detail": "Off by one, self-consistently (232 -> 1,946). The unresolved token inside the namespace is command-center/schema/_meta/json-schema-2020-12.json, which contradicts the audit's 'entirely outside the command-center/schema namespace'. It exists on disk today but is UNTRACKED and not gitignored, so a fresh clone of HEAD still resolves only 232/233. The 20/14 vs my 18/18 marketplace/plugin split is definitional."
+    },
+    {
+      "id": "W2-09",
+      "wave": 2,
+      "severity": "P2",
+      "claim": "stopping_rules take 2 distinct normalised values across all 97 blueprints; clusters of 55 and 42",
+      "verdict": "PARTIAL - substance CONFIRMED, figure not reproducible",
+      "confidence": "likely",
+      "measured": "97 blueprints: 97 distinct RAW values (all different), 7 distinct type/key shapes, largest shape cluster 87 of 97",
+      "detail": "No normalisation of mine yields 2, and the audit's .md does not state the normaliser. But the substantive point stands and is arguably understated: 87 of 97 blueprints share one identical stopping-rule structure, and the raw values differ only in string content, so the axis contributes almost no discrimination."
+    },
+    {
+      "id": "W3-01",
+      "wave": 3,
+      "severity": "P0",
+      "claim": "D1 cross-vendor CLOSED",
+      "verdict": "PARTIAL - the dangerous half genuinely closed at the pin; coverage gap real",
+      "confidence": "almost-certain",
+      "measured_at_29f4c72a": "12 identities, 71 alias spellings, 223 same-vendor alias pairs -> 223/223 SAME-VENDOR, 0 false greens, 0 refusals; 66 cross-vendor pairs -> 66/66 CROSS-VENDOR; 108 hosting-plane pairs -> 108/108 correctly refused",
+      "measured_now": "247 same-vendor pairs -> 247/247 SAME-VENDOR; same 66/66 and 108/108",
+      "named_probes": {
+        "29f4c72a": {
+          "Anthropic PBC vs anthropic": "NOT-COMPUTABLE",
+          "OpenAI, Inc. vs openai": "NOT-COMPUTABLE"
+        },
+        "worktree": {
+          "Anthropic PBC vs anthropic": "SAME-VENDOR",
+          "OpenAI, Inc. vs openai": "SAME-VENDOR"
+        }
+      },
+      "detail": "On the registry's OWN alias surface the predicate was already fully correct at the Wave-3 pin - zero same-vendor pairs accepted as cross-vendor. The briefed 'NOT-COMPUTABLE' problem is a registry COVERAGE gap for real-world legal-entity spellings, not a predicate defect: the predicate correctly refuses a string it cannot resolve. Wave 4's alias additions close the gap.",
+      "detector_note": "My pass-1 alias extractor guessed the registry shape, found 2 identities, and returned NOT-COMPUTABLE for cross-vendor pairs while its own control returned CROSS-VENDOR. A probe that contradicts its own control is a detector failure; pass 1's counts are void. Real shape is identities[].{id,aliases,establishes_distinctness}."
+    },
+    {
+      "id": "W1-01",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "registry 161 candidates vs floor 160",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "per-file 32/32/35/33/32 = 164 raw, -1 WFA3-MANIFEST, -2 self-marked rejects = 161; 161 distinct ids; 0 duplicate ids. Identical at edcf9f5b and in the worktree.",
+      "caveat": "The registry has no self-declared count field covering all rows (counts_toward_range is populated on only 32 of 164), so 161 rests entirely on the audit's exclusion rule - corroborating F-W1-02's 'no headroom'."
+    },
+    {
+      "id": "W1-02",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "48 protocols",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "52 JSON files in platform/council/protocols, 48 councilspec-shaped by a STRUCTURAL classifier (council_id + voting present), 4 status/expectation docs. Mechanically independent of the audit's name filter."
+    },
+    {
+      "id": "W1-03",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "69 presets",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "69 councilspec-shaped of 73 tracked at edcf9f5b / 77 on disk now. The audit's '8 non-preset JSONs' reconciles exactly: 4 LANE-* tracked plus 4 untracked _lane2_*_out.json probe outputs."
+    },
+    {
+      "id": "W1-04",
+      "wave": 1,
+      "severity": "P2",
+      "claim": "8/8 schema docs compile as 2020-12",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "at edcf9f5b: 8 schema documents, 8/8 pass Draft202012Validator.check_schema, 0 failures. Now 9 documents, 9/9 compile. The audit's '11 JSON files' was a pre-example-import snapshot; git at edcf9f5b holds 32 (the 16 E*/N* example councilspecs landed later in Wave 1)."
+    },
+    {
+      "id": "W1-05",
+      "wave": 1,
+      "severity": "P1",
+      "claim": "Wave-1 module set: 444 passed",
+      "verdict": "CONFIRMED then superseded; the no-regression invariant holds under a stronger test",
+      "confidence": "almost-certain",
+      "measured": "515 passed / 0 failed now. Per-module: wfdsl 168 (was 97), councilspec 112, council_protocols 111, completion_predicate 65, receipt_schema_gate 59 - every module except wfdsl is term-for-term identical to the Wave-2 table.",
+      "set_difference_check": "AST-diffed the 7 Wave-1 test files at edcf9f5b vs now: 194 test functions then, 194 now, 0 removed, 0 renamed away. The entire +71 is one NEW module, platform/lib/wfdsl/test_work_unit_authorization.py.",
+      "caveat": "The Wave-2 audit verified this by EQUALITY to 444. That guard is anchored to a moving reference and would now go red on a legitimate addition. A set difference is the invariant that survives concurrent work."
+    },
+    {
+      "id": "W2-01",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "97 top-level blueprints, 103/103 schema-valid, 0 duplicate ids among the 97",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "97 top-level blueprints at 0aa6f8fa, 04e4736c and in the worktree; 0 duplicate ids among the 97 at every anchor.",
+      "detector_note": "My classifier initially labelled BP4-VALIDATION.json and BP7-VALIDATOR-OUTPUT.json 'unparseable'. They parse fine - they are top-level JSON ARRAYS and my isinstance(d, dict) branch mislabelled them. They are report files; the audit's 'no unparseable files' is correct and mine was the error."
+    },
+    {
+      "id": "W2-02",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "65 flagship, 65/65 have a test file, 1111 passed",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "65 blueprints carry flagship:true. My name matcher resolved 64 and flagged two-track-ui-audit-rubric-verdict as untested - that was my matcher's limitation: platform/lib/workflows/test_two_track_ui_audit.py exists, exactly as the audit documented. 64 files -> 1099 passed / 0 failed; the 65th accounts for the remaining 12."
+    },
+    {
+      "id": "W2-03",
+      "wave": 2,
+      "severity": "P2",
+      "claim": "9 architectures + TOURNAMENT-VERDICT.md, dissent preserved",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "exactly 9 architecture .md files plus TOURNAMENT-VERDICT.md at 40,120 bytes (audit: 40,120). Every one of the 9 named in the verdict, 6-17 mentions each (audit: 6-17). 10 'dissent', 2 'minority report', and a first-class '## ... MINORITY REPORT' heading. 0 architectures silently dropped."
+    },
+    {
+      "id": "W2-04",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "forge reaches BOTH CERTIFIED and REJECTED on one input pair",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "forge tournament reproduces byte-identically: stage-splice/best-of-breed/conditional-hybrid/ensemble/progressive CERTIFIED, common-core and union REJECTED, same coverage +0.1048 / recovery +0.0833 deltas, WINNER best-of-breed. forge fuse --strategy union emits VERDICT: REJECTED with the same 9 gratuitous stages.",
+      "defects_found_while_reproducing": [
+        "The audit's 'verbatim' transcript shows `python -m foundry.forge tournament` with no --source. --source has been required=True since the commit that first shipped forge.py (51156b0d), so that command exits 2 with an argparse error; the transcript elided mandatory arguments and does not reproduce as written (P3, reproducibility).",
+        "forge raises an unhandled FileNotFoundError traceback on a bad --source path instead of a terminal FAILED: marker (P3, terminal-state).",
+        "The P3 FORGE-COST-LABEL defect the audit itself logged is still live at HEAD: `cost (NOT an axis): {'stage_count': 8}` printed for an 18-stage fusion."
+      ]
+    },
+    {
+      "id": "W2-06",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "zero regression; full suite 2767 passed, 14 skipped",
+      "verdict": "CONFIRMED as no-regression; count superseded",
+      "confidence": "almost-certain",
+      "measured": "platform/lib suite 3118 passed / 14 skipped / 0 failed, exit 0 (p11_suite_full.log). platform-wide `python -m pytest platform` 3922 passed / 14 skipped / 0 failed in 614s, exit 0 (p11_suite_platform.log) - which REPRODUCES Wave 3's final figure of `3922 passed, 14 skipped` exactly, at a later HEAD.",
+      "count_war_resolved": "Both scopes measured here. platform/lib = 3,118; platform = 3,922. The second matches Wave 3 exactly, so that number is correct AND stable; the disagreement with 2,767 / 3,026 / 3,118 is a denominator difference, not a regression."
+    },
+    {
+      "id": "W2-07",
+      "wave": 2,
+      "severity": "P1",
+      "claim": "WAVE2-UNCOMMITTED: 612 files on disk across 5 dirs, 0 git-tracked",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "at edcf9f5b every one of the five directories has exactly 0 tracked files: platform/workflows 0, platform/architecture 0, platform/lib/workflows 0, platform/lib/foundry 0, command-center/schema 0. The 612 on-disk numerator is not reproducible from git (disk state has moved) and is NOT-CHECKED.",
+      "still_open_at_HEAD": "479 of 841 files in those dirs are tracked. 85 are untracked AND not gitignored, so `git clean -xfd` still destroys them. Most are `_*` scratch, but three are not: platform/workflows/_shared/shared.pairwise-overlap-matrix.subworkflow.json and shared.write-as-you-go-artifact.subworkflow.json (two of the 103 blueprint-shaped docs the audit counted) and command-center/schema/_meta/json-schema-2020-12.json (a referenced output_schema token). platform/architecture holds 103 files on disk against 10 tracked."
+    },
+    {
+      "id": "W2-08",
+      "wave": 2,
+      "severity": "P2",
+      "claim": "3 files in forged/ share the id fused.dc5b5f0b10f7",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "exactly 3 files, exactly that id, at 0aa6f8fa - including REJECTED.union.cnc07-arc05.workflow.json (18 stages) alongside the two 9-stage CERTIFIED fusions."
+    },
+    {
+      "id": "W2-10",
+      "wave": 2,
+      "severity": "INFO",
+      "claim": "catalog defects unmoved: 159 / 41 / 96 / 128",
+      "verdict": "CONFIRMED for the three I recomputed",
+      "confidence": "almost-certain",
+      "measured": "output_schema failing the normative pattern: 159 of 2,007 - exact. Pattern located at work-unit.normative.schema.json#/$defs/schema_reference; first five failures IMP-0001, IMP-0004, IMP-0005, IMP-0006, IMP-0008. Completion sentinels not naming their own unit id: 96 at 0aa6f8fa and still 96 now - exact, re-read twice across a concurrent catalog edit and stable both times. assigned_model_vendor_role in string-triple form: 128 at 0aa6f8fa - exact - and 0 now (Wave 3's D5 normalisation closed it).",
+      "not_checked": "Only the 41 unresolvable dependency refs remain unchecked; that needs SEM-001's bucket vocabulary."
+    },
+    {
+      "id": "W3-03",
+      "wave": 3,
+      "severity": "P1",
+      "claim": "D3 test-mutates-tree CLOSED, with a both-states control",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "measured": "ran test_schema_resolver.py (38 passed) while watching mtimes of all 231 command-center/schema/*.json: 0 changed. The fixed tests generate into tmp_path, compare ALL 236 outputs instead of a 4-path 1.7% sample, and test_running_the_generator_under_test_leaves_the_real_tree_untouched asserts the POSITIVE (every tracked digest unchanged) rather than 'nothing blocking'.",
+      "detector_note": "The mtime census alone would be silent in both states if the generator only rewrote changed files, so it is not sufficient on its own; the code read of _run_generator(out_root) plus the all-236 coverage assertion is the second, independent signal."
+    },
+    {
+      "id": "W3-04",
+      "wave": 3,
+      "severity": "P1",
+      "claim": "check2 Phase 5 plugin PASS",
+      "verdict": "CONFIRMED that the check ran and is populated; the briefed 'never reached' is REFUTED",
+      "confidence": "almost-certain",
+      "measured": "WAVE3-FLOOR-AUDIT.json check2_phase5_plugin is 13,071 bytes across 19 populated sub-checks (build, deterministic_rebuild, install, update, rollback, uninstall, prefix_after_* for each verb, seeded_defect_package, forbidden_content, detector_control) with real command lines, exit codes and stdout - including archive_bytes 95093 / entry_count 45.",
+      "not_checked_by_me": "I did not independently re-drive the five lifecycle verbs; Wave 4's verify/plugin-lifecycle unit did and found 8 defects (6xP2, 2xP3), notably a health check that verifies EXISTENCE not INTEGRITY. My verdict is about whether Wave 3 reached the check, not about the plugin's integrity."
+    },
+    {
+      "id": "W3-05",
+      "wave": 3,
+      "severity": "P1",
+      "claim": "check3 Phase 6 marketplace PASS",
+      "verdict": "CONFIRMED that the check ran and is populated; the briefed 'never reached' is REFUTED",
+      "confidence": "almost-certain",
+      "measured": "check3_phase6_marketplace is 24,844 bytes across 28 populated sub-checks including install_after_revoke, install_other_version_after_revoke, signature_forgery_control, tamper_control, sbom_verification, sbom_propagation, revocation_is_scoped_not_a_killswitch and nonmaintainer_authority_probe.",
+      "corroboration": "Wave 4's verify/marketplace-lifecycle unit independently reached the same refutation of the briefed statement. Two mechanically different probes now agree.",
+      "not_checked_by_me": "The two revocation escapes that unit CONFIRMED (stale offline bundle import deleting the destination revocation list; a verify-always mirror installing a revoked version) were not re-derived here."
+    },
+    {
+      "id": "E1",
+      "wave": 1,
+      "severity": "P1-expansion",
+      "claim": "detector control arm A: 6/6 known-valid PASS, 10/10 known-invalid FIRE, 5 schema-only, 5 semantics-only",
+      "verdict": "CONFIRMED exactly",
+      "confidence": "almost-certain",
+      "measured": "6/6 valid pass, 10/10 invalid fire, 0 wrong either way. Schema-layer-only: N1, N2, N4, N6, N9. Semantics-only: N3, N5, N7, N8, N10. 0 caught by both. So the load-bearing consequence holds: a schema-only gate over presets is fail-open across exactly half the shipped defect classes."
+    },
+    {
+      "id": "E2",
+      "wave": 2,
+      "severity": "P2-expansion",
+      "claim": "the 14 skips are 11 'declares no secret param' + 3 'has no fanout stage', not hidden failures",
+      "verdict": "CONFIRMED exactly",
+      "confidence": "almost-certain",
+      "measured": "test_bp1_blueprint_conformance.py -rs: 277 passed, 14 skipped; 11 + 3 = 14 reasons, both conditional parametrised skips at lines 286 and 346."
+    }
+  ],
+  "new_findings_not_in_any_wave_audit": [
+    {
+      "id": "P11-N1",
+      "severity": "P1",
+      "finding": "tools/marketplace/schema/ was never created. 18 output_schema tokens the catalog references still do not resolve at HEAD, plus .claude-plugin/marketplace.schema.json. Commit 47cd5c11's message says 'plugin and marketplace schema documents' but its 18 added files are ALL under tools/plugin/schema/ - zero marketplace schemas. Predicate condition 4 stays unsatisfiable for those units."
+    },
+    {
+      "id": "P11-N2",
+      "severity": "P1",
+      "finding": "The repair to platform/lib/_mutation_selfcheck.py is an uncommitted working-tree edit that the D1-close lane explicitly disclaims ('NOT mine', D1-CLOSE-REGISTRY-GAP.md:375). Committed HEAD is broken; a fresh clone gets 0/12."
+    },
+    {
+      "id": "P11-N3",
+      "severity": "P2",
+      "finding": "85 files across the five Wave-2 directories are untracked AND not gitignored at HEAD, so a git clean -xfd destroys them. Three are deliverables, not scratch: the two _shared/ subworkflows the Wave-2 audit counted among its 103, and command-center/schema/_meta/json-schema-2020-12.json which a work unit references."
+    },
+    {
+      "id": "P11-N4",
+      "severity": "P2",
+      "finding": "The competing suite baselines differ by SCOPE as well as time, now measured on both arms: platform/lib = 3,118 passed / 14 skipped / 0 failed; `pytest platform` = 3,922 passed / 14 skipped / 0 failed, reproducing Wave 3's 3,922 exactly at a later HEAD. No wave artifact but Wave 3's states which scope its number came from, which is what made 2,767 / 2,812 / 3,026 / 3,067 look like a contradiction."
+    },
+    {
+      "id": "P11-N5",
+      "severity": "P3",
+      "finding": "forge exits with an unhandled FileNotFoundError traceback on a bad --source path rather than a terminal FAILED: marker, violating the program's own always-a-terminal-state doctrine."
+    }
+  ],
+  "not_checked": [
+    "Coverage % anywhere - this project has no .coverage-thresholds.json, so coverage is NOT-CHECKED, not claimed.",
+    "Only W2-10's 41 unresolvable dependency refs; the sibling 159 output_schema-pattern failures were recovered and CONFIRMED exactly (159 of 2,007).",
+    "Phase 8 routing precision/recall and bytes-per-query - outside my Waves 1-3 claim set.",
+    "Substantive plugin/marketplace lifecycle behaviour (install/upgrade/rollback/uninstall, the two revocation escapes) - Wave 4's two verify lanes own that.",
+    "A git-revert rehearsal of the D1 registry/schema data change; rollback was verified for W1-06 by tree reconstruction and for D4 by the commit chain, not by reverting D1.",
+    "Wave-1's '52 non-blocking semantic warnings' and Wave-2's 'largest role cluster 13' class of finer sub-numbers.",
+    "The 612 on-disk numerator of W2-07 - disk state at audit time is unrecoverable."
+  ],
+  "owner_decisions_needed": [
+    "The registry counting rule. Floor 160 is MET at 161 only if every row counts; the audit's shell rule gives 157 (MISSED by 3) and a uniform one-row-per-upstream_repo rule gives 153 (MISSED by 7). This needs an explicit ruling, not another measurement.",
+    "Whether the _mutation_selfcheck.py repair is committed and the tool wired into a CI gate. It is currently an orphan edit no lane claims, guarding nothing.",
+    "Whether tools/marketplace/schema/ gets authored or the 18 catalog references are retargeted.",
+    "Whether the 85 untracked-and-unignored files are tracked or explicitly ignored - three of them are deliverables.",
+    "The 239 of 261 mcp__-token units that are unapproved under tool_policy.require_owner_approval (carried from the D2 lane, not gated here)."
+  ],
+  "hook_notice_to_surface": "A PostToolUse sweep flagged command-center/p11_probe_floors.py as POTENTIAL-CREDENTIAL, id sha256:d2495655e6d8. Report-only; it changed nothing and emitted no value. No credential was read, printed, or modified by this unit.",
+  "terminal_state": "SUCCESS:depth/p11-confirmation 26 claims re-verified from raw source - 18 CONFIRMED, 5 PARTIAL, 3 REFUTED; escalation tripped in waves 1 and 3 and the expansion reproduced exactly",
+  "concurrency_disclosure": "~20 agents share this tree. During this unit's run, 6 tracked files were modified by OTHER lanes (command-center/{ARTIFACT-MANIFEST.json,DEPENDENCY-GRAPH.json,OWNER-DECISIONS.md,STATUS.md,WORK-UNIT-CATALOG.json}, tools/command-center/render.py) and a P13 lane was writing throughout. This unit modified NO tracked file - every write is a new p11_*/P11-* path. Catalog-derived figures were re-read after the concurrent catalog edit and were identical (2,007 units / 96 / 0), so those readings are stable across two timepoints; the committed-bytes arms are immune by construction."
+}

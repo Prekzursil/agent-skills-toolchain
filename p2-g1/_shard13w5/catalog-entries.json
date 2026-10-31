@@ -1,0 +1,612 @@
+{
+ "REL-0022": {
+  "id": "REL-0022",
+  "title": "Rollback coverage measured by instrumenting a real install, not by reading the manifest",
+  "phase": "15",
+  "question_or_target": "Implementation target: find out what the recorded recovery plan does NOT cover, by watching the installer run instead of by reading the plan. Attach a system-level observer to a genuine install so each side effect it produces is captured as it happens, then subtract the recorded inverse set from the observed side-effect set in both directions. Anything observed but unrecorded is a recovery hole; anything recorded but never observed is a stale entry that will send the next responder somewhere nothing happened. Coverage inferred from reading a document is not coverage.",
+  "inputs": [
+   "the system-level observer and the measured limits of what it can see",
+   "the installer under test, run inside the canary profile",
+   "the recorded inverse set standardised by REL-0002",
+   "_USER-PROMPTS.md:11107 (rollback guide) and 11391 (rollback is tested)"
+  ],
+  "dependencies": [
+   "REL-0002",
+   "REL-0004"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.1-codex",
+   "vendor": "openai",
+   "role": "instrumentation-engineer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 7200,
+  "output_path": "command-center/receipts/REL-0022.json",
+  "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+  "evidence_requirement": "State what the observer can and cannot perceive -- side effects produced by a spawned child process, for instance -- and mark the blind region NOT-CHECKED. A zero-hole finding is only as wide as the observer's demonstrated reach, and that reach must be shown before the finding is stated.",
+  "tests_required": [
+   "Detector control: produce a known side effect and confirm the observer captures it, before any zero-hole finding is entertained.",
+   "Introduce an unrecorded side effect into the installer -> the subtraction reports a hole.",
+   "Remove a real side effect while leaving its recorded inverse -> the stale-entry direction fires.",
+   "Side effects produced by a child process are either captured or declared an uncovered region."
+  ],
+  "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+  "completion_sentinel": "SUCCESS:REL-0022",
+  "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+  "failure_classification": [
+   "rollback-hole",
+   "dead-manifest-entry",
+   "observer-blind-spot"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0004": {
+  "id": "RES-0004",
+  "title": "Build the content-addressed evidence snapshot and 30-day re-check substrate",
+  "phase": "2",
+  "question_or_target": "Can every cited external source be captured as (URL, final URL after redirects, HTTP status, fetch timestamp, sha256 of body, archived copy) such that a re-check 30 days later mechanically distinguishes SOURCE-CHANGED from CLAIM-WAS-WRONG - and does it correctly record the known 301 chain docs.claude.com/en/docs/claude-code/* -> code.claude.com/docs/en/*?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:146 (observed HTTP 301)",
+   "RES-0001 claim-record schema"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "RES-0002"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "measurement-engineer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash(python)",
+   "Bash(pytest)",
+   "WebFetch",
+   "Bash(curl)"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 2700,
+  "output_path": "command-center/research/RES-0004.json",
+  "output_schema": "command-center/schema/measurement-run.schema.json",
+  "evidence_requirement": "the substrate is proven on 3 real URLs of different shapes (a 301 chain, a JS-rendered page, a raw file), with the stored sha256 re-hashed in the same run",
+  "tests_required": [
+   "re-check control: mutate a stored snapshot byte and assert the re-checker reports CHANGED",
+   "re-check control: unchanged source must report UNCHANGED, not CHANGED (no false positive)",
+   "redirect capture: the recorded final URL for a docs.claude.com path is a code.claude.com URL"
+  ],
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "completion_sentinel": "SUCCESS:RES-0004 in the receipt AND a snapshot store exists whose every entry re-hashes to its recorded sha256 in a fresh process",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0009": {
+  "id": "RES-0009",
+  "title": "Map the hook contract: event names, payload shape, exit-code semantics, timeouts",
+  "phase": "2",
+  "question_or_target": "For every hook event the current client supports, what is the exact stdin payload shape, what do exit codes 0/1/2 mean, how is additionalContext delivered, and what happens on timeout - measured against the shipped client rather than read from docs alone?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.claude/hooks/_dispatch/manifest.json",
+   "code.claude.com/docs/en/* hooks reference"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "platform-cartographer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)",
+   "WebFetch"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0009.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md); each event's payload is captured verbatim from a real firing, not paraphrased",
+  "tests_required": [
+   "fire each supported event once with a logging hook and store the raw payload",
+   "exit-2 control: confirm a blocking exit actually blocks, and that exit 0 with additionalContext actually injects",
+   "timeout control: a deliberately slow hook must show the documented timeout behaviour"
+  ],
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "completion_sentinel": "SUCCESS:RES-0009 in the receipt AND one captured raw payload per supported event plus an observed block/inject/timeout transcript",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0011": {
+  "id": "RES-0011",
+  "title": "Map the agent and slash-command definition contracts and their tool-restriction surface",
+  "phase": "2",
+  "question_or_target": "What frontmatter keys do agent (.md) and command definitions support today, how is a subagent's model chosen, and can a definition genuinely RESTRICT the tool set a subagent receives - or is the restriction advisory?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.claude/agents",
+   "~/.claude/commands",
+   "code.claude.com/docs/en/* subagents reference"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "platform-cartographer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)",
+   "WebFetch"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 2700,
+  "output_path": "command-center/research/RES-0011.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md)",
+  "tests_required": [
+   "spawn a fixture subagent with a restricted tool list and have it attempt a forbidden tool",
+   "negative control: an unrestricted subagent must succeed at the same call"
+  ],
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "completion_sentinel": "SUCCESS:RES-0011 in the receipt AND a transcript showing the forbidden call refused for the restricted agent and allowed for the unrestricted one",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0037": {
+  "id": "RES-0037",
+  "title": "Measure the per-session process cost of stdio versus HTTP MCP transports on this box",
+  "phase": "2",
+  "question_or_target": "How many OS processes does one session spawn per stdio MCP server versus one shared HTTP server, and does the measured multiplication reproduce the estate's recorded commit-exhaustion driver (sessions x servers) on today's fleet?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.mcp.json and the live process table",
+   "reference_commit_exhaustion_root_cause_2026-07-19 (prior estate measurement)"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "measurement-engineer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0037.json",
+  "output_schema": "command-center/schema/measurement-run.schema.json",
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md); the process count is read from the OS process table AND from a per-server handle count, and a probe must not match its own command line (a self-matching probe reported a dead session as ACTIVE on this estate)",
+  "tests_required": [
+   "count processes with a pattern proven NOT to match the probe's own command line",
+   "control: start and stop one known server and confirm the count moves by the expected delta"
+  ],
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "completion_sentinel": "SUCCESS:RES-0037 in the receipt AND a per-transport process count with a start/stop delta control and a stated proof the probe does not match itself",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim",
+   "self-matching-probe"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0044": {
+  "id": "RES-0044",
+  "title": "Map the remote-MCP authorization profile and which clients actually implement it",
+  "phase": "2",
+  "question_or_target": "What does the MCP authorization profile require of a remote server, which supported clients implement the full flow, and can this program consume a remote MCP without ever writing a credential into an artifact?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "MCP authorization specification",
+   "client implementations"
+  ],
+  "dependencies": [
+   "RES-0036"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "security-researcher"
+  },
+  "tool_permissions": [
+   "mcp__github__search_code",
+   "mcp__github__get_file_contents",
+   "mcp__github__list_commits",
+   "mcp__github__search_repositories",
+   "mcp__deepwiki__ask_question",
+   "mcp__repomix__pack_remote_repository",
+   "Read",
+   "Write(command-center/research/**)"
+  ],
+  "execution_substrate": "cloud-batch",
+  "timeout_seconds": 2700,
+  "output_path": "command-center/research/RES-0044.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "every claim carries TWO mechanically independent rails (the 05-ECO R1/R2 pattern: a structured API probe AND a prose source), each with a permalink, a fetch timestamp, an HTTP status and a sha256 of the captured bytes; a claim with one rail is graded E3 and may not be cited as measured fact; the no-credential-in-artifact property is demonstrated by naming where the token lives at each step, not asserted; no live token value appears anywhere in the output",
+  "tests_required": [
+   "trace one full authorization flow and name the storage location at each hop",
+   "control: confirm that a captured artifact from the flow contains no credential material"
+  ],
+  "reviewer_requirement": "one security reviewer who must attempt to construct a bypass of every mitigation listed before the mitigation may be recorded as effective",
+  "completion_sentinel": "SUCCESS:RES-0044 in the receipt AND a hop-by-hop token-location trace plus a scan result showing the artifact is credential-free",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "failure_classification": [
+   "source-unavailable",
+   "advisory-embargoed",
+   "unverifiable-exploit-claim",
+   "overclaim",
+   "legal-blocked",
+   "credential-redaction-required"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0049": {
+  "id": "RES-0049",
+  "title": "Determine the minimum viable SLSA/provenance level for this program's artifacts",
+  "phase": "2",
+  "question_or_target": "Which SLSA level can a single-owner, PR-only release process actually reach without a hosted builder, what evidence would prove the level, and is in-toto-shaped attestation on every agent artifact (Tier 1 in the call sheet) achievable with the existing CI?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "SLSA specification",
+   "in-toto specification",
+   "this repo's CI workflows",
+   "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md:81-86 (Tier 1 attestation row)"
+  ],
+  "dependencies": [
+   "RES-0048"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "supply-chain-analyst"
+  },
+  "tool_permissions": [
+   "mcp__github__search_code",
+   "mcp__github__get_file_contents",
+   "mcp__github__list_commits",
+   "mcp__github__search_repositories",
+   "mcp__deepwiki__ask_question",
+   "mcp__repomix__pack_remote_repository",
+   "Read",
+   "Write(command-center/research/**)",
+   "Read",
+   "Grep"
+  ],
+  "execution_substrate": "local-parallel",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0049.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "every claim carries TWO mechanically independent rails (the 05-ECO R1/R2 pattern: a structured API probe AND a prose source), each with a permalink, a fetch timestamp, an HTTP status and a sha256 of the captured bytes; a claim with one rail is graded E3 and may not be cited as measured fact; the achievable level is justified against THIS repo's actual CI configuration, cited at file:line, not against a generic pipeline",
+  "tests_required": [
+   "cite the specific CI capability that caps the achievable level",
+   "control: state what would have to change to reach the next level"
+  ],
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "completion_sentinel": "SUCCESS:RES-0049 in the receipt AND a level verdict citing this repo's CI at file:line plus the named delta to the next level",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "failure_classification": [
+   "source-unavailable",
+   "repo-renamed-or-redirected",
+   "version-skew",
+   "detector-failure",
+   "overclaim"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0077": {
+  "id": "RES-0077",
+  "title": "Catalogue LLM-as-judge biases and which corrections survive measurement",
+  "phase": "2",
+  "question_or_target": "What biases are measured in LLM judges (position, verbosity, self-preference, style), what magnitude does each have, and which proposed correction has been shown to reduce it rather than merely being proposed?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "LLM-as-judge evaluation literature"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "calibration-analyst"
+  },
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)"
+  ],
+  "execution_substrate": "cloud-batch",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0077.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "each mechanism cites the paper DOI/arXiv id, the exact section or figure the number comes from, the reported effect size AND the reported baseline; a headline number without its baseline is recorded as E3 and cannot promote a mechanism; each correction is graded measured-effective / proposed-only / refuted, and the grading rule is stated before the grading",
+  "tests_required": [
+   "grade every correction measured-effective / proposed-only / refuted with a citation",
+   "control: at least one widely-cited correction must land outside measured-effective if the evidence says so"
+  ],
+  "reviewer_requirement": "two independent reviewers with PARTITIONED evidence (each gets a disjoint half of the source set) - 05-ECO anti-adoption #2 forbids a second same-vendor reviewer on the same input",
+  "completion_sentinel": "SUCCESS:RES-0077 in the receipt AND a bias-by-correction table with per-row effect sizes and an explicit grade",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0079": {
+  "id": "RES-0079",
+  "title": "Determine the right belief-aggregation rule for a panel with unequal calibration",
+  "phase": "2",
+  "question_or_target": "Between linear pooling, logarithmic pooling and Bayesian aggregation, which produces better calibrated group forecasts when members differ in calibration - and what does each require that this program does not yet have (a labelled verdict history)?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "opinion pooling and forecast aggregation literature"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "calibration-analyst"
+  },
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)"
+  ],
+  "execution_substrate": "cloud-batch",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0079.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "each mechanism cites the paper DOI/arXiv id, the exact section or figure the number comes from, the reported effect size AND the reported baseline; a headline number without its baseline is recorded as E3 and cannot promote a mechanism; the prerequisite data each method needs is stated explicitly, because the call sheet already grades calibration-weighted aggregation as blocked on a labelled history",
+  "tests_required": [
+   "state the exact prerequisite dataset each method needs before it can be used here",
+   "control: identify which method is usable TODAY with zero history"
+  ],
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "completion_sentinel": "SUCCESS:RES-0079 in the receipt AND a method table with a prerequisite-data column and one method identified as usable at zero history",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0086": {
+  "id": "RES-0086",
+  "title": "Extract dissent-preservation mechanisms from institutions that mandate minority reports",
+  "phase": "2",
+  "question_or_target": "How do juries, standards bodies and regulatory advisory panels structurally guarantee that a minority position survives into the record, and which of those mechanisms is implementable as a hard gate rather than an instruction the synthesizer may ignore?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "institutional procedure documents and dissent literature"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "deliberation-scientist"
+  },
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)",
+   "WebSearch",
+   "WebFetch"
+  ],
+  "execution_substrate": "cloud-batch",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0086.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "every claim carries TWO mechanically independent rails (the 05-ECO R1/R2 pattern: a structured API probe AND a prose source), each with a permalink, a fetch timestamp, an HTTP status and a sha256 of the captured bytes; a claim with one rail is graded E3 and may not be cited as measured fact; each mechanism is classified as structurally-enforced or norm-dependent, and only structurally-enforced mechanisms may be recommended as gates",
+  "tests_required": [
+   "classify every mechanism structurally-enforced versus norm-dependent",
+   "control: name the specific artifact field a hard gate would check"
+  ],
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "completion_sentinel": "SUCCESS:RES-0086 in the receipt AND a mechanism table with an enforcement classification and a named checkable artifact field",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0089": {
+  "id": "RES-0089",
+  "title": "Determine how benchmark contamination and gaming are detected, and which detectors work",
+  "phase": "2",
+  "question_or_target": "What methods detect training-data contamination and benchmark gaming (canary strings, held-out perturbation, timeline analysis), which have been shown to work, and which of this program's own planned benchmarks would be vulnerable?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "benchmark contamination literature",
+   "this program's planned benchmark set"
+  ],
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "codex-cli",
+   "vendor": "openai",
+   "role": "adversarial-refuter"
+  },
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)",
+   "WebSearch",
+   "WebFetch"
+  ],
+  "execution_substrate": "cloud-batch",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0089.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "each mechanism cites the paper DOI/arXiv id, the exact section or figure the number comes from, the reported effect size AND the reported baseline; a headline number without its baseline is recorded as E3 and cannot promote a mechanism; each detector's own false-positive rate is reported, since a contamination detector with an unmeasured false-positive rate cannot be used to disqualify a result",
+  "tests_required": [
+   "report each detector's false-positive rate or mark it UNMEASURED",
+   "control: apply the strongest detector to one benchmark this program intends to use"
+  ],
+  "reviewer_requirement": "two independent reviewers with PARTITIONED evidence (each gets a disjoint half of the source set) - 05-ECO anti-adoption #2 forbids a second same-vendor reviewer on the same input",
+  "completion_sentinel": "SUCCESS:RES-0089 in the receipt AND a detector table with false-positive rates or UNMEASURED marks, plus one applied result",
+  "retry_policy": "on a Codex-rail failure retry ONCE with --ignore-user-config and a prompt FILE (rules/common/cross-vendor-dispatch.md 3/4); a second failure reassigns the unit to anthropic/opus and records failure_classification=vendor-rail-unavailable",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "owner_approval_required": false
+ },
+ "RES-0091": {
+  "id": "RES-0091",
+  "title": "Identify which properties of an agent's output are genuinely property-testable",
+  "phase": "2",
+  "question_or_target": "For an agent-produced artifact, which invariants can a property-based test assert without asserting the model's opinion (schema validity, idempotence of re-runs, monotonicity of a counter, absence of a credential) - and which desirable properties are fundamentally untestable?",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "property-based testing literature",
+   "this program's artifact schemas"
+  ],
+  "dependencies": [
+   "RES-0001"
+  ],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "measurement-engineer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash(python)",
+   "Bash(pytest)"
+  ],
+  "execution_substrate": "worktree-isolated",
+  "timeout_seconds": 3600,
+  "output_path": "command-center/research/RES-0091.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "evidence_requirement": "each emitted detector ships its known-good AND known-broken fixture inline, with the recorded output of both runs; a probe silent in both states measures nothing; the deliverable includes at least one property implemented and run, not only a list",
+  "tests_required": [
+   "implement and run at least 3 properties against a real artifact",
+   "control: name at least 2 desirable properties that are fundamentally untestable and say why"
+  ],
+  "reviewer_requirement": "one independent reviewer who re-runs the emitted checker against BOTH a known-good and a known-broken fixture and confirms it fires only on the broken one",
+  "completion_sentinel": "SUCCESS:RES-0091 in the receipt AND 3 implemented properties with run output plus 2 named untestable properties",
+  "retry_policy": "red-green-refactor; if the checker cannot be made to fail on the known-broken fixture in 2 attempts, STOP and report the detector as unbuildable rather than shipping a probe that is silent in both states",
+  "failure_classification": [
+   "detector-failure",
+   "silent-in-both-states",
+   "fixture-unrepresentative",
+   "overclaim",
+   "dependency-blocked"
+  ],
+  "owner_approval_required": false
+ }
+}

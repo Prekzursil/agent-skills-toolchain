@@ -1,0 +1,571 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0053",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0053 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the per-module cost table exists for both commits and at least one cold-cache measurement is included. Any other terminal state is FAILED:CNF-0053 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0053]",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/CNF-0053/fixtures/commits/after/tool_startup/extra.py",
+      "bytes": 649,
+      "sha256": "e3967a0ae27fde750f74fd50998c3b80d7c7cc26ab3668174bf248e258e6f3f2",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0053/profiler.py",
+      "bytes": 4761,
+      "sha256": "fda58c097baa6b90a3a80a337dd4122516c9e03a1c9cd95aad604cd3366fd289",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0053/probe-campaign.raw.json",
+      "bytes": 29125,
+      "sha256": "eec5195e4e2774689811c9e7ed3d2c902e4fb4de47cebbf7f33ec0cbe4c5bc45",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/schema/benchmark-report.schema.json",
+      "bytes": 1101,
+      "sha256": "890043cae54b2d8bda22bb4725161d0ce8e4ce1cfff829093838bcd508cfcade",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Per-module import-time tables exist for both fixture commits and the after-only module tool_startup.extra accounts for the largest self_us increase.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0053/fixtures/commits/after/tool_startup/extra.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/measure.py",
+          "raw_output": "delta_ms=19.6184 noise=0.755 largest=tool_startup.extra n=22 cold_ms=37.4344",
+          "fingerprint": "908294bd071ff8d98cc432f7",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "re-derive largest_increase from per_module_cost_table before reading answers",
+          "raw_output": "rederived_largest=tool_startup.extra budget=NOT-CHECKED cold_included=True",
+          "fingerprint": "8fbfbe6292cef27b4d980196",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "At least one cold-cache posix_fadvise measurement is included, and the latency-budget question is NOT-CHECKED because no numeric startup threshold is declared.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0053/probe-campaign.raw.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/probe1_interleaved_importtime.py",
+          "raw_output": "delta_ms=19.6184 noise=0.755 largest=tool_startup.extra n=22 cold_ms=37.4344",
+          "fingerprint": "24c8a098a14d55d355d6c65b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/probe2_cold_cache_budget.py",
+          "raw_output": "rederived_largest=tool_startup.extra budget=NOT-CHECKED cold_included=True",
+          "fingerprint": "e92a3af99beeef23fe9c83e8",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "CNF0053-T1-interleaved",
+      "name": "11 interleaved A B A B import-time repetitions",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/probe1_interleaved_importtime.py",
+      "result": "PASS"
+    },
+    {
+      "id": "CNF0053-T2-cold-cache",
+      "name": "cold filesystem cache measured at least once via posix_fadvise",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/probe2_cold_cache_budget.py",
+      "result": "PASS"
+    },
+    {
+      "id": "CNF0053-T3-budget-not-invented",
+      "name": "undeclared latency budget reported NOT-CHECKED",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0053/probe2_cold_cache_budget.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-SCHEMA-GARBAGE",
+      "kind": "malformed-input",
+      "description": "Empty and unrelated JSON must be rejected by output_schema once $ref is resolved onto disk.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "schema rejects {} and {totally:unrelated}",
+      "good_state_output": "schema accepts this receipt"
+    },
+    {
+      "id": "NC-AFTER-ONLY-EXTRA",
+      "kind": "known-broken-fixture",
+      "description": "Commit-before has no tool_startup.extra; the largest increase must be that after-only import.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "before table has no tool_startup.extra",
+      "good_state_output": "largest_increase_module=tool_startup.extra"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0053-probe2-cold-cache-budget",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "probe2 re-runs the cold-cache sample and re-derives largest module plus budget status from live output before comparing the artifact answers"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0053/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0053"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads",
+      "artifact_path": "command-center/confirmation/CNF-0053-startup-overhead.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -c \"import json,pathlib; json.loads(pathlib.Path('command-center/confirmation/CNF-0053-startup-overhead.json').read_text())\"",
+        "raw_output": "parsed",
+        "fingerprint": "c2345c5f0b99b1fd1173bf30",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:53Z",
+    "ended_at": "2026-08-25T00:57:56Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "no blind retry. Re-runs are permitted ONLY as flake measurement and EVERY run's outcome is recorded"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Product git before/after SHAs are NOT-CHECKED; this worktree has no .git so fixture commits stand in.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run on a git checkout that names the product commits under test and compare those trees to the fixture pair."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "performance-analyst",
+    "execution_substrate": "local-serialized"
+  },
+  "report": {
+    "kind": "benchmark-report",
+    "observations": [
+      {
+        "name": "import-time-delta-ms",
+        "measured": 19.6184,
+        "method": "python -X importtime interleaved A B A B n=11 pairs",
+        "anchor": "command-center/p2-wave/probes/CNF-0053/probe-campaign.raw.json"
+      },
+      {
+        "name": "largest-increase-module",
+        "measured": "tool_startup.extra",
+        "method": "median self_us after minus before",
+        "anchor": "command-center/p2-wave/probes/CNF-0053/fixtures/commits/after/tool_startup/extra.py"
+      },
+      {
+        "name": "cold-cache-wall-ms",
+        "measured": 37.4344,
+        "method": "posix_fadvise(POSIX_FADV_DONTNEED)",
+        "anchor": "command-center/p2-wave/probes/CNF-0053/probe-campaign.raw.json"
+      },
+      {
+        "name": "declared-latency-budget",
+        "measured": "NOT-CHECKED",
+        "method": "name-search tools/ and command-center/; never invent a threshold",
+        "anchor": "command-center/schema/benchmark-report.schema.json"
+      }
+    ],
+    "control_ids": [
+      "CNF-0053-before",
+      "CNF-0053-after",
+      "warm-importtime",
+      "cold-posix_fadvise"
+    ],
+    "title": "Startup and import overhead delta measurement",
+    "question": "Did the change make the tool slower to start? Measure cold-start and import time before and after with repetitions, and answer: what is the delta in milliseconds, which imported module accounts for the largest share of any increase, and does the delta exceed the declared latency budget?",
+    "git_history": {
+      "present": false,
+      "status": "NOT-CHECKED",
+      "reason": "/opt/p2/ast-integrate is not a git worktree; two fixture commits stand in so the per-module table and cold-cache run can still be measured"
+    },
+    "commits": [
+      {
+        "id": "CNF-0053-before",
+        "label": "fixture before (core+util only)",
+        "entry_point": "tool_startup.entry",
+        "tree": "command-center/p2-wave/probes/CNF-0053/fixtures/commits/before",
+        "git": "NOT-CHECKED (this worktree has no .git; fixture commit stand-in)"
+      },
+      {
+        "id": "CNF-0053-after",
+        "label": "fixture after (adds tool_startup.extra payload read)",
+        "entry_point": "tool_startup.entry",
+        "tree": "command-center/p2-wave/probes/CNF-0053/fixtures/commits/after",
+        "git": "NOT-CHECKED (this worktree has no .git; fixture commit stand-in)"
+      }
+    ],
+    "interleaving": "A B A B (before/after, 11 pairs, not blocked)",
+    "repetitions": 11,
+    "raw_repetitions": [
+      {
+        "order": 1,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 17.3492,
+        "cache": "warm",
+        "package_self_us": 1556,
+        "entry_cumulative_us": 1555
+      },
+      {
+        "order": 2,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 37.011,
+        "cache": "warm",
+        "package_self_us": 14461,
+        "entry_cumulative_us": 21023
+      },
+      {
+        "order": 3,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 17.6128,
+        "cache": "warm",
+        "package_self_us": 1518,
+        "entry_cumulative_us": 1516
+      },
+      {
+        "order": 4,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 35.9845,
+        "cache": "warm",
+        "package_self_us": 14276,
+        "entry_cumulative_us": 20485
+      },
+      {
+        "order": 5,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.8204,
+        "cache": "warm",
+        "package_self_us": 1426,
+        "entry_cumulative_us": 1425
+      },
+      {
+        "order": 6,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 35.9836,
+        "cache": "warm",
+        "package_self_us": 14240,
+        "entry_cumulative_us": 20533
+      },
+      {
+        "order": 7,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.4046,
+        "cache": "warm",
+        "package_self_us": 1433,
+        "entry_cumulative_us": 1431
+      },
+      {
+        "order": 8,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.4334,
+        "cache": "warm",
+        "package_self_us": 14300,
+        "entry_cumulative_us": 20579
+      },
+      {
+        "order": 9,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.9046,
+        "cache": "warm",
+        "package_self_us": 1493,
+        "entry_cumulative_us": 1491
+      },
+      {
+        "order": 10,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.944,
+        "cache": "warm",
+        "package_self_us": 14366,
+        "entry_cumulative_us": 20704
+      },
+      {
+        "order": 11,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.5257,
+        "cache": "warm",
+        "package_self_us": 1440,
+        "entry_cumulative_us": 1439
+      },
+      {
+        "order": 12,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.8883,
+        "cache": "warm",
+        "package_self_us": 14346,
+        "entry_cumulative_us": 20705
+      },
+      {
+        "order": 13,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.4324,
+        "cache": "warm",
+        "package_self_us": 1441,
+        "entry_cumulative_us": 1440
+      },
+      {
+        "order": 14,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.4388,
+        "cache": "warm",
+        "package_self_us": 14297,
+        "entry_cumulative_us": 20547
+      },
+      {
+        "order": 15,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.3329,
+        "cache": "warm",
+        "package_self_us": 1420,
+        "entry_cumulative_us": 1419
+      },
+      {
+        "order": 16,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.0344,
+        "cache": "warm",
+        "package_self_us": 14294,
+        "entry_cumulative_us": 20528
+      },
+      {
+        "order": 17,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.355,
+        "cache": "warm",
+        "package_self_us": 1449,
+        "entry_cumulative_us": 1447
+      },
+      {
+        "order": 18,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 36.4107,
+        "cache": "warm",
+        "package_self_us": 14343,
+        "entry_cumulative_us": 20669
+      },
+      {
+        "order": 19,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.8673,
+        "cache": "warm",
+        "package_self_us": 1460,
+        "entry_cumulative_us": 1457
+      },
+      {
+        "order": 20,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 38.3692,
+        "cache": "warm",
+        "package_self_us": 14344,
+        "entry_cumulative_us": 20907
+      },
+      {
+        "order": 21,
+        "commit_id": "CNF-0053-before",
+        "wall_ms": 16.8503,
+        "cache": "warm",
+        "package_self_us": 1458,
+        "entry_cumulative_us": 1456
+      },
+      {
+        "order": 22,
+        "commit_id": "CNF-0053-after",
+        "wall_ms": 38.1759,
+        "cache": "warm",
+        "package_self_us": 14329,
+        "entry_cumulative_us": 20674
+      }
+    ],
+    "summaries": {
+      "CNF-0053-before": {
+        "median_wall_ms": 16.8204,
+        "iqr_wall_ms": 0.4674,
+        "n": 11,
+        "raw_wall_ms": [
+          17.3492,
+          17.6128,
+          16.8204,
+          16.4046,
+          16.9046,
+          16.5257,
+          16.4324,
+          16.3329,
+          16.355,
+          16.8673,
+          16.8503
+        ]
+      },
+      "CNF-0053-after": {
+        "median_wall_ms": 36.4388,
+        "iqr_wall_ms": 0.755,
+        "n": 11,
+        "raw_wall_ms": [
+          37.011,
+          35.9845,
+          35.9836,
+          36.4334,
+          36.944,
+          36.8883,
+          36.4388,
+          36.0344,
+          36.4107,
+          38.3692,
+          38.1759
+        ]
+      }
+    },
+    "per_module_cost_table": {
+      "CNF-0053-before": [
+        {
+          "module": "tool_startup",
+          "self_us": 1000,
+          "cumulative_us": 1000,
+          "self_ms": 1.0,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.core",
+          "self_us": 104,
+          "cumulative_us": 104,
+          "self_ms": 0.104,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.entry",
+          "self_us": 237,
+          "cumulative_us": 1447,
+          "self_ms": 0.237,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.util",
+          "self_us": 108,
+          "cumulative_us": 108,
+          "self_ms": 0.108,
+          "n": 11
+        }
+      ],
+      "CNF-0053-after": [
+        {
+          "module": "tool_startup",
+          "self_us": 993,
+          "cumulative_us": 993,
+          "self_ms": 0.993,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.core",
+          "self_us": 105,
+          "cumulative_us": 105,
+          "self_ms": 0.105,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.entry",
+          "self_us": 254,
+          "cumulative_us": 20669,
+          "self_ms": 0.254,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.extra",
+          "self_us": 12806,
+          "cumulative_us": 19151,
+          "self_ms": 12.806,
+          "n": 11
+        },
+        {
+          "module": "tool_startup.util",
+          "self_us": 153,
+          "cumulative_us": 153,
+          "self_ms": 0.153,
+          "n": 11
+        }
+      ]
+    },
+    "cold_cache_measurement": {
+      "included": true,
+      "commit_id": "CNF-0053-after",
+      "method": "posix_fadvise(POSIX_FADV_DONTNEED)",
+      "advised_files": 6,
+      "wall_ms": 37.4344,
+      "payload_bytes": 1048576,
+      "package_self_us": 14337
+    },
+    "delta_ms": 19.6184,
+    "noise_floor_ms": 0.755,
+    "measurable": true,
+    "largest_increase_module": {
+      "module": "tool_startup.extra",
+      "delta_self_us": 12806,
+      "delta_self_ms": 12.806,
+      "after_self_us": 12806,
+      "before_self_us": 0
+    },
+    "latency_budget": {
+      "declared": false,
+      "status": "NOT-CHECKED",
+      "hits": [],
+      "reason": "no latency budget file or numeric startup threshold is declared in tools/ or command-center/ on this worktree; NOT-CHECKED rather than an invented threshold"
+    },
+    "answers": {
+      "did_the_change_make_the_tool_slower": "YES on the two in-tree fixture commits: after adds tool_startup.extra which reads a 1048576-byte payload at import time. Historical git SHAs are NOT-CHECKED because this worktree has no .git.",
+      "delta_ms": 19.6184,
+      "largest_increase_module": "tool_startup.extra",
+      "exceeds_declared_latency_budget": "NOT-CHECKED"
+    },
+    "interval": {
+      "before_median_wall_ms": 16.8204,
+      "after_median_wall_ms": 36.4388,
+      "delta_ms": 19.6184,
+      "noise_floor_ms": 0.755,
+      "intervals_overlap": false,
+      "rule": "a difference inside the noise floor is no measurable change, never an improvement"
+    }
+  },
+  "extensions": {
+    "output_path": "command-center/confirmation/CNF-0053-startup-overhead.json",
+    "output_schema": "command-center/schema/benchmark-report.schema.json"
+  }
+}

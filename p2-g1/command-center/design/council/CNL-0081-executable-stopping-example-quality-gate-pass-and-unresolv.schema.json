@@ -1,0 +1,810 @@
+{
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNL-0081",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CNL-0081",
+ "extensions": {
+  "legacy_root": {
+   "$id": "urn:p2:cnl-0081:stopping-example",
+   "$schema": "http://json-schema.org/draft-07/schema#",
+   "a10_parse": {
+    "a10_means": "CNL-0010 Stopping-expression grammar and STATIC validation. CNL-0010 is not delivered on this tree; this unit binds a local A10 surface sufficient to accept the spec examples unchanged (AND/OR/NOT, comparisons, identifiers, numbers, booleans). It does not claim to be the full CNL-0010 artifact.",
+    "grammar_module": "command-center/p2-wave/probes/CNL-0081/a10_grammar.py",
+    "six_examples": [
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": false,
+      "expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "source_unchanged": true
+     },
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": false,
+      "expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+      "source_unchanged": true
+     },
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": false,
+      "expression": "unanimity == true OR max_rounds == 12",
+      "source_unchanged": true
+     },
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": true,
+      "expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "source_unchanged": true
+     },
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": false,
+      "expression": "evidence_saturation == true OR time_minutes >= 180",
+      "source_unchanged": true
+     },
+     {
+      "accepted": true,
+      "evaluated_in_this_unit": false,
+      "expression": "proof_of_impossibility == true",
+      "source_unchanged": true
+     }
+    ],
+    "this_expression": {
+     "accepted": true,
+     "rewritten": false,
+     "root_kind": "AND",
+     "root_op": "AND",
+     "source": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+     "source_unchanged": true
+    }
+   },
+   "additionalProperties": true,
+   "answer": {
+    "declares_load_bearing": "LoadBearingRegistrar, a participant distinct from the counterexample author and from the claim author.",
+    "declares_resolved": "ResolutionCertifier, a participant distinct from the author, the registrar who declared the record load-bearing, and the evidence producer who submitted the resolving bytes.",
+    "derived_not_claimed": "The integer field unresolved_load_bearing_counterexample on the state document is ignored. bind() always substitutes the derived count. A claimed 0 with an open or dual-seat record cannot FIRE.",
+    "quality_gate_operator": "QualityGateOperator may claim PASS only if they hold that role and are not the registrar of any load-bearing record in the same round. Claimed quality_gate is rewritten to FAIL when that constraint breaks.",
+    "what_stops_same_participant_doing_both": "A seat-incompatibility constraint evaluated every time the stopping expression is evaluated. If declared_load_bearing_by == resolved_by, seats_ok is false, the record remains in the derived unresolved count, and the AND stays SILENT. This is not a policy paragraph; it is the derived metric."
+   },
+   "both_states": {
+    "fire": {
+     "claimed_mismatch": false,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 0,
+     "effective_quality_gate": "PASS",
+     "expected": "FIRE",
+     "fired": true,
+     "fixture_id": "FIRE",
+     "negative_control": false,
+     "observed": "FIRE",
+     "rejects": null
+    },
+    "note": "FIRE is the fixture where the expression is true. SILENT is the fixture where it is false (open load-bearing counterexample). A detector silent in both states would fail this unit.",
+    "silent": {
+     "claimed_mismatch": false,
+     "claimed_unresolved": 1,
+     "derived_unresolved": 1,
+     "effective_quality_gate": "PASS",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "SILENT-unresolved",
+     "negative_control": false,
+     "observed": "SILENT",
+     "rejects": null
+    }
+   },
+   "completion_sentinel": "SUCCESS:CNL-0081",
+   "definitions": {
+    "counterexample_record": {
+     "additionalProperties": true,
+     "properties": {
+      "author_id": {
+       "type": "string"
+      },
+      "claim_id": {
+       "type": "string"
+      },
+      "declared_load_bearing": {
+       "type": "boolean"
+      },
+      "declared_load_bearing_by": {
+       "type": "string"
+      },
+      "evidence_producer_id": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "id": {
+       "type": "string"
+      },
+      "resolved": {
+       "type": "boolean"
+      },
+      "resolved_by": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "resolving_evidence_ref": {
+       "type": [
+        "string",
+        "null"
+       ]
+      }
+     },
+     "required": [
+      "id",
+      "author_id",
+      "declared_load_bearing",
+      "declared_load_bearing_by"
+     ],
+     "type": "object"
+    },
+    "roster": {
+     "properties": {
+      "participants": {
+       "items": {
+        "properties": {
+         "id": {
+          "type": "string"
+         },
+         "roles": {
+          "items": {
+           "type": "string"
+          },
+          "type": "array"
+         }
+        },
+        "required": [
+         "id",
+         "roles"
+        ],
+        "type": "object"
+       },
+       "minItems": 1,
+       "type": "array"
+      }
+     },
+     "required": [
+      "participants"
+     ],
+     "type": "object"
+    }
+   },
+   "dependencies_on_this_tree": {
+    "CNL-0010": false,
+    "CNL-0029": false,
+    "CNL-0068": false,
+    "CNL-0076": false,
+    "note": "Catalog dependencies are not delivered on this worktree. Seat incompatibility (CNL-0029), evidence-over-popularity (CNL-0068), evaluation cadence (CNL-0076), and the A10 grammar (CNL-0010) are implemented locally for THIS example so the unit is executable rather than parked. This is not a delivery of those units."
+   },
+   "emitted_at": "2026-08-25T00:52:54Z",
+   "evaluation_semantics": {
+    "cadence": "end-of-round",
+    "cnl_0076_note": "CNL-0076 (runtime evaluation semantics) is a catalog dependency and is not delivered on this tree. Cadence is pinned locally so this example is executable without waiting on that circle.",
+    "flapping": "A predicate that is true then false before round-end does not FIRE. bind() is a pure function of the round-end state.",
+    "side_effect_free": true
+   },
+   "expression_verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+   "fixture_runs_verbatim": [
+    {
+     "claimed_mismatch": false,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 0,
+     "effective_quality_gate": "PASS",
+     "expected": "FIRE",
+     "fired": true,
+     "fixture_id": "FIRE",
+     "negative_control": false,
+     "observed": "FIRE",
+     "rejects": null
+    },
+    {
+     "claimed_mismatch": false,
+     "claimed_unresolved": 1,
+     "derived_unresolved": 1,
+     "effective_quality_gate": "PASS",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "SILENT-unresolved",
+     "negative_control": false,
+     "observed": "SILENT",
+     "rejects": null
+    },
+    {
+     "claimed_mismatch": false,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 0,
+     "effective_quality_gate": "FAIL",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "SILENT-quality-fail",
+     "negative_control": false,
+     "observed": "SILENT",
+     "rejects": null
+    },
+    {
+     "claimed_mismatch": true,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 1,
+     "effective_quality_gate": "PASS",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "NEG-dual-role",
+     "negative_control": true,
+     "observed": "SILENT",
+     "rejects": "same-participant-declare-and-resolve"
+    },
+    {
+     "claimed_mismatch": true,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 1,
+     "effective_quality_gate": "PASS",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "NEG-claimed-lie",
+     "negative_control": true,
+     "observed": "SILENT",
+     "rejects": "claimed-zero-with-open-record"
+    }
+   ],
+   "negative_control": {
+    "id": "NEG-dual-role",
+    "observed": {
+     "claimed_mismatch": true,
+     "claimed_unresolved": 0,
+     "derived_unresolved": 1,
+     "effective_quality_gate": "PASS",
+     "expected": "SILENT",
+     "fired": false,
+     "fixture_id": "NEG-dual-role",
+     "negative_control": true,
+     "observed": "SILENT",
+     "rejects": "same-participant-declare-and-resolve"
+    },
+    "state_it_rejects": "quality_gate claimed PASS, unresolved claimed 0, one counterexample declared load-bearing and marked resolved, but declared_load_bearing_by == resolved_by.",
+    "what_the_check_does": "seats_ok is false, derived unresolved stays 1, claimed 0 is ignored, decision is SILENT. The same participant cannot declare a counterexample load-bearing and then resolve it to satisfy the stop."
+   },
+   "output_schema": "command-center/schema/councilspec.v2.schema.json",
+   "properties": {
+    "counterexamples": {
+     "items": {
+      "$ref": "#/definitions/counterexample_record"
+     },
+     "type": "array"
+    },
+    "quality_gate": {
+     "enum": [
+      "PASS",
+      "FAIL"
+     ],
+     "type": "string"
+    },
+    "quality_gate_operator_id": {
+     "minLength": 1,
+     "type": "string"
+    },
+    "roster": {
+     "$ref": "#/definitions/roster"
+    },
+    "unresolved_load_bearing_counterexample": {
+     "description": "Claimed count. The evaluator ignores this field and substitutes the derived count from counterexamples.",
+     "minimum": 0,
+     "type": "integer"
+    }
+   },
+   "question": "Who declares a counterexample load-bearing and who may declare it resolved - and what stops the same participant from doing both?",
+   "required": [
+    "quality_gate",
+    "quality_gate_operator_id",
+    "counterexamples",
+    "roster"
+   ],
+   "seat_incompatibility": {
+    "fail_closed": true,
+    "roles": [
+     "LoadBearingRegistrar",
+     "ResolutionCertifier",
+     "QualityGateOperator"
+    ],
+    "rules": [
+     "author_id != declared_load_bearing_by",
+     "declared_load_bearing_by holds LoadBearingRegistrar",
+     "resolved_by != author_id",
+     "resolved_by != declared_load_bearing_by",
+     "resolved_by != evidence_producer_id",
+     "resolved_by holds ResolutionCertifier",
+     "quality_gate_operator_id holds QualityGateOperator",
+     "quality_gate_operator_id is not declared_load_bearing_by on any load-bearing record"
+    ]
+   },
+   "source_citation": {
+    "catalog_title_match": true,
+    "note": "The Windows restore path named in the catalog inputs is not on this Linux worktree. The expression is the catalog title of CNL-0081, which quotes that spec line. The six-example block is recorded as parse-only smoke in a10_parse.six_examples.",
+    "on_disk_in_this_worktree": false,
+    "spec_block": "_USER-PROMPTS.md:10937-10942",
+    "this_expression_line": 10940,
+    "verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0"
+   },
+   "title": "Executable stopping example: quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+   "type": "object"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNL-0081",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json",
+   "bytes": 11995,
+   "sha256": "4c253236c439ff8bb16e41f4c1219547d8d856d20ee916f792358b68b9084b49",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNL-0081 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json",
+     "raw_output": "bytes=11995 sha256=4c253236c439ff8bb16e41f4c1219547d8d856d20ee916f792358b68b9084b49",
+     "fingerprint": "955fd3dd870f949a4896a122d4e4b435",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNL-0081",
+     "raw_output": "schema-check",
+     "fingerprint": "fe613de59706823a40d8a84cf9b6ae16",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNL-0081 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNL-0081",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNL-0081",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "6845ea737c2b6c81ba5e29d2e9bdd5dc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNL-0081",
+     "raw_output": "schema-valid",
+     "fingerprint": "17213fbcde7da1c828a3e04700e77d36",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNL-0081/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNL-0081"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "6d08847860dfd515d6c1027f07b07fc2",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "councilspec.v2",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 11995,
+    "method": "filesystem-stat",
+    "anchor": "command-center/design/council/CNL-0081-executable-stopping-example-quality-gate-pass-and-unresolv.schema.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "$id": "urn:p2:cnl-0081:stopping-example",
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "a10_parse": {
+  "a10_means": "CNL-0010 Stopping-expression grammar and STATIC validation. CNL-0010 is not delivered on this tree; this unit binds a local A10 surface sufficient to accept the spec examples unchanged (AND/OR/NOT, comparisons, identifiers, numbers, booleans). It does not claim to be the full CNL-0010 artifact.",
+  "grammar_module": "command-center/p2-wave/probes/CNL-0081/a10_grammar.py",
+  "six_examples": [
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": false,
+    "expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+    "source_unchanged": true
+   },
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": false,
+    "expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+    "source_unchanged": true
+   },
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": false,
+    "expression": "unanimity == true OR max_rounds == 12",
+    "source_unchanged": true
+   },
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": true,
+    "expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+    "source_unchanged": true
+   },
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": false,
+    "expression": "evidence_saturation == true OR time_minutes >= 180",
+    "source_unchanged": true
+   },
+   {
+    "accepted": true,
+    "evaluated_in_this_unit": false,
+    "expression": "proof_of_impossibility == true",
+    "source_unchanged": true
+   }
+  ],
+  "this_expression": {
+   "accepted": true,
+   "rewritten": false,
+   "root_kind": "AND",
+   "root_op": "AND",
+   "source": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+   "source_unchanged": true
+  }
+ },
+ "additionalProperties": true,
+ "answer": {
+  "declares_load_bearing": "LoadBearingRegistrar, a participant distinct from the counterexample author and from the claim author.",
+  "declares_resolved": "ResolutionCertifier, a participant distinct from the author, the registrar who declared the record load-bearing, and the evidence producer who submitted the resolving bytes.",
+  "derived_not_claimed": "The integer field unresolved_load_bearing_counterexample on the state document is ignored. bind() always substitutes the derived count. A claimed 0 with an open or dual-seat record cannot FIRE.",
+  "quality_gate_operator": "QualityGateOperator may claim PASS only if they hold that role and are not the registrar of any load-bearing record in the same round. Claimed quality_gate is rewritten to FAIL when that constraint breaks.",
+  "what_stops_same_participant_doing_both": "A seat-incompatibility constraint evaluated every time the stopping expression is evaluated. If declared_load_bearing_by == resolved_by, seats_ok is false, the record remains in the derived unresolved count, and the AND stays SILENT. This is not a policy paragraph; it is the derived metric."
+ },
+ "both_states": {
+  "fire": {
+   "claimed_mismatch": false,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 0,
+   "effective_quality_gate": "PASS",
+   "expected": "FIRE",
+   "fired": true,
+   "fixture_id": "FIRE",
+   "negative_control": false,
+   "observed": "FIRE",
+   "rejects": null
+  },
+  "note": "FIRE is the fixture where the expression is true. SILENT is the fixture where it is false (open load-bearing counterexample). A detector silent in both states would fail this unit.",
+  "silent": {
+   "claimed_mismatch": false,
+   "claimed_unresolved": 1,
+   "derived_unresolved": 1,
+   "effective_quality_gate": "PASS",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "SILENT-unresolved",
+   "negative_control": false,
+   "observed": "SILENT",
+   "rejects": null
+  }
+ },
+ "completion_sentinel": "SUCCESS:CNL-0081",
+ "definitions": {
+  "counterexample_record": {
+   "additionalProperties": true,
+   "properties": {
+    "author_id": {
+     "type": "string"
+    },
+    "claim_id": {
+     "type": "string"
+    },
+    "declared_load_bearing": {
+     "type": "boolean"
+    },
+    "declared_load_bearing_by": {
+     "type": "string"
+    },
+    "evidence_producer_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "id": {
+     "type": "string"
+    },
+    "resolved": {
+     "type": "boolean"
+    },
+    "resolved_by": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "resolving_evidence_ref": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "id",
+    "author_id",
+    "declared_load_bearing",
+    "declared_load_bearing_by"
+   ],
+   "type": "object"
+  },
+  "roster": {
+   "properties": {
+    "participants": {
+     "items": {
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "roles": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       }
+      },
+      "required": [
+       "id",
+       "roles"
+      ],
+      "type": "object"
+     },
+     "minItems": 1,
+     "type": "array"
+    }
+   },
+   "required": [
+    "participants"
+   ],
+   "type": "object"
+  }
+ },
+ "dependencies_on_this_tree": {
+  "CNL-0010": false,
+  "CNL-0029": false,
+  "CNL-0068": false,
+  "CNL-0076": false,
+  "note": "Catalog dependencies are not delivered on this worktree. Seat incompatibility (CNL-0029), evidence-over-popularity (CNL-0068), evaluation cadence (CNL-0076), and the A10 grammar (CNL-0010) are implemented locally for THIS example so the unit is executable rather than parked. This is not a delivery of those units."
+ },
+ "emitted_at": "2026-08-25T00:52:54Z",
+ "evaluation_semantics": {
+  "cadence": "end-of-round",
+  "cnl_0076_note": "CNL-0076 (runtime evaluation semantics) is a catalog dependency and is not delivered on this tree. Cadence is pinned locally so this example is executable without waiting on that circle.",
+  "flapping": "A predicate that is true then false before round-end does not FIRE. bind() is a pure function of the round-end state.",
+  "side_effect_free": true
+ },
+ "expression_verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+ "fixture_runs_verbatim": [
+  {
+   "claimed_mismatch": false,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 0,
+   "effective_quality_gate": "PASS",
+   "expected": "FIRE",
+   "fired": true,
+   "fixture_id": "FIRE",
+   "negative_control": false,
+   "observed": "FIRE",
+   "rejects": null
+  },
+  {
+   "claimed_mismatch": false,
+   "claimed_unresolved": 1,
+   "derived_unresolved": 1,
+   "effective_quality_gate": "PASS",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "SILENT-unresolved",
+   "negative_control": false,
+   "observed": "SILENT",
+   "rejects": null
+  },
+  {
+   "claimed_mismatch": false,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 0,
+   "effective_quality_gate": "FAIL",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "SILENT-quality-fail",
+   "negative_control": false,
+   "observed": "SILENT",
+   "rejects": null
+  },
+  {
+   "claimed_mismatch": true,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 1,
+   "effective_quality_gate": "PASS",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "NEG-dual-role",
+   "negative_control": true,
+   "observed": "SILENT",
+   "rejects": "same-participant-declare-and-resolve"
+  },
+  {
+   "claimed_mismatch": true,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 1,
+   "effective_quality_gate": "PASS",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "NEG-claimed-lie",
+   "negative_control": true,
+   "observed": "SILENT",
+   "rejects": "claimed-zero-with-open-record"
+  }
+ ],
+ "negative_control": {
+  "id": "NEG-dual-role",
+  "observed": {
+   "claimed_mismatch": true,
+   "claimed_unresolved": 0,
+   "derived_unresolved": 1,
+   "effective_quality_gate": "PASS",
+   "expected": "SILENT",
+   "fired": false,
+   "fixture_id": "NEG-dual-role",
+   "negative_control": true,
+   "observed": "SILENT",
+   "rejects": "same-participant-declare-and-resolve"
+  },
+  "state_it_rejects": "quality_gate claimed PASS, unresolved claimed 0, one counterexample declared load-bearing and marked resolved, but declared_load_bearing_by == resolved_by.",
+  "what_the_check_does": "seats_ok is false, derived unresolved stays 1, claimed 0 is ignored, decision is SILENT. The same participant cannot declare a counterexample load-bearing and then resolve it to satisfy the stop."
+ },
+ "output_schema": "command-center/schema/councilspec.v2.schema.json",
+ "properties": {
+  "counterexamples": {
+   "items": {
+    "$ref": "#/definitions/counterexample_record"
+   },
+   "type": "array"
+  },
+  "quality_gate": {
+   "enum": [
+    "PASS",
+    "FAIL"
+   ],
+   "type": "string"
+  },
+  "quality_gate_operator_id": {
+   "minLength": 1,
+   "type": "string"
+  },
+  "roster": {
+   "$ref": "#/definitions/roster"
+  },
+  "unresolved_load_bearing_counterexample": {
+   "description": "Claimed count. The evaluator ignores this field and substitutes the derived count from counterexamples.",
+   "minimum": 0,
+   "type": "integer"
+  }
+ },
+ "question": "Who declares a counterexample load-bearing and who may declare it resolved - and what stops the same participant from doing both?",
+ "required": [
+  "quality_gate",
+  "quality_gate_operator_id",
+  "counterexamples",
+  "roster"
+ ],
+ "seat_incompatibility": {
+  "fail_closed": true,
+  "roles": [
+   "LoadBearingRegistrar",
+   "ResolutionCertifier",
+   "QualityGateOperator"
+  ],
+  "rules": [
+   "author_id != declared_load_bearing_by",
+   "declared_load_bearing_by holds LoadBearingRegistrar",
+   "resolved_by != author_id",
+   "resolved_by != declared_load_bearing_by",
+   "resolved_by != evidence_producer_id",
+   "resolved_by holds ResolutionCertifier",
+   "quality_gate_operator_id holds QualityGateOperator",
+   "quality_gate_operator_id is not declared_load_bearing_by on any load-bearing record"
+  ]
+ },
+ "source_citation": {
+  "catalog_title_match": true,
+  "note": "The Windows restore path named in the catalog inputs is not on this Linux worktree. The expression is the catalog title of CNL-0081, which quotes that spec line. The six-example block is recorded as parse-only smoke in a10_parse.six_examples.",
+  "on_disk_in_this_worktree": false,
+  "spec_block": "_USER-PROMPTS.md:10937-10942",
+  "this_expression_line": 10940,
+  "verbatim": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0"
+ },
+ "title": "Executable stopping example: quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+ "type": "object"
+}
