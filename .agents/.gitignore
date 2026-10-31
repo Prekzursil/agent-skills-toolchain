@@ -15,6 +15,17 @@ local.json
 # control plane cannot be validated from a clone. The root .gitignore already
 # declined to adopt `*credential*` for the same reason.
 !scripts/credential_rotation_manifest.json
+# EXCEPTION: the credential-forge skill directory is doctrine + tooling, not a
+# secret store. Its own hygiene gate (references/hygiene.md + the skill's
+# post-build validation) requires ZERO secret values on disk — names, shapes and
+# paths only; values live in process memory. The blanket `*credential*` rule
+# matches the skill NAME, so without this exception the dual-write projection
+# (skills/credential-forge/) would land while the canonical root
+# (.agents/skills/credential-forge/) silently would not — a partial projection
+# that ci/check_skill_inventory_parity.py exists to catch. No file inside the
+# skill carries "credential" in its basename, so the negation re-includes the
+# directory only, never a stray credential file.
+!skills/credential-forge/
 .env
 .env.*
 
