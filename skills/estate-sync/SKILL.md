@@ -1,6 +1,6 @@
 ---
 name: estate-sync
-description: Bootstrap, reconcile and audit this estate across machines. Use when setting up a second machine from the private repo, when the VM and home have drifted, when the VM/home file link is down, or when checking whether committed work was ever actually pushed. Also carries the private-estate plaintext credential policy.
+description: Bootstrap, reconcile and audit this estate across machines. Use when setting up a second machine from the private repo, when the VM and home have drifted, when the VM/home file link is down, or when checking whether committed work was ever actually pushed. Also carries the private-estate plaintext credential policy. Also for establishing, verifying, or repairing the bilateral VM/home link (Link v2: dynamic binds, reverse tunnel, verify battery).
 ---
 
 # estate-sync
@@ -70,55 +70,65 @@ is detected, `-FailOnFindings` exits 1, and pushing clears it.
 
 ---
 
-## The VM/home link
+## The VM/home link (v2 — dynamic binds, reverse tunnel, verify battery)
 
-Two machines, each serving its disks to the other over the tailnet via
-`rclone serve sftp`, key auth, bound to the tailnet address only — never `0.0.0.0`.
+Two machines serve their disks to each other over the tailnet via `rclone serve sftp`,
+key auth, bound to the tailnet address or loopback only — never `0.0.0.0`.
+Canonical scripts live in `skills/estate-sync/assets/link/` (deployed to
+`C:\ProgramData\vm-link\` and `C:\Users\<user>\.local\bin\` as noted).
 
-| | VM `offload-w2025` | Home `desktop-a60s9gp` |
-|---|---|---|
-| tailnet IP | `100.117.115.55` | `100.97.16.36` |
-| serves C: / D: on | `:2022` / `:2023` | `:2022` / `:2023` |
-| launcher | `C:\ProgramData\vm-link\serve.cmd` | `C:\ProgramData\vm-link\home-serve.cmd` |
-| persistence | task `vm-link-serve` (boot) | task `vm-link-serve-home` — **install it** |
-
-### If the link is down, diagnose in this order
+### Topology (proven 2026-10-01)
 
 ```
-tailscale status | Select-String desktop-a60s9gp
+home→VM shell+files : ssh (key home_to_vm) → VM :22 ; rclone sftp VM:2022/2023 (C:/D:)
+VM→home files       : reverse tunnel — VM localhost:21022/21023
+                      → (ssh -R over the WORKING home→VM direction)
+                      → home loopback serves 127.0.0.1:21222/21223 (C:/D:)
+VM→home DIRECT data : network-blocked (disco pongs fine, zero packets at home stack;
+                      firewall/ShieldsUp verified clean — do NOT re-litigate; the
+                      tunnel is the sanctioned bypass)
 ```
 
-- **`offline, last seen ...`** — the machine is powered down or asleep. **You
-  cannot fix this from the other side.** Tailscale cannot wake a machine that is
-  off without a Wake-on-LAN peer on its own LAN. Wait, or ask the owner to wake it.
-  Do not grind retries; stage the work and arm a watcher instead.
-- **node online but transfers fail** — the machine is up but its `rclone serve` is
-  not running. That is the persistence bug below.
+### VM-agnostic rules (mirror-proof)
 
-### Make it persistent (one-time, on home)
+- Every serve computes the CURRENT `tailscale ip -4` at runtime (`vm-serve.cmd` v2);
+  hardcoded addresses rot on the first mirror/jump.
+- The jump target lives in ONE file: `C:\ProgramData\vm-link\target.conf`
+  (`<user> <host-or-magicdns>`). The tunnel retry loop re-reads it every pass —
+  update one line + restart `home-link-tunnel`, no reboot.
+- Full mirror procedure (machine image → cross-project instance): see
+  `estates/offload-w2025/2026-09-30-link-and-mirror/MIRROR-RUNBOOK.md`.
 
-`HOME-SETUP.md` originally said to run `rclone serve sftp` in a foreground shell.
-That process dies with the shell, the session, or the machine — which is why the
-link kept dropping (open loop L-14). Register the task instead:
+### First-boot hazard on mirrored machines (measured 2026-10-01)
 
-```
-pwsh -File C:\ProgramData\vm-link\install-home-service.ps1
-```
+A clone boots with the SOURCE's tailscaled state and **steals its tailnet identity**,
+knocking the real machine offline. Before/at first boot on any mirror:
+`tailscale logout` then fresh `tailscale up --hostname=<new-name>`. Check the tailnet
+admin console for stale duplicate nodes.
 
-Elevated, idempotent, boot + logon triggers, auto-restart every minute. It
-verifies itself by checking that ports 2022 and 2023 are actually listening and
-prints `SUCCESS:home-link-persistent` only if they are.
-
-Uninstall: `install-home-service.ps1 -Uninstall`.
-
-### Moving files when the link is up
+### Verify the whole link (audit battery)
 
 ```
-rclone copy <src> homeC:/Users/Prekzursil/<dest> --transfers 8
+pwsh -File skills/estate-sync/assets/link/verify.ps1
 ```
+Checks: home→VM ssh, VM serves :2022/:2023, tunnel task Running, 4/4 home listeners,
+serve tasks armed, reaper whitelist needle. Terminal `SUCCESS:vm-link-verify` /
+`FAILED:vm-link-verify fail=N`. 7/7 green required.
 
-The drive-letter mounts (L:, M:, V:, W:) are unreliable; the rclone data path is
-what actually works. Do not block on mounts.
+### Gotchas ledger (all ledger-proven 2026-10-01)
+
+- SYSTEM tasks cannot read user-profile SSH keys — tunnel died silently until the key
+  moved to `C:\ProgramData\vm-link\home_to_vm` with SYSTEM ACLs.
+- `Test-NetConnection` lies under RAM pressure (false-closed on open ports, both
+  machines) — use raw TcpClient (`verify.ps1` does).
+- Local connect to your OWN tailscale IP times out (weak-host off) — normal, not an
+  outage; only cross-node connects prove serving.
+- GCP writes 403 "requires billing" even when billing is linked (webcoder-462916);
+  reads work. Use the VM-side agent or RDP instead of burning time.
+- Saved RDP credentials are SSO stubs (empty blob in user context) — don't mine.
+- UAC secure desktop blocks synthetic keystrokes — write user-level files instead.
+- `rclone`/`ssh`/`vm-link` processes are dead-parent-by-design under their tasks —
+  whitelisted in BOTH reapers (`vm-link` needle home, `rclone` VM); do not prune.
 
 ---
 
@@ -214,8 +224,8 @@ When the VM half of the bilateral link is down, restore per this order (all
 elevated; every step verified by its output):
 
 1. **Deploy the home key** `home_to_vm@desktop-a60s9gp` into BOTH
-   `$env:USERPROFILE\.sshuthorized_keys` AND
-   `C:\ProgramData\sshdministrators_authorized_keys` — the admin file is the
+   `$env:USERPROFILE\.ssh\authorized_keys` AND
+   `C:\ProgramData\ssh\administrators_authorized_keys` — the admin file is the
    one Windows OpenSSH actually reads for admin users; deploying to the user
    file alone silently fails. Then `icacls <adminfile> /inheritance:r /grant
    Administrators:F /grant SYSTEM:F` and `Restart-Service sshd`.
