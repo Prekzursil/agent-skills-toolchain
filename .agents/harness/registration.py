@@ -38,24 +38,38 @@ EVENTS = (
     "Stop",
 )
 
+# 2026-10-13 lockstep raise with the live ~/.claude/settings.json UserPromptSubmit
+# raise (dispatcher 25s there) and above the RAM-starvation floor: the old 2s/5s
+# host deadlines fed dispatcher._dispatch_budget_sec (deadline - startup allowance),
+# clamping module budgets to ~1.4s and letting every hot event die before its
+# modules ran on the RAM-starved box. Hot events 25; SessionStart/Stop 60;
+# PreCompact 30; the remaining events scaled x3 from their previous values.
+# 2026-10-18 lockstep COMPLETED (PR #374 review thread "keep registered deadlines
+# within deployed host timeouts"): the tracked deploy mirror
+# agent-self/config/settings.json now carries these exact values on every
+# harness-dispatcher entry (16 events; InstructionsLoaded has no mirror entry
+# yet — a registration regen, deliberately out of scope here), pinned by
+# test_wiring.py::test_mirror_harness_dispatcher_timeouts_match_registration.
+# _TIMEOUTS is the single source; a host timeout below the derived module
+# budget lets the host kill the dispatcher before it emits anything.
 _TIMEOUTS = {
-    "SessionStart": 5,
-    "UserPromptSubmit": 2,
-    "PreToolUse": 2,
-    "PermissionRequest": 2,
-    "PermissionDenied": 2,
-    "PostToolUse": 2,
-    "PostToolUseFailure": 2,
-    "PreCompact": 5,
-    "PostCompact": 3,
-    "ConfigChange": 3,
-    "InstructionsLoaded": 3,
-    "SubagentStart": 3,
-    "SubagentStop": 3,
-    "TaskCreated": 3,
-    "TaskCompleted": 5,
-    "TeammateIdle": 3,
-    "Stop": 5,
+    "SessionStart": 60,
+    "UserPromptSubmit": 25,
+    "PreToolUse": 25,
+    "PermissionRequest": 25,
+    "PermissionDenied": 25,
+    "PostToolUse": 25,
+    "PostToolUseFailure": 25,
+    "PreCompact": 30,
+    "PostCompact": 9,
+    "ConfigChange": 9,
+    "InstructionsLoaded": 9,
+    "SubagentStart": 9,
+    "SubagentStop": 9,
+    "TaskCreated": 9,
+    "TaskCompleted": 15,
+    "TeammateIdle": 9,
+    "Stop": 60,
 }
 _NO_MATCHER = {"UserPromptSubmit", "Stop"}
 

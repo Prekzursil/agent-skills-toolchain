@@ -141,7 +141,7 @@ def test_every_event_has_a_timeout_so_build_hooks_never_keyerrors():
     assert set(_TIMEOUTS) == set(EVENTS)
     for name in EVENTS:
         assert isinstance(_TIMEOUTS[name], int)
-        assert 1 <= _TIMEOUTS[name] <= 10  # small timeouts only
+        assert 1 <= _TIMEOUTS[name] <= 120  # bounded; raised 2026-10-13: hot events 25s, SessionStart/Stop 60s, PreCompact 30s
 
 
 def test_build_hooks_generates_matching_block_per_new_event():

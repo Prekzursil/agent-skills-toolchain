@@ -260,6 +260,44 @@ def main() -> int:
     )
     cases.append(("isError FIRES despite status_code 200", fired(out), True, out))
 
+    # ── grok absent-field class (2026-10-21): grok sends NO tool_response/
+    #    tool_output key on most PostToolUse events. An ABSENT result is
+    #    UNVERIFIABLE, not empty — it must stay SILENT for must-return-content
+    #    tools. A PRESENT-but-empty response still fires (observed empty).
+    # 17. MCP must-return-content, response key ABSENT -> SILENT.
+    out = run(
+        {
+            "session_id": "s17-absent",
+            "tool_name": "mcp__ghidra-mcp__decompile_function",
+            "tool_input": {"address": "0x401000"},
+        },
+        env,
+    )
+    cases.append(("ABSENT response is SILENT (unverifiable)", fired(out), False, out))
+
+    # 18. Same tool, tool_output alias ABSENT too -> SILENT.
+    out = run(
+        {
+            "session_id": "s18-absent",
+            "tool_name": "mcp__x__read_config",
+            "tool_input": {},
+        },
+        env,
+    )
+    cases.append(("ABSENT response (read_ tool) is SILENT", fired(out), False, out))
+
+    # 19. PRESENT-but-empty string -> still FIRES (AMBIGUOUS, observed empty).
+    out = run(
+        {
+            "session_id": "s19-empty",
+            "tool_name": "mcp__ghidra-mcp__decompile_function",
+            "tool_input": {"address": "0x401000"},
+            "tool_response": "",
+        },
+        env,
+    )
+    cases.append(("PRESENT empty string still FIRES", fired(out), True, out))
+
     ok = True
     for name, got, want, out in cases:
         status = "PASS" if got == want else "FAIL"

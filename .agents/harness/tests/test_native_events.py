@@ -141,7 +141,11 @@ def test_every_event_has_a_timeout_so_build_hooks_never_keyerrors():
     assert set(_TIMEOUTS) == set(EVENTS)
     for name in EVENTS:
         assert isinstance(_TIMEOUTS[name], int)
-        assert 1 <= _TIMEOUTS[name] <= 10  # small timeouts only
+        # 2026-10-13/17 lockstep raise (see registration.py): hot events 25s,
+        # SessionStart/Stop 60s -- the old 2s/5s deadlines clamped module
+        # budgets to ~1.4s and killed every hot event on the RAM-starved box.
+        # Bound tracks the raised design ceiling, still small-int sanity.
+        assert 1 <= _TIMEOUTS[name] <= 60
 
 
 def test_build_hooks_generates_matching_block_per_new_event():

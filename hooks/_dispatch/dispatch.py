@@ -56,6 +56,17 @@ SAFETY
     JOURNEY_COVERAGE_MODE=block. The dispatcher cannot honour exit 2, so instead of
     discarding the result it appends an explicit note to additionalContext naming the
     check and its status. A disarmed gate must be visible, never silent.
+
+2026-10-18 review-thread hardening (PR #374 Codex review):
+  * exec-mode children are TREE-KILLED on timeout (`taskkill /T /F` on Windows,
+    `killpg` on POSIX) — `subprocess.run`'s leaf-only kill left orphaned guard
+    children behind on Windows, and repeated calls accumulated processes.
+  * a successful `blocking_rc` check's stderr is forwarded (break-glass bypass
+    notices, e.g. no-force-push under FORGE_NO_FORCE_PUSH_OFF, stay visible).
+  * a forwarded/denied decision JSON now CARRIES the aggregated advisory context
+    of the other selected checks instead of discarding it.
+  * a non-timeout exec launch failure (OSError etc.) emits a `launch-failed`
+    receipt instead of silently failing open with rc=None.
 """
 
 from __future__ import annotations
@@ -66,6 +77,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -221,6 +233,107 @@ def _worker(mod, args, buf: io.StringIO, payload_json: str, rc_sink: list) -> No
         pass  # fail-open: a check must never crash the dispatcher
 
 
+def _tree_kill(pid: int | None) -> None:
+    """Kill a subprocess AND its whole descendant tree (best effort, 2026-10-18 P1).
+
+    ``Popen.kill``/``subprocess.run``'s timeout kill terminate only the leaf
+    process. The exec-mode guards spawn their own children (git scans, monitors),
+    and on Windows those children survive the leaf's death as orphans — measured
+    with a sleeping guard whose grandchild outlived the dispatcher. Windows has no
+    process groups for arbitrary trees, so `taskkill /T /F` walks the PID tree;
+    POSIX children are placed in their own session (``start_new_session``) and
+    killed by group. Fails soft: a process that already exited is not an error.
+    """
+    if not isinstance(pid, int) or pid <= 0:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                capture_output=True, timeout=10,
+            )
+        except BaseException:
+            pass
+        return
+    try:
+        import signal
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    except BaseException:
+        pass
+
+
+def _exec_worker(path: str, args, payload_json: str, buf: io.StringIO,
+                 err_buf: io.StringIO, rc_sink: list, budget: float,
+                 pid_sink: list | None = None) -> None:
+    """Run one check as a SUBPROCESS in its own thread (2026-10-17 blocking-mode wave).
+
+    WHY exec mode exists: the blocking guards (no-force-push, test-tamper-guard,
+    ulysses, deny-credential-reads, estate-deny-guard) are standalone hook scripts
+    with bare top-level ``sys.exit(main())`` and their own stdin/exit-code contract;
+    importing them in-process would fire main() at import time under the wrong argv.
+    A subprocess preserves their exact standalone semantics (own interpreter, own
+    stdin/stdout/stderr, real exit code) while still collapsing N settings.json
+    hook entries into ONE dispatcher invocation.
+
+    2026-10-18 P1/P2 hardening:
+    * The child is started detached into its own session/process context and its
+      PID is published to ``pid_sink`` immediately, so BOTH the worker's own
+      ``communicate(timeout=...)`` expiry AND an abandoned-worker join in
+      ``run()`` can TREE-KILL it (see ``_tree_kill``). A leaf-only kill left
+      orphaned guard children behind on Windows.
+    * A non-timeout launch failure (``OSError`` starting the child, decode
+      errors) records the ``LAUNCH-FAILED`` sentinel instead of leaving
+      ``rc_sink`` empty — the empty state previously produced a silent rc=None
+      fail-open with no receipt (the P2 "unattested launch failure" thread).
+    """
+    proc = None
+    try:
+        popen_kwargs: dict = {}
+        if os.name == "nt":
+            # A fresh process group keeps CTRL_C/CTRL_BREAK delivery to the
+            # dispatcher itself from reaching the child; the tree kill uses
+            # taskkill /T (PID-tree walk), which needs no group.
+            popen_kwargs["creationflags"] = getattr(
+                subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+            )
+        else:
+            # Own session => killpg can take the whole tree down synchronously.
+            popen_kwargs["start_new_session"] = True
+        proc = subprocess.Popen(
+            [sys.executable, path, *args],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, cwd=str(Path(path).parent), **popen_kwargs,
+        )
+        if pid_sink is not None:
+            pid_sink.append(proc.pid)
+        out, err = proc.communicate(input=payload_json, timeout=max(1.0, budget))
+        buf.write(out or "")
+        err_buf.write(err or "")
+        rc_sink.append(proc.returncode)
+    except subprocess.TimeoutExpired:
+        if proc is not None:
+            _tree_kill(proc.pid)
+            try:
+                proc.wait(timeout=10)  # reap; never leave a zombie behind
+            except BaseException:
+                pass
+        rc_sink.append("TIMEOUT")
+    except BaseException:
+        # Launch/read failure (OSError, decode): fail open but LEAVE A TRACE.
+        # An empty rc_sink reads as rc=None downstream with no receipt, which
+        # is indistinguishable from a healthy quiet check (P2 review thread).
+        if proc is not None:
+            _tree_kill(proc.pid)
+            try:
+                proc.wait(timeout=10)
+            except BaseException:
+                pass
+        rc_sink.append("LAUNCH-FAILED")
+
+
 def _blocking_status(rc: object) -> int | None:
     """The would-be non-zero exit code a check returned, or None if it did not."""
     if isinstance(rc, bool) or not isinstance(rc, int) or rc == 0:
@@ -327,8 +440,15 @@ def _select(checks: list, tool_name: str, event: str = "") -> list:
     return sel
 
 
-def run(event: str, raw_payload: str, manifest: dict) -> str | None:
-    """Core: returns the aggregated additionalContext for the event (or None)."""
+def run(event: str, raw_payload: str, manifest: dict, collect: list | None = None) -> str | None:
+    """Core: returns the aggregated additionalContext for the event (or None).
+
+    ``collect``, when a list is passed, receives one record per finished check:
+    ``{"chk": <manifest check>, "rc": <would-be exit code or None>,
+    "out": <captured stdout>, "err": <captured stderr, exec-mode checks only>}``.
+    main() uses the records to propagate BLOCK/decision results (2026-10-17
+    blocking mode); passing nothing keeps the historical inject-only contract.
+    """
     ev = (manifest.get("events") or {}).get(event)
     if not ev:
         return None
@@ -344,9 +464,27 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
     root = manifest.get("hooks_root") or str(THIS.parent)
 
     # Serial imports (cheap; keeps the _common/stubscan sys.modules pop race-free).
-    loaded = []  # (chk, module, buffer, rc_sink)
+    # exec-mode checks (chk["exec"] is truthy) need no import: they run as subprocesses.
+    loaded = []  # entry dicts: chk, mod (None for exec), buf, err, rc_sink, path, pid_sink
     for chk in matched:
         try:
+            if chk.get("exec"):
+                if chk.get("exec_path"):
+                    # Explicit absolute target (owner-reviewed): same power as a
+                    # settings.json hook command, just consolidated behind dispatch.
+                    path = str(chk["exec_path"])
+                    if not Path(path).is_file():
+                        _receipt(event, _check_label(chk), "load-failed")
+                        continue
+                else:
+                    path = _resolve_script(root, chk["script"])
+                    if path is None:
+                        _receipt(event, _check_label(chk), "out-of-root")
+                        continue
+                loaded.append({"chk": chk, "mod": None, "buf": io.StringIO(),
+                               "err": io.StringIO(), "rc": [], "path": path,
+                               "pid": []})
+                continue
             path = _resolve_script(root, chk["script"])
             if path is None:
                 # escapes hooks_root -> never imported (see module docstring)
@@ -355,7 +493,8 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
             uniq = "dispq_" + re.sub(r"\W", "_", str(chk.get("name") or chk["script"]))
             mod = _load_module(path, uniq)
             if mod is not None:
-                loaded.append((chk, mod, io.StringIO(), []))
+                loaded.append({"chk": chk, "mod": mod, "buf": io.StringIO(),
+                               "err": io.StringIO(), "rc": [], "path": None})
             else:
                 _receipt(event, _check_label(chk), "load-failed")
         except BaseException:
@@ -366,18 +505,33 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
 
     # Concurrent execution: thread-per-check, per-check deadline join.
     threads = []
-    for chk, mod, buf, rc_sink in loaded:
-        t = threading.Thread(
-            target=_worker,
-            args=(mod, chk.get("args") or [], buf, raw_payload, rc_sink),
-            daemon=True,
-        )
+    for entry in loaded:
+        try:
+            budget = float(entry["chk"].get("timeout") or 8)
+        except (TypeError, ValueError):
+            budget = 8.0
+        if entry["path"] is not None:
+            t = threading.Thread(
+                target=_exec_worker,
+                args=(entry["path"], entry["chk"].get("args") or [], raw_payload,
+                      entry["buf"], entry["err"], entry["rc"], budget,
+                      entry["pid"]),
+                daemon=True,
+            )
+        else:
+            t = threading.Thread(
+                target=_worker,
+                args=(entry["mod"], entry["chk"].get("args") or [],
+                      entry["buf"], raw_payload, entry["rc"]),
+                daemon=True,
+            )
         t.start()
         threads.append(t)
 
     start = time.monotonic()
     pieces: list[str] = []
-    for (chk, _mod, buf, rc_sink), t in zip(loaded, threads):
+    for entry, t in zip(loaded, threads):
+        chk = entry["chk"]
         try:
             budget = float(chk.get("timeout") or 8)
         except (TypeError, ValueError):
@@ -387,22 +541,96 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
         if t.is_alive():
             # timed out -> fail-open, drop this check's (incomplete) output
             _receipt(event, _check_label(chk), "timeout")
+            if entry["path"] is not None:
+                # The daemon worker may be abandoned before its own cleanup runs
+                # (outer join and the worker's communicate() share the deadline).
+                # Tree-kill the published PID here so an orphaned exec guard
+                # cannot outlive the dispatcher (2026-10-18 P1 thread).
+                if entry.get("pid"):
+                    _tree_kill(entry["pid"][0])
             continue
+        rc_val = entry["rc"][0] if entry["rc"] else None
+        if rc_val == "TIMEOUT":
+            # exec-mode child was killed by subprocess timeout -> fail-open, attest loss
+            _receipt(event, _check_label(chk), "timeout")
+            continue
+        if rc_val == "LAUNCH-FAILED":
+            # exec-mode child could not be started / read (OSError etc.) ->
+            # fail-open, but ATTEST it (2026-10-18 P2 thread: rc=None used to be
+            # indistinguishable from a healthy quiet check).
+            _receipt(event, _check_label(chk), "launch-failed")
+            continue
+        rec_ctx: list[str] = []
         try:
-            pieces.extend(_extract_ctx(buf.getvalue()))
+            rec_ctx = _extract_ctx(entry["buf"].getvalue())
+            pieces.extend(rec_ctx)
         except BaseException:
             _receipt(event, _check_label(chk), "output-unreadable")
             continue
         try:
-            rc = _blocking_status(rc_sink[0] if rc_sink else None)
-            if rc is not None:
-                pieces.append(
-                    _disarmed_note(str(chk.get("name") or chk.get("script")), rc)
+            rc = _blocking_status(rc_val)
+            if rc is not None and not chk.get("blocking_rc"):
+                note = _disarmed_note(
+                    str(chk.get("name") or chk.get("script")), rc
                 )
+                pieces.append(note)
+                rec_ctx.append(note)
         except BaseException:
-            continue
+            pass
+        if collect is not None:
+            try:
+                # "ctx" carries this check's own contribution to the aggregate
+                # (context pieces + any disarmed-gate note) so main() can merge
+                # the OTHER checks' context into a forwarded decision without
+                # re-parsing stdout and without duplicating the decision check's
+                # own output (2026-10-18 P1b/MEDIUM threads).
+                collect.append({"chk": chk, "rc": rc_val,
+                                "out": entry["buf"].getvalue(),
+                                "err": entry["err"].getvalue(),
+                                "ctx": rec_ctx})
+            except BaseException:
+                pass
 
     return "\n".join(pieces) if pieces else None
+
+
+def _merged_decision(obj: dict, extra_ctx: str | None) -> dict:
+    """Fold ``extra_ctx`` into a decision JSON's additionalContext (2026-10-18).
+
+    The standalone hooks each delivered their own output; consolidation must not
+    make advisory context (Ulysses nudges, loop-recovery warnings) vanish just
+    because a decision JSON wins the output slot. ``additionalContext`` is a
+    generic hookSpecificOutput field the host accepts alongside a
+    permissionDecision/updatedInput, so the aggregate rides in the same object.
+    Appends to (never replaces) any additionalContext the decision itself carries.
+    """
+    if not extra_ctx:
+        return obj
+    hso = obj.get("hookSpecificOutput")
+    if not isinstance(hso, dict):
+        return obj
+    existing = hso.get("additionalContext")
+    if isinstance(existing, str) and existing.strip():
+        hso["additionalContext"] = f"{existing}\n{extra_ctx}"
+    else:
+        hso["additionalContext"] = extra_ctx
+    return obj
+
+
+def _other_checks_context(records: list, exclude_chk: object) -> str | None:
+    """The aggregated context of every check EXCEPT ``exclude_chk``.
+
+    Excluding the decision's own check prevents its context from being merged
+    back on top of itself (its additionalContext already lives in the decision
+    object being forwarded).
+    """
+    parts: list[str] = []
+    for r in records or []:
+        chk = r.get("chk") or {}
+        if chk is exclude_chk:
+            continue
+        parts.extend(r.get("ctx") or [])
+    return "\n".join(parts) if parts else None
 
 
 def main(argv) -> int:
@@ -425,7 +653,94 @@ def main(argv) -> int:
         sys.stdout = _ThreadStdout(real_out)
         sys.stdin = _ThreadStdin(sys.stdin)
 
-        agg = run(event, raw, manifest)
+        records: list = []
+        agg = run(event, raw, manifest, collect=records)
+
+        # 2026-10-17 blocking mode: propagate BLOCK/decision results instead of
+        # disarming them. Precedence mirrors Claude Code's own multi-hook merge:
+        # exit-code BLOCK (rc!=0 + stderr) > JSON deny > JSON allow/rewrite > context.
+        block = None    # (rc, stderr_text, name)
+        deny = None     # decision JSON object (permissionDecision: deny)
+        deny_chk = None
+        forward = None  # first allow/ask/rewrite decision JSON
+        forward_chk = None
+        for r in records:
+            chk = r.get("chk") or {}
+            rc = r.get("rc")
+            out, err = r.get("out") or "", r.get("err") or ""
+            if chk.get("blocking_rc") and isinstance(rc, int) and rc != 0 and block is None:
+                block = (rc, err, str(chk.get("name") or chk.get("script")))
+            if chk.get("decision"):
+                for line in out.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except Exception:
+                        continue
+                    if not isinstance(obj, dict):
+                        continue
+                    hso = obj.get("hookSpecificOutput")
+                    if not isinstance(hso, dict):
+                        continue
+                    d = hso.get("permissionDecision")
+                    if d == "deny" and deny is None:
+                        deny = obj
+                        deny_chk = chk
+                    elif forward is None and (d in ("allow", "ask")
+                                              or hso.get("updatedInput") is not None
+                                              or hso.get("updatedCommand") is not None):
+                        forward = obj
+                        forward_chk = chk
+                    break  # first decision JSON on this check's stdout wins
+
+        # 2026-10-18 P1 (bypass-notice thread): a SUCCESSFUL blocking_rc check
+        # may still have something to say on stderr — no-force-push under
+        # FORGE_NO_FORCE_PUSH_OFF / .disabled writes its break-glass notice to
+        # both streams and exits 0, and the plaintext stdout is dropped by
+        # _extract_ctx, so without this pass the allowed force-push would be
+        # completely silent. stderr is the diagnostic channel; the stdout JSON
+        # contract is untouched. (The rc!=0 block path below forwards its own
+        # stderr, and rc==0 records never feed it, so nothing is sent twice.)
+        for r in records:
+            chk = r.get("chk") or {}
+            rc = r.get("rc")
+            err = r.get("err") or ""
+            if (chk.get("exec") and chk.get("blocking_rc")
+                    and isinstance(rc, int) and rc == 0 and err.strip()):
+                try:
+                    sys.stderr.write(err if err.endswith("\n") else err + "\n")
+                    sys.stderr.flush()
+                except Exception:
+                    pass
+
+        if block is not None:
+            # exit-code blocking protocol: stderr reason is fed back by the host
+            if block[1]:
+                try:
+                    sys.stderr.write(block[1] if block[1].endswith("\n") else block[1] + "\n")
+                    sys.stderr.flush()
+                except Exception:
+                    pass
+            return block[0]
+        if deny is not None:
+            # 2026-10-18: the aggregate rides WITH the decision instead of
+            # being discarded by the early return (MEDIUM early-return thread).
+            real_out.write(json.dumps(
+                _merged_decision(deny, _other_checks_context(records, deny_chk))
+            ) + "\n")
+            real_out.flush()
+            return 0
+        if forward is not None:
+            # 2026-10-18: same merge for allow/ask/rewrite forwards — an
+            # inject-nopager rewrite must not silence the advisory context the
+            # standalone hooks used to deliver alongside it (P1b thread).
+            real_out.write(json.dumps(
+                _merged_decision(forward, _other_checks_context(records, forward_chk))
+            ) + "\n")
+            real_out.flush()
+            return 0
         if agg:
             # ensure_ascii=True mirrors every consolidated hook's own json.dumps default
             # (pure-ASCII \uXXXX escaping) -> encoding-safe on any Windows console codepage.

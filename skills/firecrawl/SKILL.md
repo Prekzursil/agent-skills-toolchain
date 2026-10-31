@@ -239,6 +239,32 @@ For each competitor URL: `firecrawl_scrape(formats:["branding","screenshot"])` �
 - **Map ≠ crawl** — map only lists URLs (no content); crawl fetches content. Map first to scope.
 - **Parse is local-only** — for a URL, use `scrape` with `parsers:["pdf"]`, not `parse`.
 
+## When Firecrawl FAILS — escalation ladder (STANDING RULE: fix the lane, never remove the tool)
+
+Measured 2026-09-22: a "socket hang up" from `firecrawl_scrape` in subagent contexts
+while the Firecrawl API itself was UP (direct 200). The failure is almost always the
+**lane**, not the service. Escalate IN ORDER — do NOT skip to "remove/disable firecrawl":
+
+1. **Retry once** — transients happen; one retry filters them.
+2. **Probe the API direct** (Windows, key from `FIRECRAWL_API_KEY` user env):
+   `POST https://api.firecrawl.dev/v2/scrape {"url":"https://example.com","formats":["markdown"]}`.
+   If 200 → the API is healthy; the MCP lane is the problem. Continue to 3.
+3. **Check `FIRECRAWL_API_URL` user env** (`[Environment]::GetEnvironmentVariable('FIRECRAWL_API_URL','User')`).
+   If it returns `http://localhost:3002` (or any self-host URL whose docker stack is down),
+   that overrides every client to a dead endpoint — THIS was the 2026-09-22 root cause.
+   Fix: clear it (`SetEnvironmentVariable('FIRECRAWL_API_URL', $null, 'User')`); clients then
+   default to api.firecrawl.dev. New search-hub instances spawned by subagents inherit the fix;
+   the CURRENT session's hub may stay broken until restart — that's expected.
+4. **Local-lane check** (only if you intentionally want self-host): `curl :31114/mcp` 400=alive,
+   then `:3002` for the docker stack; restart the stack before re-pointing FIRECRAWL_API_URL.
+5. **Fallback while the lane heals**: native WebFetch/WebSearch, the `firecrawl` direct-API probe
+   from step 2 (works even when the MCP lane is down), or Exa/Tavily via the same search-hub.
+   NEVER route around by deleting the server entry — per the estate MCP rule, the curation is
+   load-bearing.
+
+Diagnostic tell (single-signal rule): MCP transport error + direct-API 200 = lane problem;
+both failing = service/quota problem (then check credits via `firecrawl_search_usage`).
+
 ## Related Skills
 
 - `exa` MCP (`web_search_exa` / `get_code_context_exa`) — neural/semantic search + code-context (the FIND half; Firecrawl is the FETCH half)

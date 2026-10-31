@@ -132,6 +132,27 @@ reports false-behind and re-proposes already-merged work. (Ledger-proven: monito
   write Secrets; use two least-privilege PATs (e.g. a dispatch PAT vs a Secrets-write PAT), never
   one broad token.
 
+## 6. Evidence-class field (2026-10-13) — classify every gate failure BEFORE acting
+
+Every gate/CI failure gets ONE of four classes before any fix, re-run or verdict:
+
+- **CONTENT-FAIL** — a real check ran and its output shows a defect. Fix the content.
+- **RUNNER-DEATH** — `failedSteps` empty AND the job log is empty (zero log lines): the
+  runner died before the code said anything. Tonight's signature (2026-10-12/13): the
+  home-wsl runner died 4x under host RAM starvation with `failedSteps=[]` and zero log
+  lines, and the runs were read as content failures. **Re-run on a healthy runner; NEVER
+  read as a regression.** The gate workflows now carry a first-step runner-health
+  preamble (reads `MemAvailable` from `/proc/meminfo`; floor 2000000 KB) that fails with
+  the distinctive marker `FAILED:runner-health MemAvailable=<n>KB below floor`, so a
+  starved runner identifies itself in the log instead of dying silently mid-job.
+- **CANCELLED** — cancelled upstream or harness-timed-out. Re-run or re-triage; carries
+  no content signal.
+- **NOT-CHECKED** — the gate never ran. Absence of evidence is not green; never fold
+  into PASS.
+
+Classification rule: `failedSteps == [] AND log empty` ⇒ RUNNER-DEATH. A RUNNER-DEATH
+job that re-runs green on a healthy runner is a PASS — not a flake to chase in content.
+
 ---
 *Deploy: copy to `~/.claude/rules/common/ci-hygiene.md` (imperative-copy sync
 model). A one-line pointer belongs in AGENTS.md alongside the §11 windows-shell

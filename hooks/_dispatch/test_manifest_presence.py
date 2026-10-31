@@ -33,6 +33,20 @@ it replaces.
 
 Run:
     pytest hooks/_dispatch/test_manifest_presence.py -v
+
+SCOPE CORRECTION (2026-10-17, blocking-mode wave). The invariant
+"an exit-2 gate must never be folded into the dispatcher" assumed the
+dispatcher was permanently inject-only. It no longer is: dispatch.py now runs
+``exec``-mode checks as SUBPROCESSES whose real exit code, stderr and decision
+JSON are propagated (exit-code BLOCK > JSON deny > allow/rewrite precedence;
+pinned by test_blocking_mode.py). test-tamper-guard/guard.py, ulysses/enforce.py
+and the other former standalone guards are therefore deliberately consolidated
+as exec checks with ``blocking_rc: true``, which PRESERVES the block instead of
+disarming it. The guard that still matters -- and that the test below now
+enforces -- is the MODE contract: a known exit-2 gate may appear in the
+manifest ONLY in exec mode with ``blocking_rc: true``; listing one as an
+import-mode (in-process) check would fire its ``main()`` at import time under
+the wrong argv and is still a silent disarm.
 """
 
 from __future__ import annotations
@@ -50,8 +64,10 @@ MANIFEST = Path(__file__).resolve().parent / "manifest.json"
 # (it is an exit-2 PreToolUse gate that must stay standalone).
 WIRED_BY_A6 = ("dark-surface",)
 
-# Scripts that must NEVER appear in ANY dispatcher event. The dispatcher is
-# inject-only; an exit-2 gate folded into it is silently disarmed.
+# Scripts that are known exit-2 BLOCKING gates. Since the 2026-10-17
+# blocking-mode wave they MAY be consolidated into the dispatcher, but only in
+# exec mode with blocking_rc (see test_blocking_gates_in_the_manifest_must_run_
+# in_exec_blocking_mode); an import-mode entry still silently disarms them.
 REQUIRED_STANDALONE_SCRIPTS = ("test-tamper-guard/guard.py",)
 
 # A6 wired dark-surface at Stop but NOT its PostToolUse producer, so the gate was
@@ -117,22 +133,67 @@ def test_wired_gate_entries_shape():
             )
 
 
-def test_test_tamper_guard_is_not_a_dispatch_check():
-    """An exit-2 PreToolUse gate must never be folded into the inject-only dispatcher.
+def test_blocking_gates_in_the_manifest_must_run_in_exec_blocking_mode():
+    """A known exit-2 gate may be consolidated ONLY as exec + blocking_rc.
 
     guard.py:13/:299 exit 2 to BLOCK and :326 emits hookEventName "PreToolUse".
-    dispatch.py aggregates additionalContext only and cannot honour either, so
-    test_wiring.py keeps this script in REQUIRED_STANDALONE_HANDLERS. Listing it
-    under ANY manifest event silently disarms the block.
+    Under the 2026-10-17 blocking-mode contract (see the module docstring and
+    test_blocking_mode.py) that block SURVIVES consolidation when the check
+    runs as a subprocess with its real exit code propagated. It is silently
+    disarmed -- the defect this guard has always existed to catch -- when the
+    entry is import-mode (no ``exec``), because the in-process worker cannot
+    honour a bare ``sys.exit(main())`` argv/stdin contract, or when
+    ``blocking_rc`` is absent, because main() then drops the non-zero rc.
     """
+
     data = _manifest()
+    violations = []
     for event, spec in data["events"].items():
-        scripts = [c.get("script") for c in spec.get("checks", [])]
+        by_script = {c.get("script"): c for c in spec.get("checks", [])}
         for banned in REQUIRED_STANDALONE_SCRIPTS:
-            assert banned not in scripts, (
-                f"{banned} is folded into events.{event}.checks — it is an exit-2 "
-                "gate and the dispatcher is inject-only, so the block is disarmed"
-            )
+            check = by_script.get(banned)
+            if check is None:
+                continue
+            if not check.get("exec"):
+                violations.append(
+                    f"{banned} is an import-mode events.{event} check — the "
+                    "exit-2 block is disarmed; exec mode is required"
+                )
+            if not check.get("blocking_rc"):
+                violations.append(
+                    f"{banned} lacks blocking_rc — main() would drop its "
+                    "non-zero exit code"
+                )
+    assert not violations, "; ".join(violations)
+
+
+def test_test_tamper_guard_keeps_its_former_standalone_budget():
+    """P2 (2026-10-18 review thread): the tamper scan needs its 20s back.
+
+    The consolidation wave first shipped a 10s dispatcher budget for
+    test-tamper-guard, but the guard's own ``_run`` deliberately allows
+    individual git subprocesses up to 15s — the dispatcher could kill a valid
+    scan before the guard's own operation-level timeout and fail the commit
+    open, unscanned. The former standalone registration allowed 20s; the
+    ceiling (PreToolUse settings_timeout, 25) must stay ABOVE the budget so
+    the host does not kill the dispatcher at the same instant (pinned by
+    test_every_check_budget_fits_its_event_ceiling as ``<=``; equality is
+    still a race, hence the explicit headroom assertion here).
+    """
+
+    pre = _manifest()["events"]["PreToolUse"]
+    entry = next(
+        c for c in pre["checks"] if c.get("script") == "test-tamper-guard/guard.py"
+    )
+    assert entry.get("timeout") == 20, (
+        f"test-tamper-guard budget is {entry.get('timeout')!r}; the former "
+        "standalone registration allowed 20s and guard.py::_run permits 15s "
+        "per git op — anything lower kills valid scans (fail-open)"
+    )
+    assert pre["settings_timeout"] > entry["timeout"], (
+        "PreToolUse settings_timeout must leave headroom above the guard "
+        "budget, or the host kills the dispatcher at the budget boundary"
+    )
 
 
 def test_wired_gates_reference_existing_scripts():

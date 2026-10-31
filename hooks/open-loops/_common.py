@@ -11,7 +11,12 @@ forgotten threads):
          recurring, source, raw}
      `condition` = {"mode": "any"|"all", "preds": [<pred>, ...]} where each <pred> is a
      CHEAP, stdlib-only predicate evaluated against the current turn context:
-        cwd_glob | branch_glob | branch_regex | file_exists | prompt_regex | keyword | always
+        cwd_glob | branch_glob | branch_regex | file_exists | prompt_regex | keyword |
+        always | health_fail
+     health_fail (GEM-5): True when access-resilience last_health.json is
+        ALL_METHODS_FAILED, or PARTIAL with live < needed. value = path (optional;
+        default ACCESS_HEALTH_JSON / ~/infra/access-resilience/state/last_health.json).
+        Never prints secrets from the health file.
   2. Open loops DERIVED from the event-ledger (unresolved failures + a dangling goal)
      are folded in by resurface.py — distinct from sessionstart-replay (see below).
 
@@ -55,6 +60,21 @@ PRED_TYPES = (
     "prompt_regex",
     "keyword",
     "always",
+    "health_fail",
+)
+
+# Plane-B health snapshot (GEM-5). Override in tests via ACCESS_HEALTH_JSON or pred value.
+DEFAULT_HEALTH_JSON = Path(
+    os.environ.get(
+        "ACCESS_HEALTH_JSON",
+        str(HOME / "infra" / "access-resilience" / "state" / "last_health.json"),
+    )
+)
+
+# Fixed GEM-5 action text — cookie-bridge last rung, never token/create.
+GEM5_COOKIE_BRIDGE_ACTION = (
+    "run cookie-bridge durable status/extract — do not mint PAT / "
+    "do not run health_monitor without --no-create-pat"
 )
 
 # Words dropped when deriving keyword predicates from plain language.
@@ -395,6 +415,39 @@ def _glob_or_sub(value: str, target: str) -> bool:
     return v in t
 
 
+def plane_b_health_failed(path: str | Path | None = None) -> bool:
+    """True when Plane-B health says lockout: ALL_METHODS_FAILED or PARTIAL live<needed.
+
+    Reads status/live/needed only — never echoes tokens or probe details. Missing or
+    corrupt file -> False (fail-open / silent). OK with live>=needed -> False.
+    """
+    try:
+        if path is not None and str(path).strip():
+            fp = Path(path)
+        else:
+            fp = DEFAULT_HEALTH_JSON
+        if not fp.is_file():
+            return False
+        data = json.loads(fp.read_text(encoding="utf-8", errors="replace"))
+        if not isinstance(data, dict):
+            return False
+        status = str(data.get("status") or "").strip().upper()
+        if status == "ALL_METHODS_FAILED":
+            return True
+        if status == "PARTIAL":
+            try:
+                live = int(data.get("live") if data.get("live") is not None else -1)
+                needed = int(
+                    data.get("needed") if data.get("needed") is not None else 0
+                )
+            except (TypeError, ValueError):
+                return False
+            return live < needed
+        return False
+    except Exception:
+        return False
+
+
 def eval_pred(pred: dict, ctx: dict) -> bool:
     try:
         typ = pred.get("type")
@@ -419,6 +472,8 @@ def eval_pred(pred: dict, ctx: dict) -> bool:
             return bool(pr) and re.search(val, pr, re.I) is not None
         if typ == "keyword":
             return _norm(val) in ctx.get("haystack", "")
+        if typ == "health_fail":
+            return plane_b_health_failed(val if str(val or "").strip() else None)
     except Exception:
         return False
     return False
@@ -450,6 +505,8 @@ def matched_pred_summary(condition: dict, ctx: dict) -> str:
                 return f"prompt ~ /{v}/"
             if t == "keyword":
                 return f"mentions '{v}'"
+            if t == "health_fail":
+                return "Plane B health fail (last_health)"
     return "matches"
 
 

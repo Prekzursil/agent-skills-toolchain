@@ -160,12 +160,57 @@ def main() -> int:
                 {
                     "session_id": session6,
                     "tool_name": "Bash",
-                    "tool_input": "git diff --stat",  # string, not dict
+                    "tool_input": "git diff --stat",  # string, not a dict
                     "tool_response": "same output",
                 }
             ),
         )
         check("  exit 0 with string tool_input", rc_s == 0)
+
+    # ── Test 7: ABSENT tool_response never reads as "identical output" ────────
+    # grok absent-field class (2026-10-21): grok sends NO tool_response/
+    # tool_output key on most PostToolUse events. Absent = unverifiable: the
+    # 3x-identical-args warning must NOT fire when no output was ever observed.
+    print("== Test 7: absent tool_response → NO warning ==")
+    mod7 = _load_fresh(tmp)
+    session7 = "sess-T7"
+    absent_stdin = json.dumps(
+        {
+            "session_id": session7,
+            "tool_name": "Bash",
+            "tool_input": {"cmd": "git status"},
+            "cwd": "C:/fake/project",
+        }
+    )
+    warned_absent = False
+    for i in range(3):
+        rc_a, out_a = _run_hook(mod7, absent_stdin)
+        check(f"  exit 0 on absent-response call {i + 1}", rc_a == 0)
+        if _has_warning(out_a):
+            warned_absent = True
+    check("  3x identical args with ABSENT response never warns", not warned_absent)
+
+    # Mixed: 2 observed-identical + 1 absent -> still unverifiable, no warning.
+    mod7b = _load_fresh(tmp)
+    session7b = "sess-T7b"
+    for i in range(2):
+        _run_hook(
+            mod7b,
+            _make_stdin(session7b, "Bash", {"cmd": "make"}, "build ok"),
+        )
+    rc_m, out_m = _run_hook(
+        mod7b,
+        json.dumps(
+            {
+                "session_id": session7b,
+                "tool_name": "Bash",
+                "tool_input": {"cmd": "make"},
+                "cwd": "C:/fake/project",
+            }
+        ),
+    )
+    check("  mixed observed+absent window does not warn", not _has_warning(out_m))
+    check("  mixed window exit 0", rc_m == 0)
 
     # ── Summary ───────────────────────────────────────────────────────────────
     result = "PASS" if not fails else f"FAIL: {', '.join(fails)}"

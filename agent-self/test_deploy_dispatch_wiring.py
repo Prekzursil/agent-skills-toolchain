@@ -490,5 +490,140 @@ def test_00_substring_mutant_reintroduces_the_path_collision(tmp_path):
     )
 
 
+# --------------------------------------------------------------------------- #
+# 2026-10-18 review thread: superseded guards must be removed on surgical deploy
+# --------------------------------------------------------------------------- #
+
+#: The six PreToolUse guards the 2026-10-17 blocking-mode wave consolidated as
+#: exec-mode manifest checks. On an install deployed BEFORE that wave the
+#: standalone groups are still wired; without their SUPERSEDED_STANDALONE
+#: entries the deploy widens the dispatcher matcher but leaves every standalone
+#: copy in place -> both run on every overlapping call.
+CONSOLIDATED_GUARDS = (
+    "no-force-push/hook.py",
+    "test-tamper-guard/guard.py",
+    "cmd-rewrite/inject-nopager.py",
+    "ulysses/enforce.py",
+    "loop-recovery/handler.py",
+    "deny-credential-reads/deny.py",
+)
+
+
+def build_pre_wave_root(tmp_path: Path) -> Path:
+    """A sandbox ~/.claude as an install deployed BEFORE the consolidation wave
+    looked: dispatcher wired (drifted matcher), all six standalone guards still
+    present, manifest already declaring their consolidated successors."""
+
+    root = build_root(tmp_path)  # drifted matcher + wfmon legacy + decoy
+
+    # Declare the six successors in the sandbox manifest (the deployed manifest
+    # beside the dispatcher already carries them post-wave).
+    manifest_path = root / "hooks" / "_dispatch" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["events"]["PreToolUse"]["checks"].extend(
+        {"name": name, "script": script, "matcher": "Bash", "exec": True}
+        for script in CONSOLIDATED_GUARDS
+        for name in (script,)
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    # The six standalone groups a pre-wave install still carries.
+    settings_path = root / "settings.json"
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    guard_matchers = {
+        "no-force-push/hook.py": "Bash|PowerShell",
+        "test-tamper-guard/guard.py": "Bash",
+        "cmd-rewrite/inject-nopager.py": "Bash",
+        "ulysses/enforce.py": "Bash|PowerShell|Edit|Write|MultiEdit",
+        "loop-recovery/handler.py": "Bash",
+        "deny-credential-reads/deny.py": "Read|Edit|MultiEdit|Grep|Bash|PowerShell",
+    }
+    for script, matcher in guard_matchers.items():
+        settings["hooks"]["PreToolUse"].append(
+            {
+                "matcher": matcher,
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _cmd(root, script),
+                        "timeout": 20,
+                    }
+                ],
+            }
+        )
+    settings_path.write_text(
+        json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return root
+
+
+def test_18_six_consolidated_guards_are_removed_on_apply(tmp_path):
+    """P2 thread: --apply must retire the superseded standalone guards.
+
+    Before the SUPERSEDED_STANDALONE extension, deploying onto a pre-wave
+    install left the dispatcher copy AND every standalone guard wired: double
+    scans per call and racing side effects on stateful hooks (loop-recovery).
+    """
+    root = build_pre_wave_root(tmp_path)
+
+    before = json.dumps(load(root))
+    for script in CONSOLIDATED_GUARDS:
+        assert script in before, f"fixture must wire {script} standalone"
+    assert load(root)["env"]["ANTHROPIC_API_KEY"] == FAKE_SECRET
+
+    result = run_tool(root, "--apply", "--no-backup")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "drop-superseded" in result.stdout
+
+    after = load(root)
+    for script in CONSOLIDATED_GUARDS:
+        assert script not in json.dumps(after["hooks"]["PreToolUse"]), (
+            f"superseded standalone {script} survived the deploy — it would "
+            "double-run beside the dispatcher copy"
+        )
+    # Nothing else was harmed: machine-local state, the wfmon removal, the
+    # codex decoy and the dispatcher group all behave exactly as before.
+    assert after["env"]["ANTHROPIC_API_KEY"] == FAKE_SECRET
+    assert after["model"] == "opus"
+    wf = workflow_groups(after)
+    assert len(wf) == 1 and "_dispatch/dispatch.py" in json.dumps(wf[0]), (
+        "the only Workflow route left must be the dispatcher itself"
+    )
+    assert any(
+        "codex-monitor-autolaunch/check.py" in json.dumps(g)
+        for g in after["hooks"]["PreToolUse"]
+    ), "the disjoint-route codex decoy must survive"
+    assert any(
+        "_dispatch/dispatch.py" in json.dumps(g)
+        for g in after["hooks"]["PreToolUse"]
+    ), "the dispatcher group itself must survive"
+
+    # Idempotent: a second run is a clean no-op.
+    again = run_tool(root, "--apply", "--no-backup")
+    assert again.returncode == 0, again.stdout + again.stderr
+    assert "already in sync" in again.stdout
+
+
+def test_18b_deploy_refuses_when_a_successor_is_undeclared(tmp_path):
+    """Fail-closed control: the six new removals obey the same successor guard
+    as the wfmon one — a manifest that does not declare the consolidated check
+    must abort the deploy rather than retire the standalone copy blindly."""
+
+    root = build_pre_wave_root(tmp_path)
+    manifest_path = root / "hooks" / "_dispatch" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["events"]["PreToolUse"]["checks"] = [
+        c for c in manifest["events"]["PreToolUse"]["checks"]
+        if c.get("script") != "no-force-push/hook.py"
+    ]
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    result = run_tool(root, "--apply", "--no-backup")
+    assert result.returncode == 1, "an undeclared successor must refuse to deploy"
+    assert "no-force-push/hook.py" in result.stdout
+    # And nothing was written.
+    assert "no-force-push/hook.py" in json.dumps(load(root)["hooks"]["PreToolUse"])
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

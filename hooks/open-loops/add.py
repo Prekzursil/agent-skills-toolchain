@@ -60,6 +60,9 @@ def _explicit_preds(a) -> list[dict]:
         preds.append({"type": "prompt_regex", "value": v})
     for v in a.keyword or []:
         preds.append({"type": "keyword", "value": v})
+    for v in a.health_fail or []:
+        # empty string -> default ACCESS_HEALTH_JSON / last_health.json path
+        preds.append({"type": "health_fail", "value": v})
     return preds
 
 
@@ -139,6 +142,17 @@ def main(argv=None) -> int:
     ap.add_argument("--file-exists", action="append", dest="file_exists")
     ap.add_argument("--prompt-regex", action="append", dest="prompt_regex")
     ap.add_argument("--keyword", action="append", dest="keyword")
+    ap.add_argument(
+        "--health-fail",
+        nargs="?",
+        const="",
+        action="append",
+        dest="health_fail",
+        help=(
+            "GEM-5: fire when last_health.json is ALL_METHODS_FAILED or "
+            "PARTIAL with live<needed. Optional path; default ACCESS_HEALTH_JSON"
+        ),
+    )
     ap.add_argument("--close", default=None, help="mark a loop fired (id or prefix)")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--gc", action="store_true")

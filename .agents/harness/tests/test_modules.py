@@ -1071,6 +1071,74 @@ def test_anti_degen_warns_only_after_same_args_and_same_result_three_times(tmp_p
         assert progress.run(changed).action == "allow"
 
 
+def test_anti_degen_absent_result_never_reads_as_identical_output(tmp_path):
+    # grok absent-field class (2026-10-21): grok sends no tool_result-aliased key
+    # on most PostToolUse events (62,373/86,056 ledger rows null-result). Absent
+    # results must not collapse onto one digest and fire "identical output".
+    module = AntiDegenerationModule(state_root=tmp_path / "absent", threshold=3)
+    for _ in range(3):
+        same_args = event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="mcp__svc__health",
+            tool_use_id="u",
+            tool_input={"service": "a"},
+        )
+        assert module.run(same_args).action == "allow"
+
+    other = AntiDegenerationModule(state_root=tmp_path / "absent2", threshold=3)
+    for name in ("a", "b", "c"):
+        varying_args = event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="mcp__svc__health",
+            tool_use_id=name,
+            tool_input={"service": name},
+        )
+        assert other.run(varying_args).action == "allow"
+
+
+def test_anti_degen_signature_gates_require_observed_results(tmp_path):
+    # _stuck_signature / _abab_alternation / _low_info_gain: exercised directly
+    # so the shadow ladder cannot mask a regression (stage() defaults to shadow).
+    import json as _json
+
+    def window_of(module: AntiDegenerationModule) -> list:
+        return _json.loads(module._path("session-1").read_text(encoding="utf-8"))
+
+    module = AntiDegenerationModule(state_root=tmp_path / "sig", threshold=3)
+    read = event(
+        tmp_path, "PostToolUse", tool_name="Read", tool_input={"file_path": "a.py"}
+    )
+    edit = event(
+        tmp_path, "PostToolUse", tool_name="Edit", tool_input={"file_path": "a.py"}
+    )
+    for i in range(4):
+        module.run(read if i % 2 == 0 else edit)
+
+    window = window_of(module)
+    item = window[-1]
+    assert module._stuck_signature(read, window, item).action == "allow"
+    assert module._abab_alternation(read, window, item).action == "allow"
+    assert module._low_info_gain(read, window, item).action == "allow"
+
+    # OBSERVED identical-shape results still fire (real detection preserved).
+    observed = AntiDegenerationModule(state_root=tmp_path / "obs", threshold=3)
+    for i in range(3):
+        ev = event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Read",
+            tool_use_id=f"o{i}",
+            tool_input={"file_path": f"f{i}.py"},
+            tool_response={"stdout": f"content {i}"},
+        )
+        observed.run(ev)
+    window = window_of(observed)
+    item = window[-1]
+    assert observed._stuck_signature(ev, window, item).action == "inject"
+
+
 def test_claim_warning_requires_recent_verification_evidence(tmp_path):
     ledger = EventLedger(tmp_path / "state")
     module = ClaimWarningModule(ledger)

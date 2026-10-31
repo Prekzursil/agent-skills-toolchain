@@ -153,7 +153,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 
 
 # The host kills the hook process at its registered per-event timeout
-# (registration._TIMEOUTS — 2s on the hot events). module.run() is synchronous,
+# (registration._TIMEOUTS — hot events 25s, SessionStart/Stop 60s as of 2026-10-13). module.run() is synchronous,
 # so ONE module that outlives that deadline takes the whole dispatch with it: no
 # terminal record, no liveness stamp, every later module silently skipped. The
 # fan-out therefore runs under a wall-clock budget; on expiry the in-flight module

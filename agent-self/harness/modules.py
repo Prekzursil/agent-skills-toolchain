@@ -720,6 +720,40 @@ def _stripped_signature(value: Any) -> str:
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:32]
 
 
+# Absent-result sentinels (grok absent-field class, 2026-10-21). `grok` populates
+# NO tool_result-aliased payload key on most PostToolUse events (MEASURED over the
+# live ledger: 62,373 of 86,056 grok tool_result rows carry the null-result digest,
+# vs 87 of 365,366 for claude), so _digest(None)/_stripped_signature(None) collapse
+# EVERY unobserved result to one constant. Reading signature/digest equality across
+# unobserved results asserts "identical output" about events whose outputs were
+# NEVER SEEN — the same misfire class as the SubagentStop hollow-output loop
+# (fixed at _on_stop: absent = unverifiable = allow). The anti-degeneration
+# detectors below therefore only count result evidence from OBSERVED results.
+_NULL_RESULT_DIGEST = _digest(None)
+_NULL_RESULT_SIG = _stripped_signature(None)
+
+
+def _result_observed(entry: Any) -> bool:
+    """True when an anti-degen window entry recorded an actual tool result.
+
+    New entries carry obs=True/False (set at append time from
+    ``event.tool.result is not None``). Legacy entries recorded before the flag
+    existed are inferred from the null-result digests, so an already-buffered
+grok window heals immediately instead of waiting for the 8-call rotation.
+    An intentional empty-string/dict result IS observed (claude sends those) and
+    keeps its historical semantics.
+    """
+    if not isinstance(entry, dict):
+        return False
+    obs = entry.get("obs")
+    if isinstance(obs, bool):
+        return obs
+    return not (
+        entry.get("result") == _NULL_RESULT_DIGEST
+        or entry.get("sig") == _NULL_RESULT_SIG
+    )
+
+
 def _verified_result(result: Any) -> bool:
     if isinstance(result, dict):
         exit_code = result.get("exit_code")
@@ -2561,6 +2595,9 @@ class AntiDegenerationModule:
             "result": _digest(event.tool.result),
             "sig": _stripped_signature(event.tool.result),
             "failed": _result_is_failure(event.tool.result),
+            # Absent-result sentinel (grok class): result evidence below only
+            # counts entries whose result was actually OBSERVED on the wire.
+            "obs": event.tool.result is not None,
         }
         window = (window + [item])[-self.window_size :]
         atomic_write_json(path, window)
@@ -2593,6 +2630,12 @@ class AntiDegenerationModule:
             for entry in window
             if entry.get("tool") == item["tool"] and entry.get("args") == item["args"]
         ]
+        # Absent-result sentinel (grok class): the verdict claims "returned
+        # identical output". With any unobserved repeat in the window that claim
+        # is unverifiable — identical ARGS may repeat, but the outputs were never
+        # seen, so there is no no-progress evidence. Absent = unverifiable = allow.
+        if not all(_result_observed(entry) for entry in matches):
+            return HookResult.success()
         outputs = {entry.get("result") for entry in matches}
         if len(matches) == self.threshold and len(outputs) == 1:
             return HookResult.success(
@@ -2610,10 +2653,18 @@ class AntiDegenerationModule:
         # Multi-signature stuck: same tool + same STRIPPED signature (digits/hex/
         # paths removed) N times — catches error-class repeats that differ only by
         # an address or a temp path, which the exact-match guard above misses.
+        # Absent-result sentinel (grok class): an unobserved result has the SAME
+        # stripped signature as every other unobserved result, so 3 same-tool
+        # calls with different args would read as "same SHAPE of result" without
+        # any output ever being seen. Only OBSERVED signatures count as evidence.
+        if not _result_observed(item):
+            return HookResult.success()
         matches = [
             e
             for e in window
-            if e.get("tool") == item["tool"] and e.get("sig") == item["sig"]
+            if e.get("tool") == item["tool"]
+            and e.get("sig") == item["sig"]
+            and _result_observed(e)
         ]
         if len(matches) < self.threshold:
             return HookResult.success()
@@ -2632,10 +2683,17 @@ class AntiDegenerationModule:
         self, event: HookEvent, window: list[dict], item: dict
     ) -> HookResult:
         # A-B-A-B ping-pong: the last four calls alternate between two signatures.
+        # Absent-result sentinel (grok class): unobserved results collapse every
+        # call of the same tool onto one constant signature, so an ordinary
+        # Read/Edit/Read/Edit cadence would read as a ping-pong loop. Only judge
+        # alternation over OBSERVED results.
         if len(window) < 4:
             return HookResult.success()
+        recent = window[-4:]
+        if not all(_result_observed(e) for e in recent):
+            return HookResult.success()
         sigs = [
-            str(e.get("tool", "")) + "|" + str(e.get("sig", "")) for e in window[-4:]
+            str(e.get("tool", "")) + "|" + str(e.get("sig", "")) for e in recent
         ]
         if sigs[0] == sigs[2] and sigs[1] == sigs[3] and sigs[0] != sigs[1]:
             raw = HookResult.success(
@@ -2674,7 +2732,13 @@ class AntiDegenerationModule:
     ) -> HookResult:
         # Information-gain governor: a full window of diverse calls yielding very few
         # DISTINCT result signatures = churn without learning.
+        # Absent-result sentinel (grok class): a provider that sends no tool_result
+        # collapses every window entry onto the null signature, so ANY 8-call
+        # window would read as "only 1 distinct result shape". Information gain is
+        # only measurable over OBSERVED results.
         if len(window) < self.window_size:
+            return HookResult.success()
+        if not all(_result_observed(e) for e in window):
             return HookResult.success()
         distinct = len({e.get("sig") for e in window})
         if distinct > 2:
