@@ -1,3 +1,9 @@
+---
+title: PROMPT-1_5-CLOSURE
+type: note
+permalink: dqverify-repo-20261013/command-center/prompt-1-5-closure
+---
+
 # LANE D2 — Is PROMPT 1.5 genuinely CLOSED, or is there an unreported open lane?
 
 STATUS: **FINAL** — all five owned items measured.

@@ -1,3 +1,9 @@
+---
+title: security-and-identity
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/security-and-identity
+---
+
 # Security And Identity
 
 Primary docs:

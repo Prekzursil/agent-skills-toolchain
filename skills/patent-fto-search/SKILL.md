@@ -1,6 +1,9 @@
 ---
 name: patent-fto-search
-description: Search patent-extracted chemical structures by SMILES in SureChEMBL, continue asynchronous searches, and inspect patent metadata or claims for prior-art and FTO triage.
+description: Search patent-extracted chemical structures by SMILES in SureChEMBL,
+  continue asynchronous searches, and inspect patent metadata or claims for prior-art
+  and FTO triage.
+permalink: dqverify-repo-20261013/skills/patent-fto-search/skill
 ---
 
 # Patent FTO search

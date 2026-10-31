@@ -1,10 +1,13 @@
 ---
 name: code-task-generator
-description: Generates structured .code-task.md files from descriptions or PDD implementation plans. Auto-detects input type, creates properly formatted tasks with Given-When-Then acceptance criteria.
+description: Generates structured .code-task.md files from descriptions or PDD implementation
+  plans. Auto-detects input type, creates properly formatted tasks with Given-When-Then
+  acceptance criteria.
 type: anthropic-skill
-version: "1.1"
+version: '1.1'
 metadata:
   internal: true
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/sops/code-task-generator
 ---
 
 # Code Task Generator

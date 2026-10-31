@@ -1,3 +1,9 @@
+---
+title: CLASSROOM-MCP
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/classroom-mcp
+---
+
 # Google Classroom MCP (gogcli-mcp-classroom)
 
 Connect Claude Code (and other MCP clients) to **Google Classroom** via the `gogcli`

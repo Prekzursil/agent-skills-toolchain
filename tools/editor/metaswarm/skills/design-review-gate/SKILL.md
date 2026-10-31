@@ -1,11 +1,14 @@
 ---
 name: design-review-gate
-description: Automatic review gate that runs after brainstorming completes - spawns PM, Architect, Designer, Security, and CTO agents in parallel, iterates until all approve
+description: Automatic review gate that runs after brainstorming completes - spawns
+  PM, Architect, Designer, Security, and CTO agents in parallel, iterates until all
+  approve
 auto_activate: true
 triggers:
-  - "design document created"
-  - "docs/plans/*-design.md committed"
-  - after:superpowers:brainstorming
+- design document created
+- docs/plans/*-design.md committed
+- after:superpowers:brainstorming
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/design-review-gate/skill
 ---
 
 # Design Review Gate

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/durable-objects/readme
+---
+
 # Cloudflare Durable Objects
 
 Expert guidance for building stateful applications with Cloudflare Durable Objects.

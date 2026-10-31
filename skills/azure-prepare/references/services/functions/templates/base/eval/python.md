@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/base/eval/python
+---
+
 # Base HTTP Template - Python Eval
 
 ## Test Summary

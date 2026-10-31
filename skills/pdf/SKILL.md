@@ -1,8 +1,11 @@
 ---
-name: "pdf"
-description: "Use when tasks involve reading, creating, or reviewing PDF files where rendering and layout matter; prefer visual checks by rendering pages (Poppler) and use Python tools such as `reportlab`, `pdfplumber`, and `pypdf` for generation and extraction."
+name: pdf
+description: Use when tasks involve reading, creating, or reviewing PDF files where
+  rendering and layout matter; prefer visual checks by rendering pages (Poppler) and
+  use Python tools such as `reportlab`, `pdfplumber`, and `pypdf` for generation and
+  extraction.
+permalink: dqverify-repo-20261013/skills/pdf/skill
 ---
-
 
 # PDF Skill
 

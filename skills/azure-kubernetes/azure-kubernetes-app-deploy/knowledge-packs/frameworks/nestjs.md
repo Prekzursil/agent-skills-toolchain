@@ -1,3 +1,9 @@
+---
+title: nestjs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/nestjs
+---
+
 # NestJS Knowledge Pack
 
 > **Applies to:** Projects detected with `package.json` containing `@nestjs/core` as a dependency

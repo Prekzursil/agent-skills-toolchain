@@ -1,3 +1,9 @@
+---
+title: RUNBOOK-cookie-bridge-databricks-2026-07-24-ADDENDUM
+type: note
+permalink: dqverify-repo-20261013/skills/cookie-bridge/references/runbook-cookie-bridge-databricks-2026-07-24-addendum
+---
+
 # ADDENDUM — cookie-bridge handoff, verification pass 2026-07-24
 
 **Additive to** `handoff-cookie-bridge-databricks-2026-07-24.md`. Does not replace it.

@@ -1,3 +1,9 @@
+---
+title: W02-session-vs-access
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/w02-session-vs-access
+---
+
 # W02 — Web session cookie vs OAuth access/refresh tokens
 
 ## Digest (2026-07-20; 493 words)

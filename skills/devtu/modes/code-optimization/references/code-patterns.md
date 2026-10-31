@@ -1,3 +1,9 @@
+---
+title: code-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/code-optimization/references/code-patterns
+---
+
 # Code Patterns Reference
 
 Reusable implementation patterns for ToolUniverse tool development.

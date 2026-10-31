@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-R5
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-r5
+---
+
 # P2NEXT — BUILD round 3: the rail was never down, and the queue was priced as if it were
 
 COVERAGE: every claim below names the probe that produced it. Three things stay unmeasured and say

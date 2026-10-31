@@ -1,3 +1,9 @@
+---
+title: readme_mitre_mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-mitre-mcp
+---
+
 # Caldera MCP Plugin
 
 An AI-assisted operations workspace for CALDERA. Chat-driven workflows create adversary content, ingest CTI into STIX, and plan and run adversary emulation, with the LLM grounded in MCP tools and live CALDERA state instead of operator copy-paste.

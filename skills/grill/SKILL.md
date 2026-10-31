@@ -1,6 +1,12 @@
 ---
 name: grill
-description: Stress-test a plan, design or whole program by resolving its open decisions. Use when the user says grill me, wants a plan poked at, hands you something big and under-specified, asks what else this could be, or wants a design challenged against prior decisions. Grounds every challenge in basic-memory and the event ledger, and writes resolved decisions back. Depth dial - quick for one plan, program for a wide scope.
+description: Stress-test a plan, design or whole program by resolving its open decisions.
+  Use when the user says grill me, wants a plan poked at, hands you something big
+  and under-specified, asks what else this could be, or wants a design challenged
+  against prior decisions. Grounds every challenge in basic-memory and the event ledger,
+  and writes resolved decisions back. Depth dial - quick for one plan, program for
+  a wide scope.
+permalink: dqverify-repo-20261013/skills/grill/skill
 ---
 
 # grill

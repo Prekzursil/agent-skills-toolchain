@@ -1,3 +1,9 @@
+---
+title: BUILD-ROUND4-2026-08-13
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/build-round4-2026-08-13
+---
+
 # LANE SSOT — BUILD round 4 (final round)
 
 STATUS: **all three CONFIRMED defects fixed and measured.** Every claim below names the

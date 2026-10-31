@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/ci/harness/prebuild-recall/readme
+---
+
 # Pre-build recall gate
 
 Fires on **build-shaped work** and injects prior-art hits before the build

@@ -1,3 +1,9 @@
+---
+title: GRADER-INTERNALS
+type: note
+permalink: dqverify-repo-20261013/skills/academy-badge-runner/grader-internals
+---
+
 # Qwiklabs / Google Cloud Skills Boost — Grading Engine: Architecture & Computation Model
 
 **v3 FINAL — GSP322 driven to 100/100 using this method (2026-09-30). The grader is fully transparent: its exact predicates are extractable, and every decoded check was satisfied with real events only. Universal instrument: `grader_probe.py` (this folder).**

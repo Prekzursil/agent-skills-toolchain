@@ -1,3 +1,9 @@
+---
+title: status
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/status
+---
+
 # Status
 
 Show metaswarm diagnostic information.

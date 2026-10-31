@@ -1,3 +1,9 @@
+---
+title: openrouter-free-models_2026-08-27
+type: note
+permalink: dqverify-repo-20261013/skills/openrouter-routing/openrouter-free-models-2026-08-27
+---
+
 # OpenRouter free / $0 models for sidecar smoke: Research Report
 *Generated: 2026-08-27 | Sources: 16 | Providers: firecrawl, context7, live OpenRouter API, web | Confidence: High*
 *Cache: 0 hits / 12 misses | Stale-allowed: no*

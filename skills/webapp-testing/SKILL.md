@@ -1,7 +1,12 @@
 ---
 name: webapp-testing
-description: Use when verifying frontend functionality, debugging UI behavior, capturing screenshots, or viewing browser logs for a local web application using the Playwright toolkit ; do NOT use for one-shot browser automation or data scraping (use playwright) or persistent iterative REPL sessions (use playwright-interactive) ; returns frontend test results, screenshots, and browser logs.
+description: Use when verifying frontend functionality, debugging UI behavior, capturing
+  screenshots, or viewing browser logs for a local web application using the Playwright
+  toolkit ; do NOT use for one-shot browser automation or data scraping (use playwright)
+  or persistent iterative REPL sessions (use playwright-interactive) ; returns frontend
+  test results, screenshots, and browser logs.
 license: Complete terms in LICENSE.txt
+permalink: dqverify-repo-20261013/skills/webapp-testing/skill
 ---
 
 # Web Application Testing

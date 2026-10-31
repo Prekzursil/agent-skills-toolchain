@@ -1,3 +1,9 @@
+---
+title: azure-monitor-query-java
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-query-java
+---
+
 # Azure Monitor Query — Java SDK Quick Reference
 
 > Condensed from **azure-monitor-query-java**. Full patterns (batch queries,

@@ -1,3 +1,9 @@
+---
+title: azure-aks-anomalies
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/azure-aks-anomalies
+---
+
 # AKS Cost Anomaly Investigation
 
 Investigate user-reported cost or utilization spikes by correlating Azure Monitor metrics, scaling events, and Cost Management data.
@@ -75,4 +81,3 @@ az consumption budget create \
   --threshold 80 \
   --contact-emails "<contact-email>"
 ```
-

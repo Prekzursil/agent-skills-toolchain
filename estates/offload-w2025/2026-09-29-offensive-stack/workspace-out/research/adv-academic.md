@@ -1,3 +1,9 @@
+---
+title: adv-academic
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/adv-academic
+---
+
 # Adversarial completeness review — academic / preprint angle
 **Domain:** paper-artifact and university/industry-lab security-research tools absent from the known-tools list.
 **Date of work:** 2026-09-29. **All GitHub facts below verified live in this session** via authenticated `gh api repos/<owner>/<repo>` (stars + `pushed_at` reported per repo) and `gh search repos`; paper/venue facts from arXiv/venue web searches run this session. Nothing below was assumed from memory without a live check; items I could not verify are listed under "Not found / not verifiable".

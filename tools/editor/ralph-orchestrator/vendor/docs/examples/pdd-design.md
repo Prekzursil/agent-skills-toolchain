@@ -1,3 +1,9 @@
+---
+title: pdd-design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/pdd-design
+---
+
 # Automated PDD Design Example
 
 !!! note "Example Only"

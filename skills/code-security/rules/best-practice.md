@@ -3,6 +3,7 @@ title: Code Best Practices
 impact: LOW
 impactDescription: Code quality and maintainability issues
 tags: best-practices, code-quality, python, javascript
+permalink: dqverify-repo-20261013/skills/code-security/rules/best-practice
 ---
 
 ## Code Best Practices

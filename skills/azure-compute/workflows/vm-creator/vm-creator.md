@@ -1,3 +1,9 @@
+---
+title: vm-creator
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/vm-creator
+---
+
 # Azure VM/VMSS Creator
 
 Guided create-flow for Azure Virtual Machines (VMs) and VM Scale Sets (VMSS). Adapts to the user's expertise — beginners get sensible defaults; networking/spec/cost/security experts get the deep questions for their domain only — then emits the chosen artifact: az CLI bash, Bicep, Terraform, or live apply via Azure MCP.

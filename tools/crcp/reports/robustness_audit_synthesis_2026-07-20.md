@@ -1,3 +1,9 @@
+---
+title: robustness_audit_synthesis_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/robustness-audit-synthesis-2026-07-20
+---
+
 # CRCP robustness audit — synthesis (2026-07-20)
 
 Dispatched **3× `gpt-5.6-sol`** (Codex, read-only) against `tools/crcp` after Phase 0–4 / write-path green. Framing: owner multi-agent control plane reliability — not adversarial third-party abuse.

@@ -1,3 +1,9 @@
+---
+title: maximal-hybrid
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/maximal-hybrid
+---
+
 # Architecture Candidate: MAXIMAL HYBRID (A9)
 
 **Advocate's brief.** Phase 3 architecture tournament. I argue for this one and I expose its real

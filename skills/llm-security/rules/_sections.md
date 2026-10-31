@@ -1,3 +1,9 @@
+---
+title: _sections
+type: note
+permalink: dqverify-repo-20261013/skills/llm-security/rules/sections
+---
+
 # Sections
 
 This file defines all sections, their ordering, impact levels, and descriptions.

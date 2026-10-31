@@ -1,3 +1,9 @@
+---
+title: v2-hatless-ralph
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/migration/v2-hatless-ralph
+---
+
 # Migration Guide: v2.0 Hatless Ralph
 
 This guide helps you migrate from v1.x to v2.0, which introduces the "Hatless Ralph" architecture.

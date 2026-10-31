@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/realtime-sfu/readme
+---
+
 # Cloudflare Realtime SFU Reference
 
 Expert guidance for building real-time audio/video/data applications using Cloudflare Realtime SFU (Selective Forwarding Unit).

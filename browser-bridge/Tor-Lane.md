@@ -1,3 +1,9 @@
+---
+title: Tor-Lane
+type: note
+permalink: dqverify-repo-20261013/browser-bridge/tor-lane
+---
+
 # Tor Browser lane — on-demand (locked Tor 2A)
 
 **Status this run:** definition + dry-run only. Tor Browser is installed at

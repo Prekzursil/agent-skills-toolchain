@@ -1,3 +1,9 @@
+---
+title: technical-investigation
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/examples/technical-investigation
+---
+
 # Example: Technical Investigation
 
 ## User Request
@@ -230,4 +236,3 @@ This example shows the complete research workflow:
 - **Technical template** (architecture-focused format)
 - **Proper placement** (under engineering docs)
 - **Comprehensive citations** (links to all sources)
-

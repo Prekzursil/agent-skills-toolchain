@@ -1,3 +1,9 @@
+---
+title: request-body-schema
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-forecast/request-body-schema
+---
+
 # Forecast API Request Body Schema
 
 ## Complete JSON Schema

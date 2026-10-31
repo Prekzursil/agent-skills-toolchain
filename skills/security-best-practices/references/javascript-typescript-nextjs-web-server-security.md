@@ -1,3 +1,9 @@
+---
+title: javascript-typescript-nextjs-web-server-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-typescript-nextjs-web-server-security
+---
+
 # Next.js (TypeScript/JavaScript) Web Security Spec (Next.js 16.1.x, Node.js 20.9+)
 
 This document is designed as a **security spec** that supports:

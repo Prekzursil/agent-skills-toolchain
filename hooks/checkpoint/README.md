@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/checkpoint/readme
+---
+
 # hooks/checkpoint — compaction survival
 
 A `PreCompact` writer and a `SessionStart` reader that let a long run survive a compaction with

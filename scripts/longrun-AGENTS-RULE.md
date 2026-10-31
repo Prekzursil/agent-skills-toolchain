@@ -1,3 +1,9 @@
+---
+title: longrun-AGENTS-RULE
+type: note
+permalink: dqverify-repo-20261013/scripts/longrun-agents-rule
+---
+
 # AGENTS RULE DRAFT — longrun discipline
 
 > **STATUS: DRAFT ONLY** — Do not copy this file verbatim into AGENTS.md.

@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
-  - "**/analysis_options.yaml"
+- '**/*.dart'
+- '**/pubspec.yaml'
+- '**/analysis_options.yaml'
+permalink: dqverify-repo-20261013/rules/dart/testing
 ---
+
 # Dart/Flutter Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Dart and Flutter-specific content.

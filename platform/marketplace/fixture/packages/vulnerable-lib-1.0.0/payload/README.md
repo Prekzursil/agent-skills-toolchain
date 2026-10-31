@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/fixture/packages/vulnerable-lib-1.0.0/payload/readme
+---
+
 # vulnerable-lib 1.0.0
 
 A structurally perfect package with an open `high` advisory against it (`adv:2026-0001`).

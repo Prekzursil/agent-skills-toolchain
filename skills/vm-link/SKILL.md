@@ -1,9 +1,18 @@
 ---
 name: vm-link
-description: Persistent bilateral home<->offload-VM access over Tailscale (SSH + rclone sftp disk share + reverse tunnel for the blocked direction). Use when establishing, verifying, or repairing the VM link, or when jumping/mirroring VMs (e.g. offload-w2025 -> ovido4).
+description: Persistent bilateral home<->offload-VM access over Tailscale (SSH + rclone
+  sftp disk share + reverse tunnel for the blocked direction). Use when establishing,
+  verifying, or repairing the VM link, or when jumping/mirroring VMs (e.g. offload-w2025
+  -> ovido4).
 version: 1.0.0
 created: 2026-10-01
-tags: [infrastructure, tailscale, rclone, ssh, vm]
+tags:
+- infrastructure
+- tailscale
+- rclone
+- ssh
+- vm
+permalink: dqverify-repo-20261013/skills/vm-link/skill
 ---
 
 # vm-link — bilateral VM access discipline

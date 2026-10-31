@@ -1,6 +1,11 @@
 ---
 name: subagent-driven-development
-description: Use when executing an implementation plan by dispatching a fresh subagent per independent task with two-stage spec-then-quality review in the current session ; do NOT use when tasks have sequential dependencies or need a separate session with batch checkpoints (use executing-plans) ; returns per-task subagent outputs reviewed for spec compliance and code quality.
+description: Use when executing an implementation plan by dispatching a fresh subagent
+  per independent task with two-stage spec-then-quality review in the current session
+  ; do NOT use when tasks have sequential dependencies or need a separate session
+  with batch checkpoints (use executing-plans) ; returns per-task subagent outputs
+  reviewed for spec compliance and code quality.
+permalink: dqverify-repo-20261013/skills/subagent-driven-development/skill
 ---
 
 # Subagent-Driven Development

@@ -1,3 +1,9 @@
+---
+title: spring-boot
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/spring-boot
+---
+
 # Spring Boot Knowledge Pack
 
 > **Applies to:** Projects detected with `pom.xml` containing `spring-boot-starter-web` or `build.gradle`/`build.gradle.kts` containing `org.springframework.boot`

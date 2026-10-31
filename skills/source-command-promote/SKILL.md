@@ -1,6 +1,7 @@
 ---
-name: "source-command-promote"
-description: "Promote project-scoped instincts to global scope"
+name: source-command-promote
+description: Promote project-scoped instincts to global scope
+permalink: dqverify-repo-20261013/skills/source-command-promote/skill
 ---
 
 # source-command-promote

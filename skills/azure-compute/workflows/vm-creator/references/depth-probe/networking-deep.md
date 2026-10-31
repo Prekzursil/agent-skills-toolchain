@@ -1,3 +1,9 @@
+---
+title: networking-deep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/depth-probe/networking-deep
+---
+
 # Networking-deep branch
 
 Ask only what cannot be inferred. Volunteer the advanced switches.

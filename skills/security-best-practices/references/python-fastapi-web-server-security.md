@@ -1,3 +1,9 @@
+---
+title: python-fastapi-web-server-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/python-fastapi-web-server-security
+---
+
 # FastAPI (Python) Web Security Spec (FastAPI 0.128.x, Python 3.x) ([PyPI][1])
 
 This document is designed as a **security spec** that supports:

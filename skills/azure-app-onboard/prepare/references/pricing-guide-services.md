@@ -1,3 +1,9 @@
+---
+title: pricing-guide-services
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/pricing-guide-services
+---
+
 # App Onboard Prepare — Per-Service Pricing Patterns
 
 Filter strings, meter names, and formulas per Azure service. For methodology and troubleshooting, see [pricing-guide.md](pricing-guide.md).

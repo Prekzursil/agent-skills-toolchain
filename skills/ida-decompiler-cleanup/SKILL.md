@@ -1,6 +1,10 @@
 ---
 name: ida-decompiler-cleanup
-description: Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed, or hard to reason about, especially for indirect-call typing, prototype cleanup, structure naming, variable cleanup, and preparing functions for durable analysis or signature work.
+description: Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed,
+  or hard to reason about, especially for indirect-call typing, prototype cleanup,
+  structure naming, variable cleanup, and preparing functions for durable analysis
+  or signature work.
+permalink: dqverify-repo-20261013/skills/ida-decompiler-cleanup/skill
 ---
 
 # IDA Decompiler Cleanup

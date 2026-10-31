@@ -1,3 +1,9 @@
+---
+title: bicep-container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/bicep-container-apps
+---
+
 # Bicep — Container Apps Patterns
 
 Container Apps-specific Bicep patterns. For shared patterns (skeleton, naming, tags, security defaults, data modules), see [bicep-patterns.md](bicep-patterns.md).

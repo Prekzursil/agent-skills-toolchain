@@ -1,3 +1,9 @@
+---
+title: skill-dual-write-trigger-gap-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/docs/harness/skill-dual-write-trigger-gap-2026-08-14
+---
+
 # Six gates never run on push — and the obvious fix is already refuted
 
 `skill-dual-write.yml` is `pull_request`-only. 242 commits landed on `main` in 36 hours,

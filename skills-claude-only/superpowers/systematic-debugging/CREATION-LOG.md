@@ -1,3 +1,9 @@
+---
+title: CREATION-LOG
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/creation-log
+---
+
 # Creation Log: Systematic Debugging Skill
 
 Reference example of extracting, structuring, and bulletproofing a critical skill.

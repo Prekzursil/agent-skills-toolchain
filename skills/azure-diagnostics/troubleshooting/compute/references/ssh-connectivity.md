@@ -1,3 +1,9 @@
+---
+title: ssh-connectivity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/ssh-connectivity
+---
+
 # Unable to SSH into the VM
 
 Use for Linux VM SSH failures.

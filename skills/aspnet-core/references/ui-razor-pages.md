@@ -1,3 +1,9 @@
+---
+title: ui-razor-pages
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/ui-razor-pages
+---
+
 # Razor Pages
 
 Primary docs:

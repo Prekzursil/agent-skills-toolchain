@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/d1/readme
+---
+
 # Cloudflare D1 Database
 
 Expert guidance for Cloudflare D1, a serverless SQLite database designed for horizontal scale-out across multiple databases.

@@ -1,3 +1,9 @@
+---
+title: unit-tests-reference
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/fix-tool/unit-tests-reference
+---
+
 # Unit Test Reference for ToolUniverse
 
 ## Standard Unit Test Structure

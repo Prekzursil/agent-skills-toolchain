@@ -1,3 +1,9 @@
+---
+title: CODEX_FANOUT
+type: note
+permalink: dqverify-repo-20261013/skills/multi-ai-mingle/codex-fanout
+---
+
 # Codex fan-out: fragility + safe pattern
 
 > **Additive companion to `multi-ai-mingle/SKILL.md`** (clearly-marked new section,

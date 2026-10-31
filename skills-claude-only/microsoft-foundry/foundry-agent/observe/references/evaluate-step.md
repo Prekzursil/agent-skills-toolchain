@@ -1,3 +1,9 @@
+---
+title: evaluate-step
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/observe/references/evaluate-step
+---
+
 # Step 2 — Create Batch Evaluation
 
 ## Prerequisites

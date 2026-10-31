@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/digitalocean-mcp/readme
+---
+
 # DigitalOcean MCP
 
 `tools/mcp/digitalocean-mcp/` is the repo-owned Windows-first wrapper for the archived upstream `digitalocean/digitalocean-mcp` package.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/harness-corpus/readme
+---
+
 # harness-corpus
 
 Distils Claude Code session history (~10.6 GB of JSONL transcripts) into a bounded, structured

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/vectorize/readme
+---
+
 # Cloudflare Vectorize
 
 Globally distributed vector database for AI applications. Store and query vector embeddings for semantic search, recommendations, RAG, and classification.

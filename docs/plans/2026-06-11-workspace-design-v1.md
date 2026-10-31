@@ -1,3 +1,9 @@
+---
+title: 2026-06-11-workspace-design-v1
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-06-11-workspace-design-v1
+---
+
 # Optimal Agentic Workspace — Design v1 (LOCKED architecture)
 
 **Date:** 2026-06-11 · **Status:** v1 — supersedes the v0 draft (`2026-06-10-optimal-agentic-workspace-design.md`). Evidence base: `2026-06-11-workspace-knowledge-base.md` + `docs/research/2026-06-11-fanout-*.md`. Pending Design Review Gate (Fable) → build.

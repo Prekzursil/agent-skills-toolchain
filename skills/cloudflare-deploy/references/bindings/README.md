@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/bindings/readme
+---
+
 # Cloudflare Bindings Skill Reference
 
 Expert guidance on Cloudflare Workers Bindings - the runtime APIs that connect Workers to Cloudflare platform resources.

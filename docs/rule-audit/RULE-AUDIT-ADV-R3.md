@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-ADV-R3
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-adv-r3
+---
+
 # RULE-AUDIT ADVERSARIAL VERIFY — round 3
 
 **Role:** adversarial verifier attacking BOTH the round-3 BUILD claim and the round-3 AUDIT

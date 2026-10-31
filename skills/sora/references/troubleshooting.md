@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/troubleshooting
+---
+
 # Troubleshooting
 
 ## Job fails with size or seconds errors

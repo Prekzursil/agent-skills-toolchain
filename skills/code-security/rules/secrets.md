@@ -3,6 +3,7 @@ title: Avoid Hardcoded Secrets
 impact: CRITICAL
 impactDescription: Credential exposure and unauthorized access
 tags: security, secrets, credentials, api-keys, cwe-798, owasp-a07
+permalink: dqverify-repo-20261013/skills/code-security/rules/secrets
 ---
 
 ## Avoid Hardcoded Secrets

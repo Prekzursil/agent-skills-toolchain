@@ -1,3 +1,9 @@
+---
+title: cli-reference
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/references/cli-reference
+---
+
 # CLI Reference for AKS
 
 ```bash

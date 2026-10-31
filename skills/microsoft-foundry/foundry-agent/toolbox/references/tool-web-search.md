@@ -1,3 +1,9 @@
+---
+title: tool-web-search
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-web-search
+---
+
 # Tool — Web Search (`type: web_search`)
 
 Basic Bing web search (Grounding with Bing Search) is a **connectionless built-in** — declared under a `tools:` block; **no project connection required**. This is the supported path today. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

@@ -1,3 +1,9 @@
+---
+title: error-handling
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/common/error-handling
+---
+
 # Error Handling Patterns
 
 > **MANDATORY**: All function implementations MUST include proper error handling with logging.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/docs/program-b/readme
+---
+
 # Program B (`workflow_design`) — the 8-item register
 
 `program-b-receipt.json` in this directory is the **machine-readable source of truth**.

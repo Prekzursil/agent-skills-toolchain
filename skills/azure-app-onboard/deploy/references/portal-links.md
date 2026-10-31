@@ -1,3 +1,9 @@
+---
+title: portal-links
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/portal-links
+---
+
 # Portal Monitoring Links
 
 Generate the portal link BEFORE deploying — the deployment name is deterministic, so the link works before the deployment even starts. The user wants to watch resources being created in real time.

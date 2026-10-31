@@ -1,6 +1,11 @@
 ---
 name: academy-badge-runner
-description: Use when the user asks to finish courses, earn completion badges, clear a learning path, or run a hands-on lab on a platform they are already signed in to (academy.claude.com, academy.openai.com, developers.google.com/learn/pathways, skills.google). Mechanical navigation plus self-answered knowledge checks; labs are done as real cloud work in a way the platform's checker credits.
+description: Use when the user asks to finish courses, earn completion badges, clear
+  a learning path, or run a hands-on lab on a platform they are already signed in
+  to (academy.claude.com, academy.openai.com, developers.google.com/learn/pathways,
+  skills.google). Mechanical navigation plus self-answered knowledge checks; labs
+  are done as real cloud work in a way the platform's checker credits.
+permalink: dqverify-repo-20261013/skills/academy-badge-runner/skill
 ---
 
 # Academy badge runner

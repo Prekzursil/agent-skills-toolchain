@@ -1,9 +1,13 @@
 ---
 name: research-paper-craft
-description: "Use when writing, structuring, or revising a state-of-the-art scientific research paper, review, preprint, or thesis chapter and you want it to read well and land. Covers the craft of paper architecture, the narrative spine, the title and abstract, figures as the paper UI, reproducible methods."
+description: Use when writing, structuring, or revising a state-of-the-art scientific
+  research paper, review, preprint, or thesis chapter and you want it to read well
+  and land. Covers the craft of paper architecture, the narrative spine, the title
+  and abstract, figures as the paper UI, reproducible methods.
 metadata:
   type: skill
   origin: fork-2026-06-30-RESEARCH_PHENIBUT
+permalink: dqverify-repo-20261013/skills/research-paper-craft/skill
 ---
 
 # research-paper-craft — writing a SOTA scientific paper

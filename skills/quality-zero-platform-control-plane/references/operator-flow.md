@@ -1,3 +1,9 @@
+---
+title: operator-flow
+type: note
+permalink: dqverify-repo-20261013/skills/quality-zero-platform-control-plane/references/operator-flow
+---
+
 # Operator Flow
 
 Use this reference when the task is operational rather than architectural.

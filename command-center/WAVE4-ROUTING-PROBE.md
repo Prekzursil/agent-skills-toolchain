@@ -1,3 +1,9 @@
+---
+title: WAVE4-ROUTING-PROBE
+type: note
+permalink: dqverify-repo-20261013/command-center/wave4-routing-probe
+---
+
 # WAVE 4 - independent re-measurement of Phase 8 routing
 
 STATUS: **COMPLETE.** All stages measured. Two of my own claims were REFUTED by my own

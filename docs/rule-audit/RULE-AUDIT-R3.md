@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-R3
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-r3
+---
+
 # RULERESEARCH — BUILD round 3: the corpus the sweep never looked at
 
 Round 2 (`7770f6e8`) was cleared by an independent audit and then **refuted by an adversarial

@@ -1,3 +1,9 @@
+---
+title: SECRETS
+type: note
+permalink: dqverify-repo-20261013/docs/secrets
+---
+
 # Secrets & credential stores (git-crypt)
 
 This repo carries per-user credential stores (`tools/mcp/*/accounts.json`) so the MCP

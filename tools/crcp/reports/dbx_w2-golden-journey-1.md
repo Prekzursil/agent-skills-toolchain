@@ -1,3 +1,9 @@
+---
+title: dbx_w2-golden-journey-1
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w2-golden-journey-1
+---
+
 # W2 golden journey 1
 
 ## Summary

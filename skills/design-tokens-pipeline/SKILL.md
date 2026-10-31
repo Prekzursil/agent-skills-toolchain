@@ -1,8 +1,13 @@
 ---
 name: design-tokens-pipeline
-description: Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 - extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate against the DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip, and diff two token trees to emit the forward change set AND the inverse revert patch.
+description: Use for the W3C DTCG design-token round-trip the TCR design-review loop
+  relies on at G5/G6 - extract tokens out of code (CSS custom properties + Tailwind
+  theme dumps) into a DTCG JSON tree, validate against the DTCG v1.0 rules that break
+  the Tokens-Studio to Style-Dictionary round-trip, and diff two token trees to emit
+  the forward change set AND the inverse revert patch.
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/skills/design-tokens-pipeline/skill
 ---
 
 <!-- origin: user (design-SOTA research, 2026-06-30); implements DESIGN-WORKFLOW.md §1 (DTCG tokens + Code-Connected components are the ONLY things that round-trip cleanly) + §G6 (every apply-back is a reversible commit), DESIGN-SKILLS-AND-EVAL.md §1.2 (the token spine for G5/G6), FIGMA-SETUP.md §3 (establish the Variables token set BEFORE capture). DTCG = W3C Design Tokens Community Group format spec v1.0 (Oct 28 2025). -->

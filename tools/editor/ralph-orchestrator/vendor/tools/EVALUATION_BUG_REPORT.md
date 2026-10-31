@@ -1,3 +1,9 @@
+---
+title: EVALUATION_BUG_REPORT
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/tools/evaluation-bug-report
+---
+
 # Preset Evaluation Bug Report
 
 **Date**: 2026-01-15

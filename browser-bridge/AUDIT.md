@@ -1,3 +1,9 @@
+---
+title: AUDIT
+type: note
+permalink: dqverify-repo-20261013/browser-bridge/audit
+---
+
 # chrome-bridge-mcp audit (estate, 2026-08-28)
 
 **Chosen bridge:** `ShalomObongo/chrome-bridge-mcp` (MIT), cloned `--depth 1` to

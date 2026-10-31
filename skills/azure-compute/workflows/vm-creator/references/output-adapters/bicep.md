@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/output-adapters/bicep
+---
+
 # Bicep adapter
 
 Production IaC, repeatable deployments, supports `az deployment group what-if` preview before commit.

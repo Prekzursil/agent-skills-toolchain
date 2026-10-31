@@ -1,3 +1,9 @@
+---
+title: agent-optimizer
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/agent-optimizer
+---
+
 # Agent Optimizer in Foundry — Scaffold Python Agent
 
 Prepare an existing Python hosted agent for Agent Optimizer in Foundry, then run optimization, apply the selected candidate locally, and deploy through azd after review.

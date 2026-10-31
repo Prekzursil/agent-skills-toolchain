@@ -1,3 +1,9 @@
+---
+title: UI
+type: note
+permalink: dqverify-repo-20261013/skills/prototype/ui
+---
+
 # UI Prototype
 
 Generate **several radically different UI variations** behind one switcher. The user flips between variants in the running app, picks one (or steals bits from each), then throws the rest away.

@@ -1,6 +1,11 @@
 ---
 name: drive-biomni-lab
-description: "Use when the user wants to run a biomedical/clinical-genomics analysis on the hosted Biomni Lab (biomni.phylo.bio, Phylo Inc.) from Claude Code - starting or continuing a Biomni agent task, controlling effort/model, attaching skills or @-resources, polling a run, switching/rotating accounts, or checking usage/billing. Triggers: \"run this on Biomni\", \"rotate Biomni accounts\", or the bm_* tools."
+description: 'Use when the user wants to run a biomedical/clinical-genomics analysis
+  on the hosted Biomni Lab (biomni.phylo.bio, Phylo Inc.) from Claude Code - starting
+  or continuing a Biomni agent task, controlling effort/model, attaching skills or
+  @-resources, polling a run, switching/rotating accounts, or checking usage/billing.
+  Triggers: "run this on Biomni", "rotate Biomni accounts", or the bm_* tools.'
+permalink: dqverify-repo-20261013/skills/drive-biomni-lab/skill
 ---
 
 # Drive Biomni Lab (hosted) via the cookie-broker connector

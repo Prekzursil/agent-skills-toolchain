@@ -1,3 +1,9 @@
+---
+title: azure-monitor-ingestion-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-ingestion-py
+---
+
 # Azure Monitor Ingestion — Python SDK Quick Reference
 
 > Condensed from **azure-monitor-ingestion-py**. Full patterns (async upload,

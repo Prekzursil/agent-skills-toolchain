@@ -1,3 +1,9 @@
+---
+title: cross-vendor
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/cross-vendor
+---
+
 # Architecture Candidate: Cross-Vendor Adapter
 
 Phase 3 tournament entry. Advocate: `tournament/cross-vendor`. Spec:

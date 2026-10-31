@@ -1,3 +1,9 @@
+---
+title: durable
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/durable
+---
+
 # Durable Functions
 
 Long-running orchestrations with checkpointing and state management.

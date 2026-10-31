@@ -1,3 +1,9 @@
+---
+title: tool-mcp-managed-oauth
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-managed-oauth
+---
+
 # Tool — Remote MCP server, OAuth (Foundry-managed connector) (`type: mcp`)
 
 Attach a remote MCP server whose OAuth is **brokered by Foundry** — you do **not** supply `client_id` / `client_secret`. Use when the MCP server appears as a **catalog tile** ("Custom · Preview" / a connector-namespace connector) and you accept Microsoft's managed OAuth app. Foundry owns the app registration, token storage, and refresh; the first `tools/list` triggers a one-time per-user consent.

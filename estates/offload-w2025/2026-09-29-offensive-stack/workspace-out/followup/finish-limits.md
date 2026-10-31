@@ -1,3 +1,9 @@
+---
+title: finish-limits
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/finish-limits
+---
+
 # Lane report: finish-limits — close rpc-dispatch §5
 
 Date: 2026-09-30. Scope from the ask: close the four honestly-stated §5 limits of

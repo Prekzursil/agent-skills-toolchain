@@ -1,3 +1,9 @@
+---
+title: D1-DEPLOY-RECOMMENDATION
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/d1-deploy-recommendation
+---
+
 # D1 — Deploy-Mechanism Recommendation (SYNTHESIS)
 
 **Decision owed:** which mechanism the SSOT engine uses to generate + deploy the six config

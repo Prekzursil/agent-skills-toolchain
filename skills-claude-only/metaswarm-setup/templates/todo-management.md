@@ -1,3 +1,9 @@
+---
+title: todo-management
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/templates/todo-management
+---
+
 # Task Management Guide
 
 This guide covers best practices for using BEADS (`bd` CLI) to track progress on tasks. BEADS is the single source of truth for task tracking in your project.

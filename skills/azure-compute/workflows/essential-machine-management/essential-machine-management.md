@@ -1,3 +1,9 @@
+---
+title: essential-machine-management
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/essential-machine-management/essential-machine-management
+---
+
 # Essential Machine Management (EMM) Workflow
 
 Routes EMM-related requests to the appropriate reference based on user intent.

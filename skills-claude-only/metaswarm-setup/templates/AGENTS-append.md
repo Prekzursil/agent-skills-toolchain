@@ -1,3 +1,8 @@
+---
+title: AGENTS-append
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/templates/agents-append
+---
 
 ## metaswarm
 

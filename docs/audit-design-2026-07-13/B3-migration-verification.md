@@ -1,3 +1,9 @@
+---
+title: B3-migration-verification
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b3-migration-verification
+---
+
 # B3 — RFC Migration Plan + Verification Matrix + Cost/Budget Baseline
 
 **Program:** Unified Harness Control-Plane (Claude + Codex only; Antigravity/Gemini dropped per G-1).

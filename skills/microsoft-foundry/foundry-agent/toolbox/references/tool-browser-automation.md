@@ -1,3 +1,9 @@
+---
+title: tool-browser-automation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-browser-automation
+---
+
 # Tool — Browser Automation (`type: browser_automation_preview`) — preview
 
 Browser automation backed by an **Azure Playwright workspace**. Auth is `ProjectManagedIdentity`; the connection kind is `PlaywrightWorkspace`. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

@@ -1,3 +1,9 @@
+---
+title: console-app-example
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/entra-app-registration/references/console-app-example
+---
+
 # Console Application Examples
 
 This document provides complete working examples of console applications that authenticate with Microsoft Entra ID using MSAL (Microsoft Authentication Library).

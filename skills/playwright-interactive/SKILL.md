@@ -1,6 +1,10 @@
 ---
-name: "playwright-interactive"
-description: Use when iteratively debugging a local web or Electron app in a persistent Playwright js_repl session without restarting between steps ; do NOT use for one-shot navigation or data extraction (use playwright) ; returns live browser state, screenshots, and console output across iterations.
+name: playwright-interactive
+description: Use when iteratively debugging a local web or Electron app in a persistent
+  Playwright js_repl session without restarting between steps ; do NOT use for one-shot
+  navigation or data extraction (use playwright) ; returns live browser state, screenshots,
+  and console output across iterations.
+permalink: dqverify-repo-20261013/skills/playwright-interactive/skill
 ---
 
 # Playwright Interactive Skill

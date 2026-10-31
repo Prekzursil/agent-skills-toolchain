@@ -1,3 +1,9 @@
+---
+title: research-sota-cross-vendor-orchestration
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/research-sota-cross-vendor-orchestration
+---
+
 # SOTA Cross-Vendor / Mixed-Model Multi-Agent Orchestration (2026)
 
 **Research slice:** `sota-cross-vendor-orchestration` for the Axis-C unified cross-vendor workflow system

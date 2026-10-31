@@ -1,3 +1,9 @@
+---
+title: persuasion-principles
+type: note
+permalink: dqverify-repo-20261013/skills/writing-skills/persuasion-principles
+---
+
 # Persuasion Principles for Skill Design
 
 ## Overview

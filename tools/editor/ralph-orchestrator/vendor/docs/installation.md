@@ -1,3 +1,9 @@
+---
+title: installation
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/installation
+---
+
 # Installation Guide
 
 Comprehensive installation instructions for Ralph Orchestrator.

@@ -1,3 +1,9 @@
+---
+title: ARCHITECTURE
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/docs/architecture
+---
+
 # Architecture
 
 ## Components

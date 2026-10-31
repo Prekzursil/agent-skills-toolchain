@@ -1,6 +1,10 @@
 ---
 name: swfoc-reverse-engineering
-description: Use when working on SWFOC editor runtime or native analysis, or on the swfoc_memory dump bundle, especially for dump triage, debugger attach flows, signature generation, binary comparison, import repair, or moving evidence between WinDbg Preview, x64dbg, Cheat Engine, IDA Pro, Binary Ninja, and Ghidra.
+description: Use when working on SWFOC editor runtime or native analysis, or on the
+  swfoc_memory dump bundle, especially for dump triage, debugger attach flows, signature
+  generation, binary comparison, import repair, or moving evidence between WinDbg
+  Preview, x64dbg, Cheat Engine, IDA Pro, Binary Ninja, and Ghidra.
+permalink: dqverify-repo-20261013/skills/swfoc-reverse-engineering/skill
 ---
 
 # SWFOC Reverse Engineering

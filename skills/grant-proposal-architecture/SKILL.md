@@ -1,6 +1,8 @@
 ---
 name: grant-proposal-architecture
-description: Use when shaping a grant, fellowship, or project proposal into a coherent reviewer-facing argument with work packages, risk logic, and feasibility.
+description: Use when shaping a grant, fellowship, or project proposal into a coherent
+  reviewer-facing argument with work packages, risk logic, and feasibility.
+permalink: dqverify-repo-20261013/skills/grant-proposal-architecture/skill
 ---
 
 # grant-proposal-architecture

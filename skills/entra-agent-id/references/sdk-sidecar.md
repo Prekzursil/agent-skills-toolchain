@@ -1,3 +1,9 @@
+---
+title: sdk-sidecar
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/sdk-sidecar
+---
+
 # Microsoft Entra SDK for AgentID: Polyglot Agent Authentication
 
 Containerized companion service that handles token management for AI agents over HTTP — any language, any framework.

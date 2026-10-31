@@ -1,3 +1,9 @@
+---
+title: DESIGN-SKILLS-AND-EVAL
+type: note
+permalink: dqverify-repo-20261013/docs/design/design-skills-and-eval
+---
+
 # Design Skills, Eval-Rubric, and Engagement Discipline
 
 **Synthesized:** 2026-06-30 from the 9 design-research lens digests in this folder.

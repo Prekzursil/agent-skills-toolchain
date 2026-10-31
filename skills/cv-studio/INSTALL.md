@@ -1,3 +1,9 @@
+---
+title: INSTALL
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/install
+---
+
 # cv-studio — install & engine setup
 
 The skill (SKILL.md + references) rides the existing `~/.agents/skills` bus and needs **no new

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/analytics-engine/readme
+---
+
 # Cloudflare Workers Analytics Engine Reference
 
 Expert guidance for implementing unlimited-cardinality analytics at scale using Cloudflare Workers Analytics Engine.

@@ -1,3 +1,9 @@
+---
+title: ROADMAP
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/docs/roadmap
+---
+
 # OmniAudit MCP Roadmap
 
 ## Current milestone

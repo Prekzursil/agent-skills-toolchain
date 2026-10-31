@@ -1,6 +1,8 @@
 ---
 name: methods-results-discussion-calibrator
-description: Use when a draft paper has drift between methods, results, and discussion and needs section-to-section calibration.
+description: Use when a draft paper has drift between methods, results, and discussion
+  and needs section-to-section calibration.
+permalink: dqverify-repo-20261013/skills/methods-results-discussion-calibrator/skill
 ---
 
 # methods-results-discussion-calibrator

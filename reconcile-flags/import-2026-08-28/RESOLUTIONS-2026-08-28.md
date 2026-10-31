@@ -1,3 +1,9 @@
+---
+title: RESOLUTIONS-2026-08-28
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/import-2026-08-28/resolutions-2026-08-28
+---
+
 # Eight INCOMPATIBLE-FLAG resolutions — 28.08.2026
 
 Primary bodies are dual-written to `skills/` and `.agents/skills/`.

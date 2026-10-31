@@ -1,3 +1,9 @@
+---
+title: configure-health-probes
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/configure-health-probes
+---
+
 # Configure Health Probes — Platform Notes
 
 ## What "health probe" means per service
@@ -27,4 +33,3 @@ These apply to any service:
 3. **Two endpoints, not one** — a fast `/health` for the load balancer, and an optional `/health/deep` for on-call diagnostics.
 4. **For Container Apps, both liveness AND readiness** — liveness alone restarts the container without taking it out of rotation first.
 5. **Test the endpoint** before relying on it: `curl https://<app-url>/api/health`.
-

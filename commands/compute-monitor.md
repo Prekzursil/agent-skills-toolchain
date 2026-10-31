@@ -1,5 +1,8 @@
 ---
-description: Served-generic monitor for ANY long computation. Shells to the mon dispatcher - list, watch, once, raw, logs, info - routed to the generic renderer scw_monitor.ps1. Read-only.
+description: Served-generic monitor for ANY long computation. Shells to the mon dispatcher
+  - list, watch, once, raw, logs, info - routed to the generic renderer scw_monitor.ps1.
+  Read-only.
+permalink: dqverify-repo-20261013/commands/compute-monitor
 ---
 
 # compute-monitor — served-generic monitor for any long computation

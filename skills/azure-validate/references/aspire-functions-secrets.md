@@ -1,3 +1,9 @@
+---
+title: aspire-functions-secrets
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/aspire-functions-secrets
+---
+
 # Aspire + Azure Functions: Secret Storage Validation
 
 > ⚠️ **Pre-provisioning check** — Run this BEFORE `azd provision`.

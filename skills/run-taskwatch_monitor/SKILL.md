@@ -1,6 +1,11 @@
 ---
 name: run-taskwatch_monitor
-description: Use when running, launching, or smoke-testing taskwatch_monitor - the general-purpose long-task progress monitor - to watch a long-running job (build, download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest, BLIND-aware status, p50/p90 ETA, and no fabricated percentages. Covers register/list/status, the live watch TUI, the MCP server, and the smoke test.
+description: Use when running, launching, or smoke-testing taskwatch_monitor - the
+  general-purpose long-task progress monitor - to watch a long-running job (build,
+  download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest,
+  BLIND-aware status, p50/p90 ETA, and no fabricated percentages. Covers register/list/status,
+  the live watch TUI, the MCP server, and the smoke test.
+permalink: dqverify-repo-20261013/skills/run-taskwatch-monitor/skill
 ---
 
 # Run taskwatch_monitor

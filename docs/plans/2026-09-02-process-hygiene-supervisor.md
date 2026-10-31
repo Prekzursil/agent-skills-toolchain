@@ -1,3 +1,9 @@
+---
+title: 2026-09-02-process-hygiene-supervisor
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-09-02-process-hygiene-supervisor
+---
+
 # Estate process-hygiene supervisor — root cause, architecture, install (2026-09-02)
 
 **Status:** implemented and tested (`tools/process-hygiene-supervisor/`); ships

@@ -1,3 +1,9 @@
+---
+title: RESCOPE
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/mcp-http-host/rescope
+---
+
 # RESCOPE — mcp-proxy is the transport; #159 is the supervision layer
 
 ## TL;DR

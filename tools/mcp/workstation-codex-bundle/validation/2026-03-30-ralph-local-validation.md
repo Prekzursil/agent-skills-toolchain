@@ -1,3 +1,9 @@
+---
+title: 2026-03-30-ralph-local-validation
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/validation/2026-03-30-ralph-local-validation
+---
+
 # 2026-03-31 Ralph and workstation bundle validation
 
 ## Commands run

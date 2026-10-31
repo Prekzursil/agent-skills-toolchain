@@ -1,3 +1,9 @@
+---
+title: LANE-CIGREEN-R3-CORRECTIONS
+type: note
+permalink: dqverify-repo-20261013/command-center/ci/lane-cigreen-r3-corrections
+---
+
 # Lane CIGREEN — round-3 corrections
 
 An independent verifier reviewed this lane's round-1 report and returned PARTIAL: one real

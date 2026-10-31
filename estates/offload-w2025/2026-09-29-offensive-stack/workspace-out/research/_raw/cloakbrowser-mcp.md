@@ -1,3 +1,9 @@
+---
+title: cloakbrowser-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/raw/cloakbrowser-mcp
+---
+
 # cloakbrowser-mcp
 
 <p align="center">

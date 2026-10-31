@@ -1,3 +1,9 @@
+---
+title: 05-pi-cli-flags
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/05-pi-cli-flags
+---
+
 # Research: Pi CLI Flags and Permission Model
 
 ## Summary

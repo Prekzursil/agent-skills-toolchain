@@ -1,3 +1,9 @@
+---
+title: figma-tools-and-prompts
+type: note
+permalink: dqverify-repo-20261013/skills/figma/references/figma-tools-and-prompts
+---
+
 # Figma MCP tools and prompt patterns
 
 Quick reference for the Figma MCP toolset, when to use each tool, and prompt examples to steer output toward your stack.

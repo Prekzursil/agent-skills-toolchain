@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit
+---
+
 # RULE AUDIT — build lane, round 1
 
 STATUS: MEASURED. Every number below is the verbatim output of a re-runnable probe in this

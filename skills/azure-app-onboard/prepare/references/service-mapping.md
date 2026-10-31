@@ -1,3 +1,9 @@
+---
+title: service-mapping
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/service-mapping
+---
+
 # Service Mapping Tables
 
 Component→Azure service selection. Apply `context.json.intent` as modifiers, `context.json.overrides[]` as hard constraints, and policy constraints as filters.

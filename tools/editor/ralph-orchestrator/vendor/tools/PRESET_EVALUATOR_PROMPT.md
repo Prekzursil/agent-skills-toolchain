@@ -1,3 +1,9 @@
+---
+title: PRESET_EVALUATOR_PROMPT
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/tools/preset-evaluator-prompt
+---
+
 # Hat Collection Preset Evaluation Task
 
 You are a systematic evaluator testing Ralph's hat collection presets.

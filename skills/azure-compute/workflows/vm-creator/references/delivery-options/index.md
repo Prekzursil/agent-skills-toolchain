@@ -1,3 +1,9 @@
+---
+title: index
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/delivery-options/index
+---
+
 # Delivery Options
 
 After the Plan Card is approved (Step 5) and the output format is chosen (Step 6), the workflow has a generated artifact. **Before printing it into the chat**, ask one more question — where should it go?

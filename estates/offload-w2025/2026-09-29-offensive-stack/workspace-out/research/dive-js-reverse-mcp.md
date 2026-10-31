@@ -1,3 +1,9 @@
+---
+title: dive-js-reverse-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-js-reverse-mcp
+---
+
 # Deep-dive: js-reverse-mcp (browser-offense lane)
 
 Date: 2026-09-29 · Verifier: lead-verifier subagent · Repo: https://github.com/zhizhuodemao/js-reverse-mcp

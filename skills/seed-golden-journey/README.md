@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/seed-golden-journey/readme
+---
+
 # seed-golden-journey
 
 A process skill that scaffolds an app's **keystone acceptance test** — a *held-out golden-journey*

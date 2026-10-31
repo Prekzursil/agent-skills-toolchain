@@ -1,3 +1,9 @@
+---
+title: TEST_PROMPTS
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/models/deploy-model/test-prompts
+---
+
 # Deploy Model — Test Prompts
 
 Test prompts for the unified `deploy-model` skill with router, preset, customize, and capacity sub-skills.

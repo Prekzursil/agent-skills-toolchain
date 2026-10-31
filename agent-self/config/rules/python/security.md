@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
+- '**/*.py'
+- '**/*.pyi'
+permalink: dqverify-repo-20261013/agent-self/config/rules/python/security
 ---
+
 # Python Security
 
 > This file extends [common/security.md](../common/security.md) with Python specific content.

@@ -1,3 +1,9 @@
+---
+title: tools
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools
+---
+
 # Tools and Toolboxes (azd ai)
 
 How to attach tools (web search, Azure AI Search, MCP, A2A) to a hosted agent using `azd ai toolbox` and `azd ai connection`.

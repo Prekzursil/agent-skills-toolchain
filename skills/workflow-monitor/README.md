@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-monitor/readme
+---
+
 # Workflow Monitor (M2) — whole-fleet Workflow cockpit
 
 A **live, read-only, Windows-native Textual TUI** that monitors Claude Code **Workflow

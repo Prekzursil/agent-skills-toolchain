@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.json"
-  - "**/phpstan.neon"
-  - "**/phpstan.neon.dist"
-  - "**/psalm.xml"
+- '**/*.php'
+- '**/composer.json'
+- '**/phpstan.neon'
+- '**/phpstan.neon.dist'
+- '**/psalm.xml'
+permalink: dqverify-repo-20261013/agent-self/config/rules/php/hooks
 ---
+
 # PHP Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with PHP specific content.

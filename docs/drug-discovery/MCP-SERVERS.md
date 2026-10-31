@@ -1,3 +1,9 @@
+---
+title: MCP-SERVERS
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/mcp-servers
+---
+
 # MCP Servers Catalog
 
 Drug-discovery research stack and the full MCP server inventory on this Windows

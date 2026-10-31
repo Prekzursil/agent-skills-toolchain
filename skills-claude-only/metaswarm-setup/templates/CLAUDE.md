@@ -1,3 +1,9 @@
+---
+title: CLAUDE
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/templates/claude
+---
+
 # Project Instructions
 
 This project uses [metaswarm](https://github.com/dsifry/metaswarm), a multi-agent orchestration framework for Claude Code. It provides 18 specialized agents, a 9-phase development workflow, and quality gates that enforce TDD, coverage thresholds, and spec-driven development.

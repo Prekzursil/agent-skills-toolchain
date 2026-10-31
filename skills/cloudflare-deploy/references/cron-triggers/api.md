@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/cron-triggers/api
+---
+
 # Cron Triggers API
 
 ## Basic Handler

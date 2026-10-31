@@ -1,3 +1,9 @@
+---
+title: errors
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-validate/references/recipes/azcli/errors
+---
+
 # AZCLI Validation Errors
 
 | Error | Fix |

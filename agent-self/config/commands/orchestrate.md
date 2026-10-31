@@ -1,5 +1,6 @@
 ---
 description: Sequential and tmux/worktree orchestration guidance for multi-agent workflows.
+permalink: dqverify-repo-20261013/agent-self/config/commands/orchestrate
 ---
 
 # Orchestrate Command

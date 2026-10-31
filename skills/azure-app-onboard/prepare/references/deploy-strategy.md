@@ -1,3 +1,9 @@
+---
+title: deploy-strategy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/deploy-strategy
+---
+
 # Deploy Strategy
 
 Determine how application code will be deployed to Azure based on prereq scan results. The prepare phase writes `deployStrategy` to `prepare-plan.json`; scaffold encodes it in Bicep; deploy executes it.

@@ -1,3 +1,9 @@
+---
+title: platform-adaptation
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/references/platform-adaptation
+---
+
 # Platform Adaptation Guide
 
 This reference documents how metaswarm skills adapt across Claude Code, Gemini CLI, and Codex CLI. Skills use the Agent Skills standard (SKILL.md with YAML frontmatter) which is portable across all three platforms.

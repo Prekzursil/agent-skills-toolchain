@@ -3,8 +3,9 @@ title: CommunityToolkit Controls and Helpers
 priority: MEDIUM
 tags: communitytoolkit, controls, helpers, animations, settingscontrols
 sources:
-  - https://github.com/CommunityToolkit/Windows
-  - https://learn.microsoft.com/dotnet/communitytoolkit/windows/getting-started
+- https://github.com/CommunityToolkit/Windows
+- https://learn.microsoft.com/dotnet/communitytoolkit/windows/getting-started
+permalink: dqverify-repo-20261013/skills/winui-app/references/community-toolkit-controls-and-helpers
 ---
 
 ## What This Reference Is For

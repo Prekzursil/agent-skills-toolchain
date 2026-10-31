@@ -1,3 +1,9 @@
+---
+title: host-topology-audit
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/host-topology-audit
+---
+
 # host-topology-audit
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+title: COMPLETION-PREDICATE-NOTES
+type: note
+permalink: dqverify-repo-20261013/platform/lib/completion-predicate-notes
+---
+
 # contracts/completion-predicate — measured results
 
 State: **MEASURED** (was SKELETON; every row below is backed by a command whose output is quoted).

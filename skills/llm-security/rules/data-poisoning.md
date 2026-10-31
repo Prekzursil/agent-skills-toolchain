@@ -1,8 +1,10 @@
 ---
 title: LLM04 - Prevent Data and Model Poisoning
 impact: CRITICAL
-impactDescription: Compromised model integrity, backdoors, biased outputs, or security bypasses
+impactDescription: Compromised model integrity, backdoors, biased outputs, or security
+  bypasses
 tags: security, llm, data-poisoning, backdoor, owasp-llm04, mitre-atlas-t0018
+permalink: dqverify-repo-20261013/skills/llm-security/rules/data-poisoning
 ---
 
 ## LLM04: Prevent Data and Model Poisoning

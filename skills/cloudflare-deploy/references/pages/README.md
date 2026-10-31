@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/pages/readme
+---
+
 # Cloudflare Pages
 
 JAMstack platform for full-stack apps on Cloudflare's global network.

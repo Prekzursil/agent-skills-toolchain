@@ -1,7 +1,9 @@
 ---
 name: capa-triage
-description: "Use when identifying capabilities in a PE, ELF, .NET binary, or shellcode with Mandiant capa before deeper authorized analysis."
-license: 'capa + capa-rules are Apache-2.0 (Mandiant).'
+description: Use when identifying capabilities in a PE, ELF, .NET binary, or shellcode
+  with Mandiant capa before deeper authorized analysis.
+license: capa + capa-rules are Apache-2.0 (Mandiant).
+permalink: dqverify-repo-20261013/skills/capa-triage/skill
 ---
 
 # capa-triage — capability detection for executables (ATT&CK / MBC)

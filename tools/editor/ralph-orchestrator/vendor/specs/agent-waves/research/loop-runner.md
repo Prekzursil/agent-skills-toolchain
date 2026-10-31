@@ -1,3 +1,9 @@
+---
+title: loop-runner
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/research/loop-runner
+---
+
 # Loop Runner & Event Loop Research
 
 ## Architecture Overview

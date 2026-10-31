@@ -1,3 +1,9 @@
+---
+title: api-permissions
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/entra-app-registration/references/api-permissions
+---
+
 # API Permissions Guide
 
 This document explains how to configure and manage API permissions for your Microsoft Entra app registration.

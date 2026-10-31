@@ -1,6 +1,9 @@
 ---
 name: zero-issue-coding
-description: Use when writing ANY new code in ANY language — enforces patterns that pass Codacy, SonarCloud, DeepSource, QLTY, Semgrep, and Codecov gates on first push without suppressions or exclusions
+description: Use when writing ANY new code in ANY language — enforces patterns that
+  pass Codacy, SonarCloud, DeepSource, QLTY, Semgrep, and Codecov gates on first push
+  without suppressions or exclusions
+permalink: dqverify-repo-20261013/skills/zero-issue-coding/skill
 ---
 
 # Zero-Issue Coding

@@ -1,3 +1,9 @@
+---
+title: azure-mgmt-apimanagement-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/sdk/azure-mgmt-apimanagement-py
+---
+
 # API Management — Python SDK Quick Reference
 
 > Condensed from **azure-mgmt-apimanagement-py**. Full patterns (APIs,

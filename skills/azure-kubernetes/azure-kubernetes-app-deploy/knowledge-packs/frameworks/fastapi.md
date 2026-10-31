@@ -1,3 +1,9 @@
+---
+title: fastapi
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/fastapi
+---
+
 # FastAPI Knowledge Pack
 
 > **Applies to:** Projects detected with `requirements.txt`, `pyproject.toml`, or `Pipfile` containing `fastapi`

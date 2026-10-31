@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/sql-database/bicep
+---
+
 # SQL Database - Bicep Patterns
 
 > ⛔ **CRITICAL — SQL Server Bicep MUST use Entra-only authentication. NEVER include `administratorLogin` or `administratorLoginPassword` anywhere in a Bicep file — not even inside a conditional (`condition ? { ... } : { administratorLoginPassword: ... }`) branch. If either property name appears anywhere in the file, the deployment will be rejected. Always use the pattern below.**

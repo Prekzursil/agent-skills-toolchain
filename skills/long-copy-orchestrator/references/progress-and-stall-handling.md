@@ -1,3 +1,9 @@
+---
+title: progress-and-stall-handling
+type: note
+permalink: dqverify-repo-20261013/skills/long-copy-orchestrator/references/progress-and-stall-handling
+---
+
 # Progress And Stall Handling
 
 Sample the artifact that actually grows: archive file, destination tree, or transfer report.

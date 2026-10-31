@@ -1,3 +1,9 @@
+---
+title: azure-identity-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azure-identity-ts
+---
+
 # Authentication — TypeScript SDK Quick Reference
 
 > Condensed from **azure-identity-ts**. Full patterns (sovereign clouds,

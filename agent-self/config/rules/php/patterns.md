@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.json"
+- '**/*.php'
+- '**/composer.json'
+permalink: dqverify-repo-20261013/agent-self/config/rules/php/patterns
 ---
+
 # PHP Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with PHP specific content.

@@ -1,3 +1,9 @@
+---
+title: INDEX
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/index
+---
+
 # D:\bolt — full extraction index (FINAL v5, corrections + tier2/delta layers, 2026-09-04)
 
 > **Authorization (01.10.2026)**: FULL FORCE continuation — operator Andrei Visalon, "full force, no exclusions." All prior hard stops lifted. See AUTHORIZATION.md.

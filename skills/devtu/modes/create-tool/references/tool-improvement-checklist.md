@@ -1,3 +1,9 @@
+---
+title: tool-improvement-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/references/tool-improvement-checklist
+---
+
 # Tool Improvement and Maintenance Checklist
 
 This reference provides a systematic approach to improving and maintaining existing ToolUniverse tools.

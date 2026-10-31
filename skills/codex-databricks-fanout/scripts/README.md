@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/codex-databricks-fanout/scripts/readme
+---
+
 # codex-databricks-fanout — scripts
 
 The **executable** implementation of the `codex-databricks-fanout` skill — the Codex-on-Databricks

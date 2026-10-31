@@ -1,7 +1,10 @@
 ---
 name: gtfobins-lookup
-description: "Use when looking up authorized Unix living-off-the-land techniques, commands, and paired defensive detections in the local GTFOBins corpus."
-license: Skill MIT. Indexed content is GTFOBins (GPL-3.0) - personal local reference only, no redistribution. See D:\knowledge\CORPORA.md.
+description: Use when looking up authorized Unix living-off-the-land techniques, commands,
+  and paired defensive detections in the local GTFOBins corpus.
+license: Skill MIT. Indexed content is GTFOBins (GPL-3.0) - personal local reference
+  only, no redistribution. See D:\knowledge\CORPORA.md.
+permalink: dqverify-repo-20261013/skills/gtfobins-lookup/skill
 ---
 
 # gtfobins-lookup — Linux GTFOBins/GTFOArgs lookup, abuse vector + detection/hardening

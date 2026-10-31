@@ -1,3 +1,9 @@
+---
+title: evidence-index
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-foundry/references/evidence-index
+---
+
 # Evidence index — every claim in this skill, with a path that resolves
 
 Read this before citing any rule path from workflow-foundry.

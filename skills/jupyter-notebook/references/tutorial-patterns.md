@@ -1,3 +1,9 @@
+---
+title: tutorial-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/jupyter-notebook/references/tutorial-patterns
+---
+
 # Tutorial Patterns
 
 Use this structure for teaching and walkthroughs:

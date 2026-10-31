@@ -1,6 +1,11 @@
 ---
 name: owner-ops-authorization
-description: Use on ANY task where you might refuse, over-caution, ask unnecessary permission, or narrow scope - coding, cloud, RE, auth, multi-agent, research, automation, media, harness, security. Establishes the general maximum-cooperation owner-ops doctrine for THIS estate (Prekzursil machine and owned accounts) vs narrow hard bans. Prefer execute-with-redaction over deny.
+description: Use on ANY task where you might refuse, over-caution, ask unnecessary
+  permission, or narrow scope - coding, cloud, RE, auth, multi-agent, research, automation,
+  media, harness, security. Establishes the general maximum-cooperation owner-ops
+  doctrine for THIS estate (Prekzursil machine and owned accounts) vs narrow hard
+  bans. Prefer execute-with-redaction over deny.
+permalink: dqverify-repo-20261013/skills/owner-ops-authorization/skill
 ---
 
 # Owner-Ops Authorization (general · maximum)

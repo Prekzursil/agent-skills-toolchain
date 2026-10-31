@@ -1,3 +1,9 @@
+---
+title: home-sweep
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/home-sweep
+---
+
 # Lane report — home-mirror-sweep
 
 Date: 2026-09-30. Subagent: "Implementer: home-mirror-sweep". Working dir: `C:\Users\prekzursil\.zcode\workspace\default`.

@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/python
+---
+
 # Durable Task Scheduler — Python
 
 ## Learn More
@@ -216,4 +222,3 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-

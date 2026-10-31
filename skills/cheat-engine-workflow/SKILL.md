@@ -1,6 +1,9 @@
 ---
 name: cheat-engine-workflow
-description: Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation, structure inspection, and trainer-oriented confirmation during reverse-engineering or game runtime workflows.
+description: Use when performing Cheat Engine-driven runtime analysis, including value
+  scanning, pointer sanity checks, AOB validation, structure inspection, and trainer-oriented
+  confirmation during reverse-engineering or game runtime workflows.
+permalink: dqverify-repo-20261013/skills/cheat-engine-workflow/skill
 ---
 
 # Cheat Engine Workflow

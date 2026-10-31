@@ -1,3 +1,9 @@
+---
+title: bom-gradle-settings
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/bom-migration/bom-gradle-settings
+---
+
 # BOM Migration — Gradle Programmatic Version Catalog (`settings.gradle`)
 
 Some projects define version catalogs programmatically in `settings.gradle` / `settings.gradle.kts` instead of using a TOML file. OpenRewrite does not support this either ([openrewrite/rewrite#4852](https://github.com/openrewrite/rewrite/issues/4852)). Handle manually.

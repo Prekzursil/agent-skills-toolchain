@@ -1,3 +1,9 @@
+---
+title: docker-background-load-slimmer
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/docker-background-load-slimmer
+---
+
 # docker-background-load-slimmer
 
 ## Purpose

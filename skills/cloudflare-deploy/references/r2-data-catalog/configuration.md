@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-data-catalog/configuration
+---
+
 # Configuration
 
 How to enable R2 Data Catalog and configure authentication.

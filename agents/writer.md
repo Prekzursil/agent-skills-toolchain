@@ -1,7 +1,17 @@
 ---
 name: writer
-description: Scoped implementation executor for one caller-declared directory root. Use when a change is fully specified (target files plus exact edits or new-file content) and must be applied inside a single owned scope; it applies edits and reports diffs, and never commits. NEVER for exploration, research, review, git operations, or anything outside the declared root.
-tools: ["Read", "Edit", "Write", "Grep", "Glob"]
+description: Scoped implementation executor for one caller-declared directory root.
+  Use when a change is fully specified (target files plus exact edits or new-file
+  content) and must be applied inside a single owned scope; it applies edits and reports
+  diffs, and never commits. NEVER for exploration, research, review, git operations,
+  or anything outside the declared root.
+tools:
+- Read
+- Edit
+- Write
+- Grep
+- Glob
+permalink: dqverify-repo-20261013/agents/writer
 ---
 
 # writer — ownership-scoped implementation executor (G-8b)

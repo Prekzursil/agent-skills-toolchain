@@ -1,3 +1,9 @@
+---
+title: ingest-diagnose-and-optimize
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-diagnose-and-optimize
+---
+
 # Axis-C Ingest — the "DIAGNOSE_AND_OPTIMIZE" Claude session
 
 **Task:** locate + extract the other Claude session `✳ DIAGNOSE_AND_OPTIMIZE` that the owner wants

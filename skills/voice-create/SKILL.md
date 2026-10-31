@@ -1,6 +1,7 @@
 ---
 name: voice-create
-description: Generate custom voice profiles from natural language descriptions. Use when the user wants a new voice from a description. NOT from samples (use voice-analyze).
+description: Generate custom voice profiles from natural language descriptions. Use
+  when the user wants a new voice from a description. NOT from samples (use voice-analyze).
 license: MIT
 metadata:
   version: 1.0.0
@@ -8,6 +9,7 @@ metadata:
   - all
   source: https://github.com/angelarose210/ghostwriter
   upstream_author: angelarose210
+permalink: dqverify-repo-20261013/skills/voice-create/skill
 ---
 
 # voice-create

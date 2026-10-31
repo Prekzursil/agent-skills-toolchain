@@ -1,3 +1,9 @@
+---
+title: workspace_e2e_scorecard_2026-07-23
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/workspace-e2e-scorecard-2026-07-23
+---
+
 # Workspace E2E Scorecard — 2026-07-23
 
 **Generated:** 2026-07-23 18:00 UTC+3  

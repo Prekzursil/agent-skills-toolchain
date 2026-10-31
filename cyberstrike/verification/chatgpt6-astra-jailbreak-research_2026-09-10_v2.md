@@ -1,3 +1,9 @@
+---
+title: chatgpt6-astra-jailbreak-research_2026-09-10_v2
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/verification/chatgpt6-astra-jailbreak-research-2026-09-10-v2
+---
+
 # ChatGPT 6 Astra jailbreak — extended search + dark-web path repair
 
 *Generated: 10.09.2026 | Confidence: High on overlay/TAC; High that onion-index has no Astra-specific jailbreak page; Medium that listed HS are dead*

@@ -1,3 +1,9 @@
+---
+title: region-availability
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/region-availability
+---
+
 # Azure Region Availability Index
 
 > **AUTHORITATIVE SOURCE** — Consult service-specific files BEFORE recommending any region.
@@ -43,5 +49,3 @@ These services are available in all major Azure regions — no special considera
 - Service Bus
 - Event Grid
 - Application Insights / Log Analytics
-
-

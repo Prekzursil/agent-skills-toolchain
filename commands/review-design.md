@@ -1,3 +1,9 @@
+---
+title: review-design
+type: note
+permalink: dqverify-repo-20261013/commands/review-design
+---
+
 # Review Design Command
 
 Run the design review gate on a design document to get feedback from Product Manager, Architect, Designer, Security Design, and CTO agents.

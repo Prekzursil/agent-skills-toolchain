@@ -1,3 +1,9 @@
+---
+title: git-workflow
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/guides/git-workflow
+---
+
 # Git Workflow Guide
 
 This guide covers Git best practices, branch management, commit conventions, and PR workflows for projects using the metaswarm framework. It is framework-level guidance applicable to any codebase.

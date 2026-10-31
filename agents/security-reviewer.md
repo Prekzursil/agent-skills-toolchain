@@ -1,12 +1,23 @@
 ---
 name: security-reviewer
-description: Security vulnerability detection and remediation specialist. Use PROACTIVELY after writing code that handles user input, authentication, API endpoints, or sensitive data. Flags secrets, SSRF, injection, unsafe crypto, and OWASP Top 10 vulnerabilities.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "ReportFindings"]
+description: Security vulnerability detection and remediation specialist. Use PROACTIVELY
+  after writing code that handles user input, authentication, API endpoints, or sensitive
+  data. Flags secrets, SSRF, injection, unsafe crypto, and OWASP Top 10 vulnerabilities.
+tools:
+- Read
+- Write
+- Edit
+- Bash
+- Grep
+- Glob
+- ReportFindings
 model: opus
 effort: xhigh
 memory: user
-fallbacks: [claude-opus-4-8]
+fallbacks:
+- claude-opus-4-8
 server-side-fallback: true
+permalink: dqverify-repo-20261013/agents/security-reviewer
 ---
 
 # Security Reviewer

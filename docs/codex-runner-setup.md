@@ -1,3 +1,9 @@
+---
+title: codex-runner-setup
+type: note
+permalink: dqverify-repo-20261013/docs/codex-runner-setup
+---
+
 # Codex Runner — setup
 
 One **private** runner (this repo) drives OpenAI Codex against **any** of your repos

@@ -1,6 +1,11 @@
 ---
 name: llm-security
-description: "Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025. Use when building LLM apps, reviewing AI security, or asked about LLM vulnerabilities like 'prompt injection'. IMPORTANT: Always consult this when building chatbots, AI agents, RAG pipelines, tool-using LLMs, or any app that calls an LLM API - or when users import 'openai', 'anthropic', 'langchain', 'llamaindex'."
+description: 'Security guidelines for LLM applications based on OWASP Top 10 for LLM
+  2025. Use when building LLM apps, reviewing AI security, or asked about LLM vulnerabilities
+  like ''prompt injection''. IMPORTANT: Always consult this when building chatbots,
+  AI agents, RAG pipelines, tool-using LLMs, or any app that calls an LLM API - or
+  when users import ''openai'', ''anthropic'', ''langchain'', ''llamaindex''.'
+permalink: dqverify-repo-20261013/skills/llm-security/skill
 ---
 
 # LLM Security Guidelines (OWASP Top 10 for LLM 2025)

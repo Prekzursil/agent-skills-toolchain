@@ -1,6 +1,11 @@
 ---
 name: opusclip-shorts
-description: Turn a long talk/conference recording into OpusClip-style vertical (9:16) shorts with karaoke word-by-word captions — chunked ASR under the 900s MCP timeout, word-timeline merging, viral-moment selection, dedupe against an existing OpusClip set, timing-preserving caption correction, OpenCV face-tracked auto-reframe, single-layer timed color-flip ASS captions (one subtitle block, one active word), #N file naming and a chronologically ordered final list with source ranges and durations. Use when the user asks to "make shorts", "clip like OpusClip", add karaoke/captions to segments, or reconcile/dedupe/audit an existing shorts set.
+description: Turn a long talk/conference recording into OpusClip-style vertical (9:16)
+  shorts with karaoke word-by-word captions — chunked ASR under the 900s MCP timeout,
+  word-timeline merging, viral-moment selection, dedupe against an existing OpusClip
+  set, timing-preserving caption correction, OpenCV face-tracked auto-reframe, single-layer
+  timed color-flip ASS captions (one subtitle block, one active word),
+permalink: dqverify-repo-20261013/skills/opusclip-shorts/skill
 ---
 
 # OpusClip-style shorts pipeline
@@ -168,7 +173,8 @@ This skill OWNS the end-to-end long-video -> karaoke-shorts pipeline. Siblings d
 - `caption-burn` — ASS burning authority: burn-vs-softmux tradeoffs, mov_text downgrade trap,
   Netflix CPS/CPL polish pass, CaptionOverride styling. ITS karaoke preset (media_studio
   caption_karaoke.py) uses a per-word-Dialogue variant (whole line shown per word event,
-  `{c...	(0,120,scx115)}WORD{}`, alternating yellow/green) — equally layout-safe,
+  `{c...	(0,120,scx115)}WORD{
+}`, alternating yellow/green) — equally layout-safe,
   needs the media_studio package. Use it when inside that codebase; use this skill standalone.
   ABSORBED from it: (a) escape ASS override chars in transcript text BEFORE building Dialogue
   lines (a `{...}` in a word can hijack the render); (b) font availability — Anton/Bebas need

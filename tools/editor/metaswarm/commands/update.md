@@ -1,3 +1,9 @@
+---
+title: update
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/update
+---
+
 # Update
 
 Check for and apply metaswarm updates.

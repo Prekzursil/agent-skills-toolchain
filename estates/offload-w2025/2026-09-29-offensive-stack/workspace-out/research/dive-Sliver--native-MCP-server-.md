@@ -1,3 +1,9 @@
+---
+title: dive-Sliver--native-MCP-server-
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-sliver-native-mcp-server
+---
+
 # Deep-dive: Sliver (native MCP server) — BishopFox/sliver
 
 Date: 2026-09-29. All findings below were gathered this session via `gh api`, raw file fetches, GitHub issue/discussion search, and Exa REST search (`curl https://api.exa.ai/search`).

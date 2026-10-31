@@ -1,3 +1,9 @@
+---
+title: detection
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/references/detection
+---
+
 # Detection Reference
 
 Shared detection logic used by Section 1 (Detection) in Quick Deploy.

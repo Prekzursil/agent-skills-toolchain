@@ -1,3 +1,9 @@
+---
+title: codex-monitor-reconcile
+type: note
+permalink: dqverify-repo-20261013/guides/codex-monitor-reconcile
+---
+
 # Codex Monitor Reconcile — the ONE way to watch both rails live
 
 > **Definitory rule:** *To watch a Codex run live, register the run's `codex exec --json` JSONL with

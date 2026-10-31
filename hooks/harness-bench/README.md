@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/harness-bench/readme
+---
+
 # harness-bench - semantic-router regression net
 
 Weekly Windows Scheduled Task (`ClaudeHarnessBench`) runs `bench.py` -> `../semantic-router/eval.py --json`, compares the shipped HYBRID router's skill recall, mcp recall **and negative-control false-positives** to `baseline.json`, and on a REGRESSION appends ONE `[date] [harness-bench] <what regressed> | PROPOSE: <cmd>` line to `~/.claude/BACKGROUND-DIGEST.md`.

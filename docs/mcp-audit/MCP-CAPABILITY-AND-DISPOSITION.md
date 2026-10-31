@@ -1,3 +1,9 @@
+---
+title: MCP-CAPABILITY-AND-DISPOSITION
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/mcp-capability-and-disposition
+---
+
 # MCP fleet — capability matrix and per-server disposition (BUILD lane, rounds 1-2)
 
 Measured 2026-08-12, re-measured and defect-closed 2026-08-13, on this box, worktree

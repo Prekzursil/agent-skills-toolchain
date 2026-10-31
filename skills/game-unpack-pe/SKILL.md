@@ -1,6 +1,9 @@
 ---
 name: game-unpack-pe
-description: Use when asked to unpack, unprotect, or extract real code from a protected or obfuscated Windows executable. Applies when a binary shows a stub entry point, packed sections, few imports, or signs of VMProtect, Themida, UPX, or custom packers.
+description: Use when asked to unpack, unprotect, or extract real code from a protected
+  or obfuscated Windows executable. Applies when a binary shows a stub entry point,
+  packed sections, few imports, or signs of VMProtect, Themida, UPX, or custom packers.
+permalink: dqverify-repo-20261013/skills/game-unpack-pe/skill
 ---
 
 # PE Unpacking

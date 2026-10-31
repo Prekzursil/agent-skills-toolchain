@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.__never_load__"
+- '**/*.__never_load__'
+permalink: dqverify-repo-20261013/rules/readme
 ---
+
 # Rules
 ## Structure
 

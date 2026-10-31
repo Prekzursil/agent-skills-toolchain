@@ -1,3 +1,9 @@
+---
+title: aspnet-core
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/aspnet-core
+---
+
 # ASP.NET Core Knowledge Pack
 
 > **Applies to:** Projects detected with `*.csproj` containing `Microsoft.NET.Sdk.Web` or referencing `Microsoft.AspNetCore.*` packages

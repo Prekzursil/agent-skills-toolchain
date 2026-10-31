@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/event-grid/bicep
+---
+
 # Event Grid - Bicep Patterns
 
 ## Custom Topic

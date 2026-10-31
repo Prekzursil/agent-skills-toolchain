@@ -1,21 +1,19 @@
 ---
 name: silence-trim
-description: >-
-  Use when removing long silences / dead air / filler-pauses from a TALKING
-  video to produce a tight, jump-cut style edit (podcast, vlog, lecture, screen
-  recording, talking-head short). Detects silent spans with ffmpeg
-  `silencedetect` (noise floor in dB + a minimum silence duration), inverts them
-  to KEEP spans leaving a small pad on each edge so cuts don't sound clipped,
-  then re-cuts frame-accurately with a `trim`/`atrim` + `concat` filter_complex
-  — and re-times caption cues onto the compacted timeline so subtitles don't
-  drift late after every removed gap. Do NOT use for: removing background noise
-  while keeping length (that's denoise/filtering, not trimming); music tracks or
-  ambient/B-roll with no speech (everything reads as "silence" and you gut the
-  clip — or as "loud" and nothing cuts); VAD-grade speech/non-speech where the
-  noise floor is high (silencedetect is amplitude-only, not a voice classifier);
-  or audio-event scoring (laughter/applause salience — that's the PANNs
-  audio_saliency path, a different module). Source of truth:
-  sidecar/media_studio/features/silencetrim.py.
+description: 'Use when removing long silences / dead air / filler-pauses from a TALKING
+  video to produce a tight, jump-cut style edit (podcast, vlog, lecture, screen recording,
+  talking-head short). Detects silent spans with ffmpeg `silencedetect` (noise floor
+  in dB + a minimum silence duration), inverts them to KEEP spans leaving a small
+  pad on each edge so cuts don''t sound clipped, then re-cuts frame-accurately with
+  a `trim`/`atrim` + `concat` filter_complex — and re-times caption cues onto the
+  compacted timeline so subtitles don''t drift late after every removed gap. Do NOT
+  use for: removing background noise while keeping length (that''s denoise/filtering,
+  not trimming); music tracks or ambient/B-roll with no speech (everything reads as
+  "silence" and you gut the clip — or as "loud" and nothing cuts); VAD-grade speech/non-speech
+  where the noise floor is high (silencedetect is amplitude-only, not a voice classifier);
+  or audio-event scoring (laughter/applause salience — that''s the PANNs audio_saliency
+  path, a different module). Source of truth: sidecar/media_studio/features/silencetrim.py.'
+permalink: dqverify-repo-20261013/skills/silence-trim/skill
 ---
 
 # silence-trim — remove dead air with `silencedetect` + keep-span re-cut

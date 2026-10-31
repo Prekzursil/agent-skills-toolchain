@@ -1,6 +1,8 @@
 ---
 name: no-force-push
-description: Use when the no-force-push tripwire blocks a git push --force; confirms whether the user explicitly approved a history-rewriting force-push before overriding.
+description: Use when the no-force-push tripwire blocks a git push --force; confirms
+  whether the user explicitly approved a history-rewriting force-push before overriding.
+permalink: dqverify-repo-20261013/hooks/no-force-push/skill
 ---
 
 # no-force-push (forged discipline - companion procedure)

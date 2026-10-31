@@ -1,3 +1,9 @@
+---
+title: A0-wholedrive-census
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a0-wholedrive-census
+---
+
 # A0 — WizTree Whole-Drive Census (C: + D:)
 
 **Deliverable #14** of Workflow A (EVIDENCE). **Mode:** READ-ONLY (active-work freeze). Nothing was

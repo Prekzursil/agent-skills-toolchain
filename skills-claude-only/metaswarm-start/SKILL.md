@@ -1,14 +1,16 @@
 ---
 name: start
-description: Use when starting work on any task, when the user mentions metaswarm, or when the user wants to begin tracked development work
+description: Use when starting work on any task, when the user mentions metaswarm,
+  or when the user wants to begin tracked development work
 auto_activate: true
 triggers:
-  - "work on issue"
-  - "start issue"
-  - "start task"
-  - "use metaswarm"
-  - "@metaswarm"
-  - "agent-ready label"
+- work on issue
+- start issue
+- start task
+- use metaswarm
+- '@metaswarm'
+- agent-ready label
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/skill
 ---
 
 # BEADS Multi-Agent Orchestration Skill

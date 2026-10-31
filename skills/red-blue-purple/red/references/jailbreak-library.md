@@ -1,3 +1,9 @@
+---
+title: jailbreak-library
+type: note
+permalink: dqverify-repo-20261013/skills/red-blue-purple/red/references/jailbreak-library
+---
+
 # Jailbreak library — documented techniques per SOTA model (2026-09)
 
 PURPOSE: payload corpus for the purple canary battery (defense measurement) and the

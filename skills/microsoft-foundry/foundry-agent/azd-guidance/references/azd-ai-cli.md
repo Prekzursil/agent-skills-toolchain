@@ -1,3 +1,9 @@
+---
+title: azd-ai-cli
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/azd-guidance/references/azd-ai-cli
+---
+
 # azd ai CLI Reference
 
 Core mental model for the `azd ai agent` extension. Use this when you need to understand command surface, file layout, or where a given setting lives.

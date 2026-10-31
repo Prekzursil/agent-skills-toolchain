@@ -1,3 +1,9 @@
+---
+title: B-reconcile-5
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-5
+---
+
 # B-reconcile-5 — Doc-cluster reconciliation (slice 5)
 
 READ-ONLY findings, 2026-07-13. Machine registry: `B-reconcile-5.json`. Nothing was moved/edited/deleted.

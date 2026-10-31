@@ -1,3 +1,9 @@
+---
+title: training-curves
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/training-curves
+---
+
 # Training Curve Analysis
 
 ## SFT Metrics

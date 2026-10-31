@@ -1,3 +1,9 @@
+---
+title: mcp-integration
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-automatic-readiness/references/mcp-integration
+---
+
 # MCP Integration Reference
 
 Loaded when troubleshooting MCP tool calls, debugging the fallback chain, or understanding the API response format.

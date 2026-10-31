@@ -1,3 +1,9 @@
+---
+title: data-relational
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/data-relational
+---
+
 # Data (Relational) Pairing Constraints
 
 ### SQL Server

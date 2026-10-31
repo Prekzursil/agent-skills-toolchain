@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/c3/api
+---
+
 # C3 CLI Reference
 
 ## Invocation

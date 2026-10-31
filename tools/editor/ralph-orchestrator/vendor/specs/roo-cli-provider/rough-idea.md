@@ -1,3 +1,9 @@
+---
+title: rough-idea
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/rough-idea
+---
+
 # Rough Idea: Add roo-cli as a Provider
 
 Add `roo-cli` as a new provider/backend in ralph-orchestrator, following the same pattern as kiro and other existing backends.

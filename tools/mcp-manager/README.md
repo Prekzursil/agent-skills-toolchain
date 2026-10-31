@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp-manager/readme
+---
+
 # mcp-manager
 
 Cross-plane MCP server manager — inventory CLI + PySide6 desktop GUI, with

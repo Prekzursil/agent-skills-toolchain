@@ -1,3 +1,9 @@
+---
+title: PROMPT
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/bench/tasks/fizzbuzz-tdd/prompt
+---
+
 # FizzBuzz TDD Task
 
 Implement FizzBuzz using test-driven development. A test file `test_fizzbuzz.py` has been provided with failing tests.

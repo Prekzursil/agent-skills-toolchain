@@ -1,6 +1,7 @@
 ---
-title: "Use Microsoft MCP Server for Enterprise from Copilot Studio"
-description: "Learn how to connect a Microsoft Copilot Studio agent to the Microsoft MCP Server for Enterprise to query Microsoft Graph data using natural language."
+title: Use Microsoft MCP Server for Enterprise from Copilot Studio
+description: Learn how to connect a Microsoft Copilot Studio agent to the Microsoft
+  MCP Server for Enterprise to query Microsoft Graph data using natural language.
 author: msewaweru
 ms.author: eunicewaweru
 ms.reviewer: Licantrop0
@@ -8,8 +9,7 @@ ms.subservice: ent-mcp-server
 ms.topic: how-to
 ms.custom: msecd-doc-authoring-106
 ms.date: 03/25/2026
-
-#customer intent: As a developer or an IT administrator, I want to connect a Copilot Studio agent to the Microsoft MCP Server for Enterprise so that I can query Microsoft Graph data using natural language.
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/src-use-enterprise-mcp-server-copilot-studio
 ---
 
 # Use Microsoft MCP Server for Enterprise from Copilot Studio
@@ -170,4 +170,3 @@ Return to the Copilot Studio wizard to finalize the MCP tool and verify that the
 - [Overview of Microsoft MCP Server for Enterprise](/graph/mcp-server/overview)
 - [Get started with the Microsoft MCP Server for Enterprise](/graph/mcp-server/get-started)
 - [Use a custom connector from a Power Automate flow](/connectors/custom-connectors/use-custom-connector-flow)
-

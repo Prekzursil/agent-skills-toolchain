@@ -1,3 +1,9 @@
+---
+title: extensive-grill
+type: note
+permalink: dqverify-repo-20261013/skills/grill-me-extensive/references/extensive-grill
+---
+
 # Extensive Grill — full playbook
 
 The `grill-me` skill is a relentless one-at-a-time interview over a single plan. **grill-me-extensive** scales that to *scoping a whole program or a wide, under-specified decision space*, and adds explicit grill MODES so you can grill into expansion, modification, scope-change, modernization, better-ideas, etc. — not just "answer the open questions in the plan I gave you."

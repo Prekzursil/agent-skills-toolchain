@@ -1,6 +1,11 @@
 ---
 name: seed-golden-journey
-description: Use when an app needs a keystone acceptance test that proves the real product works end to end, not just that units pass or coverage is high. Scaffolds a HELD-OUT golden-journey test that launches the REAL app, drives the ONE primary user journey, and asserts a REAL artifact on disk (ffprobe media file, a downloaded file) rather than element-present. Parameterized for Electron, web, and CLI.
+description: Use when an app needs a keystone acceptance test that proves the real
+  product works end to end, not just that units pass or coverage is high. Scaffolds
+  a HELD-OUT golden-journey test that launches the REAL app, drives the ONE primary
+  user journey, and asserts a REAL artifact on disk (ffprobe media file, a downloaded
+  file) rather than element-present. Parameterized for Electron, web, and CLI.
+permalink: dqverify-repo-20261013/skills/seed-golden-journey/skill
 ---
 
 # seed-golden-journey

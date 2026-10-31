@@ -1,7 +1,13 @@
 ---
 name: video-watermark-removal
-description: Use when removing a static logo, watermark, or TV bug from a video seamlessly. PRIMARY method = ProPainter flow-guided temporal inpaint on a TIGHT logo-only mask (pulls REAL background pixels from neighbouring frames -> sharp, no soft haze), CHUNKED in time to fit a small GPU, with PER-FRAME presence gating so occluded frames stay pristine. big-LAMA is the fast SOFT fallback.
+description: Use when removing a static logo, watermark, or TV bug from a video seamlessly.
+  PRIMARY method = ProPainter flow-guided temporal inpaint on a TIGHT logo-only mask
+  (pulls REAL background pixels from neighbouring frames -> sharp, no soft haze),
+  CHUNKED in time to fit a small GPU, with PER-FRAME presence gating so occluded frames
+  stay pristine. big-LAMA is the fast SOFT fallback.
+permalink: dqverify-repo-20261013/skills/video-watermark-removal/skill
 ---
+
 # Video Watermark / Logo Removal (seamless)
 
 Remove a **static, semi-transparent logo/bug** from a video so cleanly it is not noticeable it was ever there. Proven on 41 vertical shorts (406x720) end-to-end. The OpusClip-specific instance (watermark spec, download, API) lives in basic-memory: `main/projects/reframe/opus-clip-watermark-removal-lama-inpaint-recipe-ops-lessons-...`. This skill is the **reusable technique**.

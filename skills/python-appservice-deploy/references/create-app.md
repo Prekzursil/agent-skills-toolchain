@@ -1,3 +1,9 @@
+---
+title: create-app
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/create-app
+---
+
 # Create RG + App Service Plan + Web App (Linux, P0v3)
 
 Creates resources only when missing — every step is `show || create` (idempotent against existing user-supplied names).

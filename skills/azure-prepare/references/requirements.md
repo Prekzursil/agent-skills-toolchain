@@ -1,3 +1,9 @@
+---
+title: requirements
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/requirements
+---
+
 # Requirements Gathering
 
 Collect project requirements through conversation before making architecture decisions.

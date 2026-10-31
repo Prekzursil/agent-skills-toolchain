@@ -1,3 +1,9 @@
+---
+title: dive-x746b-sliver-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-x746b-sliver-mcp
+---
+
 # Deep-dive: x746b/sliver-mcp
 
 Lane: c2-agentic · Verified 2026-09-29 on the estate VM (win32, Git Bash, uv 0.12.20, Python 3.12/3.14).

@@ -1,6 +1,10 @@
 ---
 name: crypto-ctf
-description: "Use for cryptography CTF challenges, crypto homework, and education when you need to actually COMPUTE an attack rather than just describe one - RSA factoring and weak-key attacks (Fermat close-primes, Wiener small-d, common-modulus, Hastad broadcast, ROCA, lattice/Coppersmith), symmetric mode."
+description: Use for cryptography CTF challenges, crypto homework, and education when
+  you need to actually COMPUTE an attack rather than just describe one - RSA factoring
+  and weak-key attacks (Fermat close-primes, Wiener small-d, common-modulus, Hastad
+  broadcast, ROCA, lattice/Coppersmith), symmetric mode.
+permalink: dqverify-repo-20261013/skills/crypto-ctf/skill
 ---
 
 # crypto-ctf

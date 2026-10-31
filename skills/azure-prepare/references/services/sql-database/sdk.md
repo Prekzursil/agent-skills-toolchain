@@ -1,3 +1,9 @@
+---
+title: sdk
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/sql-database/sdk
+---
+
 # SQL Database - SDK Patterns
 
 ## Node.js (mssql)

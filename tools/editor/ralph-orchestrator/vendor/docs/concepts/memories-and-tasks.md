@@ -1,3 +1,9 @@
+---
+title: memories-and-tasks
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/memories-and-tasks
+---
+
 # Memories & Tasks
 
 Ralph uses two complementary systems for persistent state: memories for cross-session learning, and tasks for runtime work tracking.

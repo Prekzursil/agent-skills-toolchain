@@ -1,3 +1,9 @@
+---
+title: task-completion-checklist
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/templates/task-completion-checklist
+---
+
 # Task Completion Checklist
 
 **CRITICAL**: This checklist MUST be followed before marking ANY development task as complete.

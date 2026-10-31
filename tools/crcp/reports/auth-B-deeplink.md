@@ -1,3 +1,9 @@
+---
+title: auth-B-deeplink
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-b-deeplink
+---
+
 # auth-B-deeplink — implementation report
 
 ## Summary

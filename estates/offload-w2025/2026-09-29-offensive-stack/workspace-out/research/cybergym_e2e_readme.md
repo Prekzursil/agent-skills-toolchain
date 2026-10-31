@@ -1,3 +1,9 @@
+---
+title: cybergym_e2e_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/cybergym-e2e-readme
+---
+
 # CyberGym-E2E: Scalable Real-World Benchmark for AI Agents' End-to-End Cybersecurity Capabilities
 
 [![Website](https://img.shields.io/badge/Website-cybergym.io-0a9396?style=flat&logo=Google-Chrome&logoColor=white)](https://www.cybergym.io/cybergym-e2e/)

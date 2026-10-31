@@ -1,3 +1,9 @@
+---
+title: t07_dead_end_decline_cite
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/tests/phase-battery/t07-dead-end-decline-cite
+---
+
 # T-7 dead-end decline-and-cite — protocol (owner-executed)
 
 Defect class (proposal S4): agents re-walk REFUTED approaches because

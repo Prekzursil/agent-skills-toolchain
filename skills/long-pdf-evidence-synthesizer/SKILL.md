@@ -1,6 +1,9 @@
 ---
 name: long-pdf-evidence-synthesizer
-description: Use when the user needs a professional synthesis of a long PDF, report, thesis, or policy document with section-accurate evidence tracking and clear separation between author claims and your synthesis.
+description: Use when the user needs a professional synthesis of a long PDF, report,
+  thesis, or policy document with section-accurate evidence tracking and clear separation
+  between author claims and your synthesis.
+permalink: dqverify-repo-20261013/skills/long-pdf-evidence-synthesizer/skill
 ---
 
 # long-pdf-evidence-synthesizer

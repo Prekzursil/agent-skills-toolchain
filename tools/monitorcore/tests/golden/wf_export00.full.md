@@ -1,11 +1,12 @@
 ---
-wf_id: "wf_export00-fixture"
-name: "wfmon-export-fixture"
-session: "d219bc39-7d7f-4290-befd-f1c079161057"
-scope: "run"
-redaction_mode: "strict"
-generated_at: "2026-07-12T00:00:00+00:00"
-schema_version: "2.1.207"
+wf_id: wf_export00-fixture
+name: wfmon-export-fixture
+session: d219bc39-7d7f-4290-befd-f1c079161057
+scope: run
+redaction_mode: strict
+generated_at: '2026-07-12T00:00:00+00:00'
+schema_version: 2.1.207
+permalink: dqverify-repo-20261013/tools/monitorcore/tests/golden/wf-export00.full
 ---
 
 # wfmon-export-fixture (`wf_export00-fixture`)

@@ -1,3 +1,9 @@
+---
+title: social-ads
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/social-ads
+---
+
 # Social ad templates (4-8s)
 
 Short clips work best with clear beats. Use 2-3 beats and keep text minimal.

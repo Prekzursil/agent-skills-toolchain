@@ -1,3 +1,9 @@
+---
+title: harness-lineage-2026-09-01
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/harness-lineage-2026-09-01
+---
+
 # FLAG: two diverged harness lineages, and no Cursor provider in either
 
 > **RESOLVED 2026-09-02 (decision 1), kept rather than deleted:** the reunion landed in

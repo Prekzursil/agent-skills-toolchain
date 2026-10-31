@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/reverse-engineering-mcp-bundle/readme
+---
+
 # Reverse Engineering MCP Bundle
 
 Shared manifests and helper scripts for wiring reverse-engineering MCP servers into Codex, Claude Code, and Gemini CLI.

@@ -1,3 +1,9 @@
+---
+title: ui-component
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/examples/ui-component
+---
+
 # Example: UI Component Implementation
 
 **User Request**: "Implement the new search component from the design spec"

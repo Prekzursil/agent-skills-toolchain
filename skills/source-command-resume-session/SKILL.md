@@ -1,6 +1,8 @@
 ---
-name: "source-command-resume-session"
-description: "Load the most recent session file from ~/.claude/sessions/ and resume work with full context from where the last session ended."
+name: source-command-resume-session
+description: Load the most recent session file from ~/.claude/sessions/ and resume
+  work with full context from where the last session ended.
+permalink: dqverify-repo-20261013/skills/source-command-resume-session/skill
 ---
 
 # source-command-resume-session

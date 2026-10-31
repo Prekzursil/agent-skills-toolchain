@@ -1,3 +1,9 @@
+---
+title: BUILD-LOG
+type: note
+permalink: dqverify-repo-20261013/docs/workflow-sota/build-log
+---
+
 # WFSOTA BUILD LANE — implementation log (round 1)
 
 > **WRITE-AS-YOU-GO SENTINEL.** If this file still reads "SKELETON — nothing measured yet"

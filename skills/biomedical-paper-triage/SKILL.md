@@ -1,6 +1,11 @@
 ---
 name: biomedical-paper-triage
-description: Use when turning a raw list of biomedical papers into a ranked, access-tagged shortlist graded T1-T4 by human/animal/in-vitro evidence strength via Scholarly Access MCP ; do NOT use for generic literature metadata or citation graphs (use scholarly-literature-review) ; returns defensible ranked shortlist with evidence grades.
+description: Use when turning a raw list of biomedical papers into a ranked, access-tagged
+  shortlist graded T1-T4 by human/animal/in-vitro evidence strength via Scholarly
+  Access MCP ; do NOT use for generic literature metadata or citation graphs (use
+  scholarly-literature-review) ; returns defensible ranked shortlist with evidence
+  grades.
+permalink: dqverify-repo-20261013/skills/biomedical-paper-triage/skill
 ---
 
 # Biomedical Paper Triage

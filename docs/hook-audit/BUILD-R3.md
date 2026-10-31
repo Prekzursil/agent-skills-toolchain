@@ -1,3 +1,9 @@
+---
+title: BUILD-R3
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/build-r3
+---
+
 # HOOKRESEARCH — BUILD round 3 (re-entry after a CONFIRMED refutation)
 
 A verifier CONFIRMED one real defect and four overclaims against BUILD round 2, and surfaced one

@@ -1,3 +1,9 @@
+---
+title: model-cascade
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/model-cascade
+---
+
 # Research: model-cascade — cost-aware model routing for pentest agents
 
 Date: 2026-09-29. Researcher lane: model-cascade. Estate: CyberStrike 1.1.16 + MCP gateway (127.0.0.1:31100), Decepticon (LangGraph), PentAGI staged, Ollama qwen3:4b, Windows Server, NO Docker.

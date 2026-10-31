@@ -1,3 +1,9 @@
+---
+title: azure-monitor-opentelemetry-ts
+type: note
+permalink: dqverify-repo-20261013/skills/appinsights-instrumentation/references/sdk/azure-monitor-opentelemetry-ts
+---
+
 # Azure Monitor OpenTelemetry — TypeScript SDK Quick Reference
 
 > Condensed from **azure-monitor-opentelemetry-ts**. Full patterns

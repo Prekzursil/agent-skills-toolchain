@@ -1,3 +1,9 @@
+---
+title: quota
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/quota/quota
+---
+
 # Microsoft Foundry Quota Management
 
 Quota and capacity management for Microsoft Foundry. Quotas are **subscription + region** level.

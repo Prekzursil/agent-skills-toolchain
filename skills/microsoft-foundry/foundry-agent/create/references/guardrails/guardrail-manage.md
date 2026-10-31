@@ -1,3 +1,9 @@
+---
+title: guardrail-manage
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/guardrails/guardrail-manage
+---
+
 # Guardrails (RAI Content-Filter Policies)
 
 Guardrails are Responsible AI (RAI) content-filter policies that control what content is allowed through model deployments and agents in Microsoft Foundry.
@@ -55,4 +61,3 @@ Tool call and tool response are agent-only (and toolbox). An agent's guardrail f
 | `Microsoft.Default` | Base default policy (4 categories) | No |
 | `Microsoft.DefaultV2` | Updated default with jailbreak + protected material | No |
 | Custom policies | User-created policies | Yes |
-

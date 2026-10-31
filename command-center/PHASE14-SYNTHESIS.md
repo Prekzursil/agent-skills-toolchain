@@ -1,3 +1,9 @@
+---
+title: PHASE14-SYNTHESIS
+type: note
+permalink: dqverify-repo-20261013/command-center/phase14-synthesis
+---
+
 # PHASE 14 — SYNTHESIS AND META-REVIEW
 
 - **Unit:** `synthesis/phase14` · **Spec:** `_USER-PROMPTS.md:11084-11098`, scored against `:11376-11398`

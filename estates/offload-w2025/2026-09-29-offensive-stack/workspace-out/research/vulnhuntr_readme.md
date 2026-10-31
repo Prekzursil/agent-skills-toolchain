@@ -1,3 +1,9 @@
+---
+title: vulnhuntr_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/vulnhuntr-readme
+---
+
 <div align="center">
 
   <img width="250" src="https://github.com/user-attachments/assets/d1153ab4-df29-4955-ad49-1be7fad18bb3" alt="Vulnhuntr Logo">

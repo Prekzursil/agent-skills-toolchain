@@ -1,3 +1,9 @@
+---
+title: javascript-typescript-react-web-frontend-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-typescript-react-web-frontend-security
+---
+
 # React (JavaScript/TypeScript) Web Security Spec (React 19.x, TypeScript 5.x)
 
 This document is designed as a **security spec** that supports:

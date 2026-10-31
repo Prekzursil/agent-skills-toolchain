@@ -1,3 +1,9 @@
+---
+title: machine-migration-manifest
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/machine-migration-manifest
+---
+
 # machine-migration-manifest
 
 ## Purpose

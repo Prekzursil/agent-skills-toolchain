@@ -1,3 +1,9 @@
+---
+title: PHASE2-PREP
+type: note
+permalink: dqverify-repo-20261013/phase2-prep
+---
+
 # Phase 2 Prep — Dependabot PR Triage
 
 **Status:** Initial scan and planning  

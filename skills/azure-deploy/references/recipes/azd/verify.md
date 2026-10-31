@@ -1,3 +1,9 @@
+---
+title: verify
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/verify
+---
+
 # AZD Verification
 
 Verify deployment success and application health.

@@ -1,3 +1,9 @@
+---
+title: git-workflow
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/rules/common/git-workflow
+---
+
 # Git Workflow
 
 ## Commit Message Format

@@ -1,3 +1,9 @@
+---
+title: code-migration
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/app-service/code-migration
+---
+
 # Code Migration Phase
 
 Migrate source platform web application code to Azure App Service.

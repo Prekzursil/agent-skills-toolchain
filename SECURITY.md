@@ -1,3 +1,9 @@
+---
+title: SECURITY
+type: note
+permalink: dqverify-repo-20261013/security
+---
+
 # SECURITY — PRIVATE ONLY
 
 **This repository must never be made public.**

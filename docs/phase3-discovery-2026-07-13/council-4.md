@@ -1,3 +1,9 @@
+---
+title: council-4
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/council-4
+---
+
 # Council Verdict — Lens: OWNER-WORKFLOW-FIT
 
 The single question my lens asks of every proposed design: **does it survive the owner's actual working conditions** — 25+ concurrent sessions, 50-100-agent worktree-isolated fan-outs, no-babysit autonomy, quality-over-cost, commit/PR-everything, `~/.claude.json` clobber-on-exit, Windows PowerShell/MSYS footguns, and basic-memory as the canonical semantic store? Most of the "obvious" designs in the research **fail that test**. Below is what I'd actually ship.

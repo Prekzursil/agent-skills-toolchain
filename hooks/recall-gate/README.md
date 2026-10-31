@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/recall-gate/readme
+---
+
 # recall-gate — prior-art gate over the local harness tree
 
 **STATUS: BUILT, TESTED, BOTH-STATES PROVEN — and WIRED TO NOTHING.**

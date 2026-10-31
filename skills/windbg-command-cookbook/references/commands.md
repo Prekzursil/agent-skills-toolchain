@@ -1,3 +1,9 @@
+---
+title: commands
+type: note
+permalink: dqverify-repo-20261013/skills/windbg-command-cookbook/references/commands
+---
+
 # WinDbg Command Cookbook
 
 ## First-pass commands

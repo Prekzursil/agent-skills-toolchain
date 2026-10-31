@@ -3,6 +3,7 @@ title: Code Correctness
 impact: MEDIUM
 impactDescription: Runtime errors and unexpected behavior
 tags: correctness, bugs, python, javascript, java, go, c
+permalink: dqverify-repo-20261013/skills/code-security/rules/correctness
 ---
 
 # Code Correctness Rules

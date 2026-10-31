@@ -1,6 +1,9 @@
 ---
 name: social-find-post
-description: "Use when the user wants to find, recall, or locate a specific social-media post, reel, or saved/bookmarked item across Instagram (saved collections, feed, search) or Facebook (feed/profile). Pairs with the social-media-toolchain MCPs."
+description: Use when the user wants to find, recall, or locate a specific social-media
+  post, reel, or saved/bookmarked item across Instagram (saved collections, feed,
+  search) or Facebook (feed/profile). Pairs with the social-media-toolchain MCPs.
+permalink: dqverify-repo-20261013/skills/social-find-post/skill
 ---
 
 # Find a Social Post

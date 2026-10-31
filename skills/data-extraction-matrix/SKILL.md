@@ -1,6 +1,8 @@
 ---
 name: data-extraction-matrix
-description: Use when extracting structured evidence from papers into a matrix for synthesis, comparison, or review writing.
+description: Use when extracting structured evidence from papers into a matrix for
+  synthesis, comparison, or review writing.
+permalink: dqverify-repo-20261013/skills/data-extraction-matrix/skill
 ---
 
 # data-extraction-matrix

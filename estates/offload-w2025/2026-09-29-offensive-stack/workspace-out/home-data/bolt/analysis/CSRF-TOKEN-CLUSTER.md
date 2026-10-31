@@ -1,3 +1,9 @@
+---
+title: CSRF-TOKEN-CLUSTER
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/home-data/bolt/analysis/csrf-token-cluster
+---
+
 # CSRF-Token Cluster Analysis — cookies.tsv (HS project)
 
 **Date:** 03.09.2026 (analysis date; data window 2017-11 -> 2026-08)

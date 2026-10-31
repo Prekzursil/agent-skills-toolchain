@@ -1,3 +1,9 @@
+---
+title: sdk-integration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/ai-gateway/sdk-integration
+---
+
 # AI Gateway SDK Integration
 
 ## Vercel AI SDK (Recommended)

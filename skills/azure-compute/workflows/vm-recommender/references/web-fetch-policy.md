@@ -1,3 +1,9 @@
+---
+title: web-fetch-policy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-recommender/references/web-fetch-policy
+---
+
 # web_fetch policy
 
 Steps 2 and 3 of the recommender rely on `web_fetch` against `learn.microsoft.com` to verify that a recommendation reflects current capabilities (especially VMSS features, family availability, and Spot eligibility).

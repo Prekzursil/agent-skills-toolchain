@@ -1,3 +1,9 @@
+---
+title: agentic-rft
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/agentic-rft
+---
+
 # Agentic RFT — Tool Calling
 
 Train reasoning models (o4-mini) for agentic scenarios where the model invokes external tools during chain-of-thought reasoning.

@@ -1,8 +1,14 @@
 ---
 name: reframe
-description: Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert, reframe, or crop a landscape video to vertical, follow a moving subject in a vertical crop, or turn long horizontal footage into a portrait clip. GPU-accelerated via WSL2.
-license: "MIT (skill). Engines: verthor + claude-shorts are MIT (vendored under D:\\tools\\reframe)."
+description: Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic
+  subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert,
+  reframe, or crop a landscape video to vertical, follow a moving subject in a vertical
+  crop, or turn long horizontal footage into a portrait clip. GPU-accelerated via
+  WSL2.
+license: 'MIT (skill). Engines: verthor + claude-shorts are MIT (vendored under D:\tools\reframe).'
+permalink: dqverify-repo-20261013/agent-self/skills/reframe/skill
 ---
+
 # reframe — horizontal to vertical 9:16
 
 Turns 16:9 footage into subject-tracked 1080x1920 vertical video. Runs in WSL2 Ubuntu (GPU: RTX 4050).

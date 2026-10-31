@@ -1,3 +1,9 @@
+---
+title: trace
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/trace/trace
+---
+
 # Foundry Agent Trace Analysis
 
 Analyze production traces for Foundry agents using Application Insights and GenAI OpenTelemetry semantic conventions. This skill provides structured KQL-powered workflows for a selected agent root and environment: searching conversations, diagnosing failures, and identifying latency bottlenecks.

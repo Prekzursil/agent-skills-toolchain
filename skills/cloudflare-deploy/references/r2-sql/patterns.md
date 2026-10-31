@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-sql/patterns
+---
+
 # R2 SQL Patterns
 
 Common patterns, use cases, and integration examples for R2 SQL.

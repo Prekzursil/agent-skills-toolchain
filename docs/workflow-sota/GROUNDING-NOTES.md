@@ -1,3 +1,9 @@
+---
+title: GROUNDING-NOTES
+type: note
+permalink: dqverify-repo-20261013/docs/workflow-sota/grounding-notes
+---
+
 # Lane WFSOTA — grounding notes (MEASURED)
 
 Grounding lane, 2026-08-12. No production code written. Every claim below carries a

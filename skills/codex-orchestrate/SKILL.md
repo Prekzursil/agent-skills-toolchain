@@ -1,7 +1,18 @@
 ---
 name: codex-orchestrate
-description: Route a task to Codex on the MCP rail by intent - one skill, all modes. Trigger phrases - 'brainstorm/discuss/coordinate/review/audit/curate/triage with Codex', 'get a Codex second opinion', 'have Codex split roles and combine', 'pick the best option with Codex', 'Codex risk/gap audit', 'Codex governance call'. The rail is the official codex mcp-server - mcp__codex__codex to start a thread, mcp__codex__codex-reply to continue by threadId. There is no per-mode tool - the mode is framed in the prompt, and multi-peer modes are parallel calls the caller synthesizes. Replaces the per-mode wrappers codex-audit, codex-brainstorm, codex-coordinate, codex-curate, codex-consult, codex-discuss, codex-fix, codex-governance, codex-review, and codex-triage. For per-call scoping (model, sandbox, MCP allowlist, --output-schema) use codex-invoke instead.
+description: Route a task to Codex on the MCP rail by intent - one skill, all modes.
+  Trigger phrases - 'brainstorm/discuss/coordinate/review/audit/curate/triage with
+  Codex', 'get a Codex second opinion', 'have Codex split roles and combine', 'pick
+  the best option with Codex', 'Codex risk/gap audit', 'Codex governance call'. The
+  rail is the official codex mcp-server - mcp__codex__codex to start a thread, mcp__codex__codex-reply
+  to continue by threadId. There is no per-mode tool - the mode is framed in the prompt,
+  and multi-peer modes are parallel calls the caller synthesizes. Replaces the per-mode
+  wrappers codex-audit, codex-brainstorm, codex-coordinate, codex-curate, codex-consult,
+  codex-discuss, codex-fix, codex-governance, codex-review, and codex-triage. For
+  per-call scoping (model, sandbox, MCP allowlist, --output-schema) use codex-invoke
+  instead.
 license: MIT
+permalink: dqverify-repo-20261013/skills/codex-orchestrate/skill
 ---
 
 # Codex Orchestrate

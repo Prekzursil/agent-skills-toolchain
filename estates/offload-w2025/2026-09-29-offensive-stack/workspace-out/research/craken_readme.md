@@ -1,3 +1,9 @@
+---
+title: craken_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/craken-readme
+---
+
 # CRAKEN: Cybersecurity LLM Agent with Knowledge-Based Execution
 This is the official repository for [paper](https://www.arxiv.org/pdf/2505.17107) "CRAKEN: Cybersecurity LLM Agent with Knowledge-Based Execution".
 

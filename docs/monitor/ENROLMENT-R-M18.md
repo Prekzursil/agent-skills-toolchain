@@ -1,3 +1,9 @@
+---
+title: ENROLMENT-R-M18
+type: note
+permalink: dqverify-repo-20261013/docs/monitor/enrolment-r-m18
+---
+
 # R-M18 enrolment dossier -- unified monitor cockpit
 
 STATUS: COMPLETE for round 1. Every claim below was EXECUTED in this session, on this box, at

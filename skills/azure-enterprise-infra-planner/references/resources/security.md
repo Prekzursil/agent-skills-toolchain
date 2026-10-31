@@ -1,3 +1,9 @@
+---
+title: security
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/resources/security
+---
+
 # Security Resources
 
 | Resource | ARM Type | API Version | CAF Prefix | Naming Scope | Region |

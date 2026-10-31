@@ -1,3 +1,9 @@
+---
+title: SLOP-INTEGRATE-R1
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-integrate-r1
+---
+
 # SLOP lane — INTEGRATE round: wire the class fix in, and prove it is reachable
 
 MEASURED AT: `96362031`, with two sibling commits (`da82f439`, `d8aa0773`) interleaved

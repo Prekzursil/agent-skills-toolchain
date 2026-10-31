@@ -1,3 +1,9 @@
+---
+title: toolbox-azd
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/toolbox-azd
+---
+
 # Manage Tools & Toolboxes with `azd ai`
 
 The full `azd ai toolbox` CLI surface — creating, editing, versioning, and teardown. For the create→consume walkthrough and per-tool flows, see [toolbox.md § Create & use a toolbox (happy path)](../toolbox.md#create--use-a-toolbox-happy-path) and the [Supported tool types](../toolbox.md#supported-tool-types) table.

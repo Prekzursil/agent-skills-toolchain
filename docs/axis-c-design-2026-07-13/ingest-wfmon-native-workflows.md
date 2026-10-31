@@ -1,3 +1,9 @@
+---
+title: ingest-wfmon-native-workflows
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-wfmon-native-workflows
+---
+
 # Ingest: wfmon + native Workflow API (for Axis-C)
 
 **Task:** extract the current workflow-monitor (wfmon) + native Claude Code Workflow

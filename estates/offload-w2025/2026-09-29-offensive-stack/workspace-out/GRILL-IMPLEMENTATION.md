@@ -1,3 +1,9 @@
+---
+title: GRILL-IMPLEMENTATION
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/grill-implementation
+---
+
 # Grill Implementation Report — 2026-10-01 (all 13 lanes)
 
 **All 13 lanes completed.** The artifact publication failed (compiler wrote to a

@@ -1,3 +1,9 @@
+---
+title: api-reference
+type: note
+permalink: dqverify-repo-20261013/skills/autofix-bot-api/references/api-reference
+---
+
 # Autofix Bot API Reference
 
 Base URL: `https://api.autofix.bot`

@@ -30,6 +30,29 @@ else:
     from .storage import atomic_write_json, read_json
 
 
+# --------------------------------------------------------------------------- #
+# P2 terminal-sink rotation (SOTA G4-F12a, 2026-10-24): terminal.jsonl is an
+# append-only audit sink on the dispatcher's own hot path; without rotation it
+# grew to 176MB on this box. Bounded to ~2 generations: on the FIRST terminal
+# record of each process, a >64MiB terminal.jsonl is os.replace()d to .1
+# (replacing any previous .1). Checked once per process; fails open.
+_TERMINAL_ROTATE_BYTES = 64 * 1024 * 1024
+_terminal_rotation_checked = False
+
+
+def _maybe_rotate_terminal(state_root: Path) -> None:
+    global _terminal_rotation_checked
+    if _terminal_rotation_checked:
+        return
+    _terminal_rotation_checked = True
+    try:
+        terminal = state_root / "terminal.jsonl"
+        if terminal.exists() and terminal.stat().st_size > _TERMINAL_ROTATE_BYTES:
+            os.replace(terminal, state_root / "terminal.jsonl.1")
+    except Exception:
+        pass  # fail-open: rotation is hygiene, never correctness
+
+
 # Provider-neutral arbitration of the winning ACTION (allow < inject < continue < block).
 _PRIORITY = {"allow": 0, "inject": 1, "continue": 2, "block": 3}
 
@@ -153,7 +176,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 
 
 # The host kills the hook process at its registered per-event timeout
-# (registration._TIMEOUTS — 2s on the hot events). module.run() is synchronous,
+# (registration._TIMEOUTS — hot events 25s, SessionStart/Stop 60s as of 2026-10-13). module.run() is synchronous,
 # so ONE module that outlives that deadline takes the whole dispatch with it: no
 # terminal record, no liveness stamp, every later module silently skipped. The
 # fan-out therefore runs under a wall-clock budget; on expiry the in-flight module
@@ -411,6 +434,7 @@ class HarnessDispatcher:
                 # modules produced still reach the host.
                 had_error = True
                 failed_modules.append(in_flight or "dispatch")
+                if in_flight: self._breaker_on_error(breaker, in_flight)  # SOTA: budget-expiry counts like a raise
 
         # Snapshot: an abandoned worker may still be appending to these lists.
         failed = list(failed_modules)
@@ -600,6 +624,7 @@ class HarnessDispatcher:
         failed_modules: list[str],
     ) -> None:
         try:
+            _maybe_rotate_terminal(self.state_root)
             self.state_root.mkdir(parents=True, exist_ok=True)
             record = {
                 "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),

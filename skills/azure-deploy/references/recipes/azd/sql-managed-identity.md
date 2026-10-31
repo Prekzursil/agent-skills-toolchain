@@ -1,3 +1,9 @@
+---
+title: sql-managed-identity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/sql-managed-identity
+---
+
 # SQL Managed Identity Access
 
 Grant Azure managed identities database permissions on Azure SQL with Entra authentication.

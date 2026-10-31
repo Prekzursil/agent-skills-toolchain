@@ -1,3 +1,9 @@
+---
+title: reframe-contract
+type: note
+permalink: dqverify-repo-20261013/skills/reframe-scrollshot-markdown/references/reframe-contract
+---
+
 # Reframe scrollshot integration contract
 
 Read this reference when implementing, reviewing, automating, or verifying the

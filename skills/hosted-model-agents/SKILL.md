@@ -1,9 +1,15 @@
 ---
 name: hosted-model-agents
-description: Deploy hosted or local models as agent runtimes in different environments (Hugging Face Hub MCP + Spaces + Endpoints, Modal/RunPod/Lightning, Azure Foundry, llama.cpp, Cursor Max/auth2api), then give them tools in the local harness. Use when choosing where to run a model, wiring OpenAI /v1 or Gradio MCP, attaching tool loops for red-team/learning/coding agents, or deciding Hub MCP vs inference HTTP. Not Qwen-specific — any chat model that emits tool_calls.
+description: Deploy hosted or local models as agent runtimes in different environments
+  (Hugging Face Hub MCP + Spaces + Endpoints, Modal/RunPod/Lightning, Azure Foundry,
+  llama.cpp, Cursor Max/auth2api), then give them tools in the local harness. Use
+  when choosing where to run a model, wiring OpenAI /v1 or Gradio MCP, attaching tool
+  loops for red-team/learning/coding agents, or deciding Hub MCP vs inference HTTP.
+  Not Qwen-specific — any chat model that emits tool_calls.
 metadata:
   status: active
   valid_as_of: 2026-08-29
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/skill
 ---
 
 # Hosted model agents (environment + tools, not one model)

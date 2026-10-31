@@ -1,3 +1,9 @@
+---
+title: cicd-pipelines
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/cicd-pipelines
+---
+
 # CI/CD Pipeline Patterns
 
 CI/CD is deferred to v2. Do NOT auto-generate workflow files.

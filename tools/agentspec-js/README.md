@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/agentspec-js/readme
+---
+
 # agentspec-js
 
 The **JS runtime** for the agentspec workflow SPEC. The Python package at `tools/agentspec` is

@@ -1,3 +1,9 @@
+---
+title: council-1
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/council-1
+---
+
 ## PRAGMATIST / ANTI-OVERFIT VERDICT — Phase-3 consolidation
 
 **One-line thesis:** The single highest-value act in this whole program is not building anything — it is **`install.py --deploy` of the already-committed task-8 tree + a 20-line live↔repo parity check**. The mechanism the owner is asking for mostly EXISTS as unpushed source. "SOTA consolidation" here means *deploy, delete, and run the script*, not adopt a new framework. I dissent from both marquee research recommendations (chezmoi, MCP-gateway migration) as scope-inflating overfit for this program.
@@ -55,4 +61,3 @@ Build `stale_branch` as an **advisory-tier SessionStart inject only** (dedup'd l
 5. **`config_drift` may be permanently inert** (depends on a possibly-unemitted `ConfigChange` host event — LOW-confidence load-bearing assumption). Verify the host emits it before trusting thread-1's runtime sentinel; if not, fall back to the SessionStart `--check` sweep (which doesn't depend on host events).
 
 **Net:** Deploy task-8. Add the tree-parity check. Run promote-with-prune. Delete the D: copies + 3 snapshot trees + fix the AgentBridge CLAUDE.md. Build exactly two cheap ledger-reusing gates (`artifact_hygiene`, `uncommitted_change`) plus one `kb_supersede` nudge, all shadow. Archive the loose docs with permalink pointers. That is the whole program — no chezmoi, no gateway, no new repo, no AST doc-binding.
-

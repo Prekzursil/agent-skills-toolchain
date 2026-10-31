@@ -1,3 +1,9 @@
+---
+title: QUICK-REFERENCE
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/fix-tool/quick-reference
+---
+
 # ToolUniverse Tool Fix - Quick Reference
 
 Essential commands and patterns for quickly fixing ToolUniverse tools.

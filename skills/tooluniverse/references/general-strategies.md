@@ -1,3 +1,9 @@
+---
+title: general-strategies
+type: note
+permalink: dqverify-repo-20261013/skills/tooluniverse/references/general-strategies
+---
+
 # General Usage Strategies
 
 Use these strategies ONLY when no specialized skill matches the user's query. See SKILL.md routing table first.

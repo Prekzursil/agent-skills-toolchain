@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/fb-messenger-mcp/readme
+---
+
 # fb-messenger-mcp
 
 An MCP server for Facebook / Messenger, expanded toward Instagram-parity. Four

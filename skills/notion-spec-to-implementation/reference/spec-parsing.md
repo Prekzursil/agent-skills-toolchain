@@ -1,3 +1,9 @@
+---
+title: spec-parsing
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/spec-parsing
+---
+
 # Specification Parsing
 
 ## Finding the Specification
@@ -380,4 +386,3 @@ Before creating implementation plan:
 ☐ Technical approach understood
 ☐ Scope is clear
 ☐ Priorities are defined
-

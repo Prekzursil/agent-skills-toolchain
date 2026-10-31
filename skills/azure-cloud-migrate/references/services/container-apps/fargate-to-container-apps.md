@@ -1,3 +1,9 @@
+---
+title: fargate-to-container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/fargate-to-container-apps
+---
+
 # AWS Fargate to Azure Container Apps Migration
 
 Guidance for migrating AWS Fargate (ECS) containerized workloads to Azure Container Apps.

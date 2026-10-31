@@ -1,3 +1,9 @@
+---
+title: diagnostic-tricks
+type: note
+permalink: dqverify-repo-20261013/skills/pbinfo-python-jit/references/diagnostic-tricks
+---
+
 # Diagnostic Tricks for pbinfo
 
 Pbinfo's evaluation feedback is minimal — "OK", "Răspuns greșit", "Limita de timp depășită", or "Exited with error status X". You don't get a diff against expected output, and the WA error rarely reveals what was wrong. But you have **two channels** for extracting information from the judge:

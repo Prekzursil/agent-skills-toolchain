@@ -1,3 +1,9 @@
+---
+title: DEAD-COMMAND-PROMISES
+type: note
+permalink: dqverify-repo-20261013/docs/dead-command-promises
+---
+
 # Dead command promises — implement-or-retire register
 
 A **published command** here is a `commands/*.md` the Claude Code client loads as a slash

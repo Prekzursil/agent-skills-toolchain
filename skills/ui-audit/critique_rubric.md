@@ -1,3 +1,9 @@
+---
+title: critique_rubric
+type: note
+permalink: dqverify-repo-20261013/skills/ui-audit/critique-rubric
+---
+
 # Track-B Design-Critique Rubric — DESIGN-EVAL v1
 
 The deterministic rubric Claude applies when turning Track-A's numbers + the screenshot

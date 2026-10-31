@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/web-analytics/readme
+---
+
 # Cloudflare Web Analytics
 
 Privacy-first web analytics providing Core Web Vitals, traffic metrics, and user insights without compromising visitor privacy.

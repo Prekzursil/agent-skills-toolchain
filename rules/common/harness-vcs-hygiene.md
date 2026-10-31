@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
+- '**/.claude/**'
+- '**/.agents/**'
+permalink: dqverify-repo-20261013/rules/common/harness-vcs-hygiene
 ---
 
 # Harness version-control hygiene (non-negotiable)

@@ -1,3 +1,9 @@
+---
+title: auth
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/sql-database/auth
+---
+
 # SQL Database - Entra ID Authentication
 
 ## Entra ID Admin Configuration (User)

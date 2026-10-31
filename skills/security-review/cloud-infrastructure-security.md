@@ -1,3 +1,9 @@
+---
+title: cloud-infrastructure-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-review/cloud-infrastructure-security
+---
+
 | name | description |
 |------|-------------|
 | cloud-infrastructure-security | Use this skill when deploying to cloud platforms, configuring infrastructure, managing IAM policies, setting up logging/monitoring, or implementing CI/CD pipelines. Provides cloud security checklist aligned with best practices. |

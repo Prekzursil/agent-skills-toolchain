@@ -1,3 +1,9 @@
+---
+title: codex-AGENTS
+type: note
+permalink: dqverify-repo-20261013/release/platforms/windows/codex-agents
+---
+
 <!-- promptbridge-managed -->
 # PromptBridge Codex Consultation Contract
 

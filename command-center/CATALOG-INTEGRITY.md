@@ -1,3 +1,9 @@
+---
+title: CATALOG-INTEGRITY
+type: note
+permalink: dqverify-repo-20261013/command-center/catalog-integrity
+---
+
 # CATALOG-INTEGRITY - mechanical audit of command-center/catalog-slices/
 
 Generated: 2026-08-09T18:47:11Z by `command-center/_catalog_integrity.py`

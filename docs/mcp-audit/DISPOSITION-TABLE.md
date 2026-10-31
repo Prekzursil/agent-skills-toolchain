@@ -1,3 +1,9 @@
+---
+title: DISPOSITION-TABLE
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/disposition-table
+---
+
 | disposition | server | S1 config | S2 host | S3 mounted | S4 real call | tools | name B | schema B | evidence |
 |---|---|---|---|---|---|---|---|---|---|
 | **DISABLE** | `searxng` | disabled | Connected | yes | PASS | 4 | 77 | 5640 | exact set arithmetic: all 4 tool names are a strict subset of search-hub's surface, 0 unique -- so disabling removes no REACHABLE capability. The duplicated tools are non-functional on BOTH sides: each was measured against the same unreachable http://127.0.0.1:8890, so this is deduplication of a DEAD capability, not a failover to a live one -- SCOPE: the call succeeded, the capability did not. backend measured non-functional: searxng-instance |

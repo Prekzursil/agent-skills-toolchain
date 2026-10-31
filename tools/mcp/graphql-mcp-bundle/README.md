@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/graphql-mcp-bundle/readme
+---
+
 # GraphQL MCP Bundle
 
 Minimal manifest bundle for wiring `blurrah/mcp-graphql` into Codex, Claude Code, and Gemini CLI.

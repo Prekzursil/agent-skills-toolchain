@@ -1,6 +1,11 @@
 ---
 name: devtu-optimize-skills
-description: Optimize ToolUniverse skills for better report quality, evidence handling, and user experience. Apply patterns like tool verification, foundation data layers, disambiguation-first, evidence grading, quantified completeness, and report-only output. Use when reviewing skills, improving existing skills, or creating new ToolUniverse research skills.
+description: Optimize ToolUniverse skills for better report quality, evidence handling,
+  and user experience. Apply patterns like tool verification, foundation data layers,
+  disambiguation-first, evidence grading, quantified completeness, and report-only
+  output. Use when reviewing skills, improving existing skills, or creating new ToolUniverse
+  research skills.
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-skills/readme
 ---
 
 # Optimizing ToolUniverse Skills

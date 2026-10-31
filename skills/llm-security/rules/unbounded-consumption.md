@@ -3,6 +3,7 @@ title: LLM10 - Prevent Unbounded Consumption
 impact: HIGH
 impactDescription: DoS attacks, excessive costs, model theft, service degradation
 tags: security, llm, dos, rate-limiting, cost-control, owasp-llm10, mitre-atlas-t0029
+permalink: dqverify-repo-20261013/skills/llm-security/rules/unbounded-consumption
 ---
 
 ## LLM10: Prevent Unbounded Consumption

@@ -1,6 +1,11 @@
 ---
 name: chatgpt-apps
-description: Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI. Use when Codex needs to design tools, register UI resources, wire the MCP Apps bridge or ChatGPT compatibility APIs, apply Apps SDK metadata/CSP/domain settings, or produce a docs-aligned scaffold. Prefer a docs-first workflow via openai-docs or the OpenAI docs MCP.
+description: Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications
+  that combine an MCP server and widget UI. Use when Codex needs to design tools,
+  register UI resources, wire the MCP Apps bridge or ChatGPT compatibility APIs, apply
+  Apps SDK metadata/CSP/domain settings, or produce a docs-aligned scaffold. Prefer
+  a docs-first workflow via openai-docs or the OpenAI docs MCP.
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/skill
 ---
 
 # ChatGPT Apps

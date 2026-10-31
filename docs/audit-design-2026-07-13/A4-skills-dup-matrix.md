@@ -1,3 +1,9 @@
+---
+title: A4-skills-dup-matrix
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a4-skills-dup-matrix
+---
+
 # A4 — Skills / Commands / Agents Duplicate + Disposition Matrix (Phase 2 + 5)
 
 **Workflow A (EVIDENCE)** for ONE versioned declarative harness control-plane (Claude + Codex +

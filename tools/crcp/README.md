@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/readme
+---
+
 # CRCP — Cross-Rail Control Plane (Phase 1+)
 
 Local tooling for multi-rail auth status, ChatGPT live bridge, bus publish, write path, and health probes.

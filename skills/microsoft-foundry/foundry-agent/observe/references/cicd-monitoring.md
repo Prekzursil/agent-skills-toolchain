@@ -1,3 +1,9 @@
+---
+title: cicd-monitoring
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/references/cicd-monitoring
+---
+
 # Step 6 — CI/CD Evals & Continuous Production Monitoring
 
 After confirming the final agent version through the observe loop, present two complementary monitoring options. The user may choose one, both, or neither.

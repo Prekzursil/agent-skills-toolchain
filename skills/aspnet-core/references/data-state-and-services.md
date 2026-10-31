@@ -1,3 +1,9 @@
+---
+title: data-state-and-services
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/data-state-and-services
+---
+
 # Data, State, And Services
 
 Primary docs:

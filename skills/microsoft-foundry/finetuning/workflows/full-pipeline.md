@@ -1,3 +1,9 @@
+---
+title: full-pipeline
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/workflows/full-pipeline
+---
+
 # Full Pipeline Workflow
 
 End-to-end fine-tuning on Azure AI Foundry in 9 phases.

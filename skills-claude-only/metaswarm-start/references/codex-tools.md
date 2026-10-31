@@ -1,3 +1,9 @@
+---
+title: codex-tools
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/references/codex-tools
+---
+
 # Codex CLI Tool Mapping (Future)
 
 This file maps Claude Code tool names to Codex CLI equivalents.

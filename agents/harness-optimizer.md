@@ -1,11 +1,18 @@
 ---
 name: harness-optimizer
-description: Analyze and improve the local agent harness configuration for reliability, cost, and throughput.
-tools: ["Read", "Grep", "Glob", "Bash", "Edit"]
+description: Analyze and improve the local agent harness configuration for reliability,
+  cost, and throughput.
+tools:
+- Read
+- Grep
+- Glob
+- Bash
+- Edit
 model: opus
 effort: xhigh
 memory: user
 color: teal
+permalink: dqverify-repo-20261013/agents/harness-optimizer
 ---
 
 You are the harness optimizer.

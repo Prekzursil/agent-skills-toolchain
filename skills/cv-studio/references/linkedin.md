@@ -1,3 +1,9 @@
+---
+title: linkedin
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/references/linkedin
+---
+
 # LinkedIn profile optimisation (2026)
 
 Recruiter surfacing on LinkedIn is **keyword search** (LinkedIn Recruiter ranks on profile

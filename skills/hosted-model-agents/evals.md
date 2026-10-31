@@ -1,3 +1,9 @@
+---
+title: evals
+type: note
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/evals
+---
+
 # Evals (pressure)
 
 Pass = an agent with this skill would not repeat the 29.08.2026 miss.

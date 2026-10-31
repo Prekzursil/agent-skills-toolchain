@@ -1,11 +1,13 @@
 ---
 name: langfuse-error-analysis
-description: Deep-dive error analysis of an LLM pipeline or AI application using Langfuse traces.
-  Use this skill whenever the user wants to understand why their AI system is producing
-  bad outputs, where their pipeline is failing, or how to categorise and label failures
-  into a taxonomy and decide what to prioritise fixing. Also trigger for "review my
-  traces", "my outputs look wrong", "help me debug my LLM app", "I want to analyse
-  errors", "build a failure taxonomy", or "what's going wrong with my pipeline".
+description: Deep-dive error analysis of an LLM pipeline or AI application using Langfuse
+  traces. Use this skill whenever the user wants to understand why their AI system
+  is producing bad outputs, where their pipeline is failing, or how to categorise
+  and label failures into a taxonomy and decide what to prioritise fixing. Also trigger
+  for "review my traces", "my outputs look wrong", "help me debug my LLM app", "I
+  want to analyse errors", "build a failure taxonomy", or "what's going wrong with
+  my pipeline".
+permalink: dqverify-repo-20261013/skills/langfuse/references/error-analysis
 ---
 
 # Error Analysis

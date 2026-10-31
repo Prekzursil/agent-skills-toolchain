@@ -1,3 +1,9 @@
+---
+title: customize-guides
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/models/deploy-model/customize/references/customize-guides
+---
+
 # Customize Guides — Selection Guides & Advanced Topics
 
 > Reference for: `models/deploy-model/customize/SKILL.md`

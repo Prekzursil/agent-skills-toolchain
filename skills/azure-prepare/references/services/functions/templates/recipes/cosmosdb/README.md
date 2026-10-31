@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/cosmosdb/readme
+---
+
 # Cosmos DB Recipe
 
 Cosmos DB change feed trigger with managed identity authentication.

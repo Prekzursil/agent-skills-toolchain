@@ -1,3 +1,9 @@
+---
+title: region-availability
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/region-availability
+---
+
 # Azure Region Availability Reference
 
 > **AUTHORITATIVE SOURCE** — Consult this file BEFORE recommending any region.
@@ -96,4 +102,3 @@ These services are available in all major Azure regions — no special considera
 ---
 
 **Last updated:** 2026-03-02
-

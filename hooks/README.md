@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/readme
+---
+
 # hooks/ — agentic-perfection hook set (canonical copy)
 
 This tree is the **canonical, version-controlled copy** of the session-built

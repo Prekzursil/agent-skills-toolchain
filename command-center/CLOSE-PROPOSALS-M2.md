@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-M2
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-m2
+---
+
 # CLOSE PROPOSALS — LANE B2 (MONITOR program, items R-M08 … R-M14)
 
 **Lane:** B2 · **Owner file:** `command-center/CLOSE-PROPOSALS-M2.md` (mine alone)

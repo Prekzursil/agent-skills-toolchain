@@ -1,3 +1,9 @@
+---
+title: testing-skills-with-subagents
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/writing-skills/testing-skills-with-subagents
+---
+
 # Testing Skills With Subagents
 
 **Load this reference when:** creating or editing skills, before deployment, to verify they work under pressure and resist rationalization.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/llm-security/readme
+---
+
 # LLM Security Skill
 
 Security guidelines for LLM applications based on the OWASP Top 10 for Large Language Model Applications 2025.

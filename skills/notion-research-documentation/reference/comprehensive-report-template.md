@@ -1,3 +1,9 @@
+---
+title: comprehensive-report-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/comprehensive-report-template
+---
+
 # Comprehensive Report Template
 
 Use for in-depth research requiring extensive analysis. See [comprehensive-report-format.md](comprehensive-report-format.md) for when to use this format.
@@ -61,4 +67,3 @@ Use for in-depth research requiring extensive analysis. See [comprehensive-repor
 ### Open Questions
 - [Unanswered questions for future research]
 ```
-

@@ -1,6 +1,9 @@
 ---
 name: dump-to-signature-workflow
-description: Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts, especially when findings must survive across builds or runtime sessions.
+description: Use when converting dump or debugger evidence into durable signatures,
+  AOB patterns, or diffable artifacts, especially when findings must survive across
+  builds or runtime sessions.
+permalink: dqverify-repo-20261013/skills/dump-to-signature-workflow/skill
 ---
 
 # Dump to Signature Workflow

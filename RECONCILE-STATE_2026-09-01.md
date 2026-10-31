@@ -1,3 +1,9 @@
+---
+title: RECONCILE-STATE_2026-09-01
+type: note
+permalink: dqverify-repo-20261013/reconcile-state-2026-09-01
+---
+
 # Repository reconcile state — 2026-09-01
 
 Measured, not asserted. Every number below was produced in this checkout against

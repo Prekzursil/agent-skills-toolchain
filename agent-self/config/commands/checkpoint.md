@@ -1,3 +1,9 @@
+---
+title: checkpoint
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/checkpoint
+---
+
 # Checkpoint Command
 
 Create or verify a checkpoint in your workflow.

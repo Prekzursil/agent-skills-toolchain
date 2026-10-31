@@ -1,3 +1,9 @@
+---
+title: template-architecture
+type: note
+permalink: dqverify-repo-20261013/skills/azure-resource-visualizer/assets/template-architecture
+---
+
 # Azure Architecture: [Resource Group Name]
 
 **Subscription**: [subscription-name]  

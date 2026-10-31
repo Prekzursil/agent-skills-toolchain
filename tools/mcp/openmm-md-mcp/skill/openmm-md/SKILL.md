@@ -1,6 +1,15 @@
 ---
 name: openmm-md
-description: Run FREE, open-source, Windows-native GPU molecular dynamics via the openmm-md MCP (OpenMM + CUDA on the local NVIDIA GPU). Use for protein / protein-ligand MD when you want a free stack or are on Windows without a Schrodinger license. Covers the full workflow (prepare, solvate, minimize, equilibrate, production, analyze, mmgbsa) AND an honest decision guide vs Schrodinger Desmond, including how to run Desmond legitimately on Linux or a cloud GPU with a real license. This is a deliberately LESSER free alternative and does NOT replace the schrodinger MCP tools. Do NOT use it to pick a free tool when a validated FEP+, WaterMap, IFD-MD, or Prime MM-GBSA result is actually required.
+description: Run FREE, open-source, Windows-native GPU molecular dynamics via the
+  openmm-md MCP (OpenMM + CUDA on the local NVIDIA GPU). Use for protein / protein-ligand
+  MD when you want a free stack or are on Windows without a Schrodinger license. Covers
+  the full workflow (prepare, solvate, minimize, equilibrate, production, analyze,
+  mmgbsa) AND an honest decision guide vs Schrodinger Desmond, including how to run
+  Desmond legitimately on Linux or a cloud GPU with a real license. This is a deliberately
+  LESSER free alternative and does NOT replace the schrodinger MCP tools. Do NOT use
+  it to pick a free tool when a validated FEP+, WaterMap, IFD-MD, or Prime MM-GBSA
+  result is actually required.
+permalink: dqverify-repo-20261013/tools/mcp/openmm-md-mcp/skill/openmm-md/skill
 ---
 
 # OpenMM MD (free, Windows-native GPU molecular dynamics)

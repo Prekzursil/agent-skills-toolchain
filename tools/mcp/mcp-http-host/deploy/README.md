@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/mcp-http-host/deploy/readme
+---
+
 # Deploying the Basic Memory session-healing proxy (owner-approved step)
 
 Status: the proxy is **built and tested** (`../bm_session_proxy.py`, 26 tests against the

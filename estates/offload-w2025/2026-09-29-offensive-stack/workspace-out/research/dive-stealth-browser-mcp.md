@@ -1,3 +1,9 @@
+---
+title: dive-stealth-browser-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-stealth-browser-mcp
+---
+
 # Deep-dive: stealth-browser-mcp (browser-offense lane)
 
 Date: 2026-09-29. Verifier: subagent on the estate VM (win32, Git Bash). All commands below were run in this session unless marked otherwise.

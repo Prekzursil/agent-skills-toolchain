@@ -1,3 +1,9 @@
+---
+title: notebook-structure
+type: note
+permalink: dqverify-repo-20261013/skills/jupyter-notebook/references/notebook-structure
+---
+
 # Notebook Structure
 
 Jupyter notebooks are JSON documents with this high-level shape:

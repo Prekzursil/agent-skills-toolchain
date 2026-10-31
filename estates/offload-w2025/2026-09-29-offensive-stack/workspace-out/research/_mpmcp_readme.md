@@ -1,3 +1,9 @@
+---
+title: _mpmcp_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/mpmcp-readme
+---
+
 # mitmproxy MCP Server
 A Model Context Protocol (MCP) server that transforms mitmproxy into a powerful toolset for AI agents. This allows LLMs (like Claude, GPT-4, or local models) to inspect, modify, and replay HTTP/HTTPS traffic in real-time.
 

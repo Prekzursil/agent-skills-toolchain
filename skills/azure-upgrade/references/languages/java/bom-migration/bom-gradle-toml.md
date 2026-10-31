@@ -1,3 +1,9 @@
+---
+title: bom-gradle-toml
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/bom-migration/bom-gradle-toml
+---
+
 # BOM Migration — Gradle TOML Version Catalog (`libs.versions.toml`)
 
 OpenRewrite does not yet support TOML version catalogs ([openrewrite/rewrite#4400](https://github.com/openrewrite/rewrite/issues/4400)). Handle manually.

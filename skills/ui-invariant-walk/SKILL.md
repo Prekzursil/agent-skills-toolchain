@@ -1,10 +1,22 @@
 ---
 name: ui-invariant-walk
-description: Use when you want a property-based random-walk oracle that DRIVES a running web/Electron app and asserts UI invariants over a randomized command sequence — "no enabled button is a dead click" (an enabled, visible control must produce an observable state change) and "no route errors" (no navigation may reach an error route, throw an uncaught exception, or log a console error). Model-based testing via fast-check (`fc.commands` + `fc.asyncModelRun`) driving Playwright, with automatic shrinking to a minimal reproducing click/nav sequence. Ships as a SHADOW-mode advisory oracle (observe + log to a bounded rotating sink, never blocks CI or nags). Optionally deepen the existing Python Hypothesis suite with HypoFuzz nightly — but ONLY after verifying HypoFuzz's shifted license; the fast-check oracle ships regardless. NOT for pixel/design critique (use ui-audit), NOT for deterministic single-flow E2E (use Playwright directly).
+description: Use when you want a property-based random-walk oracle that DRIVES a running
+  web/Electron app and asserts UI invariants over a randomized command sequence —
+  "no enabled button is a dead click" (an enabled, visible control must produce an
+  observable state change) and "no route errors" (no navigation may reach an error
+  route, throw an uncaught exception, or log a console error). Model-based testing
+  via fast-check (`fc.commands` + `fc.asyncModelRun`) driving Playwright, with automatic
+  shrinking to a minimal reproducing click/nav sequence. Ships as a SHADOW-mode advisory
+  oracle (observe + log to a bounded rotating sink, never blocks CI or nags). Optionally
+  deepen the existing Python Hypothesis suite with HypoFuzz nightly — but ONLY after
+  verifying HypoFuzz's shifted license; the fast-check oracle ships regardless. NOT
+  for pixel/design critique (use ui-audit), NOT for deterministic single-flow E2E
+  (use Playwright directly).
 metadata:
   origin: gem-hunt-2026-07-12
   item: ui-invariant-walk-oracle
-  evidence: MASTER A-Tier2 (agentic-repair-2 #9, agentic-repair-1 #10); COUNCIL-VERDICT C5 shadow-first
+  evidence: MASTER A-Tier2 (agentic-repair-2
+permalink: dqverify-repo-20261013/skills/ui-invariant-walk/skill
 ---
 
 # ui-invariant-walk Skill

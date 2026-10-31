@@ -1,3 +1,9 @@
+---
+title: deployment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/deployment
+---
+
 # Deployment Execution
 
 Execute infrastructure deployment after plan approval and IaC generation.

@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/agents
+---
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

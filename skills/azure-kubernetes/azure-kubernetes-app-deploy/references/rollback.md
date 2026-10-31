@@ -1,3 +1,9 @@
+---
+title: rollback
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/references/rollback
+---
+
 # Rollback Guidance
 
 Recovery procedures for deployment failures. Referenced from Section 4 (Deploy).

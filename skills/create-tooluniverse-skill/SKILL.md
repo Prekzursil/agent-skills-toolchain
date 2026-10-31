@@ -1,6 +1,9 @@
 ---
 name: create-tooluniverse-skill
-description: Create high-quality ToolUniverse skills following test-driven, implementation-agnostic methodology. Integrates tools from ToolUniverse's 1,264+ tool library, creates missing tools when needed, tests thoroughly, and produces skills with Python SDK + MCP support.
+description: Create high-quality ToolUniverse skills following test-driven, implementation-agnostic
+  methodology. Integrates tools from ToolUniverse's 1,264+ tool library, creates missing
+  tools when needed, tests thoroughly, and produces skills with Python SDK + MCP support.
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/skill
 ---
 
 # Create ToolUniverse Skill

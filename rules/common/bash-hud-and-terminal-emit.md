@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.sh"
-  - "**/*.ps1"
-  - "**/statusline*"
+- '**/*.sh'
+- '**/*.ps1'
+- '**/statusline*'
+permalink: dqverify-repo-20261013/rules/common/bash-hud-and-terminal-emit
 ---
 
 # Bash HUD / terminal-emit gotchas

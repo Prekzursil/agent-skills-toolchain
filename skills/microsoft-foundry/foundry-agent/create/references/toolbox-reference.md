@@ -1,3 +1,9 @@
+---
+title: toolbox-reference
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/toolbox-reference
+---
+
 # Toolbox Reference
 
 Endpoint format, MCP protocol details, authentication, OAuth consent handling, endpoint testing, citation pattern, and troubleshooting for Foundry Toolboxes.

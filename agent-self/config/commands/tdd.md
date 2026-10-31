@@ -1,5 +1,7 @@
 ---
-description: Enforce test-driven development workflow. Scaffold interfaces, generate tests FIRST, then implement minimal code to pass. Ensure 80%+ coverage.
+description: Enforce test-driven development workflow. Scaffold interfaces, generate
+  tests FIRST, then implement minimal code to pass. Ensure 80%+ coverage.
+permalink: dqverify-repo-20261013/agent-self/config/commands/tdd
 ---
 
 # TDD Command

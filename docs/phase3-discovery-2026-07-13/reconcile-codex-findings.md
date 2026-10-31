@@ -1,3 +1,9 @@
+---
+title: reconcile-codex-findings
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/reconcile-codex-findings
+---
+
 # Reconcile: Codex Control-Plane Audit — Extraction & Critical Assessment
 
 **Author:** Claude reconciliation sub-agent (Phase 3 discovery)

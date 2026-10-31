@@ -1,3 +1,9 @@
+---
+title: S2-WORKFLOW-AUTHORING-UNION-MERGE
+type: note
+permalink: dqverify-repo-20261013/command-center/s2-workflow-authoring-union-merge
+---
+
 # workflow-authoring — union-merge PROPOSAL (owner decision required)
 
 Lane SKILLS2, item 3. **This is a proposal, not an applied merge.** Nothing in

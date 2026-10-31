@@ -1,3 +1,9 @@
+---
+title: zero-code-path
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/zero-code-path
+---
+
 # Zero-Code Path
 
 When the workspace is empty (no project files, no Dockerfile), prereq scaffolds a starter project before evaluating.

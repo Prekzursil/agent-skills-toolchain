@@ -1,3 +1,9 @@
+---
+title: cli
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/cli
+---
+
 # CLI reference (`scripts/text_to_speech.py`)
 
 This file contains the "command catalog" for the bundled speech generation CLI. Keep `SKILL.md` as overview-first; put verbose CLI details here.

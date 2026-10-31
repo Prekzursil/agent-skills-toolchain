@@ -1,3 +1,9 @@
+---
+title: CSIE-DESIGN
+type: note
+permalink: dqverify-repo-20261013/skills/codex-databricks-fanout/references/csie-design
+---
+
 # Continuous Self-Improvement Engine (CSIE) — Design Spec
 
 **Status:** design (brainstormed 2026-07-24; awaiting plan-review gate before implementation).

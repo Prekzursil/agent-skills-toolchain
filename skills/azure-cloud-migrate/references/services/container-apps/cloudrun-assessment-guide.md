@@ -1,3 +1,9 @@
+---
+title: cloudrun-assessment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/cloudrun-assessment-guide
+---
+
 # Assessment: Cloud Run to Container Apps
 
 ## Checklist

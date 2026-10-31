@@ -1,3 +1,9 @@
+---
+title: sdk-sidecar-deployment
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/sdk-sidecar-deployment
+---
+
 # SDK Sidecar — Code Patterns, Deployment, and Security
 
 Companion to [sdk-sidecar.md](sdk-sidecar.md). This file covers calling-side code patterns in Python and TypeScript, container deployment manifests, security hardening, and troubleshooting.

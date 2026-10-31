@@ -1,6 +1,10 @@
 ---
 name: two-tier-verify
-description: "Use when repeated code edits are triggering a full test-suite rerun each iteration and burning tokens/time, or before any commit. Splits verification into a cheap INNER loop per edit (only the affected/related tests plus type-check and lint on touched files) and a single OUTER loop at the commit."
+description: Use when repeated code edits are triggering a full test-suite rerun each
+  iteration and burning tokens/time, or before any commit. Splits verification into
+  a cheap INNER loop per edit (only the affected/related tests plus type-check and
+  lint on touched files) and a single OUTER loop at the commit.
+permalink: dqverify-repo-20261013/ci/skills-allowlist/two-tier-verify/skill
 ---
 
 # two-tier-verify

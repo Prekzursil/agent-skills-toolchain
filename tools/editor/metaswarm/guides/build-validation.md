@@ -1,3 +1,9 @@
+---
+title: build-validation
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/guides/build-validation
+---
+
 # Build Validation Guide
 
 This guide covers build processes, validation workflows, and systematic error resolution for projects using the metaswarm framework. It is framework-level guidance applicable to any TypeScript/JavaScript codebase.

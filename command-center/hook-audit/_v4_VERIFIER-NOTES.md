@@ -1,3 +1,9 @@
+---
+title: _v4_VERIFIER-NOTES
+type: note
+permalink: dqverify-repo-20261013/command-center/hook-audit/v4-verifier-notes
+---
+
 # HOOKRESEARCH — round-4 ADVERSARIAL VERIFIER notes (attacking BUILD **and** AUDIT)
 
 STATUS: COMPLETE. Every row below was EXECUTED, not read. Probes are re-runnable and left

@@ -1,3 +1,9 @@
+---
+title: reference
+type: note
+permalink: dqverify-repo-20261013/skills/qwen-space-tool-api/reference
+---
+
 # Qwen Space OpenAI wire contract
 
 Measured 29.08.2026. Confirm live `/healthz` before blaming the client.

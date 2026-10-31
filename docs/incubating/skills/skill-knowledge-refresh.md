@@ -1,3 +1,9 @@
+---
+title: skill-knowledge-refresh
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/skill-knowledge-refresh
+---
+
 # skill-knowledge-refresh
 
 ## Purpose

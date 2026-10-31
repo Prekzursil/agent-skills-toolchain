@@ -1,3 +1,9 @@
+---
+title: _mcpwner_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/mcpwner-readme
+---
+
 <div align="center">
   <h1>MCPwner</h1>
   <img src="readme/avatar.png" width="200" alt="MCPwner Badger Avatar">
@@ -359,4 +365,3 @@ MCPwner persists workspace metadata, CodeQL databases, and findings across conta
 ## License
 
 [Apache 2.0](LICENSE.txt)
-

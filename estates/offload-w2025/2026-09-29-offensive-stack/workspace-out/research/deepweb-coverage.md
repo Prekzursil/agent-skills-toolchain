@@ -1,3 +1,9 @@
+---
+title: deepweb-coverage
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/deepweb-coverage
+---
+
 # deepweb-coverage — full research notes (2026-09-29)
 
 Lane: deep/dark web tool coverage for the authorized private-estate offensive-security VM

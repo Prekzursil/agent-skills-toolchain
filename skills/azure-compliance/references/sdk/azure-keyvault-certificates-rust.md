@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-certificates-rust
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-keyvault-certificates-rust
+---
+
 # Key Vault Certificates — Rust SDK Quick Reference
 
 > Condensed from **azure-keyvault-certificates-rust**. Full patterns

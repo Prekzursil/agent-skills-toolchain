@@ -1,3 +1,9 @@
+---
+title: CHANGELOG_POLICY
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/docs/changelog-policy
+---
+
 # Changelog and Release Notes Policy
 
 ## Goals

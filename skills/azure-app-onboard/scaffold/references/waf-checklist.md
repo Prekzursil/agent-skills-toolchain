@@ -1,3 +1,9 @@
+---
+title: waf-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/waf-checklist
+---
+
 # WAF Checklist
 
 Per-pillar Well-Architected Framework alignment for AppOnboard-generated infrastructure. Use during scaffold self-review (Layer 4) and prepare validation (WAF Alignment dimension).

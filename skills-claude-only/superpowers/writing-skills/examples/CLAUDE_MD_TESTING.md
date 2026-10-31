@@ -1,3 +1,9 @@
+---
+title: CLAUDE_MD_TESTING
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/writing-skills/examples/claude-md-testing
+---
+
 # Testing CLAUDE.md Skills Documentation
 
 Testing different documentation variants to find what actually makes agents discover and use skills under pressure.

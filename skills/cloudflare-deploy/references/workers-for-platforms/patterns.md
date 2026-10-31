@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-for-platforms/patterns
+---
+
 # Multi-Tenant Patterns
 
 ## Billing by Plan

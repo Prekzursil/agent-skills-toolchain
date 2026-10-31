@@ -1,3 +1,9 @@
+---
+title: spawn-preamble
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-foundry/references/spawn-preamble
+---
+
 # The spawn preamble — copy, fill the angle brackets, ship
 
 Nothing is inherited. MEASURED: 8 lens documents (~190 KB) whose prompt omitted the

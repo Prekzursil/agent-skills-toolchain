@@ -1,3 +1,9 @@
+---
+title: P13-REFERENCE-TRIAGE
+type: note
+permalink: dqverify-repo-20261013/command-center/p13-reference-triage
+---
+
 # P13 — Reference triage: 15 dangling repo-relative references
 
 **Unit:** `reference-triage` · **Status:** COMPLETE — all 15 classified, gate question answered

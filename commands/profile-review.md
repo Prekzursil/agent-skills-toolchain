@@ -1,5 +1,7 @@
 ---
-description: Review the profile-capture queue — approve or discard queued self-disclosure statements
+description: Review the profile-capture queue — approve or discard queued self-disclosure
+  statements
+permalink: dqverify-repo-20261013/commands/profile-review
 ---
 
 # Profile review

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-data-catalog/readme
+---
+
 # Cloudflare R2 Data Catalog Skill Reference
 
 Expert guidance for Cloudflare R2 Data Catalog - Apache Iceberg catalog built into R2 buckets.

@@ -1,7 +1,13 @@
 ---
 name: agent-as-judge
-description: Advisory, evidence-citing Agent-as-a-Judge. Use for a second opinion on whether a completion meets its Definition of Done AFTER the deterministic verification cluster (typed receipts, fail-first, execution-consensus, golden-journey oracle) ran - decomposes the DoD into falsifiable YES/NO items, cites evidence per item, scores on ICD-203. 100% ADVISORY/SHADOW, never blocks. NOT a done-gate.
+description: Advisory, evidence-citing Agent-as-a-Judge. Use for a second opinion
+  on whether a completion meets its Definition of Done AFTER the deterministic verification
+  cluster (typed receipts, fail-first, execution-consensus, golden-journey oracle)
+  ran - decomposes the DoD into falsifiable YES/NO items, cites evidence per item,
+  scores on ICD-203. 100% ADVISORY/SHADOW, never blocks. NOT a done-gate.
+permalink: dqverify-repo-20261013/skills/agent-as-judge/skill
 ---
+
 # Agent-as-a-Judge (advisory, evidence-citing)
 
 A tool-using LLM judge that annotates the **subjective residue** of a Definition of Done — the

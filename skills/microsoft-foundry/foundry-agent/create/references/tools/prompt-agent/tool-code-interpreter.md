@@ -1,3 +1,9 @@
+---
+title: tool-code-interpreter
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools/prompt-agent/tool-code-interpreter
+---
+
 # Tool — Code Interpreter
 
 Enables agents to write and run Python in a sandboxed environment. Supports data analysis, chart generation, and file processing. Has [additional charges](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/) beyond token-based fees.

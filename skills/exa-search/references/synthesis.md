@@ -1,3 +1,9 @@
+---
+title: synthesis
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/synthesis
+---
+
 # Synthesizing Research into Narrative
 
 When the task calls for a narrative answer (not a list or table), this file covers how to synthesize findings from multiple sources into a coherent, well-structured response.

@@ -1,3 +1,9 @@
+---
+title: security-auditor-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/security-auditor-agent
+---
+
 # Security Auditor Agent
 
 **Type**: `security-auditor-agent`

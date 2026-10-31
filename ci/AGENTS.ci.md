@@ -1,3 +1,9 @@
+---
+title: AGENTS.ci
+type: note
+permalink: dqverify-repo-20261013/ci/agents.ci
+---
+
 # Codex CI Runner — Agent Contract (autonomous propose-only PR mode)
 
 You are running **headless in GitHub Actions** as an autonomous agent inside ONE freshly

@@ -2,6 +2,7 @@
 name: team-builder
 description: Interactive agent picker for composing and dispatching parallel teams
 origin: community
+permalink: dqverify-repo-20261013/skills/team-builder/skill
 ---
 
 # Team Builder

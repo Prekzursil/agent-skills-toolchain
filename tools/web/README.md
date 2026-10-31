@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/web/readme
+---
+
 # Web Tools
 
 `tools/web/` is the bounded home for browser- or session-mediated tooling.

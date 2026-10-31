@@ -1,3 +1,9 @@
+---
+title: RUNBOOK-cookie-bridge-databricks-2026-07-24
+type: note
+permalink: dqverify-repo-20261013/skills/cookie-bridge/references/runbook-cookie-bridge-databricks-2026-07-24
+---
+
 # Handoff: Cookie bridge, Databricks sessions, profile corruption
 
 **Date:** 2026-07-24  

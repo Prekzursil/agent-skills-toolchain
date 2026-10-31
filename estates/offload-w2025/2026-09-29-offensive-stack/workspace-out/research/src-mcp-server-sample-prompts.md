@@ -1,14 +1,14 @@
 ---
 title: Sample prompts for Microsoft MCP Server for Enterprise
-description: "Explore example natural language prompts to query Microsoft Entra identity data using the Microsoft MCP Server for Enterprise."
+description: Explore example natural language prompts to query Microsoft Entra identity
+  data using the Microsoft MCP Server for Enterprise.
 author: msewaweru
 ms.author: eunicewaweru
 ms.reviewer: Licantrop0
 ms.subservice: ent-mcp-server
 ms.topic: how-to
 ms.date: 01/21/2026
-
-#customer intent: As an IT administrator or developer, I want to see example prompts that show me how to query my tenant's identity, security, and device data using natural language with the Microsoft MCP Server for Enterprise.
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/src-mcp-server-sample-prompts
 ---
 
 # Sample prompts for Microsoft MCP Server for Enterprise

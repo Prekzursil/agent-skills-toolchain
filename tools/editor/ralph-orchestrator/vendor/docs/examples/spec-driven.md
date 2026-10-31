@@ -1,3 +1,9 @@
+---
+title: spec-driven
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/spec-driven
+---
+
 # Spec-Driven Development Example
 
 !!! note "Example Only"

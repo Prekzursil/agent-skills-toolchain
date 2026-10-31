@@ -1,3 +1,9 @@
+---
+title: agentframework
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/agentframework
+---
+
 # Microsoft Agent Framework — Best Practices for Hosted Agents
 
 Best practices when building hosted agents with Microsoft Agent Framework for deployment to Foundry Agent Service.

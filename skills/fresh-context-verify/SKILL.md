@@ -1,6 +1,11 @@
 ---
 name: fresh-context-verify
-description: Use when a value, address, offset, or assumption has become load-bearing and you have relied on it for many steps without an independent check - especially in long reverse-engineering or autonomous-loop work that keeps hitting inconsistencies. Re-derive the value in a FRESH context that cannot inherit your current reasoning, and halt if it disagrees. The structural fix for sunk-cost grinding.
+description: Use when a value, address, offset, or assumption has become load-bearing
+  and you have relied on it for many steps without an independent check - especially
+  in long reverse-engineering or autonomous-loop work that keeps hitting inconsistencies.
+  Re-derive the value in a FRESH context that cannot inherit your current reasoning,
+  and halt if it disagrees. The structural fix for sunk-cost grinding.
+permalink: dqverify-repo-20261013/skills/fresh-context-verify/skill
 ---
 
 # Fresh-Context Verify

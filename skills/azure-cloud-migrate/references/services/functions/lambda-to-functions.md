@@ -1,3 +1,9 @@
+---
+title: lambda-to-functions
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/lambda-to-functions
+---
+
 # AWS Lambda to Azure Functions Migration
 
 Detailed guidance for migrating AWS Lambda functions to Azure Functions.

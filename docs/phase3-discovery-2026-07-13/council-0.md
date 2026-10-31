@@ -1,3 +1,9 @@
+---
+title: council-0
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/council-0
+---
+
 ## CONFIG-ARCHITECT lens — Phase-3 SSOT consolidation
 
 ### Headline reframe

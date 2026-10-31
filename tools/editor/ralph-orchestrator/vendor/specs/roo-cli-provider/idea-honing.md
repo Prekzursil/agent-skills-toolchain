@@ -1,3 +1,9 @@
+---
+title: idea-honing
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/idea-honing
+---
+
 # Idea Honing: roo-cli Provider
 
 Requirements clarification through Q&A.

@@ -1,3 +1,9 @@
+---
+title: scaffold
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/references/scaffold
+---
+
 # Scaffold Workflow
 
 Use this workflow to make a Python agent optimizable before running Agent Optimizer in Foundry.

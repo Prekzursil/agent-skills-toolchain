@@ -1,3 +1,9 @@
+---
+title: windows-first-routing
+type: note
+permalink: dqverify-repo-20261013/skills/codex-vscode-host-routing/references/windows-first-routing
+---
+
 # Windows First Routing
 
 Default to Windows when:

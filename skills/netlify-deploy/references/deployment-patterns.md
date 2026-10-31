@@ -1,3 +1,9 @@
+---
+title: deployment-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/netlify-deploy/references/deployment-patterns
+---
+
 # Netlify Deployment Patterns
 
 Common deployment scenarios and best practices for the Netlify skill.

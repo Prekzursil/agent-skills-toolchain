@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/durable-objects/patterns
+---
+
 # Durable Objects Patterns
 
 ## When to Use Which Pattern

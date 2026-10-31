@@ -1,3 +1,9 @@
+---
+title: powershell
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/runtimes/powershell
+---
+
 # PowerShell — Azure Functions Triggers & Bindings
 
 > **Model**: PowerShell uses `function.json` for binding definitions + `run.ps1` for handler code.

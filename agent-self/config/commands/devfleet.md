@@ -1,5 +1,8 @@
 ---
-description: Orchestrate parallel Claude Code agents via Claude DevFleet — plan projects from natural language, dispatch agents in isolated worktrees, monitor progress, and read structured reports.
+description: Orchestrate parallel Claude Code agents via Claude DevFleet — plan projects
+  from natural language, dispatch agents in isolated worktrees, monitor progress,
+  and read structured reports.
+permalink: dqverify-repo-20261013/agent-self/config/commands/devfleet
 ---
 
 # DevFleet — Multi-Agent Orchestration

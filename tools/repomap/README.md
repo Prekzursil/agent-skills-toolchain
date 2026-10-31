@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/repomap/readme
+---
+
 # `tools/repomap` — the fan-out grounding pack
 
 `rules/common/fan-out-contract.md` §A11 prescribes injecting a **shared grounding

@@ -1,3 +1,9 @@
+---
+title: cloud-ai-security
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/cloud-ai-security
+---
+
 # Research lane: cloud-ai-security
 Date: 2026-09-29. Researcher session on the estate VM (Windows Server, Git Bash, `C:\Python314\python.exe`, gh authed as Prekzursil).
 

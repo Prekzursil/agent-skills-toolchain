@@ -1,3 +1,9 @@
+---
+title: examples
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-forecast/examples
+---
+
 # Forecast API Examples
 
 Common forecast patterns with request bodies. Use the [SKILL.md workflow](../SKILL.md) to construct and execute the `az rest` command.

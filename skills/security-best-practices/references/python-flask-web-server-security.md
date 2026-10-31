@@ -1,3 +1,9 @@
+---
+title: python-flask-web-server-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/python-flask-web-server-security
+---
+
 # Flask (Python) Web Security Spec (Flask 3.1.x, Python 3.x)
 
 This document is designed as a **security spec** that supports:

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/harness/readme
+---
+
 # Shared Lifecycle Harness
 
 This directory is the provider-neutral lifecycle layer for Claude Code, Codex and the
@@ -111,4 +117,3 @@ python C:\Users\Prekzursil\.agents\harness\install.py --check
 The installer creates an exact timestamped rollback copy under `backups/` and updates
 each JSON document atomically. Codex hashes changed hook definitions and requires review
 through `/hooks` in a fresh session; do not bypass that trust review.
-

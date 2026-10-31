@@ -1,6 +1,7 @@
 ---
 name: voice-blend
-description: Combine multiple voice profiles with weighted mixing to create hybrid voices. Use when mixing two or more styles. NOT for one (use voice-apply).
+description: Combine multiple voice profiles with weighted mixing to create hybrid
+  voices. Use when mixing two or more styles. NOT for one (use voice-apply).
 license: MIT
 metadata:
   version: 1.0.0
@@ -8,6 +9,7 @@ metadata:
   - all
   source: https://github.com/angelarose210/ghostwriter
   upstream_author: angelarose210
+permalink: dqverify-repo-20261013/skills/voice-blend/skill
 ---
 
 # voice-blend

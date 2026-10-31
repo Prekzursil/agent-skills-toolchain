@@ -1,3 +1,9 @@
+---
+title: hats-and-events
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/hats-and-events
+---
+
 # Hats & Events
 
 Hats are specialized Ralph personas that coordinate through typed events. This enables complex workflows with role separation.

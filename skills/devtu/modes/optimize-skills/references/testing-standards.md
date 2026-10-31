@@ -1,3 +1,9 @@
+---
+title: testing-standards
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-skills/references/testing-standards
+---
+
 # Test-Driven Skill Development Standards
 
 ## The Golden Rule

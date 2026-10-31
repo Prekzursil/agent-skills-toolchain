@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-R3
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-r3
+---
+
 # P2NEXT — BUILD lane, round 3: the deferred anchor hole, closed
 
 COVERAGE: every claim below is measured by an executed probe named beside it. Two things are

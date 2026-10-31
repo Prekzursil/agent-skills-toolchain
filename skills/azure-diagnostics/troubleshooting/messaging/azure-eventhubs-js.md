@@ -1,3 +1,9 @@
+---
+title: azure-eventhubs-js
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-eventhubs-js
+---
+
 # Azure Event Hubs SDK — JavaScript
 
 Package: `@azure/event-hubs` | [README](https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/eventhub/event-hubs/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/eventhub/event-hubs/TROUBLESHOOTING.md)

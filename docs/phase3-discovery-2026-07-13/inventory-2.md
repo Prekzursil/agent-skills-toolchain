@@ -1,3 +1,8 @@
+---
+title: inventory-2
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/inventory-2
+---
 
 # Stale-Branch Triage + Config-Scatter Map (READ-ONLY census, 2026-07-13)
 
@@ -125,4 +130,3 @@ All 2026-04-22→29 Sonar/coverage fixes. HEAD is on `fix/semgrep-fastapi-false-
 - **`D:`** = RE toolkits, MCP servers, research compute, tool dev (mcp-manager/gateway), gem-wave-b, pr-b-clone, vendored knowledge clones.
 
 **Key risks in the scatter:** (1) skills copied-not-symlinked → 192/278/75 three-way drift; (2) `~/.agents/harness` is canonical-but-un-versioned (only just being enshrined today); (3) MCP truth split between `~/.mcp.json` (canonical) and `~/.claude.json` (live, clobber-prone) plus a fully parallel Codex stack; (4) `~/.codex` holds ~15 `config.toml`/`AGENTS.md` backup variants — its own mini-scatter.
-

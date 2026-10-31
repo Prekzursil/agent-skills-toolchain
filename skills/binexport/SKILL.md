@@ -1,6 +1,8 @@
 ---
 name: binexport
-description: Use when exporting IDA Pro, Binary Ninja, or Ghidra analysis into BinExport artifacts for BinDiff or portable cross-tool comparison workflows.
+description: Use when exporting IDA Pro, Binary Ninja, or Ghidra analysis into BinExport
+  artifacts for BinDiff or portable cross-tool comparison workflows.
+permalink: dqverify-repo-20261013/skills/binexport/skill
 ---
 
 # BinExport

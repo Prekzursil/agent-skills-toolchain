@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
+- '**/*.py'
+- '**/*.pyi'
+permalink: dqverify-repo-20261013/rules/python/hooks
 ---
+
 # Python Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Python specific content.

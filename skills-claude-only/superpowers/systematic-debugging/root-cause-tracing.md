@@ -1,3 +1,9 @@
+---
+title: root-cause-tracing
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/root-cause-tracing
+---
+
 # Root Cause Tracing
 
 ## Overview

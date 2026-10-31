@@ -1,3 +1,9 @@
+---
+title: dive-cloakbrowser-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-cloakbrowser-mcp
+---
+
 # Deep-dive: cloakbrowser-mcp (browser-offense lane)
 
 Date: 2026-09-29 · Verifier ran every check below on this VM (win32 10.0.26100 x64, Node v24.21.0).

@@ -1,3 +1,9 @@
+---
+title: guardrails
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-query/guardrails
+---
+
 # Cost Query Guardrails
 
 Detailed validation rules and guardrails for the Cost Management Query API. The system applies these automatically, but understanding them helps avoid unexpected query modifications or errors.

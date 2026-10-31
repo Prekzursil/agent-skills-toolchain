@@ -1,3 +1,9 @@
+---
+title: P13-BLINDSPOT-REVIEW
+type: note
+permalink: dqverify-repo-20261013/command-center/p13-blindspot-review
+---
+
 # P13 — Completeness and Blind-Spot Review
 
 - **Unit:** `depth/p13-blindspot`

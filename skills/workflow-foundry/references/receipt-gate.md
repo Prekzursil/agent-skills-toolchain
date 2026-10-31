@@ -1,3 +1,9 @@
+---
+title: receipt-gate
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-foundry/references/receipt-gate
+---
+
 # The fan-in receipt gate — schema, precedence, prior art, and what it does NOT prove
 
 Companion to `../scripts/receipt_gate.py` (workflow-foundry L2/L3/L6).

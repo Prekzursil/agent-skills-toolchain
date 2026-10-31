@@ -1,6 +1,9 @@
 ---
 name: mcp-graphql
-description: Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI, or when an MCP client needs GraphQL schema introspection and query execution against a known endpoint.
+description: Use when installing or configuring blurrah/mcp-graphql for Codex, Claude
+  Code, or Gemini CLI, or when an MCP client needs GraphQL schema introspection and
+  query execution against a known endpoint.
+permalink: dqverify-repo-20261013/skills/mcp-graphql/skill
 ---
 
 # MCP GraphQL

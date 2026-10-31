@@ -1,6 +1,8 @@
 ---
 name: digitalocean-cli
-description: Deploy and manage DigitalOcean resources using the doctl CLI. Use when the user mentions DigitalOcean, DO, droplets, doctl, or DO App Platform.
+description: Deploy and manage DigitalOcean resources using the doctl CLI. Use when
+  the user mentions DigitalOcean, DO, droplets, doctl, or DO App Platform.
+permalink: dqverify-repo-20261013/skills-claude-only/digitalocean-cli/skill
 ---
 
 # DigitalOcean CLI

@@ -1,6 +1,14 @@
 ---
-name: "claude-prompt-forge"
-description: "Prompt-forging skill for Claude Code and long autonomous Claude sessions — the prompt analogue of grill-me-extensive. Builds orchestration, session, unit, and handoff prompts with resume-don't-restart preambles, both-states evidence contracts, AND-gate completion, hard safety bans, and unit sentinels so work survives compaction and resists false greens. Use when writing or hardening a multi-phase Claude prompt, when a prior prompt caused restarts or false completion, or when the user says forge a prompt, prompt for Claude Code, make this prompt robust, orchestration prompt, session prompt, or handoff prompt."
+name: claude-prompt-forge
+description: Prompt-forging skill for Claude Code and long autonomous Claude sessions
+  — the prompt analogue of grill-me-extensive. Builds orchestration, session, unit,
+  and handoff prompts with resume-don't-restart preambles, both-states evidence contracts,
+  AND-gate completion, hard safety bans, and unit sentinels so work survives compaction
+  and resists false greens. Use when writing or hardening a multi-phase Claude prompt,
+  when a prior prompt caused restarts or false completion, or when the user says forge
+  a prompt, prompt for Claude Code, make this prompt robust, orchestration prompt,
+  session prompt, or handoff prompt.
+permalink: dqverify-repo-20261013/skills/claude-prompt-forge/skill
 ---
 
 Forge prompts that drive Claude (especially Claude Code) through multi-phase autonomous work without restarting completed gates, trusting uncontrolled zeros, or claiming success from partial evidence.

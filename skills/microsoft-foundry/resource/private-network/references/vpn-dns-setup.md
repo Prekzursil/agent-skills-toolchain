@@ -1,3 +1,9 @@
+---
+title: vpn-dns-setup
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/vpn-dns-setup
+---
+
 # VPN Gateway & DNS Private Resolver Setup
 
 Post-deployment add-on for private network templates (T10, T15–T19). Creates a point-to-site VPN Gateway and DNS Private Resolver so the user can connect from their dev machine and resolve private DNS zones.

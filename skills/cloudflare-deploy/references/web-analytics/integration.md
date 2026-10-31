@@ -1,3 +1,9 @@
+---
+title: integration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/web-analytics/integration
+---
+
 # Framework Integration
 
 **Web Analytics is dashboard-only** - no programmatic API. This covers beacon integration.

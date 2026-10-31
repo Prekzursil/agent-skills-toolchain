@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mutation-gate/readme
+---
+
 # TG-2 — diff-scoped mutation gate
 
 **Coverage says a line *ran*. Mutation says a test would *notice* if that line broke.**

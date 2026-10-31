@@ -1,3 +1,9 @@
+---
+title: council-2
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/council-2
+---
+
 ## Security + Concurrency lens — Phase-3 consolidation design verdict
 
 I'm the security/concurrency voice. My through-line: **every mutation to shared, multi-session state or to a secret-bearing tree is a hazard until proven otherwise.** Two live scars govern my calls — the `mcp_doctor reap` incident (a machine-wide destructive op killed *sibling sessions'* live MCP children) and the harness session-scoping bug (shared-cwd state intercalated sessions). Both say the same thing: **destructive ops on shared state while sessions run are forbidden; the safe default is advisory SHADOW + fail-open**, exactly what AGENTS.md §6 already mandates.

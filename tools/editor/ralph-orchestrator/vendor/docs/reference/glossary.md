@@ -1,3 +1,9 @@
+---
+title: glossary
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/reference/glossary
+---
+
 # Glossary
 
 ## A

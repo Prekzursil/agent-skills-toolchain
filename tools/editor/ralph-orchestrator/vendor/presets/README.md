@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/presets/readme
+---
+
 # Ralph Hat Collections
 
 This directory contains the canonical built-in hat collections Ralph still ships and supports.

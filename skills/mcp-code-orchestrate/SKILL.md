@@ -1,7 +1,12 @@
 ---
 name: mcp-code-orchestrate
-description: Use when one task needs the SAME tool-call shape repeated across MANY items - an xref-walk over many functions, a descriptor sweep over many SMILES, or one query across several MCP servers. Write ONE script (Python via the Bash tool) that calls the provider CLIs, native libraries, or MCP stdio, filters IN-CODE, and returns ONLY the distilled result. Reach for it past ~5 same-shape calls.
+description: Use when one task needs the SAME tool-call shape repeated across MANY
+  items - an xref-walk over many functions, a descriptor sweep over many SMILES, or
+  one query across several MCP servers. Write ONE script (Python via the Bash tool)
+  that calls the provider CLIs, native libraries, or MCP stdio, filters IN-CODE, and
+  returns ONLY the distilled result. Reach for it past ~5 same-shape calls.
 license: MIT
+permalink: dqverify-repo-20261013/skills/mcp-code-orchestrate/skill
 ---
 
 # MCP Code Orchestrate

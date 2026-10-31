@@ -1,6 +1,8 @@
 ---
 name: apa-citation-discipline
-description: Use when writing or repairing APA-style academic prose, references, in-text citations, and attribution discipline without citation laundering.
+description: Use when writing or repairing APA-style academic prose, references, in-text
+  citations, and attribution discipline without citation laundering.
+permalink: dqverify-repo-20261013/skills/apa-citation-discipline/skill
 ---
 
 # apa-citation-discipline

@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workerd/api
+---
+
 # Workerd APIs
 
 ## Worker Code (JS/TS)

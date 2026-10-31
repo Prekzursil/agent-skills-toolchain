@@ -1,3 +1,9 @@
+---
+title: _ADVVER_DOCS_R3
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/advver-docs-r3
+---
+
 # ADVERSARIAL VERIFY — DOCS lane round 3 (build 84bf3a33, audit verdict CLEAN)
 
 VERDICT: audit HOLDS · build SOUND · must_fix EMPTY. All rows below executed at HEAD 673cd180.

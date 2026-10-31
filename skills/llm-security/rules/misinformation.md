@@ -1,8 +1,10 @@
 ---
 title: LLM09 - Mitigate Misinformation and Hallucinations
 impact: HIGH
-impactDescription: False information leading to wrong decisions, legal liability, or user harm
+impactDescription: False information leading to wrong decisions, legal liability,
+  or user harm
 tags: security, llm, hallucination, misinformation, accuracy, owasp-llm09
+permalink: dqverify-repo-20261013/skills/llm-security/rules/misinformation
 ---
 
 ## LLM09: Mitigate Misinformation and Hallucinations

@@ -1,3 +1,9 @@
+---
+title: network-policy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/network-policy
+---
+
 # Network Policy Troubleshooting
 
 Use this guide when pod-to-pod or pod-to-service traffic is selectively blocked and the symptom points at ingress or egress filtering.

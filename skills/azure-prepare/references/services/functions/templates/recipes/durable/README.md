@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/durable/readme
+---
+
 # Durable Functions Recipe
 
 Orchestration workflows with Durable Task Scheduler as the backend.

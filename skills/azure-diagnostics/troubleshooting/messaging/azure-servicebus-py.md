@@ -1,3 +1,9 @@
+---
+title: azure-servicebus-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-servicebus-py
+---
+
 # Azure Service Bus SDK — Python
 
 Package: `azure-servicebus` | [README](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/servicebus/azure-servicebus/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/servicebus/azure-servicebus/TROUBLESHOOTING.md)

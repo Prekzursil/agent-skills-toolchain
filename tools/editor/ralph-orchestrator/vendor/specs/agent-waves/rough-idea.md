@@ -1,3 +1,9 @@
+---
+title: rough-idea
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/rough-idea
+---
+
 # Agent Waves: Fan-out / Fan-in Parallel Hat Execution
 
 Source: https://github.com/mikeyobrien/ralph-orchestrator/issues/210

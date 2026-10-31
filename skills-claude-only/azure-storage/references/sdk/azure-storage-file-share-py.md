@@ -1,3 +1,9 @@
+---
+title: azure-storage-file-share-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-storage/references/sdk/azure-storage-file-share-py
+---
+
 # File Shares — Python SDK Quick Reference
 
 > Condensed from **azure-storage-file-share-py**. Full patterns (async client,

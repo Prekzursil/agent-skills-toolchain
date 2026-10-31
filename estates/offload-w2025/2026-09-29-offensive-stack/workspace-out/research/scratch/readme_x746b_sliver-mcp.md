@@ -1,3 +1,9 @@
+---
+title: readme_x746b_sliver-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-x746b-sliver-mcp
+---
+
 # sliver-mcp
 
 Python MCP server for the [Sliver C2](https://github.com/BishopFox/sliver) adversary-emulation framework. Exposes ~74 tools covering exec, armory (aliases + BOF extensions), listeners, implant generation, identity, recon, registry, services, websites, and intel (hosts/loot/canaries).

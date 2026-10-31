@@ -1,3 +1,9 @@
+---
+title: shell-startup-hygiene
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/shell-startup-hygiene
+---
+
 # shell-startup-hygiene
 
 ## Purpose

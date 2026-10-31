@@ -1,3 +1,9 @@
+---
+title: direct-creation
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/direct-creation
+---
+
 # Direct Creation (MCP) Details
 
 Use this reference for MCP direct-creation examples and follow-on configuration.

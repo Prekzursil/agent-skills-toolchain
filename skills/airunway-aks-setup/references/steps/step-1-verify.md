@@ -1,3 +1,9 @@
+---
+title: step-1-verify
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-1-verify
+---
+
 # Step 1 — Cluster Verification
 
 **Goal**: Confirm prerequisites are met, validate the cluster connection, and inventory available nodes and GPUs.

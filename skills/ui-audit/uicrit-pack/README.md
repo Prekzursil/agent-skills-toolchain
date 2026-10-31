@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/ui-audit/uicrit-pack/readme
+---
+
 # UICrit few-shot exemplar pack
 
 Additive resource for the `ui-audit` skill's Track-B design critique. It supplies

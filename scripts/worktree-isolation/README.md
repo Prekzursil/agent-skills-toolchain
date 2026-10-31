@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/scripts/worktree-isolation/readme
+---
+
 # Worktree isolation for `Agent(isolation:"worktree")`
 
 Makes Claude Code's **native git-worktree agent isolation** work in this workspace, where

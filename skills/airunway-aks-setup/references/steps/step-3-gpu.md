@@ -1,3 +1,9 @@
+---
+title: step-3-gpu
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-3-gpu
+---
+
 # Step 3 — GPU Assessment
 
 **Goal**: Match detected hardware to known profiles and surface compatibility constraints.

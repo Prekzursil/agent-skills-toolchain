@@ -1,3 +1,9 @@
+---
+title: clearwing_arch
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/clearwing-arch
+---
+
 # Architecture
 
 Clearwing is organized around two complementary pipelines that share

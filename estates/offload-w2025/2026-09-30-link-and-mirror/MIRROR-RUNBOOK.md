@@ -1,3 +1,9 @@
+---
+title: MIRROR-RUNBOOK
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-30-link-and-mirror/mirror-runbook
+---
+
 # Session: 1:1 GCP machine-image mirror + home audit + link restoration (2026-10-01, ZCode on offload-w2025)
 
 The session that executed the ovido4 mirror (Macrium-Reflect-equivalent via GCP

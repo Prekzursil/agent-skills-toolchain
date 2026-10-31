@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.java"
+- '**/*.java'
+permalink: dqverify-repo-20261013/agent-self/config/rules/java/testing
 ---
+
 # Java Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Java-specific content.

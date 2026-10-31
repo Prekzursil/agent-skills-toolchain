@@ -1,8 +1,10 @@
 ---
 title: Prevent Cross-Site Request Forgery
 impact: HIGH
-impactDescription: Attackers can force authenticated users to perform unwanted actions, potentially modifying data, transferring funds, or changing account settings
+impactDescription: Attackers can force authenticated users to perform unwanted actions,
+  potentially modifying data, transferring funds, or changing account settings
 tags: security, csrf, cwe-352, owasp-a01
+permalink: dqverify-repo-20261013/skills/code-security/rules/csrf
 ---
 
 ## Prevent Cross-Site Request Forgery

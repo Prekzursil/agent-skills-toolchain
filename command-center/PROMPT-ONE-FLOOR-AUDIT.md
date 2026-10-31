@@ -1,3 +1,9 @@
+---
+title: PROMPT-ONE-FLOOR-AUDIT
+type: note
+permalink: dqverify-repo-20261013/command-center/prompt-one-floor-audit
+---
+
 # PROMPT ONE FLOOR AUDIT
 
 **Unit:** `ground/p1-floors` · **Measured:** 2026-08-09 · **Method:** mechanical counting, every

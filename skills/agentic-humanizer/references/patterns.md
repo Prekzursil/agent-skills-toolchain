@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/patterns
+---
+
 # Rewrite Playbook — 29 AI-Tells
 
 > **Attribution.** This file includes 29 AI-writing patterns originally created

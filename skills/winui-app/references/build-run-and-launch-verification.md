@@ -3,9 +3,10 @@ title: Build, Run, and Launch Verification
 priority: CRITICAL
 tags: build, run, launch, verification, packaged, unpackaged, debugging
 sources:
-  - https://learn.microsoft.com/windows/apps/get-started/start-here
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-packaged-apps
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-unpackaged-apps
+- https://learn.microsoft.com/windows/apps/get-started/start-here
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-packaged-apps
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-unpackaged-apps
+permalink: dqverify-repo-20261013/skills/winui-app/references/build-run-and-launch-verification
 ---
 
 ## What This Reference Is For

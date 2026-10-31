@@ -1,6 +1,11 @@
 ---
 name: competitive-programming-solver
-description: Solves algorithmic / competitive-programming problems with fast, correct solutions in C, C++, and Python. Use whenever the user mentions Codeforces, AtCoder, LeetCode, Infoarena, pbinfo, Kattis, SPOJ, USACO, ICPC, IOI, or any online judge / olympiad / contest, or a statement with input/output specs, time/memory limits, "TLE", "AC", or "competitive programming". Trigger even for a buggy submission.
+description: Solves algorithmic / competitive-programming problems with fast, correct
+  solutions in C, C++, and Python. Use whenever the user mentions Codeforces, AtCoder,
+  LeetCode, Infoarena, pbinfo, Kattis, SPOJ, USACO, ICPC, IOI, or any online judge
+  / olympiad / contest, or a statement with input/output specs, time/memory limits,
+  "TLE", "AC", or "competitive programming". Trigger even for a buggy submission.
+permalink: dqverify-repo-20261013/skills/competitive-programming-solver/skill
 ---
 
 # Competitive Programming Solver

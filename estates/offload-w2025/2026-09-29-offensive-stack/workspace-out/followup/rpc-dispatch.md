@@ -1,3 +1,9 @@
+---
+title: rpc-dispatch
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/rpc-dispatch
+---
+
 # Lane report: rpc-dispatch — kill kind=rpc, dispatch every stubbed backend for real
 
 Date: 2026-09-30. Lane scope from the ask: make every remaining stubbed backend either

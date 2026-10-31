@@ -1,3 +1,9 @@
+---
+title: azqr-recommendations
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/azqr-recommendations
+---
+
 # azqr Recommendation Categories
 
 This document describes how to interpret azqr recommendations and prioritize remediation.

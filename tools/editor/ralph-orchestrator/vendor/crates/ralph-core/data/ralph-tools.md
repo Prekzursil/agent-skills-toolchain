@@ -1,8 +1,10 @@
 ---
 name: ralph-tools
-description: Shared tool commands for interact, skill, and output format reference during Ralph orchestration
+description: Shared tool commands for interact, skill, and output format reference
+  during Ralph orchestration
 metadata:
   internal: true
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/data/ralph-tools
 ---
 
 # Ralph Tools

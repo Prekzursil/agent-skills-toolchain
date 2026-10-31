@@ -1,3 +1,9 @@
+---
+title: dive-Microsoft-MCP-Server-for-Enterprise---Microsoft-Graph
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-microsoft-mcp-server-for-enterprise-microsoft-graph
+---
+
 # Deep-dive: Microsoft MCP Server for Enterprise – Microsoft Graph
 
 Candidate lane: **ad-entra-paths**. Candidate "repo" URL: https://learn.microsoft.com/en-us/graph/mcp-server/get-started

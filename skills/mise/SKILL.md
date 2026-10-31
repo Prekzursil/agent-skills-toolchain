@@ -1,6 +1,11 @@
 ---
 name: mise
-description: "Use when managing dev tool and language runtime versions with mise (mise-en-place) — the asdf/nvm/pyenv/rbenv replacement: pinning global vs per-project versions via mise.toml or .tool-versions, per-directory environment variables, the task runner, installing non-language CLIs (npm/cargo/pipx/ubi/aqua/go backends), or setting up mise on Windows PowerShell (shims vs activate, mise trust)."
+description: 'Use when managing dev tool and language runtime versions with mise (mise-en-place)
+  — the asdf/nvm/pyenv/rbenv replacement: pinning global vs per-project versions via
+  mise.toml or .tool-versions, per-directory environment variables, the task runner,
+  installing non-language CLIs (npm/cargo/pipx/ubi/aqua/go backends), or setting up
+  mise on Windows PowerShell (shims vs activate, mise trust).'
+permalink: dqverify-repo-20261013/skills/mise/skill
 ---
 
 # mise (mise-en-place)

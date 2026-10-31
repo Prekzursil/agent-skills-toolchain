@@ -1,5 +1,7 @@
 ---
-description: Monitor a PR through to merge - handles CI failures, reviews, and thread resolution
+description: Monitor a PR through to merge - handles CI failures, reviews, and thread
+  resolution
+permalink: dqverify-repo-20261013/agent-self/config/commands/pr-shepherd
 ---
 
 # PR Shepherd

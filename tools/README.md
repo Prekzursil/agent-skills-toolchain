@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/readme
+---
+
 # Tools
 
 This repo keeps three integration-specific tool surfaces separate on purpose:

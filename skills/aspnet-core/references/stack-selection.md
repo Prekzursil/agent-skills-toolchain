@@ -1,3 +1,9 @@
+---
+title: stack-selection
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/stack-selection
+---
+
 # Stack Selection
 
 Primary docs:

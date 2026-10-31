@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/azcli/readme
+---
+
 # AZCLI Validation
 
 Validation steps for Azure CLI deployments.

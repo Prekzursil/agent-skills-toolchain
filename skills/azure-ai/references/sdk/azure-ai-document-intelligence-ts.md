@@ -1,3 +1,9 @@
+---
+title: azure-ai-document-intelligence-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-document-intelligence-ts
+---
+
 # Azure Document Intelligence — TypeScript SDK Quick Reference
 
 > Condensed from **azure-ai-document-intelligence-ts**. Full patterns (custom models, classifiers, batch polling)

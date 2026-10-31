@@ -1,3 +1,9 @@
+---
+title: analyze-latency
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/trace/references/analyze-latency
+---
+
 # Analyze Latency — Find and Diagnose Slow Traces
 
 Identify slow agent traces, find bottleneck spans, and correlate with token usage.

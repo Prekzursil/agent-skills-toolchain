@@ -1,3 +1,9 @@
+---
+title: troubleshooting-basics
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/troubleshooting-basics
+---
+
 # Basic troubleshooting (deploy-time and startup)
 
 Use this when a deploy fails, the service crashes on start, or health checks time out.

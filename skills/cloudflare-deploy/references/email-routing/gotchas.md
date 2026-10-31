@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/email-routing/gotchas
+---
+
 # Gotchas & Troubleshooting
 
 ## Critical Pitfalls

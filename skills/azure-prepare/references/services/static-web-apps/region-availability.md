@@ -1,3 +1,9 @@
+---
+title: region-availability
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/static-web-apps/region-availability
+---
+
 # SWA Region Availability
 
 ⚠️ **NOT available in many common regions** — Check before deployment.

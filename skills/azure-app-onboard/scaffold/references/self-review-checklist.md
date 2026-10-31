@@ -1,3 +1,9 @@
+---
+title: self-review-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/self-review-checklist
+---
+
 # Self-Review Checklist
 
 4-layer adversarial review of generated IaC. Run after scaffold generates all files, before `scaffold-manifest.json`.

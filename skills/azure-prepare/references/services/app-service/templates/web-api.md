@@ -1,3 +1,9 @@
+---
+title: web-api
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/web-api
+---
+
 # Web API Base Template — REFERENCE ONLY
 
 Default template for REST API workloads on Azure App Service. Use when no specific integration is detected or as the base for recipe composition.

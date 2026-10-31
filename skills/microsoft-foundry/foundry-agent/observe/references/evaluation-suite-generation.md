@@ -1,3 +1,9 @@
+---
+title: evaluation-suite-generation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/references/evaluation-suite-generation
+---
+
 # Evaluation Suite Generation
 
 Use generated suites as the preferred setup path for deployed agents. The suite generation job can create synthetic or trace-derived data plus a rubric-based evaluator from agent, dataset, file, prompt, or trace context.

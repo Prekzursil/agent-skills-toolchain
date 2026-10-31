@@ -1,3 +1,9 @@
+---
+title: 2026-03-30-local-validation
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hexstrike-ai/validation/2026-03-30-local-validation
+---
+
 # 2026-03-30 local validation
 
 ## Completed

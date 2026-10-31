@@ -1,3 +1,9 @@
+---
+title: bicep-swa
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/bicep-swa
+---
+
 # Bicep — Static Web Apps Patterns
 
 SWA-specific Bicep patterns. For shared patterns (skeleton, naming, tags, security defaults, data modules), see [bicep-patterns.md](bicep-patterns.md).

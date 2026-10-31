@@ -1,3 +1,9 @@
+---
+title: architecture
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/architecture
+---
+
 # Architecture Planning
 
 Select hosting stack and map components to Azure services.

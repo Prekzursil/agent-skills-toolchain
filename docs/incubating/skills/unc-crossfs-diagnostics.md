@@ -1,3 +1,9 @@
+---
+title: unc-crossfs-diagnostics
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/unc-crossfs-diagnostics
+---
+
 # unc-crossfs-diagnostics
 
 ## Purpose

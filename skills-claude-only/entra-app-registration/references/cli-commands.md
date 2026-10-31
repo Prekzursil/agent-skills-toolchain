@@ -1,3 +1,9 @@
+---
+title: cli-commands
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/entra-app-registration/references/cli-commands
+---
+
 # Azure CLI Commands for App Registration
 
 This document provides a comprehensive reference for managing Microsoft Entra app registrations using Azure CLI.

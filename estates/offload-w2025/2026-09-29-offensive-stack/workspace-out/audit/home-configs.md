@@ -1,3 +1,9 @@
+---
+title: home-configs
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/audit/home-configs
+---
+
 # Home-configs audit — `~/.agents` (agents.json, skills, secrets) and `~/.zcode`
 
 Date: 2026-09-29. Auditor: subagent "Auditor: home-configs" (authorized private-estate VM, read-only).

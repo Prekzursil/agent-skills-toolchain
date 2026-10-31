@@ -1,3 +1,9 @@
+---
+title: ADAPTER-CONTRACT
+type: note
+permalink: dqverify-repo-20261013/platform/coordination/adapter-contract
+---
+
 # The cross-vendor adapter contract
 
 **Spec anchor:** `_USER-PROMPTS.md:10965-10983`.

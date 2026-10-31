@@ -1,3 +1,9 @@
+---
+title: OPTIMIZE_INTEGRATION
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/optimize-integration
+---
+
 # Integration with devtu-optimize-skills
 
 How to apply the 10 pillars when creating new ToolUniverse skills.

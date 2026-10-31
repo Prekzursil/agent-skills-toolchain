@@ -1,10 +1,19 @@
 ---
 name: trail-of-bits-re
-description: Use when you want the Trail of Bits security/RE skill packs — differential-review (security-focused review of a code CHANGE, folding in git history to catch vulnerabilities a diff introduced), variant-analysis (find the SAME bug class across a codebase / other repos by pattern), and yara-authoring (write high-quality YARA-X detection rules with linting and atom analysis). Also the map to the rest of the trailofbits/skills marketplace (dwarf-expert, firebase-apk-scanner, constant-time-analysis, static-analysis, insecure-defaults, sharp-edges, semgrep-rule-creator, and more). These are advisory prompt/skill packs — Claude reasons with them, nothing auto-blocks. Install selectively (cherry-pick, do not bulk-install all 40 — catalogue tax). CC BY-SA 4.0.
+description: Use when you want the Trail of Bits security/RE skill packs — differential-review
+  (security-focused review of a code CHANGE, folding in git history to catch vulnerabilities
+  a diff introduced), variant-analysis (find the SAME bug class across a codebase
+  / other repos by pattern), and yara-authoring (write high-quality YARA-X detection
+  rules with linting and atom analysis). Also the map to the rest of the trailofbits/skills
+  marketplace (dwarf-expert, firebase-apk-scanner, constant-time-analysis, static-analysis,
+  insecure-defaults, sharp-edges, semgrep-rule-creator, and more). These are advisory
+  prompt/skill packs — Claude reasons with them, nothing auto-blocks. Install selectively
+  (cherry-pick, do not bulk-install all 40 — catalogue tax). CC BY-SA 4.0.
 origin: user
 metadata:
   gem: E5-ida-multi-mcp
   upstream: https://github.com/trailofbits/skills
+permalink: dqverify-repo-20261013/skills/trail-of-bits-re/skill
 ---
 
 # trail-of-bits-re — Trail of Bits security/RE skill packs

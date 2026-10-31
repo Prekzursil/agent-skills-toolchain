@@ -1,6 +1,11 @@
 ---
 name: consensus-tooluniverse-research
-description: Use when downloading or systematically harvesting research from Consensus.app - extract each shared search browser-free from the page __NEXT_DATA__ payload, resolve every cited paper to a DOI and open-access PDF with ToolUniverse (Crossref, OpenAlex, Unpaywall, EuropePMC), organize by topic with a DOI-linked bibliography, and verify headline claims against primary sources.
+description: Use when downloading or systematically harvesting research from Consensus.app
+  - extract each shared search browser-free from the page __NEXT_DATA__ payload, resolve
+  every cited paper to a DOI and open-access PDF with ToolUniverse (Crossref, OpenAlex,
+  Unpaywall, EuropePMC), organize by topic with a DOI-linked bibliography, and verify
+  headline claims against primary sources.
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/skill
 ---
 
 # Consensus + ToolUniverse Research Harvest

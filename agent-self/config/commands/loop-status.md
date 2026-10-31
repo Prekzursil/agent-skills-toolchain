@@ -1,3 +1,9 @@
+---
+title: loop-status
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/loop-status
+---
+
 # Loop Status Command
 
 Inspect active loop state, progress, and failure signals.

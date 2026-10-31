@@ -1,3 +1,9 @@
+---
+title: GROUNDING
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/grounding
+---
+
 # Hook fleet — GROUNDING lane (HOOKRESEARCH), round 5
 
 STATUS: COMPLETE for a grounding pass. No production code written (grounding lane mandate).

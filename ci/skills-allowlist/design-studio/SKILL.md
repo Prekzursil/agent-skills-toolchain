@@ -1,8 +1,20 @@
 ---
 name: design-studio
-description: ONE entry to the whole design pipeline over a running app (Reframe, momentstudio, WebCoder, bilbo) — the mode-routed successor to design-review-loop. Runs the full TCR design-review loop (8 gates, G0 PRIME to G7 VERIFY, revert-gate) plus a thin mode router to jump to one stage — direct (scope, define good, pick a direction, palette/font), audit (a11y/contrast/dead-button UI audit, visual review), mirror (code-to-canvas transpose to Figma), critique (design-critique persona panel), iterate (Figma branch, design tokens), implement (Figma-to-code), verify (re-audit delta), loop (the whole pass), drive (drive/point/interact the live app, to ui-drive), session (interactive restyle of a live element, to design-studio-session). Absorbs the folded design skills' triggers — design review, design system audit, frontend design direction, visual review, mirror to Figma, implement design, drive the app, interactive tweak. NOT for a design DOCUMENT (metaswarm review-design) nor rubric math (ui-audit, critique-panel).
+description: ONE entry to the whole design pipeline over a running app (Reframe, momentstudio,
+  WebCoder, bilbo) — the mode-routed successor to design-review-loop. Runs the full
+  TCR design-review loop (8 gates, G0 PRIME to G7 VERIFY, revert-gate) plus a thin
+  mode router to jump to one stage — direct (scope, define good, pick a direction,
+  palette/font), audit (a11y/contrast/dead-button UI audit, visual review), mirror
+  (code-to-canvas transpose to Figma), critique (design-critique persona panel), iterate
+  (Figma branch, design tokens), implement (Figma-to-code), verify (re-audit delta),
+  loop (the whole pass), drive (drive/point/interact the live app, to ui-drive), session
+  (interactive restyle of a live element, to design-studio-session). Absorbs the folded
+  design skills' triggers — design review, design system audit, frontend design direction,
+  visual review, mirror to Figma, implement design, drive the app, interactive tweak.
+  NOT for a design DOCUMENT (metaswarm review-design) nor rubric math (ui-audit, critique-panel).
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/ci/skills-allowlist/design-studio/skill
 ---
 
 <!-- origin: user (design-SOTA research, 2026-06-30); RENAMED from design-review-loop -> design-studio + thin mode router (gem-hunt 2026-07-12, item C1, evidence MASTER C.1 / UIUX C.1). Implements DESIGN-WORKFLOW.md §0/§2/§3 (the 8 gates + per-gate method + the transpose->discuss->revert micro-loop), DESIGN-SKILLS-AND-EVAL.md §1.2 (the orchestrator row) + §3 (engagement discipline, revert is first-class), FIGMA-SETUP.md (G2/G5/G6 Figma surface). -->

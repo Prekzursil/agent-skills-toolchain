@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/zaraz/api
+---
+
 # Zaraz Web API
 
 Client-side JavaScript API for tracking events, setting properties, and managing consent.

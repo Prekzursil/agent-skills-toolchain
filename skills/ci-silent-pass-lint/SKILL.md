@@ -1,6 +1,11 @@
 ---
 name: ci-silent-pass-lint
-description: Use before any PR creation or "gates green / ready to merge" claim to detect CI/gate workflows that report GREEN while masking real findings - the recurring "qlty green yet 61 issues + 809 on Codacy" / stale-SHA-gate pattern. Runs a deterministic linter over .github/workflows/*.yml for 11 silent-pass shapes plus an MCP cross-check of actual finding-counts at HEAD vs the reported status.
+description: Use before any PR creation or "gates green / ready to merge" claim to
+  detect CI/gate workflows that report GREEN while masking real findings - the recurring
+  "qlty green yet 61 issues + 809 on Codacy" / stale-SHA-gate pattern. Runs a deterministic
+  linter over .github/workflows/*.yml for 11 silent-pass shapes plus an MCP cross-check
+  of actual finding-counts at HEAD vs the reported status.
+permalink: dqverify-repo-20261013/skills/ci-silent-pass-lint/skill
 ---
 
 # CI Silent-Pass Lint

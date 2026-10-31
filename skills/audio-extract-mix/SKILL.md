@@ -1,20 +1,19 @@
 ---
 name: audio-extract-mix
-description: >-
-  Use when you need to EXTRACT, MIX, REPLACE, DUCK, or LOUDNESS-NORMALIZE audio
-  on a video/clip with ffmpeg — e.g. pull a wav out of a clip, lay a music bed or
-  VO UNDER a speaker so it auto-dips when they talk (sidechain ducking), normalize
-  an export to a per-platform LUFS target (-14 for TikTok/Reels/Shorts/YouTube,
-  -23 EBU R128 broadcast, -24 ATSC), mux/replace/strip an audio track while
-  preserving all other streams, or turn the soundtrack into laughter/applause/
-  music/loudness saliency signals. The exact filter graphs, argv lists, codec/map
-  choices, and the pitfalls that actually bite (amix auto-attenuation, -shortest
-  duration, stream-index = list-order coupling, mono/32k decode for PANNs,
-  loudnorm single-pass drift) come from the real media_studio source cited below.
-  Do NOT use for: per-word transcription/alignment (use ASR/CTC modules), TTS dub
-  GENERATION (this only muxes a finished dub), pitch/tempo time-stretch, or pure
-  visual edits. Do NOT use as a generic "run ffmpeg" reference — it is scoped to
-  these audio ops with the project's frozen wire surface.
+description: 'Use when you need to EXTRACT, MIX, REPLACE, DUCK, or LOUDNESS-NORMALIZE
+  audio on a video/clip with ffmpeg — e.g. pull a wav out of a clip, lay a music bed
+  or VO UNDER a speaker so it auto-dips when they talk (sidechain ducking), normalize
+  an export to a per-platform LUFS target (-14 for TikTok/Reels/Shorts/YouTube, -23
+  EBU R128 broadcast, -24 ATSC), mux/replace/strip an audio track while preserving
+  all other streams, or turn the soundtrack into laughter/applause/ music/loudness
+  saliency signals. The exact filter graphs, argv lists, codec/map choices, and the
+  pitfalls that actually bite (amix auto-attenuation, -shortest duration, stream-index
+  = list-order coupling, mono/32k decode for PANNs, loudnorm single-pass drift) come
+  from the real media_studio source cited below. Do NOT use for: per-word transcription/alignment
+  (use ASR/CTC modules), TTS dub GENERATION (this only muxes a finished dub), pitch/tempo
+  time-stretch, or pure visual edits. Do NOT use as a generic "run ffmpeg" reference
+  — it is scoped to these audio ops with the project''s frozen wire surface.'
+permalink: dqverify-repo-20261013/skills/audio-extract-mix/skill
 ---
 
 # audio-extract-mix

@@ -1,6 +1,12 @@
 ---
 name: delegate-primitive
-description: "Use when delegating nested work from a workflow or orchestrator session - spawning subagents / agents-as-tool with governance: per-level model routing, depth-2 provenance stamps, budget.spent() checkpoints, RAM pre-flight gate, and the standing claude-code-mcp ban. Triggers: delegate(), nested delegation, agent-as-tool, spawn a subagent from a workflow, delegation governance, RAM gate before a nested fleet."
+description: 'Use when delegating nested work from a workflow or orchestrator session
+  - spawning subagents / agents-as-tool with governance: per-level model routing,
+  depth-2 provenance stamps, budget.spent() checkpoints, RAM pre-flight gate, and
+  the standing claude-code-mcp ban. Triggers: delegate(), nested delegation, agent-as-tool,
+  spawn a subagent from a workflow, delegation governance, RAM gate before a nested
+  fleet.'
+permalink: dqverify-repo-20261013/skills/delegate-primitive/skill
 ---
 
 # delegate-primitive - the T0 governed delegation pattern

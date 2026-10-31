@@ -1,3 +1,9 @@
+---
+title: RETIRE-PREDICATE-ORIGIN-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/docs/ssot/retire-predicate-origin-2026-08-14
+---
+
 # The retire predicate, re-based on `origin/main` — 4 commits exist nowhere else
 
 Ranked action #7 from the synthesis lane: *"Re-run the SSOT retire-candidate predicate against

@@ -1,3 +1,9 @@
+---
+title: ef-migrations
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/ef-migrations
+---
+
 # EF Core Migrations Deployment
 
 Apply Entity Framework Core migrations to Azure SQL Database after deployment.

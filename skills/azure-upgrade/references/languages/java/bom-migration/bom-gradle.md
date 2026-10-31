@@ -1,3 +1,9 @@
+---
+title: bom-gradle
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/bom-migration/bom-gradle
+---
+
 # BOM Migration — Gradle Projects (No Version Catalogs)
 
 > **Python/script availability**: The script below requires Python 3.10+. If `python3 --version` (or `python --version`) fails, or if `upgrade_bom.py` exits unsuccessfully, skip the script path and follow [Manual Fallback](#manual-fallback-no-python-or-script-failure) instead.

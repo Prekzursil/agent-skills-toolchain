@@ -1,3 +1,9 @@
+---
+title: pull-requests
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/contributing/pull-requests
+---
+
 # Submitting Pull Requests
 
 !!! note "Documentation In Progress"

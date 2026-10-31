@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/cosmos-db/readme
+---
+
 # Azure Cosmos DB
 
 Globally distributed, multi-model database for low-latency data at scale.

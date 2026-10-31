@@ -1,3 +1,9 @@
+---
+title: pipeline-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/pipeline-rules
+---
+
 # Pipeline Rules — Reference
 
 Cross-cutting rules enforced across all workflow steps. Referenced from [SKILL.md](../SKILL.md) `## Pipeline Rules`.
@@ -85,4 +91,3 @@ See [iac-generation-rules.md](../scaffold/references/iac-generation-rules.md) §
 ## azure.yaml prohibition
 
 ⛔ **NEVER generate `azure.yaml`. NEVER use `azd up`/`azd provision`/`azd deploy`.** AppOnboard deploys via `az deployment sub create` (Bicep) or `terraform apply` (Terraform). Repos with existing `azure.yaml` → route per [`azd-template-routing.md`](azd-template-routing.md).
-

@@ -1,3 +1,9 @@
+---
+title: BP-3-STATUS
+type: note
+permalink: dqverify-repo-20261013/platform/workflows/bp-3-status
+---
+
 # Phase 2B/7 — Workflow Blueprints 25-36 of 96 (unit `blueprints/bp-3`)
 
 STATUS: **MEASURED**. Every row below was produced by a command whose output is quoted.

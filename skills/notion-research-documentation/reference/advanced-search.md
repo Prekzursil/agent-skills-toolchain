@@ -1,3 +1,9 @@
+---
+title: advanced-search
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/advanced-search
+---
+
 # Advanced Search Techniques
 
 ## Search Filtering
@@ -209,4 +215,3 @@ When citing results from connected sources:
 - Note the source type in documentation
 - Use appropriate mention format
 - Verify user has access to the source system
-

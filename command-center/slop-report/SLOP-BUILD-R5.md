@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R5
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r5
+---
+
 # SLOP — BUILD lane, round 5
 
 Round 4 was audited and came back **PARTIAL** with two CONFIRMED defects and two overclaims.

@@ -1,3 +1,9 @@
+---
+title: pipeline
+type: note
+permalink: dqverify-repo-20261013/skills/dump-to-signature-workflow/references/pipeline
+---
+
 # Dump to Signature Pipeline
 
 ## Recommended chain

@@ -1,3 +1,9 @@
+---
+title: ralph-cli
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/api/ralph-cli
+---
+
 # ralph-cli
 
 Binary entry point and CLI parsing.

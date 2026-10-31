@@ -1,3 +1,9 @@
+---
+title: invocations-ws
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invocations-ws/invocations-ws
+---
+
 # Invocations WebSocket (`invocations_ws`) Protocol
 
 Build, deploy, and connect to Foundry hosted agents that expose a **duplex WebSocket** endpoint instead of an HTTP request/response surface. Use this for real-time, bidirectional workloads — voice agents, live transcripts, custom streaming protocols, and signaling for out-of-band media transports.

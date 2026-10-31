@@ -1,3 +1,9 @@
+---
+title: schema
+type: note
+permalink: dqverify-repo-20261013/skills/ralph-hats/references/schema
+---
+
 # Ralph Hats Schema Notes
 
 This reference is for user-authored hats files used with:

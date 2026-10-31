@@ -1,6 +1,8 @@
 ---
 name: journal-fit-and-submission
-description: Use when choosing target journals, matching manuscript fit, and preparing the submission package without misrepresenting novelty or scope.
+description: Use when choosing target journals, matching manuscript fit, and preparing
+  the submission package without misrepresenting novelty or scope.
+permalink: dqverify-repo-20261013/skills/journal-fit-and-submission/skill
 ---
 
 # journal-fit-and-submission

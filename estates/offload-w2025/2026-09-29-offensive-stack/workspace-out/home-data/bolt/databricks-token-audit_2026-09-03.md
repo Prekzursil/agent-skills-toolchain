@@ -1,3 +1,9 @@
+---
+title: databricks-token-audit_2026-09-03
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/home-data/bolt/databricks-token-audit-2026-09-03
+---
+
 # Databricks Token Audit — bolt-common workspace
 **Date:** 03.09.2026 · **Scope:** all Databricks PATs present on this machine (env vars + `~/.databrickscfg`)
 **Method:** read-only API enumeration (SCIM /me, workspace surface probes, SQL statement execution, count-only read proofs — no PII values exfiltrated, no writes left behind)

@@ -1,3 +1,9 @@
+---
+title: skill-toolbox-attach
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/skills/skill-toolbox-attach
+---
+
 # Skills in Toolbox
 
 How to attach, list, remove, and version **skills** (reusable behavioral guidelines) in a Foundry toolbox using `azd ai toolbox skill`.

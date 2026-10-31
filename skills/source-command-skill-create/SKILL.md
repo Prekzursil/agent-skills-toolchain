@@ -1,6 +1,8 @@
 ---
-name: "source-command-skill-create"
-description: "Analyze local git history to extract coding patterns and generate SKILL.md files. Local version of the Skill Creator GitHub App."
+name: source-command-skill-create
+description: Analyze local git history to extract coding patterns and generate SKILL.md
+  files. Local version of the Skill Creator GitHub App.
+permalink: dqverify-repo-20261013/skills/source-command-skill-create/skill
 ---
 
 # source-command-skill-create

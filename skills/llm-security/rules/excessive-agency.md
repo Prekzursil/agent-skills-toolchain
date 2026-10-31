@@ -3,6 +3,7 @@ title: LLM06 - Control Excessive Agency
 impact: HIGH
 impactDescription: Unauthorized actions, data modification, privilege escalation
 tags: security, llm, agency, permissions, owasp-llm06
+permalink: dqverify-repo-20261013/skills/llm-security/rules/excessive-agency
 ---
 
 ## LLM06: Control Excessive Agency

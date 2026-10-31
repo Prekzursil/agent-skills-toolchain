@@ -1,3 +1,9 @@
+---
+title: CHANGELOG
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/changelog
+---
+
 # Changelog
 
 ## 0.10.0

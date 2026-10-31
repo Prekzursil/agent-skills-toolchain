@@ -1,5 +1,7 @@
 ---
-description: "Scan skills to extract cross-cutting principles and distill them into rules"
+description: Scan skills to extract cross-cutting principles and distill them into
+  rules
+permalink: dqverify-repo-20261013/agent-self/config/commands/rules-distill
 ---
 
 # /rules-distill — Distill Principles from Skills into Rules

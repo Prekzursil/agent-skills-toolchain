@@ -1,3 +1,9 @@
+---
+title: 06-pi-ndjson-schema
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/06-pi-ndjson-schema
+---
+
 # Research: Pi NDJSON Schema (Definitive Reference)
 
 ## Summary

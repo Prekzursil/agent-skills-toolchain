@@ -1,3 +1,9 @@
+---
+title: A1-stoploop-incident
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a1-stoploop-incident
+---
+
 # A1 — Stop-Loop Incident Report (Workflow A / Phase 1)
 
 **Scope:** the recurring/prolonged `Shared harness: Stop… / (Befuddling) / Stop 3/4` symptom, as a

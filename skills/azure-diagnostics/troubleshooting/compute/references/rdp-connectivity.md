@@ -1,3 +1,9 @@
+---
+title: rdp-connectivity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/rdp-connectivity
+---
+
 # Unable to RDP into the VM
 
 Use for Windows VM RDP timeouts, refused connections, black screen, or RDP error dialogs.

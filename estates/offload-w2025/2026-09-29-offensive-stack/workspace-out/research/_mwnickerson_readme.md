@@ -1,3 +1,9 @@
+---
+title: _mwnickerson_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/mwnickerson-readme
+---
+
 # BloodHound MCP
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -341,4 +347,3 @@ Contributions are welcome. Open an issue to discuss significant changes before s
 ## License
 
 GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.
-

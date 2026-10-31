@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/static-assets/gotchas
+---
+
 ## Best Practices
 
 ### 1. Use Selective Worker-First Routing

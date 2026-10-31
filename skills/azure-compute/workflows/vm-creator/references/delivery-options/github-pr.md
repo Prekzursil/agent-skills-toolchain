@@ -1,3 +1,9 @@
+---
+title: github-pr
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/delivery-options/github-pr
+---
+
 # Mode C — Sync to a GitHub repo
 
 ## Step 1 — Gather repo + branch + path

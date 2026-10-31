@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/ghidra-mcp/references/upstream
+---
+
 # Upstream Notes
 
 - Upstream repo: `https://github.com/LaurieWired/GhidraMCP`

@@ -1,3 +1,9 @@
+---
+title: scripts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azcli/scripts
+---
+
 # Deployment Scripts
 
 Script templates for AZCLI deployments.

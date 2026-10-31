@@ -1,3 +1,9 @@
+---
+title: README.CONJURE
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/tor/tor/pluggable-transports/readme.conjure
+---
+
 # Conjure
 
 [Conjure](https://jhalderm.com/pub/papers/conjure-ccs19.pdf) is an anti-censorship tool in the refraction networking (a.k.a. decoy routing) lineage of circumvention systems. The key innovation of Conjure is to turn the unused IP address space of deploying ISPs into a large pool of **phantom** proxies that users can connect to. Due to the size of unused IPv6 address space and the potential for collateral damage against real websites hosted by the deploying ISPs, Conjure provides an effective solution to the problem of censors enumerating deployed bridges or proxies.

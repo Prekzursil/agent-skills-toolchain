@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/durable-objects/api
+---
+
 # Durable Objects API
 
 ## Class Structure

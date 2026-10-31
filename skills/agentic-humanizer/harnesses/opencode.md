@@ -1,3 +1,9 @@
+---
+title: opencode
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/opencode
+---
+
 # Harness Routing — OpenCode
 
 `SKILL.md` routes here when running inside OpenCode. OpenCode's native

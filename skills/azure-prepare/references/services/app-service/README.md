@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/readme
+---
+
 # Azure App Service
 
 Hosting patterns and best practices for Azure App Service.

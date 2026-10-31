@@ -1,3 +1,9 @@
+---
+title: cold-start
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/cold-start
+---
+
 # Azure Functions Cold Start Mitigation
 
 Cold starts occur when a function app must allocate infrastructure, load the runtime, and initialize your code before handling a request. Impact and mitigation options differ significantly by hosting plan.

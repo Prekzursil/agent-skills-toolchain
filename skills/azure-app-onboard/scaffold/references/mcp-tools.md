@@ -1,3 +1,9 @@
+---
+title: mcp-tools
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/mcp-tools
+---
+
 # Scaffold Phase — MCP Tools
 
 Phase-exclusive tool parameters for the scaffold phase. For shared tools (`get_azure_bestpractices`, `subscription_list`, `group_list`, `extension_cli_install`), see [mcp-tool-reference.md](../../references/mcp-tool-reference.md).

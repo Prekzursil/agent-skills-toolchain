@@ -1,6 +1,8 @@
 ---
 name: graphql-cli
-description: Query GraphQL endpoints using curl or graphql-cli. Use when the user mentions GraphQL, graphql query, graphql mutation, or graphql schema.
+description: Query GraphQL endpoints using curl or graphql-cli. Use when the user
+  mentions GraphQL, graphql query, graphql mutation, or graphql schema.
+permalink: dqverify-repo-20261013/skills-claude-only/graphql-cli/skill
 ---
 
 # GraphQL CLI

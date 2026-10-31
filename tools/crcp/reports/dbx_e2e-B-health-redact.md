@@ -1,3 +1,9 @@
+---
+title: dbx_e2e-B-health-redact
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-e2e-b-health-redact
+---
+
 # e2e-B-health-redact — P0 health and redaction
 
 ## Summary

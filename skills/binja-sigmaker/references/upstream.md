@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/binja-sigmaker/references/upstream
+---
+
 # binja_sigmaker Notes
 
 ## Upstream

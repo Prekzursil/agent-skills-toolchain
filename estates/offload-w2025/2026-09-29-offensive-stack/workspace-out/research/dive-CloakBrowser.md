@@ -1,3 +1,9 @@
+---
+title: dive-CloakBrowser
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-cloak-browser
+---
+
 # Deep-dive: CloakBrowser (browser-offense lane)
 
 Date: 2026-09-29. Verifier session on the estate Windows VM. All API reads via `gh api` against `CloakHQ/CloakBrowser` unless noted.

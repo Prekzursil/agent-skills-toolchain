@@ -1,3 +1,9 @@
+---
+title: MISSING-FROM-HOME
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/missing-from-home
+---
+
 # MISSING-FROM-HOME — fetch-when-awake runbook
 
 Date: 2026-09-30. Author: subagent "Implementer: home-mirror-sweep".

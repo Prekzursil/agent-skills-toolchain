@@ -1,3 +1,9 @@
+---
+title: model-sizing
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/model-sizing
+---
+
 # Model Sizing & Starter Recommendations
 
 ## VRAM Sizing Guide

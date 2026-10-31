@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/scholarly-access-mcp/readme
+---
+
 # Scholarly Access MCP
 
 A comprehensive scholarly-retrieval MCP server. It resolves DOI / PMID / arXiv / title queries

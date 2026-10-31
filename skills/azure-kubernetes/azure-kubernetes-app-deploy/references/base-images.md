@@ -1,3 +1,9 @@
+---
+title: base-images
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/references/base-images
+---
+
 # Base Image Policy
 
 How the skill chooses container base images. Goal: **no version number is

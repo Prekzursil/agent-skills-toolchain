@@ -1,3 +1,9 @@
+---
+title: fargate-assessment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/fargate-assessment-guide
+---
+
 # Assessment: Fargate to Container Apps
 
 ## Checklist

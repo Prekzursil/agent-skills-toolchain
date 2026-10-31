@@ -1,3 +1,9 @@
+---
+title: P2NEXT-ADVVERIFY
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/p2-next-advverify
+---
+
 # P2NEXT adversarial verification (round 3 verifier) — MEASURED
 
 Repo: C:/Users/Prekzursil/source/ast-integrate  HEAD 673cd180 (measurement rev)

@@ -1,3 +1,9 @@
+---
+title: scaffold
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/scaffold
+---
+
 # Scaffold & Parameterize
 
 Use this reference to fetch the confirmed template and wire up parameters.

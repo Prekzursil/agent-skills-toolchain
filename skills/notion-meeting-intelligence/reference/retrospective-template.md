@@ -1,3 +1,9 @@
+---
+title: retrospective-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/retrospective-template
+---
+
 # Retrospective Template
 
 Use this template for sprint retrospectives and team retrospectives.
@@ -55,4 +61,3 @@ Use this template for sprint retrospectives and team retrospectives.
 
 **Review actions in**: [Next retro date]
 ```
-

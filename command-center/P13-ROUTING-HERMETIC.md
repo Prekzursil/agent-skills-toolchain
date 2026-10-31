@@ -1,3 +1,9 @@
+---
+title: P13-ROUTING-HERMETIC
+type: note
+permalink: dqverify-repo-20261013/command-center/p13-routing-hermetic
+---
+
 # P13 — Routing lane hermeticity
 
 **Unit:** `routing-hermetic` · **Status:** COMPLETE — every section measured

@@ -1,3 +1,9 @@
+---
+title: B1-RFC-core
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b1-rfc-core
+---
+
 # B1 — RFC Core: Authority · Catalog · Adapters · Profiles · Deployment · MCP-Matrix
 
 **Program:** Unified Harness Control-Plane (Claude + Codex). **Workflow B (RFC / design gate).**

@@ -1,3 +1,9 @@
+---
+title: azure-ai-translation-text-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-translation-text-py
+---
+
 # Azure AI Text Translation — Python SDK Quick Reference
 
 > Condensed from **azure-ai-translation-text-py**. Full patterns (transliteration, dictionary lookup, sentence boundaries)

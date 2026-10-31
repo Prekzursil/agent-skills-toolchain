@@ -1,3 +1,9 @@
+---
+title: REPO-TOPOLOGY
+type: note
+permalink: dqverify-repo-20261013/repo-topology
+---
+
 # Repository topology — the single source of truth
 
 **Measured 2026-08-09.** Read this before deciding where to edit. Every number below came from

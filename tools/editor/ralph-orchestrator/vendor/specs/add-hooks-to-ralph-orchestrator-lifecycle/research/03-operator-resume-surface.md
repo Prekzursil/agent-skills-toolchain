@@ -1,3 +1,9 @@
+---
+title: 03-operator-resume-surface
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/research/03-operator-resume-surface
+---
+
 # Research: Operator Resume Surface (`ralph loops resume <id>`)
 
 ## Goal

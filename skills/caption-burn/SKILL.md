@@ -1,6 +1,19 @@
 ---
 name: caption-burn
-description: "Use when BURNING captions / subtitles / karaoke INTO a video as hardcoded pixels (hardsub) via libass through ffmpeg, OR soft-muxing them as a selectable, removable subtitle track. Covers ASS document generation sized to the export canvas, libass styling (font / size / colour / outline / box), the OpusClip word-by-word KARAOKE preset (per-word alternating yellow/green + scale-pop), hook-title / hook-card overlays, the CaptionOverride tuning patch, safe-area placement for 9:16, and the Netflix CPS/CPL/min-gap polish pass. Burn = lossy re-encode, permanent, styling survives anywhere; soft-mux = lossless stream-copy, toggleable, but loses ASS styling in MP4 (mov_text). NOT for moving/animated watermark removal (use video-watermark-removal), NOT for transcription/cue generation (this consumes an existing cue list), NOT for repositioning an already-burned track (burned pixels are permanent — re-burn from source). Source of truth: media_studio/features/caption.py, caption_karaoke.py, caption_override.py, caption_polish.py, tracks.py."
+description: 'Use when BURNING captions / subtitles / karaoke INTO a video as hardcoded
+  pixels (hardsub) via libass through ffmpeg, OR soft-muxing them as a selectable,
+  removable subtitle track. Covers ASS document generation sized to the export canvas,
+  libass styling (font / size / colour / outline / box), the OpusClip word-by-word
+  KARAOKE preset (per-word alternating yellow/green + scale-pop), hook-title / hook-card
+  overlays, the CaptionOverride tuning patch, safe-area placement for 9:16, and the
+  Netflix CPS/CPL/min-gap polish pass. Burn = lossy re-encode, permanent, styling
+  survives anywhere; soft-mux = lossless stream-copy, toggleable, but loses ASS styling
+  in MP4 (mov_text). NOT for moving/animated watermark removal (use video-watermark-removal),
+  NOT for transcription/cue generation (this consumes an existing cue list), NOT for
+  repositioning an already-burned track (burned pixels are permanent — re-burn from
+  source). Source of truth: media_studio/features/caption.py, caption_karaoke.py,
+  caption_override.py, caption_polish.py, tracks.py.'
+permalink: dqverify-repo-20261013/skills/caption-burn/skill
 ---
 
 # Caption Burn (hardsub) & Soft-mux — libass / ffmpeg

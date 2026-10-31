@@ -1,3 +1,9 @@
+---
+title: quick-brief-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/quick-brief-template
+---
+
 # Quick Brief Template
 
 Use for fast turnaround requests or simple topics. See [quick-brief-format.md](quick-brief-format.md) for when to use this format.
@@ -22,4 +28,3 @@ Use for fast turnaround requests or simple topics. See [quick-brief-format.md](q
 ## Sources
 [Brief list of pages consulted]
 ```
-

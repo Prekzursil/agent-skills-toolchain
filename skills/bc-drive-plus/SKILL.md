@@ -1,7 +1,12 @@
 ---
 name: bc-drive-plus
-description: Use when driving a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) on rooted BlueStacks beyond bc-drive. Adds bounded one-shot touch-dispatch capture to resolve the stripped NewButton ctor RVA, OmniParser V2 set-of-mark grounding for the DOM-less GLES canvas, minitouch/evdev low-latency input, and a save-snapshot ring with auto-rollback. Needs adb + frida-server; builds on bc-drive and bcsfe-save-roundtrip.
+description: Use when driving a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1)
+  on rooted BlueStacks beyond bc-drive. Adds bounded one-shot touch-dispatch capture
+  to resolve the stripped NewButton ctor RVA, OmniParser V2 set-of-mark grounding
+  for the DOM-less GLES canvas, minitouch/evdev low-latency input, and a save-snapshot
+  ring with auto-rollback. Needs adb + frida-server; builds on bc-drive and bcsfe-save-roundtrip.
 license: MIT
+permalink: dqverify-repo-20261013/skills/bc-drive-plus/skill
 ---
 
 # bc-drive-plus — advanced Battle Cats driving (dispatch-capture · grounding · input · snapshot-ring)

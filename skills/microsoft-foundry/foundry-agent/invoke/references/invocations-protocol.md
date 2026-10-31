@@ -1,3 +1,9 @@
+---
+title: invocations-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invoke/references/invocations-protocol
+---
+
 # Invocations Protocol Guide
 
 The `invocations` protocol is **bytes in, bytes out**. The platform is pure pass-through — the raw HTTP request body is forwarded to the container and the raw response is returned. The agent developer defines what the container accepts and returns. Unlike `responses` (OpenAI-compatible with platform-managed history), `invocations` gives full control to the container code.

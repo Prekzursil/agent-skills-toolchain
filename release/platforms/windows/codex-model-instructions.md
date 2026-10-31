@@ -1,3 +1,9 @@
+---
+title: codex-model-instructions
+type: note
+permalink: dqverify-repo-20261013/release/platforms/windows/codex-model-instructions
+---
+
 Prefer available skills over ad-hoc behavior when they clearly match the task.
 
 Skill routing preferences:

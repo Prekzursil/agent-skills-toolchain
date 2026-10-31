@@ -1,3 +1,9 @@
+---
+title: session-management
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invoke/references/session-management
+---
+
 # Hosted Session Management with azd
 
 Use azd to manage session-backed compute and filesystem state for Hosted Agents.

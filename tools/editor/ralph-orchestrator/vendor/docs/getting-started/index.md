@@ -1,3 +1,9 @@
+---
+title: index
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/getting-started/index
+---
+
 # Getting Started
 
 Welcome to Ralph Orchestrator! This section will help you get up and running quickly.

@@ -1,3 +1,9 @@
+---
+title: searching
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/searching
+---
+
 # Searching with Exa
 
 You have two tools:

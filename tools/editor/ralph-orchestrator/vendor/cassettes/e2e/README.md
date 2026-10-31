@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/cassettes/e2e/readme
+---
+
 # E2E Test Cassettes
 
 This directory contains recorded cassettes for mock-mode E2E testing. Cassettes are JSONL files that record the output from real Ralph sessions, enabling deterministic, cost-free test execution.

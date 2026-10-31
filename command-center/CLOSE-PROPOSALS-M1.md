@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-M1
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-m1
+---
+
 # CLOSE-PROPOSALS-M1 — Lane B (B1), MONITOR program items R-M01..R-M07
 
 STATUS: COMPLETE for all 7 owned items + the 3 adjacent items my spawn prompt named.

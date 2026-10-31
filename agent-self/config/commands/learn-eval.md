@@ -1,5 +1,7 @@
 ---
-description: "Extract reusable patterns from the session, self-evaluate quality before saving, and determine the right save location (Global vs Project)."
+description: Extract reusable patterns from the session, self-evaluate quality before
+  saving, and determine the right save location (Global vs Project).
+permalink: dqverify-repo-20261013/agent-self/config/commands/learn-eval
 ---
 
 # /learn-eval - Extract, Evaluate, then Save

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/readme
+---
+
 # Azure Functions Templates
 
 Dynamic template selection for Azure Functions projects.

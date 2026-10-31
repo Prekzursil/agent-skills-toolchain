@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/triage-router/readme
+---
+
 # triage_router — Cost-tier model router for software-engineering work-units
 
 A **standalone CLI + importable Python module** that routes a metaswarm

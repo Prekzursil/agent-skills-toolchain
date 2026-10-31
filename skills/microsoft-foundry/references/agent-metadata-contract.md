@@ -1,3 +1,9 @@
+---
+title: agent-metadata-contract
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/references/agent-metadata-contract
+---
+
 # Agent Metadata Contract
 
 Use this contract for Microsoft Foundry agent folders. In azd projects, `.foundry/agent-metadata*.yaml` is an overlay/cache, not the source of truth for azd-owned deployment context.

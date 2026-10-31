@@ -1,3 +1,9 @@
+---
+title: dive-nodriver-proxy-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-nodriver-proxy-mcp
+---
+
 # Deep-dive: nodriver-proxy-mcp (browser-offense lane)
 
 Date: 2026-09-29 · Verifier: subagent "Deep-dive: nodriver-proxy-mcp" · Everything below was read or run in this session unless marked otherwise.

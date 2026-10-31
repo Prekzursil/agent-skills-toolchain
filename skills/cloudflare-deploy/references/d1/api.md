@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/d1/api
+---
+
 # D1 API Reference
 
 ## Prepared Statements (Required for Security)

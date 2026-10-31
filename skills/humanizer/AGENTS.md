@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/skills/humanizer/agents
+---
+
 # AGENTS.md
 
 Guidance for AI coding agents (Claude Code, Codex, Warp, etc.) working in this repository.

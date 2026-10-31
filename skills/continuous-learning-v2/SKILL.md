@@ -1,8 +1,11 @@
 ---
 name: continuous-learning-v2
-description: Instinct-based learning system that observes sessions via hooks, creates atomic instincts with confidence scoring, and evolves them into skills/commands/agents. v2.1 adds project-scoped instincts to prevent cross-project contamination.
+description: Instinct-based learning system that observes sessions via hooks, creates
+  atomic instincts with confidence scoring, and evolves them into skills/commands/agents.
+  v2.1 adds project-scoped instincts to prevent cross-project contamination.
 origin: ECC
 version: 2.1.0
+permalink: dqverify-repo-20261013/skills/continuous-learning-v2/skill
 ---
 
 # Continuous Learning v2.1 - Instinct

@@ -1,16 +1,17 @@
 ---
 name: cookie-bridge
-description: >-
-  Estate-local browser cookie/session bridge. Injects the owner's OWN web sessions
-  (ChatGPT, Databricks) from a phone CDP extract into the owner's MAIN Chrome/Edge/Comet
+description: Estate-local browser cookie/session bridge. Injects the owner's OWN web
+  sessions (ChatGPT, Databricks) from a phone CDP extract into the owner's MAIN Chrome/Edge/Comet
   profiles WITHOUT the profile corruption that an earlier force-kill approach caused.
   Use for putting a logged-in web session onto a main browser profile safely, or for
   extracting/refreshing a session from a phone over ADB+CDP. NOT for third-party accounts,
-  NOT for reading or exfiltrating cookie values, NOT for bypassing another site's auth.
+  NOT for reading or exfiltrating cookie values, NOT for bypassing another site's
+  auth.
 metadata:
   type: reference
   risk: high
   estate_local: true
+permalink: dqverify-repo-20261013/skills/cookie-bridge/skill
 ---
 
 # cookie-bridge

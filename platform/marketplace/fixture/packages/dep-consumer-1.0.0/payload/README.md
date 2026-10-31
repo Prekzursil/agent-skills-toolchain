@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/fixture/packages/dep-consumer-1.0.0/payload/readme
+---
+
 # dep-consumer 1.0.0
 
 Depends on `hello-skill ^1.0.0`, plus one **optional** dependency that is published nowhere.

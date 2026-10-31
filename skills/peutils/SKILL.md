@@ -1,6 +1,9 @@
 ---
 name: peutils
-description: Use when inspecting or repairing PE-focused details in Binary Ninja, especially around Windows executable structure, imports, sections, and analysis convenience helpers.
+description: Use when inspecting or repairing PE-focused details in Binary Ninja,
+  especially around Windows executable structure, imports, sections, and analysis
+  convenience helpers.
+permalink: dqverify-repo-20261013/skills/peutils/skill
 ---
 
 # peutils

@@ -1,3 +1,9 @@
+---
+title: task-creation-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/task-creation-template
+---
+
 # Task Creation Template
 
 When creating tasks from spec.
@@ -31,4 +37,3 @@ Implementation plan: <mention-page url="...">Implementation Plan</mention-page>
 ## Progress
 [To be updated during implementation]
 ```
-

@@ -1,3 +1,9 @@
+---
+title: auth_json_deep_investigation_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-json-deep-investigation-2026-07-20
+---
+
 # auth.json Deep Investigation Report
 **Date:** 20.07.2026 · **Status:** MEASURED + SOURCE-GROUNDED  
 **Subject:** Owner Codex ChatGPT-managed auth (`~/.codex/auth.json`)  
@@ -302,4 +308,3 @@ You already have a **real-time pipe foundation**:
 - Codex refresh is **time-based (8d / 5min-to-exp) + 401**, single-use RT, single writer
 - Desktop local API **not available**; Databricks can host the **same REST bridge** with a single refresh owner
 - Stream-trace reconnect is research track; **REST bridge is the production path today**
-

@@ -1,3 +1,9 @@
+---
+title: deployability-check
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/deployability-check
+---
+
 # Deployability Check
 
 > ⛔ **No build/install/test commands — `npm install`, `npm test`, `dotnet build`, `dotnet restore`, `dotnet test`, `pip install`, `pytest`, `go mod download`, `cargo build`. Use static analysis only during this check.**

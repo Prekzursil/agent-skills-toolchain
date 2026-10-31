@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/static-web-apps/readme
+---
+
 # Azure Static Web Apps
 
 Serverless hosting for static sites and SPAs with integrated APIs.

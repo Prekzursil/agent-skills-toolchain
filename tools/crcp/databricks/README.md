@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/databricks/readme
+---
+
 # CRCP ChatGPT relay — **local / GitHub**, not Databricks
 
 Databricks job deploy for this relay is **retired**. Same pattern as

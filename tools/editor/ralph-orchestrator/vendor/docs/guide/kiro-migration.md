@@ -1,3 +1,9 @@
+---
+title: kiro-migration
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/kiro-migration
+---
+
 # Migrating from Q Chat to Kiro CLI
 
 The Amazon Q Developer CLI has been rebranded to **Kiro CLI** (v1.20+). Ralph Orchestrator v1.2.3+ fully supports this transition with the new `KiroAdapter`.

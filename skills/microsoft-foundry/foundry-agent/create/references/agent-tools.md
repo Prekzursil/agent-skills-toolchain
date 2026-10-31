@@ -1,3 +1,9 @@
+---
+title: agent-tools
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/agent-tools
+---
+
 # Agent Tools
 
 This file is the **index** for every tool an agent can use. For each tool, it points to a dedicated reference file, and — where the tool is also available through a [toolbox](use-toolbox-in-hosted-agent.md) — lists the toolbox `type` value.

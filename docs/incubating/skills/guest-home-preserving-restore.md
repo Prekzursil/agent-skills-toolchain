@@ -1,3 +1,9 @@
+---
+title: guest-home-preserving-restore
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/guest-home-preserving-restore
+---
+
 # guest-home-preserving-restore
 
 ## Purpose

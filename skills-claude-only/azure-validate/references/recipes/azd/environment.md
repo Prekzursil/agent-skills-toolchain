@@ -1,3 +1,9 @@
+---
+title: environment
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-validate/references/recipes/azd/environment
+---
+
 # AZD Environment Setup
 
 > **⛔ MANDATORY**: You MUST set up an AZD environment before running any deployment commands.

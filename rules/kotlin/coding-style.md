@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
+- '**/*.kt'
+- '**/*.kts'
+permalink: dqverify-repo-20261013/rules/kotlin/coding-style
 ---
+
 # Kotlin Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Kotlin-specific content.

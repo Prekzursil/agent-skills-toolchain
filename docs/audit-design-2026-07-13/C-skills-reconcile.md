@@ -1,3 +1,9 @@
+---
+title: C-skills-reconcile
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/c-skills-reconcile
+---
+
 # C — Whole-Drive SKILLS Surface Reconciliation + Disposition Matrix
 
 **Domain:** skills · **Workflow A (EVIDENCE)** · **Mode:** READ-ONLY (active-work freeze).

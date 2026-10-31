@@ -1,3 +1,9 @@
+---
+title: INSTRUCTION
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/instruction
+---
+
 # Azure SDK Migration Guidelines
 
 ## Context

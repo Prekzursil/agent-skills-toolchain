@@ -1,3 +1,9 @@
+---
+title: compute-expansion-research-2026-07-07
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/docs/compute-expansion-research-2026-07-07
+---
+
 # cloud-hub Compute Expansion — Databricks + Modal + Unified Engagement
 **Research + decision-queue · 2026-07-07 · /deep-research + /grill-me-extensive**
 

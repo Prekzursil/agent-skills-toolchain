@@ -1,3 +1,9 @@
+---
+title: 01-lifecycle-map
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/research/01-lifecycle-map
+---
+
 # Research: Ralph Orchestrator Lifecycle Map
 
 ## Goal

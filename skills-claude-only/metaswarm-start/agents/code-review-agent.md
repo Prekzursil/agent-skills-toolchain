@@ -1,3 +1,9 @@
+---
+title: code-review-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/code-review-agent
+---
+
 # Code Review Agent
 
 **Type**: `code-review-agent`

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/stream/readme
+---
+
 # Cloudflare Stream
 
 Serverless live and on-demand video streaming platform with one API.

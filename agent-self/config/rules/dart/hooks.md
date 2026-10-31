@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
-  - "**/analysis_options.yaml"
+- '**/*.dart'
+- '**/pubspec.yaml'
+- '**/analysis_options.yaml'
+permalink: dqverify-repo-20261013/agent-self/config/rules/dart/hooks
 ---
+
 # Dart/Flutter Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Dart and Flutter-specific content.

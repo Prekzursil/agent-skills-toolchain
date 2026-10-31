@@ -1,3 +1,9 @@
+---
+title: github-control-plane
+type: note
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/references/github-control-plane
+---
+
 # GitHub Control Plane
 
 Use this reference when GitHub should own orchestration, status truth, or merge governance.

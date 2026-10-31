@@ -1,9 +1,15 @@
 ---
 name: context-sandbox
-description: Use when a command, file read, web fetch, or MCP tool call is about to return a large or noisy payload (logs, JSON dumps, build output, page snapshots, search results) that would otherwise be echoed verbatim and rot the context window. Guides the agent to sandbox the raw output, surface only the derived answer, and index reusable bytes into memory for on-demand recall.
+description: Use when a command, file read, web fetch, or MCP tool call is about to
+  return a large or noisy payload (logs, JSON dumps, build output, page snapshots,
+  search results) that would otherwise be echoed verbatim and rot the context window.
+  Guides the agent to sandbox the raw output, surface only the derived answer, and
+  index reusable bytes into memory for on-demand recall.
 license: ELv2
 metadata:
-  net-new-after: deep-research, research-ops, verification-loop, context-budget, strategic-compact, content-hash-cache-pattern, knowledge-ops
+  net-new-after: deep-research, research-ops, verification-loop, context-budget, strategic-compact,
+    content-hash-cache-pattern, knowledge-ops
+permalink: dqverify-repo-20261013/skills/context-sandbox/skill
 ---
 
 # Context Sandbox: Print Derived Results, Never Raw Payloads

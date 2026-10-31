@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/troubleshooting
+---
+
 # AI Gateway Troubleshooting
 
 Common issues when using Azure API Management as an AI Gateway.

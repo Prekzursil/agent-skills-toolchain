@@ -1,3 +1,9 @@
+---
+title: auth-C-sso
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-c-sso
+---
+
 # auth-C-sso implementation report
 
 ## Summary

@@ -1,3 +1,9 @@
+---
+title: progress-tracking
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/progress-tracking
+---
+
 # Progress Tracking
 
 ## Update Frequency
@@ -455,4 +461,3 @@ Compares to target: [On schedule/Behind/Ahead]
 6. **Track decisions**: Document why, not just what
 7. **Be honest**: Report actual status, not optimistic status
 8. **Update in one place**: Keep implementation plan as source of truth
-

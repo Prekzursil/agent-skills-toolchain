@@ -3,6 +3,7 @@ title: Prevent Path Traversal
 impact: CRITICAL
 impactDescription: Arbitrary file access, information disclosure, file manipulation
 tags: security, path-traversal, cwe-22, cwe-23, cwe-73, cwe-98
+permalink: dqverify-repo-20261013/skills/code-security/rules/path-traversal
 ---
 
 ## Prevent Path Traversal

@@ -1,3 +1,9 @@
+---
+title: presets
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/presets
+---
+
 # Hat Collections
 
 Built-in hat collections are now intentionally small. Ralph ships a core working set of defaults and documents broader workflow ideas as examples instead of treating every pattern as a supported builtin.

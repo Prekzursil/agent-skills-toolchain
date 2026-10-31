@@ -1,3 +1,9 @@
+---
+title: azure-storage-blob-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-storage/references/sdk/azure-storage-blob-py
+---
+
 # Blob Storage — Python SDK Quick Reference
 
 > Condensed from **azure-storage-blob-py**. Full patterns (SAS tokens,

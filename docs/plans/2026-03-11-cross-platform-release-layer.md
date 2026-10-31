@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-cross-platform-release-layer
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-03-11-cross-platform-release-layer
+---
+
 # Cross-platform release layer for agent-skills-toolchain
 
 ## 1. Recovered Facts

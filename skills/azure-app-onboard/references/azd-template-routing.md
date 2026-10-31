@@ -1,3 +1,9 @@
+---
+title: azd-template-routing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/azd-template-routing
+---
+
 # azd Template Routing
 
 When prereq detects an existing azd template, AppOnboard routes to `azure-prepare` instead of continuing the greenfield pipeline. AppOnboard is a greenfield deployment skill — repos with existing Azure IaC belong to the prepare → validate → deploy pipeline.

@@ -1,3 +1,9 @@
+---
+title: official-tooling-and-patches
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/official-tooling-and-patches
+---
+
 # Official Tooling and Patch Baseline
 
 ## Petroglyph Mod Support Page (Current Baseline)

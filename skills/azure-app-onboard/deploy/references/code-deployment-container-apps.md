@@ -1,3 +1,9 @@
+---
+title: code-deployment-container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/code-deployment-container-apps
+---
+
 # Code Deployment — Container Apps
 
 After IaC deployment creates the Container App with a placeholder image (`mcr.microsoft.com/azuredocs/containerapps-helloworld:latest`), deploy the actual application code. This is **Phase 2** of the two-phase Container Apps deployment pattern.

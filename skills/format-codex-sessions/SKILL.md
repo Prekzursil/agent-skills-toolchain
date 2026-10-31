@@ -1,6 +1,9 @@
 ---
 name: format-codex-sessions
-description: Use when Codex rollout JSONL files need to be turned into readable Markdown conversations, transcripts, or chat logs without dumping raw event noise, prompt bulk, or secrets.
+description: Use when Codex rollout JSONL files need to be turned into readable Markdown
+  conversations, transcripts, or chat logs without dumping raw event noise, prompt
+  bulk, or secrets.
+permalink: dqverify-repo-20261013/skills/format-codex-sessions/skill
 ---
 
 # Format Codex Sessions

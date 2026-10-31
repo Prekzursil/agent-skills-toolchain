@@ -1,3 +1,9 @@
+---
+title: EVENT-UNLOCK-PLAYBOOK
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/import-2026-08-28/toolchain-root/skills/battlecats-event-unlock/event-unlock-playbook
+---
+
 # Battle Cats EN 15.4.1 — Event-Unlock Playbook (DEFINITIVE)
 
 **The one file to read.** Single authoritative reference + index for making special/event

@@ -1,3 +1,9 @@
+---
+title: file-operations
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invoke/references/file-operations
+---
+
 # Hosted Session File Operations with azd
 
 Use `azd ai agent files` to manage files in a Hosted Agent session.

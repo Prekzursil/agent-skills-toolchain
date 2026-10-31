@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.py'
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/rules/common/static-analyzer
 ---
+
 # Static-Analyzer Gotchas
 
 - CodeQL `py/ineffectual-statement` misreads `await <task>` inside `with suppress(...)`:

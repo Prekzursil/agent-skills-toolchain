@@ -1,3 +1,9 @@
+---
+title: mcp-manager
+type: note
+permalink: dqverify-repo-20261013/commands/mcp-manager
+---
+
 Launch the mcp-manager — the cross-plane MCP server manager.
 
 Usage: /mcp-manager [--inline]

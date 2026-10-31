@@ -1,3 +1,9 @@
+---
+title: analyze-failures
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/trace/references/analyze-failures
+---
+
 # Analyze Failures — Find and Cluster Failing Traces
 
 Identify failing agent traces, group them by root cause, and produce a prioritized action table.

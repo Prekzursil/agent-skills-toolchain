@@ -1,3 +1,9 @@
+---
+title: cli_tool
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/examples/cli-tool
+---
+
 # CLI Tool Example
 
 Create a Python CLI tool for file organization:

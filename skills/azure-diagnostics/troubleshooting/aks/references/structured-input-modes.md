@@ -1,3 +1,9 @@
+---
+title: structured-input-modes
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/references/structured-input-modes
+---
+
 # AKS Structured Input Modes
 
 Use this reference when the troubleshooting request already contains structured inputs.

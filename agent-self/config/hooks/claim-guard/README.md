@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/hooks/claim-guard/readme
+---
+
 # claim-guard — Claim/Evidence Hook Pair
 
 Mechanizes the "NEVER self-certify" / anti-sycophancy rule from `AGENTS.md`:

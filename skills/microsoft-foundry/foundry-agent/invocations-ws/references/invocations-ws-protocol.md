@@ -1,3 +1,9 @@
+---
+title: invocations-ws-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invocations-ws/references/invocations-ws-protocol
+---
+
 # Invocations WebSocket Protocol Guide
 
 The `invocations_ws` protocol is a **duplex WebSocket pass-through**. After the platform authenticates the upgrade request and routes it to your container, every frame in both directions is forwarded as-is. The agent developer defines the wire format, the framing model, and the streaming semantics. Unlike `responses` (OpenAI-compatible, platform-managed history) and `invocations` (single HTTP request/response, bytes in / bytes out), `invocations_ws` is a long-lived bidirectional channel under full container control.

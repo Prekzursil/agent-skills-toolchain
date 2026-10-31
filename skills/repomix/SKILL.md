@@ -1,6 +1,8 @@
 ---
 name: repomix
-description: Use when packing a repository into an AI-friendly bundle with Repomix, or when exposing Repomix as an MCP server to Codex, Claude Code, or Gemini CLI.
+description: Use when packing a repository into an AI-friendly bundle with Repomix,
+  or when exposing Repomix as an MCP server to Codex, Claude Code, or Gemini CLI.
+permalink: dqverify-repo-20261013/skills/repomix/skill
 ---
 
 # Repomix

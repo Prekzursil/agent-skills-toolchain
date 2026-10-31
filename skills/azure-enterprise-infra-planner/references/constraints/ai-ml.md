@@ -1,3 +1,9 @@
+---
+title: ai-ml
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/ai-ml
+---
+
 # AI & ML Pairing Constraints
 
 ### AI Search

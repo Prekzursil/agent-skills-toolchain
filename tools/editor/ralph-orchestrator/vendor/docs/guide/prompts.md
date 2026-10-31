@@ -1,3 +1,9 @@
+---
+title: prompts
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/prompts
+---
+
 # Prompt Engineering Guide
 
 Effective prompt engineering is crucial for successful Ralph Orchestrator tasks. This guide covers best practices, patterns, and techniques for writing prompts that get results.

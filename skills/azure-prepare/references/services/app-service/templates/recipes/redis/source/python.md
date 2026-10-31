@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/redis/source/python
+---
+
 # Redis Recipe — Python — REFERENCE ONLY
 
 ## Redis Client with Token Refresh

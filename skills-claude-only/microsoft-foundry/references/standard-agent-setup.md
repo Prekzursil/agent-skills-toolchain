@@ -1,3 +1,9 @@
+---
+title: standard-agent-setup
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/references/standard-agent-setup
+---
+
 # Standard Agent Setup
 
 > **MANDATORY:** Read [Standard Agent Setup docs](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/standard-agent-setup?view=foundry) before proceeding with standard setup.

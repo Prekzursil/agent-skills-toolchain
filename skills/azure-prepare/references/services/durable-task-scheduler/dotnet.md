@@ -1,3 +1,9 @@
+---
+title: dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/dotnet
+---
+
 # Durable Task Scheduler — .NET
 
 ## Learn More
@@ -187,4 +193,3 @@ builder.Services.AddDurableTaskWorker()
 var client = DurableTaskClientBuilder.UseDurableTaskScheduler(connectionString).Build();
 string instanceId = await client.ScheduleNewOrchestrationInstanceAsync("MyOrchestration", input);
 ```
-

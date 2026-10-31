@@ -1,6 +1,18 @@
 ---
 name: claim-verify-gate
-description: Use when an answer, research finding, audit verdict, or status report is about to be treated as true and the next action depends on it. Decomposes the answer into atomic, individually-checkable claims (SAFE, arXiv 2403.18802), runs Chain-of-Verification (arXiv 2309.11495 - draft, plan verification questions, answer them independently, revise), and re-probes each claim with a MECHANICALLY DIFFERENT instrument than produced it (different tool, engine, shell or measured field; re-running the same probe never counts as CONFIRMED). Emits a per-claim CONFIRMED / REFUTED / UNVERIFIED table with the settling experiment, and forces an overclaim to be rewritten to the scope actually measured - an honestly-scoped residual does NOT block. Ships scripts/claim_gate.py, a deterministic 10-rule checker with a built-in both-states self-test. NOT for build/test/lint claims (hooks/claim-guard and verification-before-completion own those), NOT a test runner, NOT a trained critic - no model judge, no new runtime.
+description: Use when an answer, research finding, audit verdict, or status report
+  is about to be treated as true and the next action depends on it. Decomposes the
+  answer into atomic, individually-checkable claims (SAFE, arXiv 2403.18802), runs
+  Chain-of-Verification (arXiv 2309.11495 - draft, plan verification questions, answer
+  them independently, revise), and re-probes each claim with a MECHANICALLY DIFFERENT
+  instrument than produced it (different tool, engine, shell or measured field; re-running
+  the same probe never counts as CONFIRMED). Emits a per-claim CONFIRMED / REFUTED
+  / UNVERIFIED table with the settling experiment, and forces an overclaim to be rewritten
+  to the scope actually measured - an honestly-scoped residual does NOT block. Ships
+  scripts/claim_gate.py, a deterministic 10-rule checker with a built-in both-states
+  self-test. NOT for build/test/lint claims (hooks/claim-guard and verification-before-completion
+  own those), NOT a test runner, NOT a trained critic - no model judge, no new runtime.
+permalink: dqverify-repo-20261013/skills/claim-verify-gate/skill
 ---
 
 # claim-verify-gate

@@ -1,3 +1,9 @@
+---
+title: EXAMPLES
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/models/deploy-model/preset/examples
+---
+
 # Examples: preset
 
 ## Example 1: Fast Path — Current Region Has Capacity

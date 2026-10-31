@@ -1,3 +1,9 @@
+---
+title: 2026-02-14-guided-setup-plan
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/docs/plans/2026-02-14-guided-setup-plan
+---
+
 # Guided Setup Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

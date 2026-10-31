@@ -1,3 +1,9 @@
+---
+title: TOOL_DESCRIPTION_OPTIMIZATION
+type: note
+permalink: dqverify-repo-20261013/skills/protein-interaction-network-analysis/tool-description-optimization
+---
+
 # Protein Interaction Tools - Description Optimization Report
 
 **Date**: 2026-02-12

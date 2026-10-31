@@ -1,7 +1,10 @@
 ---
 name: tdd-workflow
-description: Use this skill when writing new features, fixing bugs, or refactoring code. Enforces test-driven development with high test coverage including unit, integration, and E2E tests.
+description: Use this skill when writing new features, fixing bugs, or refactoring
+  code. Enforces test-driven development with high test coverage including unit, integration,
+  and E2E tests.
 origin: ECC
+permalink: dqverify-repo-20261013/ci/skills-allowlist/tdd-workflow/skill
 ---
 
 # Test-Driven Development Workflow

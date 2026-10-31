@@ -1,3 +1,9 @@
+---
+title: subagent-iac-gen
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/subagent-iac-gen
+---
+
 # Subagent Template — IaC Generation (Steps 5–8)
 
 Generate deployment-ready IaC from `prepare-plan.json`. Follow the workflow below — each step specifies which reference to read and what to do with it.

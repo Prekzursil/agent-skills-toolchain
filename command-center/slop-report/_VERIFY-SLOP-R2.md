@@ -1,3 +1,9 @@
+---
+title: _VERIFY-SLOP-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/verify-slop-r2
+---
+
 # VERIFY-SLOP-R2 — adversarial verification of BUILD round 2 and the CLEAN audit
 
 VERDICT: **build_is_sound = true · audit_holds = true · must_fix = EMPTY.**

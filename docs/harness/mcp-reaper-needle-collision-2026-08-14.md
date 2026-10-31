@@ -1,3 +1,9 @@
+---
+title: mcp-reaper-needle-collision-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/docs/harness/mcp-reaper-needle-collision-2026-08-14
+---
+
 # The MCP reaper would have killed a live `git status` — needle collision, found and fixed
 
 **Severity: HIGH.** `mcp_doctor.py reap --apply` selected an unrelated live process as a kill

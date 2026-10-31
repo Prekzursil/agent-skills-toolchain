@@ -1,3 +1,9 @@
+---
+title: subagent-quota
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/subagent-quota
+---
+
 # Subagent Template — Quota Validation (Step 5)
 
 Validate SKU quota and offer restrictions across candidate regions before presenting region choices.

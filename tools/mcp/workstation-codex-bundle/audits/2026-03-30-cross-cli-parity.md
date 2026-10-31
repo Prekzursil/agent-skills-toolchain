@@ -1,3 +1,9 @@
+---
+title: 2026-03-30-cross-cli-parity
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/audits/2026-03-30-cross-cli-parity
+---
+
 # 2026-03-30 cross-CLI parity snapshot
 
 ## Summary

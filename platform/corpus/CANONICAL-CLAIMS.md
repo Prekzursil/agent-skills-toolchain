@@ -1,3 +1,9 @@
+---
+title: CANONICAL-CLAIMS
+type: note
+permalink: dqverify-repo-20261013/platform/corpus/canonical-claims
+---
+
 # CANONICAL CLAIMS — Phase 1 corpus normalization and mechanism-level deduplication
 
 Corpus root: `C:/Users/Prekzursil/.claude/harness-restore-20260806`  ·  schema `1.0.0`  ·  status **MEASURED**

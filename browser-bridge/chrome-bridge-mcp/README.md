@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/browser-bridge/chrome-bridge-mcp/readme
+---
+
 <p align="center">
   <img src="assets/banner.png" alt="chrome-bridge-mcp" width="100%">
 </p>

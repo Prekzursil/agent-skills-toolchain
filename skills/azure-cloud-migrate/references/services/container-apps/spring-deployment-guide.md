@@ -1,3 +1,9 @@
+---
+title: spring-deployment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/spring-deployment-guide
+---
+
 # Deployment Guide: Spring Boot to Azure Container Apps
 
 ## Phase 1: Create Container Apps Environment

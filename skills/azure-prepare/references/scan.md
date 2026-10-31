@@ -1,3 +1,9 @@
+---
+title: scan
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/scan
+---
+
 # Codebase Scan
 
 Analyze workspace to identify components, technologies, and dependencies.

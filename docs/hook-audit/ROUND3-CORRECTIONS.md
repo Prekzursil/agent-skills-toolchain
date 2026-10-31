@@ -1,3 +1,9 @@
+---
+title: ROUND3-CORRECTIONS
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/round3-corrections
+---
+
 # HOOKRESEARCH round 3 — the gate that was built to stop this had three holes of its own
 
 STATUS: COMPLETE for round 3. Every number below carries a machine-checkable citation to a

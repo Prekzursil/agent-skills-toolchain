@@ -1,3 +1,9 @@
+---
+title: data-analytics
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/resources/data-analytics
+---
+
 # Data (Analytics) Resources
 
 | Resource | ARM Type | API Version | CAF Prefix | Naming Scope | Region |

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/journey-coverage/readme
+---
+
 # journey-coverage — every declared user-journey must be RUN before "done"
 
 The third functional-acceptance gem, after `claim-guard` (G1) and `test-tamper-guard`

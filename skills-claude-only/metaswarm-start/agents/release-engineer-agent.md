@@ -1,3 +1,9 @@
+---
+title: release-engineer-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/release-engineer-agent
+---
+
 # Release Engineer Agent
 
 **Type**: `release-engineer-agent`

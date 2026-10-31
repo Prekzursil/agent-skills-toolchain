@@ -1,11 +1,15 @@
 ---
 name: rubric-verifier
-description: "Use when rubric verifier is needed. Use AFTER N candidate patches exist (from codex council / /multi-execute / external-tools Codex+Gemini fan-out) and BEFORE running tests, to select the best candidate execution-free. A fresh-context reviewer builds a repo-grounded rubric — a weighted checklist."
+description: Use when rubric verifier is needed. Use AFTER N candidate patches exist
+  (from codex council / /multi-execute / external-tools Codex+Gemini fan-out) and
+  BEFORE running tests, to select the best candidate execution-free. A fresh-context
+  reviewer builds a repo-grounded rubric — a weighted checklist.
 metadata:
   version: 0.1.0
   compatibility: claude-code codex cursor gemini-cli opencode
   source: https://arxiv.org/abs/2601.04171
   upstream_authors: Scale AI
+permalink: dqverify-repo-20261013/ci/skills-allowlist/rubric-verifier/skill
 ---
 
 # Rubric Verifier — execution-free candidate selector

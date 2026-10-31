@@ -1,3 +1,9 @@
+---
+title: SKILLS2-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills2-integrate
+---
+
 # SKILLS2 — INTEGRATE lane
 
 STATUS: MEASURED. Every claim below was executed, and the commands are in

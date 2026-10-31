@@ -1,3 +1,9 @@
+---
+title: control-plane-map
+type: note
+permalink: dqverify-repo-20261013/skills/quality-zero-platform-control-plane/references/control-plane-map
+---
+
 # Control Plane Map
 
 Use this reference when a task needs the ownership map inside `Prekzursil/quality-zero-platform`.

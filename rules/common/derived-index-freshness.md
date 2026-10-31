@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
-  - "**/source/agent-skills-toolchain/**"
+- '**/.claude/**'
+- '**/.agents/**'
+- '**/source/agent-skills-toolchain/**'
+permalink: dqverify-repo-20261013/rules/common/derived-index-freshness
 ---
+
 # Derived-index freshness — semantic routers rot silently
 
 > Fail-soft builders never fail; they just keep serving an index of the past.

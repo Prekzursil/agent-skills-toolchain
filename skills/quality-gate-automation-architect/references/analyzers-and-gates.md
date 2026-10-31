@@ -1,3 +1,9 @@
+---
+title: analyzers-and-gates
+type: note
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/references/analyzers-and-gates
+---
+
 # Analyzers and Gates
 
 Use this reference when the architecture involves SonarQube Cloud, Codacy, Codecov, coverage ratchets, or strict branch-protection quality gates.

@@ -1,3 +1,9 @@
+---
+title: test-automator-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/agents/test-automator-agent
+---
+
 # Test Automator Agent
 
 **Type**: `test-writer-agent`

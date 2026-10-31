@@ -1,3 +1,9 @@
+---
+title: region-availability
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/foundry/region-availability
+---
+
 # Foundry Region Availability
 
 ⚠️ **Very limited — varies by model**

@@ -1,3 +1,9 @@
+---
+title: wsl-control-plane-repair
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/wsl-control-plane-repair
+---
+
 # wsl-control-plane-repair
 
 ## Purpose

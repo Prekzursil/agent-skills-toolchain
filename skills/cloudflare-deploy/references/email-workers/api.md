@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/email-workers/api
+---
+
 # Email Workers API Reference
 
 Complete API reference for Cloudflare Email Workers runtime.

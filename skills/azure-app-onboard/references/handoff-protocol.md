@@ -1,3 +1,9 @@
+---
+title: handoff-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/handoff-protocol
+---
+
 # Handoff Protocol — Step 9
 
 Offer next steps: CI/CD setup, monitoring, domain config, **🗑️ resource cleanup**, skill-based suggestions. Session artifacts remain for deferred pickup.

@@ -1,3 +1,9 @@
+---
+title: tool-memory
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools/prompt-agent/tool-memory
+---
+
 # Agent Memory
 
 Managed long-term memory for Foundry agents. Enables agent continuity across sessions, devices, and workflows. Agents retain user preferences, conversation history, and deliver personalized experiences. Memory is stored in your project's owned storage.

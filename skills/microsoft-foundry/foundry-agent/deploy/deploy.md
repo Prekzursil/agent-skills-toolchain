@@ -1,3 +1,9 @@
+---
+title: deploy
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/deploy/deploy
+---
+
 # Deploy a Foundry Agent
 
 Provision Azure resources when needed, deploy the agent, and smoke-test it.

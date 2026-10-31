@@ -1,3 +1,9 @@
+---
+title: product-manager-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/product-manager-agent
+---
+
 # Product Manager Agent
 
 **Type**: `product-manager-agent`

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/fixture/packages/hello-skill-1.0.0/payload/readme
+---
+
 # hello-skill 1.0.0
 
 The control package of the fixture marketplace.

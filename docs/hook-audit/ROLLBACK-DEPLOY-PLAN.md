@@ -1,3 +1,9 @@
+---
+title: ROLLBACK-DEPLOY-PLAN
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/rollback-deploy-plan
+---
+
 # /rollback producer gap — deploy plan
 
 DoD item 3 of lane HOOKRESEARCH. This lane wrote a plan rather than deploying, because

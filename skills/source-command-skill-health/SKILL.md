@@ -1,6 +1,7 @@
 ---
-name: "source-command-skill-health"
-description: "Show skill portfolio health dashboard with charts and analytics"
+name: source-command-skill-health
+description: Show skill portfolio health dashboard with charts and analytics
+permalink: dqverify-repo-20261013/skills/source-command-skill-health/skill
 ---
 
 # source-command-skill-health

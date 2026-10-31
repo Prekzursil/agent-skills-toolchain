@@ -1,3 +1,9 @@
+---
+title: SSOT-CLONE-INVENTORY
+type: note
+permalink: dqverify-repo-20261013/docs/ssot/ssot-clone-inventory
+---
+
 # SSOT clone inventory — agent-skills-toolchain
 
 **Lane:** SSOT. **Measured:** 2026-08-12 19:40–21:00, extended 2026-08-13 (BUILD round 1: §2b

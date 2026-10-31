@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+- '**/*.swift'
+- '**/Package.swift'
+permalink: dqverify-repo-20261013/rules/swift/hooks
 ---
+
 # Swift Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Swift specific content.

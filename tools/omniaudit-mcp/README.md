@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/readme
+---
+
 # OmniAudit MCP
 
 Single self-hosted MCP connector that ships three production modules:

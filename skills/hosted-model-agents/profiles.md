@@ -1,3 +1,9 @@
+---
+title: profiles
+type: note
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/profiles
+---
+
 # Agent profiles (prompt packs, not models)
 
 Swap **system prompt + tool allowlist**. Keep the same runtime. Do not author `qwen-red-team` as a separate deploy skill.

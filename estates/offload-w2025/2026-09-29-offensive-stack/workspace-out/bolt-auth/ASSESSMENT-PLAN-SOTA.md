@@ -1,3 +1,9 @@
+---
+title: ASSESSMENT-PLAN-SOTA
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/assessment-plan-sota
+---
+
 # ASSESSMENT PLAN — SOTA TIER (Bolt estate, FULL FORCE continuation)
 
 **Written:** 2026-10-01 · **Tier:** SOTA (per `red-blue-purple` taxonomy: MAX + agent-integrity

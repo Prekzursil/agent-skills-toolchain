@@ -1,3 +1,9 @@
+---
+title: STRUCTURAL-CONDITION-11
+type: note
+permalink: dqverify-repo-20261013/command-center/structural-condition-11
+---
+
 # Condition 11: satisfiable, but unsatisfied for all 2,007 units under the current convention
 
 - **First written:** 2026-08-10, while trying to move TST-0334 / TST-0350 off `BLOCKED`

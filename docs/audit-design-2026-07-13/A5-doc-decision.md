@@ -1,3 +1,9 @@
+---
+title: A5-doc-decision
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a5-doc-decision
+---
+
 # A5 — Doc + Decision Reconciliation Registry (Phase 3, Workflow A EVIDENCE)
 
 **Date:** 2026-07-13 · **Mode:** READ-ONLY (active-work freeze) · **Author:** A5 reconciliation subagent.

@@ -1,6 +1,9 @@
 ---
 name: deepsource
-description: Use when asked to retrieve DeepSource code review results — issues, vulnerabilities, report cards, coverage metrics, or analysis status ; do NOT use for running new scans outside DeepSource ; returns DeepSource findings and analysis run data.
+description: Use when asked to retrieve DeepSource code review results — issues, vulnerabilities,
+  report cards, coverage metrics, or analysis status ; do NOT use for running new
+  scans outside DeepSource ; returns DeepSource findings and analysis run data.
+permalink: dqverify-repo-20261013/skills/deepsource/skill
 ---
 
 # DeepSource CLI

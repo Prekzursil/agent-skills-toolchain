@@ -1,3 +1,9 @@
+---
+title: architecture-diagram
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/templates/mermaid/architecture-diagram
+---
+
 # Architecture Diagram Template
 
 Render this mermaid diagram in the terminal, replacing all `{{PLACEHOLDER}}` tokens with detected values from Section 1 (Detection) and the chosen backing services.

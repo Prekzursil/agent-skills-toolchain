@@ -1,3 +1,9 @@
+---
+title: custom-hats
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/advanced/custom-hats
+---
+
 # Creating Custom Hats
 
 !!! note "Documentation In Progress"

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/memory-bench/readme
+---
+
 # memory-bench — basic-memory recall regression suite
 
 Deep-research item **#5** (modus-operandi scan, 2026-06-15). Converts "memory

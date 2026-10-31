@@ -1,3 +1,9 @@
+---
+title: release-engineering-rubric
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/rubrics/release-engineering-rubric
+---
+
 # Release Engineering Rubric
 
 **Used By**: Release Engineer Agent

@@ -1,3 +1,9 @@
+---
+title: invoke
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/invoke/invoke
+---
+
 # Invoke Foundry Agent
 
 Invoke and test deployed agents in Azure AI Foundry with single-turn and multi-turn conversations.

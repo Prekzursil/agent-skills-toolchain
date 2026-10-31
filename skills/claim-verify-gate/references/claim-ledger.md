@@ -1,3 +1,9 @@
+---
+title: claim-ledger
+type: note
+permalink: dqverify-repo-20261013/skills/claim-verify-gate/references/claim-ledger
+---
+
 # The claim ledger
 
 The input `claim_gate.py` reads. One JSON object; one row per atomic claim.

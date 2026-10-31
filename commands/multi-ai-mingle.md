@@ -1,5 +1,8 @@
 ---
-description: Live Claude↔Codex peer channel over mcp_agent_mail (always-on, 127.0.0.1:8812) — register, first-contact handshake, send/fetch messages + advisory file leases. Wraps the multi-ai-mingle skill.
+description: Live Claude↔Codex peer channel over mcp_agent_mail (always-on, 127.0.0.1:8812)
+  — register, first-contact handshake, send/fetch messages + advisory file leases.
+  Wraps the multi-ai-mingle skill.
+permalink: dqverify-repo-20261013/commands/multi-ai-mingle
 ---
 
 # multi-ai-mingle — local Claude↔Codex live channel

@@ -1,3 +1,9 @@
+---
+title: license
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/license
+---
+
 # License
 
 ## MIT License

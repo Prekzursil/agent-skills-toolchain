@@ -1,3 +1,9 @@
+---
+title: gap-chase
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/gap-chase
+---
+
 # gap-chase — uncovered subtopic sweep (2026-09-29)
 
 Subagent lane: gap chaser. Input = the fleet coverage list in the ask + all 88 `out/research/*.md` files (all lane notes read in full; the 1.3 MB `_awesome.md`/`_awesome_mcp.md` dumps used as a local mining source). Mandate: find subtopics NO lane covered, chase with fresh queries, return NEW tools only.

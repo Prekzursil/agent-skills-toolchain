@@ -1,3 +1,9 @@
+---
+title: azure-storage-blob-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-storage-blob-ts
+---
+
 # Blob Storage — TypeScript SDK Quick Reference
 
 > Condensed from **azure-storage-blob-ts**. Full patterns (SAS generation,

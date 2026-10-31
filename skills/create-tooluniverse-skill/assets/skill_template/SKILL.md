@@ -1,6 +1,7 @@
 ---
 name: tooluniverse-[domain-name]
-description: "Use when [specific triggering conditions and symptoms]."
+description: Use when [specific triggering conditions and symptoms].
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/assets/skill-template/skill
 ---
 
 # [Domain Name] Analysis

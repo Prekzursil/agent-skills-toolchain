@@ -1,6 +1,11 @@
 ---
 name: monitor-launcher
-description: The generalized `mon <name>` launcher for the unified monitoring platform - opens any registered monitor (wfmon fleet cockpit, agentmon per-agent tails) from monitors.toml. Use when asked to launch, open, or wire a monitor, add one to the registry, or reasoning about the `mon`/wfmon/agentmon launch flow and the monitor-autolaunch hook. NOT for driving the tail itself (use run-agent-monitor).
+description: The generalized `mon <name>` launcher for the unified monitoring platform
+  - opens any registered monitor (wfmon fleet cockpit, agentmon per-agent tails) from
+  monitors.toml. Use when asked to launch, open, or wire a monitor, add one to the
+  registry, or reasoning about the `mon`/wfmon/agentmon launch flow and the monitor-autolaunch
+  hook. NOT for driving the tail itself (use run-agent-monitor).
+permalink: dqverify-repo-20261013/skills/monitor-launcher/skill
 ---
 
 # monitor-launcher — `mon <name>` + the monitors.toml registry

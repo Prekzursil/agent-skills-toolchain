@@ -1,60 +1,62 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
-  - "**/*.vue"
-  - "**/*.svelte"
-  - "**/*.html"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.go"
-  - "**/*.rs"
-  - "**/*.java"
-  - "**/*.kt"
-  - "**/*.kts"
-  - "**/*.rb"
-  - "**/*.php"
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.psgi"
-  - "**/*.cgi"
-  - "**/*.c"
-  - "**/*.cpp"
-  - "**/*.cc"
-  - "**/*.cxx"
-  - "**/*.h"
-  - "**/*.hpp"
-  - "**/*.hh"
-  - "**/*.cs"
-  - "**/*.csx"
-  - "**/*.dart"
-  - "**/*.swift"
-  - "**/*.sh"
-  - "**/*.cc"
-  - "**/*.cgi"
-  - "**/*.csproj"
-  - "**/*.css"
-  - "**/*.csx"
-  - "**/*.cxx"
-  - "**/*.dart"
-  - "**/*.hh"
-  - "**/*.hpp"
-  - "**/*.html"
-  - "**/*.kts"
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.psgi"
-  - "**/*.pyi"
-  - "**/*.scss"
-  - "**/*.sln"
-  - "**/*.svelte"
-  - "**/*.t"
-  - "**/*.vue"
+- '**/*.py'
+- '**/*.pyi'
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+- '**/*.vue'
+- '**/*.svelte'
+- '**/*.html'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.go'
+- '**/*.rs'
+- '**/*.java'
+- '**/*.kt'
+- '**/*.kts'
+- '**/*.rb'
+- '**/*.php'
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.psgi'
+- '**/*.cgi'
+- '**/*.c'
+- '**/*.cpp'
+- '**/*.cc'
+- '**/*.cxx'
+- '**/*.h'
+- '**/*.hpp'
+- '**/*.hh'
+- '**/*.cs'
+- '**/*.csx'
+- '**/*.dart'
+- '**/*.swift'
+- '**/*.sh'
+- '**/*.cc'
+- '**/*.cgi'
+- '**/*.csproj'
+- '**/*.css'
+- '**/*.csx'
+- '**/*.cxx'
+- '**/*.dart'
+- '**/*.hh'
+- '**/*.hpp'
+- '**/*.html'
+- '**/*.kts'
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.psgi'
+- '**/*.pyi'
+- '**/*.scss'
+- '**/*.sln'
+- '**/*.svelte'
+- '**/*.t'
+- '**/*.vue'
+permalink: dqverify-repo-20261013/agent-self/config/rules/common/development-workflow
 ---
+
 # Development Workflow
 
 > This file extends [common/git-workflow.md](./git-workflow.md) with the full feature development process that happens before git operations.

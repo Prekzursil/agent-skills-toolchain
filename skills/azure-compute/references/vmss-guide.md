@@ -1,3 +1,9 @@
+---
+title: vmss-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/references/vmss-guide
+---
+
 # VMSS Guide
 
 Determine when to recommend a Virtual Machine Scale Set (VMSS) over a single VM, and which VMSS configuration to suggest.

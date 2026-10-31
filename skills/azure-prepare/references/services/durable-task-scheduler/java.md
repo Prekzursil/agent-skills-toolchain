@@ -1,3 +1,9 @@
+---
+title: java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/java
+---
+
 # Durable Task Scheduler — Java
 
 ## Learn More
@@ -240,4 +246,3 @@ public class App {
     }
 }
 ```
-

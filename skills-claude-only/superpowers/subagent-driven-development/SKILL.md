@@ -1,6 +1,8 @@
 ---
 name: subagent-driven-development
-description: Use when executing implementation plans with independent tasks in the current session
+description: Use when executing implementation plans with independent tasks in the
+  current session
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/subagent-driven-development/skill
 ---
 
 # Subagent-Driven Development

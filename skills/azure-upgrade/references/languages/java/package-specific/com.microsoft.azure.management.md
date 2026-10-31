@@ -1,3 +1,9 @@
+---
+title: com.microsoft.azure.management
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/package-specific/com.microsoft.azure.management
+---
+
 # com.microsoft.azure.management.\*\*
 
 ## Code Checklist

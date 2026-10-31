@@ -1,3 +1,9 @@
+---
+title: tool-mcp-custom-oauth
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-custom-oauth
+---
+
 # Tool — Remote MCP server, custom OAuth2 app (BYO) (`type: mcp`)
 
 Attach a remote MCP server that authenticates with **your own OAuth2 app** (bring-your-own `client_id` / `client_secret`) — when you own the OAuth app and control the client, scopes, and secret. Either a **third-party / non-Azure MCP** whose OAuth app you register, or a **private MCP on Azure** ([custom MCP on Azure Functions](https://learn.microsoft.com/en-us/azure/foundry/mcp/build-your-own-mcp-server?view=foundry)).

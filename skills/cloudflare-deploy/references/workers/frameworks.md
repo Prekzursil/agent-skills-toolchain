@@ -1,3 +1,9 @@
+---
+title: frameworks
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers/frameworks
+---
+
 # Workers Frameworks
 
 ## Hono (Recommended)

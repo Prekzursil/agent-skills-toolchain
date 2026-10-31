@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/tail-workers/readme
+---
+
 # Cloudflare Tail Workers
 
 Specialized Workers that consume execution events from producer Workers for logging, debugging, analytics, and observability.

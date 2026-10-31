@@ -1,3 +1,9 @@
+---
+title: azure-identity-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azure-identity-dotnet
+---
+
 # Authentication — .NET SDK Quick Reference
 
 > Condensed from **azure-identity-dotnet**. Full patterns (ASP.NET DI,

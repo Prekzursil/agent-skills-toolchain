@@ -1,13 +1,16 @@
 ---
 title: MCP process & orphan hygiene (G-99)
 scope: common
-loads: on-demand (referenced from AGENTS-RUNTIME §12); read before ANY workflow/fleet/second-session launch
+loads: on-demand (referenced from AGENTS-RUNTIME §12); read before ANY workflow/fleet/second-session
+  launch
 verified: 2026-09-25 (VM OFFLOAD-W2025); ports G-99 from home ~/AGENTS.md (2026-09-20)
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
-  - "**/*mcp*"
+- '**/.claude/**'
+- '**/.agents/**'
+- '**/*mcp*'
+permalink: dqverify-repo-20261013/rules/common/mcp-process-hygiene
 ---
+
 # MCP process & orphan hygiene (G-99)
 
 Every agent session instantiates the full global MCP registry (~80 servers → 60–100 processes, 10–25 GB commit). The box freezes on **COMMIT** (RAM + pagefile), not OOM. This is the rule the harness references but never had a file for — here it is.

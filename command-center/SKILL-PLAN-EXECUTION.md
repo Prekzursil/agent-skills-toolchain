@@ -1,3 +1,9 @@
+---
+title: SKILL-PLAN-EXECUTION
+type: note
+permalink: dqverify-repo-20261013/command-center/skill-plan-execution
+---
+
 # Skill-fleet plan — execution manifest
 
 **Measured 2026-08-14 by the synthesis unit, against the working tree, not against the item reports.**

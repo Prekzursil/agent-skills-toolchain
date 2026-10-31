@@ -1,3 +1,9 @@
+---
+title: h6-timeout-heartbeat
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-authoring/templates/h6-timeout-heartbeat
+---
+
 # Template — H6: per-agent timeout + stall heartbeat (barrier-deadlock escape)
 
 **What this is.** The implementation of design item **H6** from

@@ -1,3 +1,9 @@
+---
+title: health-check
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/common/health-check
+---
+
 # Health Check Endpoint
 
 > **RECOMMENDED**: Add a health endpoint for monitoring and load balancer probes.

@@ -1,3 +1,9 @@
+---
+title: deploy
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/deploy
+---
+
 # Deploy & Track
 
 Applies to all private network deployments.

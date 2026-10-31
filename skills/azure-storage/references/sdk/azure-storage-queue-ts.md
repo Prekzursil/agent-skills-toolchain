@@ -1,3 +1,9 @@
+---
+title: azure-storage-queue-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-storage-queue-ts
+---
+
 # Queue Storage — TypeScript SDK Quick Reference
 
 > Condensed from **azure-storage-queue-ts**. Full patterns (SAS generation,

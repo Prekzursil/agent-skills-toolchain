@@ -1,3 +1,9 @@
+---
+title: health-probes
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/health-probes
+---
+
 # Container Apps Health Probes
 
 Always configure health probes for production workloads.

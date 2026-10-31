@@ -1,3 +1,9 @@
+---
+title: azure-storage
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/services/storage/azure-storage
+---
+
 ## Azure Storage Cost Optimization
 
 Reference guide for identifying cost savings opportunities in Azure Storage accounts through tier analysis, lifecycle policies, and orphaned resource detection.

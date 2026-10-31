@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/abbyy-finereader-ocr-mcp/readme
+---
+
 # abbyy-finereader-ocr-mcp — Multi-Engine OCR MCP Server
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI

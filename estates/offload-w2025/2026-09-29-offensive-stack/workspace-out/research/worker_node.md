@@ -1,3 +1,9 @@
+---
+title: worker_node
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/worker-node
+---
+
 # PentAGI Worker Node Setup
 
 This guide configures a distributed PentAGI deployment where worker node operations are isolated on a separate server for enhanced security. The worker node runs both host Docker and a hardened Docker-in-Docker (dind) daemon, which gives agents a sandboxed Docker environment of their own.

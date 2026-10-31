@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-ADV-R2
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-adv-r2
+---
+
 # RULERESEARCH — ADVERSARIAL VERIFICATION of BUILD round 2 (`7770f6e8`) and of the AUDIT that cleared it
 
 Everything below was EXECUTED at `C:/Users/Prekzursil/source/ast-integrate`. Probe:

@@ -1,7 +1,13 @@
 ---
 name: diff-blind-test-synth
-description: "Use when you want an INDEPENDENT external check that a patch/PR actually satisfies the spec - synthesize executable tests from ONLY the spec + public API (never the diff), then run them against the pre-patch tree (expect FAIL) and the patched tree (expect PASS). A divergence flags a spec-miss or over/under-fitted patch. Distinct from fail-first/red-proof. SHADOW mode: never blocks."
+description: 'Use when you want an INDEPENDENT external check that a patch/PR actually
+  satisfies the spec - synthesize executable tests from ONLY the spec + public API
+  (never the diff), then run them against the pre-patch tree (expect FAIL) and the
+  patched tree (expect PASS). A divergence flags a spec-miss or over/under-fitted
+  patch. Distinct from fail-first/red-proof. SHADOW mode: never blocks.'
+permalink: dqverify-repo-20261013/skills/diff-blind-test-synth/skill
 ---
+
 # Diff-Blind Adversarial Test Synthesis
 
 The fixing agent authored the patch AND (usually) the tests that prove it — so "tests pass" only proves the patch is self-consistent, not that it meets the requirement. The one signal the author cannot fabricate is a test written by someone who **never saw the diff**. This skill produces that signal: a fresh Opus, given only the spec and the public API surface, writes executable tests; their PASS/FAIL pattern across the pre-patch and post-patch trees is an external oracle on whether the patch does what the spec asked.

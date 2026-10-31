@@ -1,3 +1,9 @@
+---
+title: errors
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/cicd/errors
+---
+
 # CI/CD Errors
 
 | Error | Resolution |

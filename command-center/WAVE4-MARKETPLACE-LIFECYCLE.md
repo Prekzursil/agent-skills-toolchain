@@ -1,3 +1,9 @@
+---
+title: WAVE4-MARKETPLACE-LIFECYCLE
+type: note
+permalink: dqverify-repo-20261013/command-center/wave4-marketplace-lifecycle
+---
+
 # Wave 4 — INDEPENDENT verification: Phase 6 marketplace lifecycle
 
 **Unit:** `verify/marketplace-lifecycle` · **Target:** `platform/marketplace/` (Phase 6) ·

@@ -1,6 +1,10 @@
 ---
 name: video-resize-aspect
-description: Use when changing a video ASPECT RATIO or RESOLUTION for social delivery (9:16 / 1:1 / 4:5 / 16:9) - horizontal into a vertical Reel/Short, squaring, or scaling to a canvas, with scale + crop and SAR/DAR math. NOT for subject-tracking reframe (use reframe) or codec changes (use video-convert).
+description: Use when changing a video ASPECT RATIO or RESOLUTION for social delivery
+  (9:16 / 1:1 / 4:5 / 16:9) - horizontal into a vertical Reel/Short, squaring, or
+  scaling to a canvas, with scale + crop and SAR/DAR math. NOT for subject-tracking
+  reframe (use reframe) or codec changes (use video-convert).
+permalink: dqverify-repo-20261013/skills/video-resize-aspect/skill
 ---
 
 # Video resize / aspect-ratio change (geometry layer)

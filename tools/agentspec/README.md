@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/agentspec/readme
+---
+
 # agentspec
 
 The portable, vendor-neutral **agent-workflow SPEC**, the shared **observation envelope**, the

@@ -1,3 +1,9 @@
+---
+title: environments
+type: note
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/environments
+---
+
 # Environments (where the weights run)
 
 Pick the environment for **cost, privacy, GPU type, and API shape**. Then attach the harness tool loop ([tool-loop.md](tool-loop.md)).

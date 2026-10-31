@@ -3,6 +3,7 @@ title: Prevent XML External Entity (XXE) Injection
 impact: CRITICAL
 impactDescription: File disclosure, SSRF, denial of service
 tags: security, xxe, cwe-611
+permalink: dqverify-repo-20261013/skills/code-security/rules/xxe
 ---
 
 ## Prevent XML External Entity (XXE) Injection

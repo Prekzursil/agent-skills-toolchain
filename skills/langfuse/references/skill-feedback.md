@@ -1,6 +1,8 @@
 ---
 name: langfuse-skill-feedback
-description: Submit feedback about the Langfuse skill to its maintainers. Use when the skill's instructions are wrong, outdated, missing something, or could be improved.
+description: Submit feedback about the Langfuse skill to its maintainers. Use when
+  the skill's instructions are wrong, outdated, missing something, or could be improved.
+permalink: dqverify-repo-20261013/skills/langfuse/references/skill-feedback
 ---
 
 # Skill Feedback

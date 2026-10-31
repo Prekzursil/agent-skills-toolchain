@@ -1,3 +1,9 @@
+---
+title: 04-external-patterns
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/research/04-external-patterns
+---
+
 # Research: External Hook + Pause/Resume Patterns
 
 ## Goal

@@ -1,6 +1,11 @@
 ---
 name: rtv-pdr
-description: Use when a hard coding work-unit has failed once, is contentious, or scores HIGH on the ESE (Ensemble Semantic Entropy) gate — spawns N parallel Opus rollouts, runs a recursive tournament where fresh judge agents (never contestants) pick the winner, then optionally runs a PDR refine pass. Expensive; do NOT fire on routine tasks.
+description: Use when a hard coding work-unit has failed once, is contentious, or
+  scores HIGH on the ESE (Ensemble Semantic Entropy) gate — spawns N parallel Opus
+  rollouts, runs a recursive tournament where fresh judge agents (never contestants)
+  pick the winner, then optionally runs a PDR refine pass. Expensive; do NOT fire
+  on routine tasks.
+permalink: dqverify-repo-20261013/skills/rtv-pdr/skill
 ---
 
 # RTV+PDR — Recursive Tournament Voting + Parallel-Distill-Refine

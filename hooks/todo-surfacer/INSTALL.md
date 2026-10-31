@@ -1,3 +1,9 @@
+---
+title: INSTALL
+type: note
+permalink: dqverify-repo-20261013/hooks/todo-surfacer/install
+---
+
 # Install: todo-surfacer  (Stop discipline)
 
 **STATUS: STAGED FOR REVIEW - NOT WIRED IN.** `forge-discipline` never edits your

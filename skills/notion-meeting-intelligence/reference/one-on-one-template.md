@@ -1,3 +1,9 @@
+---
+title: one-on-one-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/one-on-one-template
+---
+
 # 1:1 Meeting Template
 
 Use this template for manager/report one-on-one meetings.
@@ -55,4 +61,3 @@ Use this template for manager/report one-on-one meetings.
 - [Carry-over topic]
 - [Upcoming topic]
 ```
-

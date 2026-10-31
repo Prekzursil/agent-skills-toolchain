@@ -1,3 +1,9 @@
+---
+title: connections
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/project/connections
+---
+
 # Foundry Project Connections
 
 Connections authenticate and link external resources to a Foundry project. Many agent tools (Azure AI Search, Bing Grounding, MCP) require a project connection before use.

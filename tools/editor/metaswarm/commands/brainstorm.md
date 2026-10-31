@@ -1,3 +1,9 @@
+---
+title: brainstorm
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/brainstorm
+---
+
 # Brainstorm
 
 Invoke the metaswarm brainstorming extension skill, which wraps `superpowers:brainstorming` with metaswarm's design review gate handoff.

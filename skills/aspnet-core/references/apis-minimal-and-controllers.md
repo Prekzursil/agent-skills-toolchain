@@ -1,3 +1,9 @@
+---
+title: apis-minimal-and-controllers
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/apis-minimal-and-controllers
+---
+
 # APIs: Minimal And Controllers
 
 Primary docs:

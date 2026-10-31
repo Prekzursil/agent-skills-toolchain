@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/agents
+---
+
 # CyberStrike TUI contract — LIVE since 2026-09-20 (owner GO, grill round-2 A-1a)
 
 Deployed per deploy-phase3.md. Supersedes the prior AGENTS.md + config.md +

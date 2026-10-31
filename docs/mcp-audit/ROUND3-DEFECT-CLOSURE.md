@@ -1,3 +1,9 @@
+---
+title: ROUND3-DEFECT-CLOSURE
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/round3-defect-closure
+---
+
 # MCPRESEARCH round 3 — defect closure ledger
 
 > **PARTIALLY REFUTED BY ROUND 4.** A verifier confirmed that this document's line-endings

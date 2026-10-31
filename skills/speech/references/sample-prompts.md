@@ -1,3 +1,9 @@
+---
+title: sample-prompts
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/sample-prompts
+---
+
 # Sample instruction templates (copy/paste)
 
 These are short instruction blocks. Use only the lines you need and keep them consistent with the input text.

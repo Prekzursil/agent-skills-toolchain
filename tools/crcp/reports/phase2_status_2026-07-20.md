@@ -1,3 +1,9 @@
+---
+title: phase2_status_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/phase2-status-2026-07-20
+---
+
 # Phase 2 Status — 20.07.2026
 
 ## Delivered

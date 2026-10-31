@@ -1,3 +1,9 @@
+---
+title: per-iteration-strategies
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/per-iteration-strategies
+---
+
 # Per-Iteration Strategy Cookbook
 
 `SKILL.md` reads this file at the start of every loop invocation. It tells the

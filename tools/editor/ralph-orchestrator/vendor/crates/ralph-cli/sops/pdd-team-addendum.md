@@ -1,3 +1,9 @@
+---
+title: pdd-team-addendum
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/sops/pdd-team-addendum
+---
+
 # Agent Teams — PDD Addendum
 
 The user enabled `--teams`. You SHOULD use Claude Code's Agent Teams feature to produce higher-quality planning artifacts through diverse perspectives and parallel investigation.

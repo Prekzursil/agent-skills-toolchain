@@ -1,3 +1,9 @@
+---
+title: upgrade-success-criteria
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/rules/upgrade-success-criteria
+---
+
 # Upgrade Success Criteria (ALL must be met)
 
 - **Goal**: All legacy Azure SDK dependencies (`com.microsoft.azure.*`) replaced with modern equivalents (`com.azure.*`).

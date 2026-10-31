@@ -1,3 +1,9 @@
+---
+title: DELIVERY-RECONCILIATION
+type: note
+permalink: dqverify-repo-20261013/command-center/delivery-reconciliation
+---
+
 # Delivery reconciliation — what the 2,007 declared work units actually produced
 
 - **Derivation:** `tools/command-center/reconcile_delivery.py` (deterministic; no agent judgement)

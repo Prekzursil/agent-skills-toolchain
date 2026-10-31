@@ -1,3 +1,9 @@
+---
+title: grader-design
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/grader-design
+---
+
 # RFT Grader Design Guide
 
 ## Grader Type Selection

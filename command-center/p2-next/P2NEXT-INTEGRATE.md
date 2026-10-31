@@ -1,3 +1,9 @@
+---
+title: P2NEXT-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-integrate
+---
+
 # P2NEXT — INTEGRATE lane (last stage)
 
 STATUS: COMPLETE. Every claim below was executed; the commands and their real output are in §5.

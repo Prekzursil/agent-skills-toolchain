@@ -1,3 +1,9 @@
+---
+title: text-vs-stream-json
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/research/text-vs-stream-json
+---
+
 # Research: Text vs Stream-JSON for Roo — Impact on Loop Success
 
 ## What the Developer Experiences

@@ -1,3 +1,9 @@
+---
+title: B-reconcile-1
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-1
+---
+
 # B-reconcile slice 1 — cluster reconciliation
 
 Agent: `B-reconcile-1` · READ-ONLY · 2026-07-13

@@ -1,3 +1,9 @@
+---
+title: P2NEXT-VERIFY-R4
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-verify-r4
+---
+
 # P2NEXT — ADVERSARIAL VERIFIER, round 4
 
 STATUS: COMPLETE. Verdict **build_is_sound = false**, one must-fix, decision-relevant.

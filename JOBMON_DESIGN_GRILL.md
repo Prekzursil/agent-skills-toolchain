@@ -1,3 +1,9 @@
+---
+title: JOBMON_DESIGN_GRILL
+type: note
+permalink: dqverify-repo-20261013/jobmon-design-grill
+---
+
 # jobmon — general-purpose long-task monitor: design grill (decision queue)
 
 Grounding: grill-me-extensive SCOUT+DIVERGE (wf_57443cdf, 4 lenses) over the FEP dashboard

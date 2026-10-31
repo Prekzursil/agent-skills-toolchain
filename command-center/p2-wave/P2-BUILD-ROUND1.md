@@ -1,3 +1,9 @@
+---
+title: P2-BUILD-ROUND1
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-build-round1
+---
+
 # P2 BUILD LANE — ROUND 1
 
 > ## REFUTED IN ROUND 3 — read this before citing anything below

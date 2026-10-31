@@ -1,3 +1,9 @@
+---
+title: longrun-README
+type: note
+permalink: dqverify-repo-20261013/scripts/longrun-readme
+---
+
 # longrun — long-operation wrapper with heartbeat + terminal markers
 
 `longrun.ps1` (Windows/PowerShell) and `longrun.sh` (bash) wrap a command

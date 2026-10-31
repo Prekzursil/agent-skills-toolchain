@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/fixtures/ready-units/readme
+---
+
 # `ready_units.py --self-test` control fixtures
 
 `IMP-0433-state-SUCCESS-mutant.json` is a byte-copy of `command-center/receipts/IMP-0433.json`

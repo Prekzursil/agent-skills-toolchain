@@ -1,7 +1,9 @@
 ---
 name: e2e-testing
-description: Playwright E2E patterns -- Page Object Model, config, CI/CD, artifacts, flaky tests. NOT for driving a live app (use webapp-testing).
+description: Playwright E2E patterns -- Page Object Model, config, CI/CD, artifacts,
+  flaky tests. NOT for driving a live app (use webapp-testing).
 origin: ECC
+permalink: dqverify-repo-20261013/skills/e2e-testing/skill
 ---
 
 # E2E Testing Patterns

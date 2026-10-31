@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/slop-check/readme
+---
+
 # Slop Check: on-device AI detector for Claude, Codex, Hermes Agent, and OpenClaw
 
 Slop Check is a one-shot on-device AI detector skill for AI coding and writing

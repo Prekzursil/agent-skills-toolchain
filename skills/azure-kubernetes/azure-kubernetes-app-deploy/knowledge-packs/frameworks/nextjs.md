@@ -1,3 +1,9 @@
+---
+title: nextjs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/nextjs
+---
+
 # Next.js Knowledge Pack
 
 > **Applies to:** Projects detected with `package.json` containing `next` as a dependency

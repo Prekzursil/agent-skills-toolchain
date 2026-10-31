@@ -1,3 +1,9 @@
+---
+title: orchestrator-findings
+type: note
+permalink: dqverify-repo-20261013/command-center/hook-audit/orchestrator-findings
+---
+
 # Hook false-positive census — orchestrator hand-off to the HOOKRESEARCH lane
 
 Measured 2026-08-12 by the orchestrator from a live Stop-hook firing, not from record.

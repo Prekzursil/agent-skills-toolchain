@@ -1,6 +1,11 @@
 ---
 name: disk-space-manager
-description: Use when freeing disk space, analyzing what's using C:/D:, deduping, removing slop or stale files, reconciling disks, or when asked for "best next files to delete". Keeps a WizTree CSV updated and analyzed, surfaces a persistent DECISIONS-PENDING report, auto-clears only safe regenerable slop, and never deletes personal or possibly-needed files without asking.
+description: Use when freeing disk space, analyzing what's using C:/D:, deduping,
+  removing slop or stale files, reconciling disks, or when asked for "best next files
+  to delete". Keeps a WizTree CSV updated and analyzed, surfaces a persistent DECISIONS-PENDING
+  report, auto-clears only safe regenerable slop, and never deletes personal or possibly-needed
+  files without asking.
+permalink: dqverify-repo-20261013/skills/disk-space-manager/skill
 ---
 
 # Disk Space Manager

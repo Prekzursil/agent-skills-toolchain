@@ -1,3 +1,9 @@
+---
+title: INTEGRATE-FINAL-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/integrate-final-2026-08-14
+---
+
 # LANE SSOT — INTEGRATE (final stage), 2026-08-14
 
 Measured in `C:/Users/Prekzursil/source/ast-integrate` @ `main`. Every number below was

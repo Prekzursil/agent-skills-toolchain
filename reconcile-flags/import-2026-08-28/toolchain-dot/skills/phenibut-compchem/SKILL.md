@@ -1,8 +1,11 @@
 ---
 name: phenibut-compchem
-description: "Use when planning or running phenibut computational pharmacology with Schrodinger and PyMOL, including GABA-B docking, SAR, ADMET, MD, FEP+, QM pKa, or publication figures."
+description: Use when planning or running phenibut computational pharmacology with
+  Schrodinger and PyMOL, including GABA-B docking, SAR, ADMET, MD, FEP+, QM pKa, or
+  publication figures.
 metadata:
   type: project
+permalink: dqverify-repo-20261013/reconcile-flags/import-2026-08-28/toolchain-dot/skills/phenibut-compchem/skill
 ---
 
 # Phenibut Computational Pharmacology — Tool Routing & Pipeline

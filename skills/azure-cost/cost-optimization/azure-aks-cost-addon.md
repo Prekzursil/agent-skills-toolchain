@@ -1,3 +1,9 @@
+---
+title: azure-aks-cost-addon
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/azure-aks-cost-addon
+---
+
 # AKS Cost Analysis Add-on
 
 Enable namespace-level cost visibility using the built-in AKS cost monitoring add-on.

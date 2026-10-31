@@ -1,3 +1,9 @@
+---
+title: azure-aks-rightsizing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/references/azure-aks-rightsizing
+---
+
 # AKS Pod Rightsizing
 
 Identify pods requesting far more CPU/memory than they use and recommend reduced resource requests.

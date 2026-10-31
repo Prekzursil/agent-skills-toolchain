@@ -1,10 +1,14 @@
 ---
 name: prompt-optimizer
-description: "Use when prompt optimizer is needed. Analyze raw prompts, identify intent and gaps, match ECC components (skills/commands/agents/hooks), and output a ready-to-paste optimized prompt. Advisory role only — never executes the task itself. TRIGGER when: user says \"optimize prompt\", \"improve my."
+description: 'Use when prompt optimizer is needed. Analyze raw prompts, identify intent
+  and gaps, match ECC components (skills/commands/agents/hooks), and output a ready-to-paste
+  optimized prompt. Advisory role only — never executes the task itself. TRIGGER when:
+  user says "optimize prompt", "improve my.'
 origin: community
 metadata:
   author: YannJY02
-  version: "1.0.0"
+  version: 1.0.0
+permalink: dqverify-repo-20261013/skills/prompt-optimizer/skill
 ---
 
 # Prompt Optimizer

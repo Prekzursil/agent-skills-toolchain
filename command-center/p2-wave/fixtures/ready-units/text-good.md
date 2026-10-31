@@ -1,3 +1,9 @@
+---
+title: text-good
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/fixtures/ready-units/text-good
+---
+
 # CNL-0002 -- resolve the measured v1 schema-catalogue non-intersection
 
 This fixture stands in for a genuine council design note. It exists so the text-artifact

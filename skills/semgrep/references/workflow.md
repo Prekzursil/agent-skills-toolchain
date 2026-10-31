@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/semgrep/references/workflow
+---
+
 # Semgrep Rule Creation Workflow
 
 Detailed workflow for creating production-quality Semgrep rules.

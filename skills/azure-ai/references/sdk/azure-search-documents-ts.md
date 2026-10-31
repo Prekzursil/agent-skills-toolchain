@@ -1,3 +1,9 @@
+---
+title: azure-search-documents-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-search-documents-ts
+---
+
 # Azure AI Search — TypeScript SDK Quick Reference
 
 > Condensed from **azure-search-documents-ts**. Full patterns (semantic config, vector profiles, autocomplete)

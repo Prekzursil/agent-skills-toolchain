@@ -1,6 +1,7 @@
 ---
 name: robot-interaction
 description: Human-in-the-loop interaction via RObot
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/data/robot-interaction-skill
 ---
 
 # Human Interaction (RObot)

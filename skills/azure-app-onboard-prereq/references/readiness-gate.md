@@ -1,3 +1,9 @@
+---
+title: readiness-gate
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/readiness-gate
+---
+
 # Readiness Gate — Step 4
 
 ## Write Artifacts

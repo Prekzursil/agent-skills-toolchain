@@ -1,7 +1,8 @@
 ---
 name: verification-loop
-description: "A comprehensive verification system for Claude Code sessions."
+description: A comprehensive verification system for Claude Code sessions.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/verification-loop/skill
 ---
 
 # Verification Loop Skill

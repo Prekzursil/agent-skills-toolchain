@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/azd/readme
+---
+
 # AZD Validation
 
 Validation steps for Azure Developer CLI projects.

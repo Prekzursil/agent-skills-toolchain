@@ -1,3 +1,9 @@
+---
+title: ui-mvc
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/ui-mvc
+---
+
 # MVC
 
 Primary docs:

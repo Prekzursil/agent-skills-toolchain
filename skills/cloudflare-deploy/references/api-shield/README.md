@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api-shield/readme
+---
+
 # Cloudflare API Shield Reference
 
 Expert guidance for API Shield - comprehensive API security suite for discovery, protection, and monitoring.

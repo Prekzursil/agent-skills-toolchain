@@ -1,3 +1,9 @@
+---
+title: desktop_session_discovery_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/desktop-session-discovery-2026-07-20
+---
+
 # ChatGPT Desktop → session storage discovery (2026-07-20)
 
 ## Status

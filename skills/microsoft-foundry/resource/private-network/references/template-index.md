@@ -1,3 +1,9 @@
+---
+title: template-index
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/template-index
+---
+
 # Template Index — Foundry Private Network
 
 Official templates for deploying Microsoft Foundry. Each template may be available in Bicep, Terraform, or both — use one, not both. Choose based on the user's preference or existing workspace files. Use tools to fetch Bicep and Terraform templates to understand available templates and recognize if any matches user's requirements:

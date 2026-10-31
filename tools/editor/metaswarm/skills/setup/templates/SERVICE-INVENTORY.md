@@ -1,3 +1,9 @@
+---
+title: SERVICE-INVENTORY
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/setup/templates/service-inventory
+---
+
 # Service Inventory
 
 > Updated by the orchestrator after each work unit commit.

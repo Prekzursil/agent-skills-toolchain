@@ -1,3 +1,9 @@
+---
+title: large-file-uploads
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/large-file-uploads
+---
+
 # Large File Uploads
 
 The standard `client.files.create()` silently fails on JSONL files >~150MB (Azure returns 500 during job execution). Use the chunked Uploads API:

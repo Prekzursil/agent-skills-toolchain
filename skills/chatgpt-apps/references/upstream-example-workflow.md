@@ -1,3 +1,9 @@
+---
+title: upstream-example-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/upstream-example-workflow
+---
+
 # Upstream Example Workflow
 
 Load this reference when starting a greenfield ChatGPT app or when deciding whether to adapt an upstream example or use the local fallback scaffold.

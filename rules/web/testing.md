@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "**/*.ts"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.html"
-  - "**/*.vue"
-  - "**/*.svelte"
+- '**/*.tsx'
+- '**/*.jsx'
+- '**/*.ts'
+- '**/*.js'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.html'
+- '**/*.vue'
+- '**/*.svelte'
+permalink: dqverify-repo-20261013/rules/web/testing
 ---
+
 > This file extends [common/testing.md](../common/testing.md) with web-specific testing content.
 
 # Web Testing Rules

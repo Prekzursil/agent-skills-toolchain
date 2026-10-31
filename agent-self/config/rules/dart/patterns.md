@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
+- '**/*.dart'
+- '**/pubspec.yaml'
+permalink: dqverify-repo-20261013/agent-self/config/rules/dart/patterns
 ---
+
 # Dart/Flutter Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Dart, Flutter, and common ecosystem-specific content.

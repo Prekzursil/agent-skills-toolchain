@@ -1,3 +1,9 @@
+---
+title: detailed-design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/design/detailed-design
+---
+
 # Detailed Design: Add roo-cli as a Provider
 
 ## Overview

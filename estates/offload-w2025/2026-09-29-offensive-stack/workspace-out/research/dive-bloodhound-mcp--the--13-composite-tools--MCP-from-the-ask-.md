@@ -1,3 +1,9 @@
+---
+title: dive-bloodhound-mcp--the--13-composite-tools--MCP-from-the-ask-
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-bloodhound-mcp-the-13-composite-tools-mcp-from-the-ask
+---
+
 # Deep-dive: bloodhound_mcp (the "13 composite tools" MCP from the ask)
 
 Candidate lane: ad-entra-paths. Dive date: 2026-09-29.

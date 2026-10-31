@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/cosmos/readme
+---
+
 # Cosmos DB Recipe — REFERENCE ONLY
 
 Adds Azure Cosmos DB (NoSQL) integration to an App Service base template.

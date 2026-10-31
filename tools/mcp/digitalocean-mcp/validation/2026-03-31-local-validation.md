@@ -1,3 +1,9 @@
+---
+title: 2026-03-31-local-validation
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/digitalocean-mcp/validation/2026-03-31-local-validation
+---
+
 # 2026-03-31 DigitalOcean local validation
 
 ## Commands run

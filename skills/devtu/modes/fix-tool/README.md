@@ -1,6 +1,10 @@
 ---
 name: devtu-fix-tool
-description: Fix failing ToolUniverse tools by diagnosing test failures, identifying root causes, implementing fixes, and validating solutions. Use when ToolUniverse tools fail tests, return errors, have schema validation issues, or when asked to debug or fix tools in the ToolUniverse framework.
+description: Fix failing ToolUniverse tools by diagnosing test failures, identifying
+  root causes, implementing fixes, and validating solutions. Use when ToolUniverse
+  tools fail tests, return errors, have schema validation issues, or when asked to
+  debug or fix tools in the ToolUniverse framework.
+permalink: dqverify-repo-20261013/skills/devtu/modes/fix-tool/readme
 ---
 
 # Fix ToolUniverse Tools

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/email-workers/readme
+---
+
 # Cloudflare Email Workers
 
 Process incoming emails programmatically using Cloudflare Workers runtime.

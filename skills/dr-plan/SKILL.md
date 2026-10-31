@@ -1,6 +1,10 @@
 ---
 name: dr-plan
-description: Use when someone asks to "create a DR plan", "disaster recovery", "business continuity", or "RTO RPO" — generates a product/service-scoped Disaster Recovery plan with numeric RTO/RPO targets, ranked disaster scenarios, recovery procedures, manual workarounds, and a testing schedule. Not for step-by-step restoration runbooks.
+description: Use when someone asks to "create a DR plan", "disaster recovery", "business
+  continuity", or "RTO RPO" — generates a product/service-scoped Disaster Recovery
+  plan with numeric RTO/RPO targets, ranked disaster scenarios, recovery procedures,
+  manual workarounds, and a testing schedule. Not for step-by-step restoration runbooks.
+permalink: dqverify-repo-20261013/skills/dr-plan/skill
 ---
 
 <!-- Source: cherry-picked from https://github.com/coco-research/coco (skills/dr-plan, "pmstudio-dr") on 27.08.2026 per grill decision G-11/11B. De-branded and generalized; coco pmstudio document ecosystem and reference files not ported. -->

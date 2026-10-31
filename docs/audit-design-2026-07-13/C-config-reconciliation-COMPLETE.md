@@ -1,3 +1,9 @@
+---
+title: C-config-reconciliation-COMPLETE
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/c-config-reconciliation-complete
+---
+
 # C — Unified Whole-Drive CONFIG Reconciliation (MCP + Skills + Hooks)
 
 **Deliverable:** the ONE complete whole-drive harness-**config** disposition matrix + coverage —

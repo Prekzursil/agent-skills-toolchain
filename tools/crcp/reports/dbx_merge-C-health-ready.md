@@ -1,3 +1,9 @@
+---
+title: dbx_merge-C-health-ready
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-merge-c-health-ready
+---
+
 # Merge C — health/readiness integration
 
 ## Result

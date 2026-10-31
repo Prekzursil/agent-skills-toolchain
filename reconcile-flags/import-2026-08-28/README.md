@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/import-2026-08-28/readme
+---
+
 # Flagged pairs from 2026-08-28 SSOT surgical reconcile
 
 Working copies in the repo were NOT mashed. Toolchain originals stay in place.

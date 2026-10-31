@@ -1,6 +1,11 @@
 ---
 name: chatgpt5-web
-description: "Direct browser-automation ChatGPT 5 web lane - one skill, three modes via a `mode:` arg. Use when the user explicitly wants the ChatGPT web side (not Codex orchestration): mode:query for a single direct question; mode:discuss to debate/ideate/spar; mode:curate to compare candidates and pick the best. NOT for Codex-side lanes (use codex-consult)."
+description: 'Direct browser-automation ChatGPT 5 web lane - one skill, three modes
+  via a `mode:` arg. Use when the user explicitly wants the ChatGPT web side (not
+  Codex orchestration): mode:query for a single direct question; mode:discuss to debate/ideate/spar;
+  mode:curate to compare candidates and pick the best. NOT for Codex-side lanes (use
+  codex-consult).'
+permalink: dqverify-repo-20261013/skills/chatgpt5-web/skill
 ---
 
 # ChatGPT 5 Web

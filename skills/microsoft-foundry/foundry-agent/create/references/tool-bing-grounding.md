@@ -1,3 +1,9 @@
+---
+title: tool-bing-grounding
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tool-bing-grounding
+---
+
 # Bing Grounding Tool
 
 Access real-time web information via Bing Search. Unlike the [Web Search tool](tool-web-search.md) (which works out of the box), Bing Grounding requires a dedicated Bing resource and a project connection.

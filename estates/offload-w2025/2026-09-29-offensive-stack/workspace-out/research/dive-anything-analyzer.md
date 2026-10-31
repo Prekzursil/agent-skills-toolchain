@@ -1,3 +1,9 @@
+---
+title: dive-anything-analyzer
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-anything-analyzer
+---
+
 # Deep-dive: anything-analyzer (browser-offense lane)
 
 Date: 2026-09-29. Verifier: Deep-dive agent (this session). All commands run live against GitHub API via `gh`, Exa REST, and repo file contents fetched through `gh api repos/.../contents`.

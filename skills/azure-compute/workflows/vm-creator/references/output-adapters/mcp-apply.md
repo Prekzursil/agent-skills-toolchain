@@ -1,3 +1,9 @@
+---
+title: mcp-apply
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/output-adapters/mcp-apply
+---
+
 # Apply via Azure MCP
 
 User is in an MCP-connected host (Claude Code, VS Code Copilot, Cursor) with the Azure MCP server enabled and says "just do it" / "create it now" / "deploy".

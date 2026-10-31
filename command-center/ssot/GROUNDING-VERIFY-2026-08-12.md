@@ -1,3 +1,9 @@
+---
+title: GROUNDING-VERIFY-2026-08-12
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/grounding-verify-2026-08-12
+---
+
 # SSOT grounding lane — independent verification of the existing inventory
 
 **Measured 2026-08-12, 22:10–23:00 local. Read-only. Nothing deleted, nothing retired.**

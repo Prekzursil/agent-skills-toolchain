@@ -1,3 +1,9 @@
+---
+title: terraform
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/terraform
+---
+
 # Container Apps Terraform Patterns
 
 > **⚠️ Container Registry Naming:** ACR names must be alphanumeric only (5-50 characters). Use Terraform's `replace()` function when constructing the value passed to `azurecaf_name`, or otherwise strip hyphens manually.

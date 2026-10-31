@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-query/workflow
+---
+
 # Cost Query Workflow
 
 Use this workflow when the user wants to **understand their costs** — breakdowns, trends, totals, top spenders.

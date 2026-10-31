@@ -1,3 +1,9 @@
+---
+title: aws_phone_cookie_inventory_2026-07-24
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/aws-phone-cookie-inventory-2026-07-24
+---
+
 # AWS phone cookie inventory + vault (2026-07-24)
 
 **No secrets in this file.** Cookie values stay on-disk outside git under ACL-locked paths and DPAPI vault containers.

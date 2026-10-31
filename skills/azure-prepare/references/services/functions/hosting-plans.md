@@ -1,3 +1,9 @@
+---
+title: hosting-plans
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/hosting-plans
+---
+
 # Azure Functions Hosting Plans
 
 ## Plan Comparison Matrix

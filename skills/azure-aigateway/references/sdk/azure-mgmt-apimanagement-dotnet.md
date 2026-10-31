@@ -1,3 +1,9 @@
+---
+title: azure-mgmt-apimanagement-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/sdk/azure-mgmt-apimanagement-dotnet
+---
+
 # API Management — .NET SDK Quick Reference
 
 > Condensed from **azure-mgmt-apimanagement-dotnet**. Full patterns (service

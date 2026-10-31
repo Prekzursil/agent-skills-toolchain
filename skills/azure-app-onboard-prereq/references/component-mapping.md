@@ -1,3 +1,9 @@
+---
+title: component-mapping
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/component-mapping
+---
+
 Component-to-Azure mapping and existing infrastructure detection. Part of the [deployability check](deployability-check.md).
 
 ## Step 1: Component Mapping Feasibility

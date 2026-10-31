@@ -1,3 +1,9 @@
+---
+title: iac-generation-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/iac-generation-rules
+---
+
 # IaC Generation Rules — Steps 5–8
 
 Rules for generating infrastructure code, Dockerfiles, security verification, and telemetry wiring.

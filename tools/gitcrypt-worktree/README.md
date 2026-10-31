@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/gitcrypt-worktree/readme
+---
+
 # `gitcrypt-worktree` — git-crypt worktree doctor and gated backfill
 
 Replaces the shell doctor/backfill pair from the R1 investigation's §5b. That

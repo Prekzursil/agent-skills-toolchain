@@ -1,3 +1,9 @@
+---
+title: security
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/security
+---
+
 # Security Hardening
 
 Secure Azure resources following Zero Trust principles.

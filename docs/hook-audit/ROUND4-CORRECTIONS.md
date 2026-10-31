@@ -1,3 +1,9 @@
+---
+title: ROUND4-CORRECTIONS
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/round4-corrections
+---
+
 # HOOKRESEARCH — round 4 corrections (BUILD lane)
 
 Round 3's independent verifier returned `build_is_sound: false` with two CONFIRMED defects

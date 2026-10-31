@@ -1,6 +1,12 @@
 ---
 name: workflow-monitor
-description: Use when you want to LIVE-monitor a Claude Code Workflow ("ultracode") fan-out — watch every parallel agent's status, lens/task, model, tokens, tool activity, and final result across the WHOLE FLEET (all sessions/projects) in a read-only terminal cockpit, instead of the sparse native /workflows view or opening a terminal-tail per agent. Also for triaging errored/retrying/stalled agents mid-run, or reviewing a finished run's per-agent prompt/output.
+description: Use when you want to LIVE-monitor a Claude Code Workflow ("ultracode")
+  fan-out — watch every parallel agent's status, lens/task, model, tokens, tool activity,
+  and final result across the WHOLE FLEET (all sessions/projects) in a read-only terminal
+  cockpit, instead of the sparse native /workflows view or opening a terminal-tail
+  per agent. Also for triaging errored/retrying/stalled agents mid-run, or reviewing
+  a finished run's per-agent prompt/output.
+permalink: dqverify-repo-20261013/skills/workflow-monitor/skill
 ---
 
 # workflow-monitor

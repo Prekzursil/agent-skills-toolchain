@@ -1,3 +1,9 @@
+---
+title: tool-a2a
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools/prompt-agent/tool-a2a
+---
+
 # Tool — Agent-to-Agent (A2A, preview)
 
 Call another Foundry agent as if it were a tool. Useful for composing specialist agents into an orchestrator.

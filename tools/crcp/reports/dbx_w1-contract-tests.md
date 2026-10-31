@@ -1,3 +1,9 @@
+---
+title: dbx_w1-contract-tests
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w1-contract-tests
+---
+
 # W1 contract tests
 
 ## Summary

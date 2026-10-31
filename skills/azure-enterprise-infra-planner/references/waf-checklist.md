@@ -1,3 +1,9 @@
+---
+title: waf-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/waf-checklist
+---
+
 # WAF Cross-Cutting Checklist
 
 Walk through every row and decide if resources or properties are needed.

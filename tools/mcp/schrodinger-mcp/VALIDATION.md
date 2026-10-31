@@ -1,3 +1,9 @@
+---
+title: VALIDATION
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/schrodinger-mcp/validation
+---
+
 # Schrodinger MCP — live validation record
 
 Host: Schrodinger Suite **2022-4** (`D:\Program Files\Schrodinger 2022-4`), Windows, 2026-06-06.

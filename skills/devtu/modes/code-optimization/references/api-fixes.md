@@ -1,3 +1,9 @@
+---
+title: api-fixes
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/code-optimization/references/api-fixes
+---
+
 # API-Specific Fix Reference
 
 Patterns discovered through rounds 52–78 of role-play debugging.

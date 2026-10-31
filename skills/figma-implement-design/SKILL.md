@@ -1,8 +1,12 @@
 ---
-name: "figma-implement-design"
-description: Use when the user provides Figma URLs or node IDs and needs production-ready code with pixel-perfect 1:1 fidelity to the design, translating Figma components into project-convention code via the Figma MCP ; do NOT use for generic Figma data fetching or MCP setup (use figma) ; returns implemented component code matching Figma specs.
+name: figma-implement-design
+description: Use when the user provides Figma URLs or node IDs and needs production-ready
+  code with pixel-perfect 1:1 fidelity to the design, translating Figma components
+  into project-convention code via the Figma MCP ; do NOT use for generic Figma data
+  fetching or MCP setup (use figma) ; returns implemented component code matching
+  Figma specs.
+permalink: dqverify-repo-20261013/skills/figma-implement-design/skill
 ---
-
 
 # Implement Design
 

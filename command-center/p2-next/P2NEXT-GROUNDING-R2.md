@@ -1,3 +1,9 @@
+---
+title: P2NEXT-GROUNDING-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-grounding-r2
+---
+
 # P2NEXT grounding round 2 — the lane's DoD is already delivered; here is what is actually left
 
 STATUS: COMPLETE. Every claim below was EXECUTED, not read. Commands and real output in §6.

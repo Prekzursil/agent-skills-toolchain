@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/cron-triggers/patterns
+---
+
 # Cron Triggers Patterns
 
 ## API Data Sync

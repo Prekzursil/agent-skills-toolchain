@@ -1,3 +1,9 @@
+---
+title: CHANGELOG
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/changelog
+---
+
 # Changelog: Per-Project Lifecycle Hooks
 
 **Feature Release Date:** 2026-03-01

@@ -1,3 +1,9 @@
+---
+title: reliability
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/services/app-service/reliability
+---
+
 # Azure App Service — Reliability Reference
 
 ## Supported Plans & Zone Redundancy
@@ -257,4 +263,3 @@ When the parent skill builds the feature-pivoted assessment table, report each A
 | Zone redundancy — compute | `🟢 ON` if the **plan** has `zoneRedundant: true` AND `sku.capacity ≥ 2`. `🔴 OFF` if either is missing or the plan tier doesn't support ZR (Free / Shared / Basic / Standard). Annotate `(needs plan upgrade)` for unsupported tiers. |
 | Health probes | `🟢 ON` if `siteConfig.healthCheckPath` is set on the **app**. `🔴 OFF` if empty. Basic tier and above support it; Free/Shared do not — annotate `(needs plan upgrade)` in that case. |
 | Multi-region failover | `🟢 ON` if the same app is deployed in ≥2 regions behind Front Door / Traffic Manager. `🟡 PARTIAL` if multi-region is set up but `clientAffinityEnabled` is still `true` (sticky sessions break failover). `🔴 OFF` otherwise. |
-

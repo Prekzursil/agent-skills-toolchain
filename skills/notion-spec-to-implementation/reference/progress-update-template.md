@@ -1,3 +1,9 @@
+---
+title: progress-update-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/progress-update-template
+---
+
 # Progress Update Template
 
 Use this to update progress on implementation plans and tasks.
@@ -22,4 +28,3 @@ Use this to update progress on implementation plans and tasks.
 ### Notes
 [Additional context, decisions made, issues encountered]
 ```
-

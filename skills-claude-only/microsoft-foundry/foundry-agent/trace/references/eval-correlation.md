@@ -1,3 +1,9 @@
+---
+title: eval-correlation
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/trace/references/eval-correlation
+---
+
 # Eval Correlation — Find Evaluation Results by Response or Conversation ID
 
 Look up evaluation scores for a specific agent response using App Insights.

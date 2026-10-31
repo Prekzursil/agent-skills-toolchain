@@ -1,3 +1,9 @@
+---
+title: repo-contract-and-validation
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/repo-contract-and-validation
+---
+
 # Repo Contract And Validation
 
 Load this reference when scaffolding or reviewing a generated ChatGPT app repo.

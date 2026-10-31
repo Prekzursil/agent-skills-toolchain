@@ -1,3 +1,9 @@
+---
+title: quality-gate-autofix-planner
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/quality-gate-autofix-planner
+---
+
 # quality-gate-autofix-planner
 
 ## Purpose

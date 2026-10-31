@@ -3,6 +3,7 @@ title: Ensure Memory Safety
 impact: CRITICAL
 impactDescription: Arbitrary code execution and data corruption
 tags: security, memory-safety, buffer-overflow, c, cpp, cwe-415, cwe-416, cwe-119
+permalink: dqverify-repo-20261013/skills/code-security/rules/memory-safety
 ---
 
 ## Ensure Memory Safety

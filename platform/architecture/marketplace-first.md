@@ -1,3 +1,9 @@
+---
+title: marketplace-first
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/marketplace-first
+---
+
 # Architecture Candidate: MARKETPLACE-FIRST
 
 **Phase 3 — Architecture Tournament.** This is an *advocacy* artifact: I argue for this

@@ -1,3 +1,8 @@
+---
+title: research-2
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/research-2
+---
 
 # SOTA → harness-ready enforcement hooks for doc/cleanup/branch/commit hygiene
 
@@ -76,4 +81,3 @@ Scope: research the state of the art for the four enforcement classes the owner 
 5. **Keep the hard gate out-of-band**: mirror `doc_drift` + `uncommitted_change` as a repo `pre-commit` hook (exit 1) for the *commit boundary*, where SOTA hard-blocks live and a human reconciles — the interactive hooks stay inject-only.
 
 **Net confidence that this design is both SOTA-aligned and drop-in for the harness: almost certain (90%)** — the four gates are near-isomorphic to gates already shipping in `modules.py`, and each SOTA mechanism (AST-fingerprint binding, `merge-base --is-ancestor`, `status --porcelain` untracked-set, ADR-supersede metadata, Stop-hook commit gate) maps cleanly onto the dispatcher's `event → HookResult` surface with no framework additions. Main residual risk (medium, 60%): the `doc_drift` AST hash is only as good as tree-sitter coverage — the `_stripped_signature` stand-in will over-fire on some languages until upgraded, which is precisely why it must ship SHADOW and prove precision before ADVISE.
-

@@ -1,6 +1,19 @@
 ---
 name: browser-rail
-description: Use as the DEFAULT for any multi-step browser work on a site the owner is signed into - reading, filling, clicking, uploading, or posting across several turns on grok.com, chatgpt.com, a dashboard, a webmail, an admin panel, or any logged-in app. Drives a dedicated CDP Chrome/Edge profile with Playwright over role locators (the a11y tree), not pixels. Covers the Chrome-136 break where --remote-debugging-port is silently IGNORED on the default user-data-dir, the dedicated-profile fix, how the owner signs in ONCE so no credential ever passes through an agent, passing content as an evaluate ARG instead of inlining it into JS, and when to fall back to claude-in-chrome instead. Triggers include drive the browser, log into a site and do X, automate this web app, upload a file to a web page, attach to my Chrome, CDP, remote debugging port, connect_over_cdp, browser automation, or scrape a page I am logged into. NOT for a one-off look at a tab the owner already has open (use claude-in-chrome) and NOT for fetching a public page (use WebFetch or firecrawl).
+description: Use as the DEFAULT for any multi-step browser work on a site the owner
+  is signed into - reading, filling, clicking, uploading, or posting across several
+  turns on grok.com, chatgpt.com, a dashboard, a webmail, an admin panel, or any logged-in
+  app. Drives a dedicated CDP Chrome/Edge profile with Playwright over role locators
+  (the a11y tree), not pixels. Covers the Chrome-136 break where --remote-debugging-port
+  is silently IGNORED on the default user-data-dir, the dedicated-profile fix, how
+  the owner signs in ONCE so no credential ever passes through an agent, passing content
+  as an evaluate ARG instead of inlining it into JS, and when to fall back to claude-in-chrome
+  instead. Triggers include drive the browser, log into a site and do X, automate
+  this web app, upload a file to a web page, attach to my Chrome, CDP, remote debugging
+  port, connect_over_cdp, browser automation, or scrape a page I am logged into. NOT
+  for a one-off look at a tab the owner already has open (use claude-in-chrome) and
+  NOT for fetching a public page (use WebFetch or firecrawl).
+permalink: dqverify-repo-20261013/skills/browser-rail/skill
 ---
 
 # Browser Rail

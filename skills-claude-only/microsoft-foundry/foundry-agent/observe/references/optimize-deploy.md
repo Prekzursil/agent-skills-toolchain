@@ -1,3 +1,9 @@
+---
+title: optimize-deploy
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/observe/references/optimize-deploy
+---
+
 # Steps 6–7 — Optimize Prompt & Deploy New Version
 
 ## Step 6 — Optimize Prompt

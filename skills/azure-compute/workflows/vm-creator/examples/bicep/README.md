@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/examples/bicep/readme
+---
+
 # {vm-name} — Bicep
 
 Deploys a single Linux VM with VNet, subnet, NSG (SSH allow), public IP, and NIC.

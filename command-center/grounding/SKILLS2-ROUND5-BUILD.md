@@ -1,3 +1,9 @@
+---
+title: SKILLS2-ROUND5-BUILD
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills2-round5-build
+---
+
 # SKILLS2 — BUILD round 2 (program round 5): repairing what the audit CONFIRMED
 
 COVERAGE: all three defects measured and repaired; four overclaims corrected in place; DoD-4

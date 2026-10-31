@@ -1,3 +1,9 @@
+---
+title: javascript
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/javascript
+---
+
 # Durable Task Scheduler — JavaScript
 
 ## Learn More
@@ -208,4 +214,3 @@ async function main() {
 
 main().catch(console.error);
 ```
-

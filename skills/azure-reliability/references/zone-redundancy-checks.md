@@ -1,3 +1,9 @@
+---
+title: zone-redundancy-checks
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/zone-redundancy-checks
+---
+
 # Zone Redundancy — Platform Overview
 
 ## Overview

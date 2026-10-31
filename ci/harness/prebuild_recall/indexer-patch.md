@@ -1,3 +1,9 @@
+---
+title: indexer-patch
+type: note
+permalink: dqverify-repo-20261013/ci/harness/prebuild-recall/indexer-patch
+---
+
 # Recall-indexer patch (prerequisite for the pre-build recall gate)
 
 The gate in this directory cannot exceed the recall quality of the index it

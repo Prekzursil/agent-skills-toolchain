@@ -1,3 +1,9 @@
+---
+title: readme_SquidSec_SquidC5
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-squid-sec-squid-c5
+---
+
 # SquidC5
 
 <p align="center">

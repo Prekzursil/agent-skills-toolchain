@@ -1,3 +1,9 @@
+---
+title: SECURITY
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/security
+---
+
 # Security Policy
 
 ## Reporting a Vulnerability

@@ -1,3 +1,9 @@
+---
+title: capacity-reservation-overview
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/capacity-reservation/references/capacity-reservation-overview
+---
+
 # Capacity Reservation Overview
 
 Reference material for Azure Capacity Reservation Groups and Capacity Reservations.

@@ -1,3 +1,9 @@
+---
+title: deployment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/deployment-guide
+---
+
 # Kubernetes to Azure Container Apps - Deployment Guide
 
 ## Prerequisites

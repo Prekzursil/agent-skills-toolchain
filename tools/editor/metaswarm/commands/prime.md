@@ -1,5 +1,6 @@
 ---
 description: Load relevant knowledge base facts into context before starting work
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/prime
 ---
 
 # BEADS Prime

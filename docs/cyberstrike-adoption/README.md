@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/docs/cyberstrike-adoption/readme
+---
+
 # CyberStrike adoption — implementation report and operator runbook
 
 Status of this change set: **partial, reversible landing.** This PR commits only the

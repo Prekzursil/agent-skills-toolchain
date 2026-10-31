@@ -1,3 +1,9 @@
+---
+title: canonicalization-rules
+type: note
+permalink: dqverify-repo-20261013/skills/codex-session-reunion/references/canonicalization-rules
+---
+
 # Canonicalization Rules
 
 Rank candidate copies using concrete signals:

@@ -1,3 +1,9 @@
+---
+title: ADV-0021-worklog
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/recovered/adv-0021-worklog
+---
+
 # ADV-0021 worklog (recovered from agent-ae7e589262e107d7e.jsonl)
 
 records=124 tool_calls=39 assistant_texts=13

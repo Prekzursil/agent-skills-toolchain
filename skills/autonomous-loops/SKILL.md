@@ -1,7 +1,9 @@
 ---
 name: autonomous-loops
-description: "Patterns and architectures for autonomous Claude Code loops — from simple sequential pipelines to RFC-driven multi-agent DAG systems."
+description: Patterns and architectures for autonomous Claude Code loops — from simple
+  sequential pipelines to RFC-driven multi-agent DAG systems.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/autonomous-loops/skill
 ---
 
 # Autonomous Loops Skill

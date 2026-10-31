@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.t'
+- '**/*.psgi'
+- '**/*.cgi'
+permalink: dqverify-repo-20261013/rules/perl/hooks
 ---
+
 # Perl Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Perl-specific content.

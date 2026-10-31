@@ -1,3 +1,9 @@
+---
+title: routine
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/routine/routine
+---
+
 # Manage Foundry Routines (azd ai routine)
 
 Create, read, update, and delete Microsoft Foundry **routines** with the Azure Developer CLI (`azd`). A routine pairs a trigger (timer, recurring schedule, GitHub issue, or custom external event) with an action that invokes a Foundry agent. Use only the `azd` path for routine work: imperative `azd ai routine` commands or declarative `host: azure.ai.routine` services in `azure.yaml`.

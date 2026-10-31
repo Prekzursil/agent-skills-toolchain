@@ -1,3 +1,9 @@
+---
+title: k8s-to-container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/k8s-to-container-apps
+---
+
 # Kubernetes to Azure Container Apps Migration
 
 Detailed guidance for migrating containerized workloads from Kubernetes (GKE, EKS, self-hosted) to Azure Container Apps.

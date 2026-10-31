@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.cs"
-  - "**/*.csx"
-  - "**/*.csproj"
+- '**/*.cs'
+- '**/*.csx'
+- '**/*.csproj'
+permalink: dqverify-repo-20261013/agent-self/config/rules/csharp/testing
 ---
+
 # C# Testing
 
 > This file extends [common/testing.md](../common/testing.md) with C#-specific content.

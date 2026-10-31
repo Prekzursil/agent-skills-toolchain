@@ -1,3 +1,9 @@
+---
+title: EVALS
+type: note
+permalink: dqverify-repo-20261013/tools/process-hygiene-supervisor/evals/evals
+---
+
 # EVAL DEFINITION: process-hygiene-supervisor
 
 Eval-driven development for the supervisor: each eval is a replayed process table

@@ -1,3 +1,9 @@
+---
+title: WAVE4-PLUGIN-LIFECYCLE-VERIFY
+type: note
+permalink: dqverify-repo-20261013/command-center/wave4-plugin-lifecycle-verify
+---
+
 # WAVE 4 — Independent verification: Phase 5 plugin lifecycle
 
 Unit: `verify/plugin-lifecycle`. Measured first, compared after: the lane's own

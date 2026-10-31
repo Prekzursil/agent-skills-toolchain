@@ -1,3 +1,9 @@
+---
+title: FOUR-PROGRAM-DECISION-QUEUE
+type: note
+permalink: dqverify-repo-20261013/command-center/four-program-decision-queue
+---
+
 # FOUR-PROGRAM DECISION QUEUE — synthesis of 10 lane artifacts
 
 **Lane:** SYNTH · **Owner file:** this file, mine alone · **Measured:** 2026-08-10 23:15-23:40

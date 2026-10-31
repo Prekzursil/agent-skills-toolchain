@@ -1,3 +1,9 @@
+---
+title: upstream-sources
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cheatengine-mcp-bridge/references/upstream-sources
+---
+
 # Upstream sources
 
 - GitHub repo: https://github.com/miscusi-peek/cheatengine-mcp-bridge

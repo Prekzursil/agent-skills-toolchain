@@ -1,3 +1,9 @@
+---
+title: guardrail-attach
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/guardrails/guardrail-attach
+---
+
 # Attach a Guardrail
 
 After creating a guardrail (via [portal](guardrail-manage.md) or [REST API](guardrail-api-create.md)), attach it to one of three targets:

@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/turn/patterns
+---
+
 # TURN Implementation Patterns
 
 Production-ready patterns for implementing Cloudflare TURN in WebRTC applications.

@@ -1,3 +1,9 @@
+---
+title: microsoft-azure-webjobs-extensions-authentication-events-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/entra-app-registration/references/sdk/microsoft-azure-webjobs-extensions-authentication-events-dotnet
+---
+
 # Authentication Events — .NET SDK Quick Reference
 
 > Condensed from **microsoft-azure-webjobs-extensions-authentication-events-dotnet**.

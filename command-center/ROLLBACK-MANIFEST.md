@@ -1,3 +1,9 @@
+---
+title: ROLLBACK-MANIFEST
+type: note
+permalink: dqverify-repo-20261013/command-center/rollback-manifest
+---
+
 # ROLLBACK-MANIFEST
 
 Every change this command center makes, and the exact one-line undo. A control you cannot

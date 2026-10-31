@@ -1,3 +1,9 @@
+---
+title: prompting
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/prompting
+---
+
 # Instructioning best practices (TTS)
 
 ## Contents

@@ -1,3 +1,9 @@
+---
+title: customer-meeting
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/examples/customer-meeting
+---
+
 # Example: Customer Meeting Prep
 
 **User Request**: "Prep for sales meeting with Acme Corp on Thursday"

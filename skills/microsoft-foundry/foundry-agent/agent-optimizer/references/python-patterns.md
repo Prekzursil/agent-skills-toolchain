@@ -1,3 +1,9 @@
+---
+title: python-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/references/python-patterns
+---
+
 # Python Agent Optimizer in Foundry Patterns
 
 Use the Azure SDK optimization package and a local baseline folder. The baseline is file-based; call `load_config()` without code-level fallback parameters.

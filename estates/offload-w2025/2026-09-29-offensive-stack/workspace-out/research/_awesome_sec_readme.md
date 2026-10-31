@@ -1,3 +1,9 @@
+---
+title: _awesome_sec_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/awesome-sec-readme
+---
+
 <div align="center" >🤝 Show your support - give a ⭐️ if you liked the content
 </div>
 
@@ -201,4 +207,3 @@ Thanks! 🦄
 
 # ✔️ Disclaimer
 This project can only be used for educational purposes. Using this resource against target systems without prior permission is illegal, and any damages from misuse of this software will not be the responsibility of the author.
-

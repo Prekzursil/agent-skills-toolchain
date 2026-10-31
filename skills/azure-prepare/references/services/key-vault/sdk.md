@@ -1,3 +1,9 @@
+---
+title: sdk
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/key-vault/sdk
+---
+
 # Key Vault - SDK Patterns
 
 ## Node.js

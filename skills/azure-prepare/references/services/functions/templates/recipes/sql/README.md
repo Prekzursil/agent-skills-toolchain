@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/sql/readme
+---
+
 # Azure SQL Recipe
 
 SQL change tracking trigger with Entra ID managed identity authentication.

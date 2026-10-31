@@ -1,3 +1,9 @@
+---
+title: schema
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/references/schema
+---
+
 # profile.yaml schema — JSON Resume superset + x_ extensions
 
 `profile.yaml` is a [JSON Resume](https://jsonresume.org/schema/) document (MIT open standard)

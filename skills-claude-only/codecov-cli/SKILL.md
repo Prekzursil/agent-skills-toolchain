@@ -1,6 +1,8 @@
 ---
 name: codecov-cli
-description: Upload and analyze code coverage reports using the Codecov CLI. Use when the user mentions codecov, coverage upload, coverage reports, or codecov flags.
+description: Upload and analyze code coverage reports using the Codecov CLI. Use when
+  the user mentions codecov, coverage upload, coverage reports, or codecov flags.
+permalink: dqverify-repo-20261013/skills-claude-only/codecov-cli/skill
 ---
 
 # Codecov CLI

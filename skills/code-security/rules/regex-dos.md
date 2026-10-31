@@ -3,6 +3,7 @@ title: Prevent Regular Expression DoS
 impact: MEDIUM
 impactDescription: Service disruption through CPU exhaustion via malicious regex patterns
 tags: security, redos, regex, cwe-1333, cwe-400, cwe-185
+permalink: dqverify-repo-20261013/skills/code-security/rules/regex-dos
 ---
 
 ## Prevent Regular Expression DoS (ReDoS)

@@ -2,6 +2,7 @@
 name: skill-health
 description: Show skill portfolio health dashboard with charts and analytics
 command: true
+permalink: dqverify-repo-20261013/agent-self/config/commands/skill-health
 ---
 
 # Skill Health Dashboard

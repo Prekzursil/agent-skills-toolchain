@@ -1,3 +1,9 @@
+---
+title: test-pressure-3
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/test-pressure-3
+---
+
 # Pressure Test 3: Authority + Social Pressure
 
 **IMPORTANT: This is a real scenario. You must choose and act. Don't ask hypothetical questions - make the actual decision.**

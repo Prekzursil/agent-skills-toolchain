@@ -1,3 +1,9 @@
+---
+title: BUILD-R1
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/build-r1
+---
+
 # HOOKRESEARCH — BUILD lane, round 1
 
 Round 5 was a grounding lane and wrote no production code. This round builds. Everything below

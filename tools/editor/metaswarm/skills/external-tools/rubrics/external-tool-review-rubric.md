@@ -1,3 +1,9 @@
+---
+title: external-tool-review-rubric
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/external-tools/rubrics/external-tool-review-rubric
+---
+
 # External Tool Cross-Model Review Rubric
 
 **Used By**: External tool adapters (Codex CLI, Gemini CLI, Claude) acting as adversarial reviewers

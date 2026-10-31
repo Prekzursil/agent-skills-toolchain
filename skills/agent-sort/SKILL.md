@@ -1,7 +1,11 @@
 ---
 name: agent-sort
-description: Build an evidence-backed ECC install plan for a specific repo by sorting skills, commands, rules, hooks, and extras into DAILY vs LIBRARY buckets using parallel repo-aware review passes. Use when ECC should be trimmed to what a project actually needs instead of loading the full bundle.
+description: Build an evidence-backed ECC install plan for a specific repo by sorting
+  skills, commands, rules, hooks, and extras into DAILY vs LIBRARY buckets using parallel
+  repo-aware review passes. Use when ECC should be trimmed to what a project actually
+  needs instead of loading the full bundle.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/agent-sort/skill
 ---
 
 # Agent Sort

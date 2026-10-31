@@ -1,3 +1,9 @@
+---
+title: cinematic-shots
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/cinematic-shots
+---
+
 # Cinematic shot templates
 
 Use these for filmic, mood-forward clips. Keep one subject, one action, one camera move.

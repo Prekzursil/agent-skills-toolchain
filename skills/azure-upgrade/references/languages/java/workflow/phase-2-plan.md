@@ -1,3 +1,9 @@
+---
+title: phase-2-plan
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/workflow/phase-2-plan
+---
+
 # Phase 2: Generate Upgrade Plan
 
 Load this file when executing Phase 2. Refer back to [`upgrade-success-criteria`](../rules/upgrade-success-criteria.md) and [`upgrade-strategy`](../rules/upgrade-strategy.md) for success criteria and strategy, and [`../rules/troubleshooting.md`](../rules/troubleshooting.md) when failures occur.

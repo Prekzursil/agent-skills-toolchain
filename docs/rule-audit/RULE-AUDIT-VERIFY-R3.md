@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-VERIFY-R3
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-verify-r3
+---
+
 # RULERESEARCH — INDEPENDENT VERIFY of the round-3 BUILD claim
 
 Auditor: independent VERIFY lane. Mandate: re-measure the builder's round-3 work by EXECUTION.

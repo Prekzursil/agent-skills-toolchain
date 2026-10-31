@@ -1,6 +1,8 @@
 ---
 name: langfuse-observability
-description: Instrument LLM applications with Langfuse tracing. Use when setting up Langfuse, adding observability to LLM calls, or auditing existing instrumentation.
+description: Instrument LLM applications with Langfuse tracing. Use when setting up
+  Langfuse, adding observability to LLM calls, or auditing existing instrumentation.
+permalink: dqverify-repo-20261013/skills/langfuse/references/instrumentation
 ---
 
 # Langfuse Observability

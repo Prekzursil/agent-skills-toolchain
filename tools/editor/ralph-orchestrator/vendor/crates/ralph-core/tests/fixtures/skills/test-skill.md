@@ -1,7 +1,9 @@
 ---
 name: test-skill
 description: A test skill for smoke testing the skills system
-tags: [testing]
+tags:
+- testing
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/tests/fixtures/skills/test-skill
 ---
 
 # Test Skill

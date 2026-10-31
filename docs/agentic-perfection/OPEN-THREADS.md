@@ -1,3 +1,9 @@
+---
+title: OPEN-THREADS
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/open-threads
+---
+
 # OPEN THREADS — durable backlog so nothing postponed is ever forgotten
 <!-- The "never-forget" register. A SessionStart/resurface hook should surface the ACTIVE + QUEUED
      items. Update as threads open/close. This exists because the user's #1 stress is: discussed-then-

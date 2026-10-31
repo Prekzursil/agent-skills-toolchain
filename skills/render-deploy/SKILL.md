@@ -1,6 +1,10 @@
 ---
 name: render-deploy
-description: Use when deploying an application to Render.com, generating render.yaml Blueprints, or getting Render Dashboard deeplinks ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Cloudflare (use cloudflare-deploy) ; returns Render Blueprint and deployment status.
+description: Use when deploying an application to Render.com, generating render.yaml
+  Blueprints, or getting Render Dashboard deeplinks ; do NOT use for Vercel (use vercel-deploy),
+  Netlify (use netlify-deploy), or Cloudflare (use cloudflare-deploy) ; returns Render
+  Blueprint and deployment status.
+permalink: dqverify-repo-20261013/skills/render-deploy/skill
 ---
 
 # Deploy to Render

@@ -1,3 +1,9 @@
+---
+title: pdd
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/sops/pdd
+---
+
 <!-- GENERATED FILE: DO NOT EDIT -->
 <!-- Source: https://github.com/strands-agents/agent-sop/blob/7b71239492c51bbba5a2705e139da9503f36f0b6/agent-sops/pdd.sop.md -->
 <!-- Regenerate with: ./scripts/sync-embedded-files.sh -->

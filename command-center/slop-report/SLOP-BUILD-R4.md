@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R4
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r4
+---
+
 # SLOP — BUILD lane, round 4
 
 LANE: SLOP (build — implement and commit for real)

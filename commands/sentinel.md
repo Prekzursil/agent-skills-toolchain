@@ -1,3 +1,9 @@
+---
+title: sentinel
+type: note
+permalink: dqverify-repo-20261013/commands/sentinel
+---
+
 # /sentinel — Intent/Drift Sentinel
 
 Dispatch the `intent-drift-sentinel` agent on the current task to run two gates:

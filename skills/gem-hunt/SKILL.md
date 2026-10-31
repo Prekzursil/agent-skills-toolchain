@@ -1,6 +1,11 @@
 ---
 name: gem-hunt
-description: "Use when the user wants to DISCOVER high-value improvements to their OWN agentic workspace/toolkit - new hooks, behaviors, gems, skills, MCPs, or frontier-harness patterns - via a wide multi-lens agent fan-out, then a consolidated adopt/prune decision. The named \"agentic-perfection sweep\" / \"extensive gem search\". Triggers: \"find more gems\", \"what are we missing vs other tools\"."
+description: 'Use when the user wants to DISCOVER high-value improvements to their
+  OWN agentic workspace/toolkit - new hooks, behaviors, gems, skills, MCPs, or frontier-harness
+  patterns - via a wide multi-lens agent fan-out, then a consolidated adopt/prune
+  decision. The named "agentic-perfection sweep" / "extensive gem search". Triggers:
+  "find more gems", "what are we missing vs other tools".'
+permalink: dqverify-repo-20261013/skills/gem-hunt/skill
 ---
 
 # Gem-Hunt — extensive multi-lens workspace self-improvement sweep

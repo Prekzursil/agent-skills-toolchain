@@ -1,3 +1,9 @@
+---
+title: CAPABILITY-PROGRAM-PLANS
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/docs/capability-program-plans
+---
+
 # Capability Program — Gated Implementation Plans (2026-06-11)
 
 Adversarially-reviewed (13-agent planning workflow `wf_60836737-3fc`). All 6 components REVISE→PASS;

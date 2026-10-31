@@ -1,3 +1,9 @@
+---
+title: artifact-staging-and-rollback
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/artifact-staging-and-rollback
+---
+
 # artifact-staging-and-rollback
 
 ## Purpose

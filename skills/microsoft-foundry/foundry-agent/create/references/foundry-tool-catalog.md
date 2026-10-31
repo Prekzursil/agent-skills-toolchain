@@ -1,3 +1,9 @@
+---
+title: foundry-tool-catalog
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/foundry-tool-catalog
+---
+
 # Foundry Tool Catalog — Project Connections for Remote Tools
 
 Reference for wiring a **remote tool** (catalog tile or generic MCP server) into a Foundry project as a `RemoteTool` project connection, so a toolbox can attach to it.

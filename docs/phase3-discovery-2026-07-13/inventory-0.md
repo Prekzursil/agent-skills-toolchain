@@ -1,3 +1,9 @@
+---
+title: inventory-0
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/inventory-0
+---
+
 # Read-Only Census — Harness / Config / Agentic-Workspace Docs Scattered Across Disk
 
 Scope covered: `C:/Users/Prekzursil/.claude/**` (606 md files enumerated), `.agents/**`, `source/agent-skills-toolchain/**`, `source/ast-harness-reconcile/**` (the in-flight reconcile repo), `Documents/GitHub`, `Documents/**`, `Documents/codex` (empty), `D:/**` (basic-memory vault + gem-wave-b + pr-b-clone), plus basic-memory `search_notes`/`recent_activity`. NOTHING modified. SKILL.md operational files are counted only as a *duplication* signal, not itemized — the focus is analysis / plan / research / audit / decision docs.
@@ -123,4 +129,3 @@ Newly created 2026-07-13 to be the versioned source-of-truth for live `~/.agents
 - Claude scratchpad/temp under `AppData/Local/Temp/claude/**` was NOT walked (ephemeral, session-scoped) — low value, excluded by design.
 - `D:/gem-wave-b/` and `D:/pr-b-clone/` are full mirror-clones of the toolchain/hooks trees (Wave-B staging) — add another duplication layer if promoted.
 - basic-memory `main` project is the healthiest reconciliation surface (supersede chains present); the on-disk `.md` sprawl is where the reconciliation debt actually lives.
-

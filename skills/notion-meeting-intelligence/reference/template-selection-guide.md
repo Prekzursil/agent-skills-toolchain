@@ -1,3 +1,9 @@
+---
+title: template-selection-guide
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/template-selection-guide
+---
+
 # Meeting Template Selection Guide
 
 Choose the right template for your meeting type.
@@ -53,4 +59,3 @@ All templates can be customized:
 3. **Enrich with research**: Add Codex insights where valuable
 4. **Customize as needed**: Adapt template to specific situation
 5. **Share early**: Give attendees time to review
-

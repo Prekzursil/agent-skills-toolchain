@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/workflow
+---
+
 # Cost Optimization Workflow
 
 Use this workflow when the user wants to **reduce their costs** — find waste, orphaned resources, rightsizing opportunities.

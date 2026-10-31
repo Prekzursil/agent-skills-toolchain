@@ -1,3 +1,9 @@
+---
+title: create-issue
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/create-issue
+---
+
 # Create GitHub Issue
 
 Create a comprehensive, well-structured GitHub issue with embedded agent instructions for autonomous PR lifecycle management.

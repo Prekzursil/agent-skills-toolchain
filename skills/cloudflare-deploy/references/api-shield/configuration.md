@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api-shield/configuration
+---
+
 # Configuration
 
 ## Schema Validation 2.0 Setup

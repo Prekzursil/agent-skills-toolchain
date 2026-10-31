@@ -1,3 +1,9 @@
+---
+title: javascript-express-web-server-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-express-web-server-security
+---
+
 # Express (Node.js) Web Security Spec (Express 5.x / 4.19.2+, Node.js LTS)
 
 This document is designed as a **security spec** that supports:

@@ -1,6 +1,8 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when implementing any feature or bugfix, before writing implementation
+  code
+permalink: dqverify-repo-20261013/skills/test-driven-development/skill
 ---
 
 # Test-Driven Development (TDD)

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/fixture/packages/hello-skill-1.1.0/payload/readme
+---
+
 # hello-skill 1.1.0 (beta)
 
 Same package, newer version, `beta` channel.

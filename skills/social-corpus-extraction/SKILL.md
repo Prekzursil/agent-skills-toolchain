@@ -1,6 +1,15 @@
 ---
 name: social-corpus-extraction
-description: "Use when building a personal writing/style corpus from a user's OWN messages and posts across Discord, Facebook posts + comments, Facebook Messenger, and WhatsApp — isolating only the owner's authored text, then folding every source into one deduplicated jsonl corpus. Handles the traps that silently break these extractions: the Meta DYI double-encoded-UTF-8 mojibake, the 4-way Facebook post-path drift, WhatsApp-DYI-has-no-message-bodies, and locale-dependent title strings. NOT for scraping other people's content, NOT a live-API social client (see social-media-toolchain), NOT for one specific person's hardcoded identity — every script takes the owner identity by argv/env."
+description: 'Use when building a personal writing/style corpus from a user''s OWN
+  messages and posts across Discord, Facebook posts + comments, Facebook Messenger,
+  and WhatsApp — isolating only the owner''s authored text, then folding every source
+  into one deduplicated jsonl corpus. Handles the traps that silently break these
+  extractions: the Meta DYI double-encoded-UTF-8 mojibake, the 4-way Facebook post-path
+  drift, WhatsApp-DYI-has-no-message-bodies, and locale-dependent title strings. NOT
+  for scraping other people''s content, NOT a live-API social client (see social-media-toolchain),
+  NOT for one specific person''s hardcoded identity — every script takes the owner
+  identity by argv/env.'
+permalink: dqverify-repo-20261013/skills/social-corpus-extraction/skill
 ---
 
 # social-corpus-extraction

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/openmm-md-mcp/readme
+---
+
 # openmm-md-mcp
 
 **Free, open-source, Windows-native GPU molecular dynamics as an MCP server.** OpenMM (CUDA)

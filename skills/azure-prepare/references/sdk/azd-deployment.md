@@ -1,3 +1,9 @@
+---
+title: azd-deployment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azd-deployment
+---
+
 # Azure Developer CLI — Quick Reference
 
 > Condensed from **azd-deployment**. Full patterns (Bicep modules,

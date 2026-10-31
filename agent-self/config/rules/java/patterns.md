@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.java"
+- '**/*.java'
+permalink: dqverify-repo-20261013/agent-self/config/rules/java/patterns
 ---
+
 # Java Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Java-specific content.

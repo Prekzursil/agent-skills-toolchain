@@ -1,3 +1,9 @@
+---
+title: research-0
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/research-0
+---
+
 # SOTA: Single-Source-of-Truth, Portable Config Architecture — Findings + Recommendations for THIS Workspace
 
 ## TL;DR verdict (confidence: HIGH)

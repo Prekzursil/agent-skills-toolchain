@@ -1,3 +1,9 @@
+---
+title: figma-mcp-config
+type: note
+permalink: dqverify-repo-20261013/skills/figma/references/figma-mcp-config
+---
+
 # Figma MCP config reference
 
 Use this snippet to register the Figma MCP server in `~/.codex/config.toml` as a streamable HTTP server with bearer auth pulled from your env.

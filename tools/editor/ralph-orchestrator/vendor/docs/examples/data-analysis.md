@@ -1,3 +1,9 @@
+---
+title: data-analysis
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/data-analysis
+---
+
 # Data Analysis Script with Ralph
 
 This example demonstrates using Ralph Orchestrator to create a data analysis script with pandas, visualization, and reporting.

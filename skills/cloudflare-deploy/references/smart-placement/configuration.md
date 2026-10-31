@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/smart-placement/configuration
+---
+
 # Smart Placement Configuration
 
 ## wrangler.jsonc Setup

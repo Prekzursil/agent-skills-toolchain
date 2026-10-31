@@ -1,3 +1,9 @@
+---
+title: distributed-runtime
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/distributed-runtime
+---
+
 # Architecture Candidate — DISTRIBUTED WORKFLOW RUNTIME (`A5-R`)
 
 **Unit:** `tournament/distributed-runtime` (Phase 3 — architecture tournament)

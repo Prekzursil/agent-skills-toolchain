@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/c3/readme
+---
+
 # C3 (create-cloudflare)
 
 Official CLI for scaffolding Cloudflare Workers and Pages projects with templates, TypeScript, and instant deployment.

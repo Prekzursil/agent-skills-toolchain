@@ -1,7 +1,11 @@
 ---
 name: c2patool-provenance
-description: "Use when c2patool provenance is needed. Read + attach C2PA / Content Credentials (cryptographic, tamper-evident content provenance) to images, video, and audio using c2patool. Use to VERIFY the provenance/manifest of a media file, or to SIGN your own AI-edited exports (reframe / watermark-removal."
-license: 'c2patool is Apache-2.0 / MIT (Content Authenticity Initiative).'
+description: Use when c2patool provenance is needed. Read + attach C2PA / Content
+  Credentials (cryptographic, tamper-evident content provenance) to images, video,
+  and audio using c2patool. Use to VERIFY the provenance/manifest of a media file,
+  or to SIGN your own AI-edited exports (reframe / watermark-removal.
+license: c2patool is Apache-2.0 / MIT (Content Authenticity Initiative).
+permalink: dqverify-repo-20261013/skills/c2patool-provenance/skill
 ---
 
 # c2patool-provenance — read & sign C2PA / Content Credentials

@@ -1,3 +1,9 @@
+---
+title: dataset-comparison
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/dataset-comparison
+---
+
 # Dataset Comparison — A/B Testing Across Dataset Versions
 
 Run structured experiments that compare how an agent performs across different dataset versions, and present results as leaderboards with per-evaluator breakdowns. Use this to answer: "Did scores drop because of harder tests or agent regression?"

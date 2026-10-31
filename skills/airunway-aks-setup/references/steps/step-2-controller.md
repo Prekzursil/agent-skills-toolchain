@@ -1,3 +1,9 @@
+---
+title: step-2-controller
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-2-controller
+---
+
 # Step 2 — Controller Status & Installation
 
 **Goal**: Ensure the AI Runway controller and CRDs are installed and healthy.

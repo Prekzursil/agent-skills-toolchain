@@ -1,3 +1,9 @@
+---
+title: D2-WORKUNIT-AUTHZ
+type: note
+permalink: dqverify-repo-20261013/command-center/d2-workunit-authz
+---
+
 # D2 — the work-unit authorization plane (SEM-008..SEM-011)
 
 **Unit:** `defect/d2-workunit-authz` · **Defect class:** an ABSENT gate · **Status:** CLOSED, corpus clean, controls discriminating.

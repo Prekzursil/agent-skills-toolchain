@@ -1,5 +1,6 @@
 ---
 description: Manage Claude Code session history, aliases, and session metadata.
+permalink: dqverify-repo-20261013/agent-self/config/commands/sessions
 ---
 
 # Sessions Command

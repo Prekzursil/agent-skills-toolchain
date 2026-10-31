@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.cs"
-  - "**/*.csx"
+- '**/*.cs'
+- '**/*.csx'
+permalink: dqverify-repo-20261013/rules/csharp/coding-style
 ---
+
 # C# Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with C#-specific content.

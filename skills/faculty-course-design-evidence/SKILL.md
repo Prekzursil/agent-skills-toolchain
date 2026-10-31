@@ -1,6 +1,8 @@
 ---
 name: faculty-course-design-evidence
-description: Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment.
+description: Use when designing or revising a course, syllabus, or module with evidence-based
+  learning structure and assessment alignment.
+permalink: dqverify-repo-20261013/skills/faculty-course-design-evidence/skill
 ---
 
 # faculty-course-design-evidence

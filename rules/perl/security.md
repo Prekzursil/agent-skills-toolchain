@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.t'
+- '**/*.psgi'
+- '**/*.cgi'
+permalink: dqverify-repo-20261013/rules/perl/security
 ---
+
 # Perl Security
 
 > This file extends [common/security.md](../common/security.md) with Perl-specific content.

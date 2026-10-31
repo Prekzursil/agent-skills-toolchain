@@ -1,3 +1,9 @@
+---
+title: azure-storage-blob-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-storage-blob-java
+---
+
 # Blob Storage — Java SDK Quick Reference
 
 > Condensed from **azure-storage-blob-java**. Full patterns (SAS tokens,

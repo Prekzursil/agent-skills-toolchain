@@ -1,3 +1,9 @@
+---
+title: safeguards
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/references/safeguards
+---
+
 # AKS Deployment Safeguards Reference
 
 > **Source of truth:** the Deployment Safeguards policy initiative is defined

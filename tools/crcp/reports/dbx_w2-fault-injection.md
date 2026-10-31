@@ -1,3 +1,9 @@
+---
+title: dbx_w2-fault-injection
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w2-fault-injection
+---
+
 # W2 fault injection — CRCP golden journey #2
 
 ## Summary

@@ -1,3 +1,9 @@
+---
+title: regional-formats
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/references/regional-formats
+---
+
 # Regional CV/resume conventions
 
 The same `profile.yaml` serves every region; adjust content + photo/personal-data per target.

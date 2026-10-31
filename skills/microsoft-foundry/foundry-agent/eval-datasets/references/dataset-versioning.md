@@ -1,3 +1,9 @@
+---
+title: dataset-versioning
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/dataset-versioning
+---
+
 # Dataset Versioning — Version Management & Tagging
 
 Manage dataset versions with naming conventions, tagging, and version pinning for reproducible evaluations. This workflow formalizes dataset lifecycle management using existing MCP tools and local conventions.

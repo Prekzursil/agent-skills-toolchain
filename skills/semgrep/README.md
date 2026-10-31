@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/semgrep/readme
+---
+
 # Semgrep Skill
 
 Run Semgrep static analysis scans and create custom detection rules for security vulnerabilities and bug patterns.

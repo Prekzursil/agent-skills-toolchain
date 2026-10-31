@@ -1,3 +1,9 @@
+---
+title: coding-standards
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/guides/coding-standards
+---
+
 # Coding Standards
 
 When reviewing or writing code in a metaswarm-managed project, enforce the following standards. Flag violations clearly and suggest specific fixes. Be direct and specific.

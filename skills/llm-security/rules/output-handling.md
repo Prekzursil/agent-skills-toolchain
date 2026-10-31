@@ -3,6 +3,7 @@ title: LLM05 - Secure Output Handling
 impact: CRITICAL
 impactDescription: XSS, SQL injection, RCE, SSRF through unsanitized LLM outputs
 tags: security, llm, output-handling, xss, injection, owasp-llm05
+permalink: dqverify-repo-20261013/skills/llm-security/rules/output-handling
 ---
 
 ## LLM05: Secure Output Handling

@@ -1,3 +1,9 @@
+---
+title: comparison-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/comparison-template
+---
+
 # Comparison Template
 
 Use when researching multiple options or alternatives. See [comparison-format.md](comparison-format.md) for when to use this format.
@@ -41,4 +47,3 @@ Use when researching multiple options or alternatives. See [comparison-format.md
 ## Sources
 [List all consulted pages]
 ```
-

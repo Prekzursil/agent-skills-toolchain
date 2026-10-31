@@ -1,3 +1,9 @@
+---
+title: azure-ai-document-intelligence-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-document-intelligence-dotnet
+---
+
 # Azure Document Intelligence — .NET SDK Quick Reference
 
 > Condensed from **azure-ai-document-intelligence-dotnet**. Full patterns (custom models, classifiers, layout extraction)

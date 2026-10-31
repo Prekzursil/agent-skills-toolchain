@@ -1,3 +1,9 @@
+---
+title: dive-ArtBlood
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-art-blood
+---
+
 # Deep-dive: ArtBlood (ad-entra-paths lane)
 
 Date: 2026-09-29. Verifier environment: Windows 11 (win32 10.0.26100 x64), Git Bash, C:\Python314\python.exe.

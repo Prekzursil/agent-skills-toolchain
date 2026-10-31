@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-BUILD-R2
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-build-r2
+---
+
 # RULERESEARCH — BUILD lane, round 2
 
 STATUS: complete and measured. Every number below was produced by a command in this round,

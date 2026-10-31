@@ -1,3 +1,9 @@
+---
+title: council-3
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/council-3
+---
+
 ## Council voice — MAINTAINABILITY lens (doc hygiene · anti-drift · superseded-detection · future-proofing)
 
 ### Framing thesis (read first)
@@ -49,4 +55,3 @@ The debt this program is fighting was **not caused by a missing tool. It was cau
 
 ### Future-proofing (why this won't decay again)
 Institute three durable, low-cost anti-decay controls, in priority order: (1) **basic-memory vault is THE decision ledger** — on-disk docs are either current-and-registered or archived-with-tombstone, nothing loose; (2) **frontmatter-status convention** on every plan/audit/analysis doc, lint-enforced at write time; (3) **one reconciliation ritual on an existing cadence** (fold it into the recurring gem-hunt sweep) that runs the tree-parity check, the merged-branch triage, and a stale-doc scan, and tombstones what it finds. That is convention + one index + periodic human sweep — the combination that actually holds, versus a pile of shadow gates that log into the void.
-

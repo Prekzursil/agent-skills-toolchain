@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+- '**/*.go'
+- '**/go.mod'
+- '**/go.sum'
+permalink: dqverify-repo-20261013/rules/golang/security
 ---
+
 # Go Security
 
 > This file extends [common/security.md](../common/security.md) with Go specific content.

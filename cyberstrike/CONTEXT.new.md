@@ -1,3 +1,9 @@
+---
+title: CONTEXT.new
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/context.new
+---
+
 # CONTEXT.md — CyberStrike machine facts (GENERATED — do not hand-edit)
 
 Regen: `python scripts/gen_context.py` (drift check: `--check`). Truth = live config, not prose.

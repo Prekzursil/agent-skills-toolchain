@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/x64dbg/references/upstream
+---
+
 # x64dbg Notes
 
 ## Upstream

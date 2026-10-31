@@ -1,3 +1,9 @@
+---
+title: composition
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/composition
+---
+
 # Composition Algorithm — REFERENCE ONLY
 
 Step-by-step algorithm for composing a base App Service template with an integration recipe.

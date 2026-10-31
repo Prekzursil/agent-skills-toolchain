@@ -3,6 +3,7 @@ title: Prevent Code Injection
 impact: CRITICAL
 impactDescription: Remote code execution via eval/exec
 tags: security, code-injection, rce, cwe-94, cwe-95, owasp-a03
+permalink: dqverify-repo-20261013/skills/code-security/rules/code-injection
 ---
 
 ## Prevent Code Injection

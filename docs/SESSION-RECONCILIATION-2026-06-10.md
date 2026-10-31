@@ -1,3 +1,9 @@
+---
+title: SESSION-RECONCILIATION-2026-06-10
+type: note
+permalink: dqverify-repo-20261013/docs/session-reconciliation-2026-06-10
+---
+
 # Session Reconciliation — 2026-06-10
 
 Snapshot of toolchain reality after a large infrastructure + tooling session. Covers

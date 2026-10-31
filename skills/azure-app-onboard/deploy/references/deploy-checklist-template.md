@@ -1,3 +1,9 @@
+---
+title: deploy-checklist-template
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/deploy-checklist-template
+---
+
 # Deploy Checklist Template (compaction-safe — generated at Step 5b)
 
 Long-running deploy sessions lose rules when the conversation compacts. At Step 5b, generate a checklist file tailored to this deployment. Write it to disk so it survives compaction — re-reading costs ~100 tokens.

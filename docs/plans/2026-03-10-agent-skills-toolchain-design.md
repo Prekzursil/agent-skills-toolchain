@@ -1,3 +1,9 @@
+---
+title: 2026-03-10-agent-skills-toolchain-design
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-03-10-agent-skills-toolchain-design
+---
+
 # agent-skills-toolchain Design
 
 ## Summary

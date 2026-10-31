@@ -1,3 +1,9 @@
+---
+title: dimensions-by-scope
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-query/dimensions-by-scope
+---
+
 # Dimensions by Scope
 
 Dimension availability matrix for the Cost Management Query API, organized by scope type and agreement type.

@@ -1,3 +1,9 @@
+---
+title: test-endpoint
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/test-endpoint
+---
+
 # Testing the toolbox
 
 After creating or updating a toolbox (steps 1–3 in each tool's setup guide), verify it works. Two ways: call the MCP endpoint directly, or exercise it through the deployed agent.

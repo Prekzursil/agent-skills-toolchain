@@ -1,3 +1,9 @@
+---
+title: post-deploy-message
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/post-deploy-message
+---
+
 # Post-deploy message to the user
 
 After `az webapp deploy` / `azd deploy` returns successfully, **the skill is done**. Do not run any further verification commands.

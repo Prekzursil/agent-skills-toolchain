@@ -1,3 +1,9 @@
+---
+title: vm-recommender
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-recommender/vm-recommender
+---
+
 # Azure VM Recommender
 
 Recommend Azure VM sizes, VM Scale Sets (VMSS), and configurations by analyzing workload type, performance requirements, scaling needs, and budget. No Azure subscription required — data comes from public Microsoft documentation and the unauthenticated Retail Prices API.

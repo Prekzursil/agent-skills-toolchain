@@ -1,3 +1,9 @@
+---
+title: dive-GraphRunner
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-graph-runner
+---
+
 # Deep-dive: GraphRunner (lane: ad-entra-paths)
 
 Date: 2026-09-29. Candidate claim under test: "1345-star PowerShell post-exploitation toolset over Microsoft Graph: Entra recon, OAuth consent abuse, CA-policy dumps, M365 pillaging; no third-party modules."

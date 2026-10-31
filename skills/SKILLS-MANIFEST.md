@@ -1,3 +1,9 @@
+---
+title: SKILLS-MANIFEST
+type: note
+permalink: dqverify-repo-20261013/skills/skills-manifest
+---
+
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.

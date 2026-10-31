@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/wf-timeout/readme
+---
+
 # tools/wf-timeout — the executable half of design item H6
 
 H6 is *"per-agent timeout + stall heartbeat (barrier-deadlock escape)"* from

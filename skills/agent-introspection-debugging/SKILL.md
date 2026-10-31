@@ -1,7 +1,9 @@
 ---
 name: agent-introspection-debugging
-description: Structured self-debugging workflow for AI agent failures using capture, diagnosis, contained recovery, and introspection reports.
+description: Structured self-debugging workflow for AI agent failures using capture,
+  diagnosis, contained recovery, and introspection reports.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/agent-introspection-debugging/skill
 ---
 
 # Agent Introspection Debugging

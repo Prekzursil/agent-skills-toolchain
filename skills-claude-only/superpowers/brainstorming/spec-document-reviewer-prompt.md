@@ -1,3 +1,9 @@
+---
+title: spec-document-reviewer-prompt
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/brainstorming/spec-document-reviewer-prompt
+---
+
 # Spec Document Reviewer Prompt Template
 
 Use this template when dispatching a spec document reviewer subagent.

@@ -1,6 +1,11 @@
 ---
 name: code-security
-description: "Security guidelines for writing secure code. Use when writing code, reviewing code for vulnerabilities, or asked to 'check for SQL injection' or 'review security'. IMPORTANT: Always consult this when writing or reviewing code that handles user input, authentication, file operations, database queries, network requests, cryptography, or infra config - even if security is not mentioned."
+description: 'Security guidelines for writing secure code. Use when writing code,
+  reviewing code for vulnerabilities, or asked to ''check for SQL injection'' or ''review
+  security''. IMPORTANT: Always consult this when writing or reviewing code that handles
+  user input, authentication, file operations, database queries, network requests,
+  cryptography, or infra config - even if security is not mentioned.'
+permalink: dqverify-repo-20261013/skills/code-security/skill
 ---
 
 # Code Security Guidelines

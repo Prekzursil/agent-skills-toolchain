@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+- '**/*.go'
+- '**/go.mod'
+- '**/go.sum'
+permalink: dqverify-repo-20261013/rules/golang/patterns
 ---
+
 # Go Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Go specific content.

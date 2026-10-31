@@ -3,6 +3,7 @@ title: Prevent Cross-Site Scripting (XSS)
 impact: CRITICAL
 impactDescription: Client-side code execution, session hijacking, credential theft
 tags: security, xss, cwe-79
+permalink: dqverify-repo-20261013/skills/code-security/rules/xss
 ---
 
 ## Prevent Cross-Site Scripting (XSS)

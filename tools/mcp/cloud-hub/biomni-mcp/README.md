@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/biomni-mcp/readme
+---
+
 # Biomni Lab connector — cookie-broker setup, usage, and how to add accounts
 
 This directory is the cloud-hub **`biomni`** backend: a self-hosted way to *drive*

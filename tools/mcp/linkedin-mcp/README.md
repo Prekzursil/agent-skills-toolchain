@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/linkedin-mcp/readme
+---
+
 # linkedin-mcp
 
 A small **FastMCP (stdio)** server that lets a local Claude Code / Codex agent

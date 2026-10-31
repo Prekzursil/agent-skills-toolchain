@@ -1,6 +1,8 @@
 ---
-name: "source-command-e2e"
-description: "Generate and run end-to-end tests with Playwright. Creates test journeys, runs tests, captures screenshots/videos/traces, and uploads artifacts."
+name: source-command-e2e
+description: Generate and run end-to-end tests with Playwright. Creates test journeys,
+  runs tests, captures screenshots/videos/traces, and uploads artifacts.
+permalink: dqverify-repo-20261013/skills/source-command-e2e/skill
 ---
 
 # source-command-e2e

@@ -1,3 +1,9 @@
+---
+title: golang-general-backend-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/golang-general-backend-security
+---
+
 # Go (Golang) Security Spec (Go 1.25.x, Standard Library, net/http)
 
 This document is designed as a **security spec** that supports:

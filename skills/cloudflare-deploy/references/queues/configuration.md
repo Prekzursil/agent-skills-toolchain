@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/queues/configuration
+---
+
 # Queues Configuration
 
 ## Create Queue

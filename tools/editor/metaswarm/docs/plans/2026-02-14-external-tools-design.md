@@ -1,3 +1,9 @@
+---
+title: 2026-02-14-external-tools-design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/docs/plans/2026-02-14-external-tools-design
+---
+
 # External Tools: Cross-Model Delegation & Adversarial Review
 
 **Date**: 2026-02-14

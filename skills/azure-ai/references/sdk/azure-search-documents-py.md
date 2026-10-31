@@ -1,3 +1,9 @@
+---
+title: azure-search-documents-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-search-documents-py
+---
+
 # Azure AI Search — Python SDK Quick Reference
 
 > Condensed from **azure-search-documents-py**. Full patterns (agentic retrieval, integrated vectorization, skillsets)

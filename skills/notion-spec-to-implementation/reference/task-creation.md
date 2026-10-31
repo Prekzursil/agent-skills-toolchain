@@ -1,3 +1,9 @@
+---
+title: task-creation
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/task-creation
+---
+
 # Task Creation from Specs
 
 ## Finding the Task Database
@@ -438,4 +444,3 @@ Before finalizing tasks:
 ☐ Linked to spec/plan
 ☐ Proper sequencing
 ☐ Resources noted
-

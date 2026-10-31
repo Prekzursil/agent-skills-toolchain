@@ -1,3 +1,9 @@
+---
+title: 2026-03-10-ops-skill-expansion
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-03-10-ops-skill-expansion
+---
+
 # Ops Skill Expansion
 
 ## Summary

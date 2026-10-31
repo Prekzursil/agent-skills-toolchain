@@ -1,3 +1,9 @@
+---
+title: azure-mgmt-applicationinsights-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-mgmt-applicationinsights-dotnet
+---
+
 # Application Insights Management — .NET SDK Quick Reference
 
 > Condensed from **azure-mgmt-applicationinsights-dotnet**. Full patterns

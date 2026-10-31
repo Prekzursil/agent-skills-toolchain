@@ -1,3 +1,9 @@
+---
+title: _mcpwn_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/mcpwn-readme
+---
+
 ![logo](logo.png)
 
 **mcpwn** is an MCP server that allows Large Language Models (LLMs) to execute security tools on your local machine. It currently supports **9** tools out of the box: `nmap`, `subfinder`, `dnsx`, `gobuster`, `ffuf`, `httpx`, `sqlmap`, `msfvenom`, and `msfconsole`.

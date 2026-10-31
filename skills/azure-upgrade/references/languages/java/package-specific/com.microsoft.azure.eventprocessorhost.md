@@ -1,3 +1,9 @@
+---
+title: com.microsoft.azure.eventprocessorhost
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/package-specific/com.microsoft.azure.eventprocessorhost
+---
+
 # com.microsoft.azure.eventprocessorhost
 
 ## Hard Rules (MUST follow)

@@ -1,3 +1,9 @@
+---
+title: azure-monitor-opentelemetry-exporter-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-opentelemetry-exporter-py
+---
+
 # Azure Monitor OpenTelemetry Exporter — Python SDK Quick Reference
 
 > Condensed from **azure-monitor-opentelemetry-exporter-py**. Full patterns

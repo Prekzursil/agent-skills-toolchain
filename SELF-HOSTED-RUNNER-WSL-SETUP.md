@@ -1,3 +1,9 @@
+---
+title: SELF-HOSTED-RUNNER-WSL-SETUP
+type: note
+permalink: dqverify-repo-20261013/self-hosted-runner-wsl-setup
+---
+
 # Self-Hosted GitHub Actions Runner on WSL (Windows)
 
 **Purpose:** Run Phase 1/Phase 2 quality.yml gates without GitHub Actions billing costs. This document covers setting up a self-hosted Linux runner on WSL (Windows Subsystem for Linux) and registering it with this repository.

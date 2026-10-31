@@ -1,3 +1,9 @@
+---
+title: subagent-review
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/subagent-review
+---
+
 # Subagent Template — Security + Adversarial Review (Steps 6–9)
 
 Review generated IaC for security compliance and correctness. Follow the workflow below — each step specifies which reference to read and what to check.

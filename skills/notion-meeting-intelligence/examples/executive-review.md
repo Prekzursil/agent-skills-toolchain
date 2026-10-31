@@ -1,3 +1,9 @@
+---
+title: executive-review
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/examples/executive-review
+---
+
 # Example: Executive Review Prep
 
 **User Request**: "Prep for quarterly executive review on Friday"

@@ -1,3 +1,9 @@
+---
+title: dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/cosmos/source/dotnet
+---
+
 # Cosmos DB Recipe — C# (.NET) — REFERENCE ONLY
 
 ## Cosmos DB SDK Setup

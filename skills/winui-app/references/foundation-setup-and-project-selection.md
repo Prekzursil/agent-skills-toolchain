@@ -3,10 +3,11 @@ title: Setup and Project Selection
 priority: CRITICAL
 tags: setup, prerequisites, packaged, unpackaged, visual-studio, dotnet
 sources:
-  - https://learn.microsoft.com/windows/apps/get-started/start-here
-  - https://learn.microsoft.com/windows/apps/winui/winui3/
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/system-requirements
+- https://learn.microsoft.com/windows/apps/get-started/start-here
+- https://learn.microsoft.com/windows/apps/winui/winui3/
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/system-requirements
+permalink: dqverify-repo-20261013/skills/winui-app/references/foundation-setup-and-project-selection
 ---
 
 ## What This Reference Is For

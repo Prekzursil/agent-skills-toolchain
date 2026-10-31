@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/transcribe/references/api
+---
+
 # gpt-4o-transcribe-diarize quick reference
 
 - Input formats: mp3, mp4, mpeg, mpga, m4a, wav, webm.

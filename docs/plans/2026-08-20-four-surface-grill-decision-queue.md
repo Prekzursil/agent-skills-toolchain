@@ -1,3 +1,9 @@
+---
+title: 2026-08-20-four-surface-grill-decision-queue
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-08-20-four-surface-grill-decision-queue
+---
+
 # Extensive Grill — decision queue: deep-research / e2e-testing / workflow-authoring / ultracode
 
 **Modes:** expansion + red-team (scoping a next tranche on four named surfaces).

@@ -1,3 +1,9 @@
+---
+title: migration-guide-summary
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-automatic-readiness/references/migration-guide-summary
+---
+
 # AKS Automatic Migration Guide
 
 Loaded when user asks about migration steps or after assessment is complete.

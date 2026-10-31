@@ -1,3 +1,9 @@
+---
+title: tool-web-search
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/references/tool-web-search
+---
+
 # Web Search Tool (Preview)
 
 Enables agents to retrieve and ground responses with real-time public web information before generating output. Returns up-to-date answers with inline URL citations. This is the **default tool for web search** — no external resource or connection setup required.

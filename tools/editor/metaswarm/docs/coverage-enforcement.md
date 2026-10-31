@@ -1,3 +1,9 @@
+---
+title: coverage-enforcement
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/docs/coverage-enforcement
+---
+
 # Deterministic Coverage Enforcement
 
 ## Why Procedural Enforcement Fails

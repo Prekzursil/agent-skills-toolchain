@@ -1,3 +1,9 @@
+---
+title: plan-template
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/plan-template
+---
+
 # Plan Template
 
 Create `.azure/deployment-plan.md` using this template. This file is **mandatory** and serves as the source of truth for the entire workflow.

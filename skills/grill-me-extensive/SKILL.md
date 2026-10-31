@@ -1,6 +1,11 @@
 ---
 name: grill-me-extensive
-description: "Program-scale extensive grilling for wide or under-specified decision spaces. Scout context, fan out a brainstorm to surface directions beyond the stated ask, structure a categorized decision list, then walk one question at a time with a recommendation, capturing every decision. Modes: expansion, modification, scope-change, modernization, better-ideas, red-team, simplification, prioritization."
+description: 'Program-scale extensive grilling for wide or under-specified decision
+  spaces. Scout context, fan out a brainstorm to surface directions beyond the stated
+  ask, structure a categorized decision list, then walk one question at a time with
+  a recommendation, capturing every decision. Modes: expansion, modification, scope-change,
+  modernization, better-ideas, red-team, simplification, prioritization.'
+permalink: dqverify-repo-20261013/skills/grill-me-extensive/skill
 ---
 
 This is the heavy-duty companion to the `grill-me` skill. Use plain `grill-me` for a single plan; use THIS when the user wants to scope a whole program, asks you to grill "extensively", asks "what else could this be / suggest more", or hands you something big and fuzzy. The full playbook is in `references/extensive-grill.md` — read it. The essentials:

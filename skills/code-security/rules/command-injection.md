@@ -1,8 +1,10 @@
 ---
 title: Prevent Command Injection
 impact: CRITICAL
-impactDescription: Remote code execution allowing attackers to run arbitrary commands on the host system
+impactDescription: Remote code execution allowing attackers to run arbitrary commands
+  on the host system
 tags: security, command-injection, cwe-78, cwe-94
+permalink: dqverify-repo-20261013/skills/code-security/rules/command-injection
 ---
 
 ## Prevent Command Injection

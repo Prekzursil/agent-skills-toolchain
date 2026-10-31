@@ -1,3 +1,9 @@
+---
+title: 2026-02-14-guided-setup-design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/docs/plans/2026-02-14-guided-setup-design
+---
+
 # Claude-Guided Installation Experience — Design Document
 
 > **Status**: Approved

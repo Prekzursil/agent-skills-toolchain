@@ -1,3 +1,9 @@
+---
+title: BUILD-R2
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/build-r2
+---
+
 # HOOKRESEARCH — BUILD lane, round 2
 
 Round 1 of this build lane shipped `hook_predeploy_gate.py` and settled P0/P1/P3-premise. Its §9

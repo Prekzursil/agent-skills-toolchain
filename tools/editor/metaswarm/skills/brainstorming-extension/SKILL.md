@@ -1,10 +1,12 @@
 ---
 name: brainstorming-extension
-description: Enforces design review gate after brainstorming — bridges superpowers:brainstorming into the metaswarm quality pipeline
+description: Enforces design review gate after brainstorming — bridges superpowers:brainstorming
+  into the metaswarm quality pipeline
 auto_activate: true
 triggers:
-  - after:superpowers:brainstorming
-  - "design document committed"
+- after:superpowers:brainstorming
+- design document committed
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/brainstorming-extension/skill
 ---
 
 # Brainstorming Extension - Mandatory Review Gate Bridge

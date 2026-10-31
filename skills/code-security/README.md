@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/code-security/readme
+---
+
 # Code Security Skill
 
 Comprehensive security guidelines for writing secure code across 15+ languages, covering OWASP Top 10, infrastructure security, and coding best practices.

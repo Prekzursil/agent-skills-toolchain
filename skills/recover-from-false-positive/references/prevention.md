@@ -1,3 +1,9 @@
+---
+title: prevention
+type: note
+permalink: dqverify-repo-20261013/skills/recover-from-false-positive/references/prevention
+---
+
 # Prevention — per-repo CLAUDE.md framing guard
 
 The classifier scores the assistant's **output at generation time**. That has one

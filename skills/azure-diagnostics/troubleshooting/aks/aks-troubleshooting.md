@@ -1,3 +1,9 @@
+---
+title: aks-troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/aks-troubleshooting
+---
+
 # AKS Troubleshooting Guide
 
 Primary AKS troubleshooting guide for incidents routed from [../../SKILL.md](../../SKILL.md).

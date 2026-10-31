@@ -1,3 +1,9 @@
+---
+title: jailbreak-trusted-access_2026-09-10
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/verification/jailbreak-trusted-access-2026-09-10
+---
+
 # Jailbreak + Trusted Access wiring
 
 Date: 10.09.2026

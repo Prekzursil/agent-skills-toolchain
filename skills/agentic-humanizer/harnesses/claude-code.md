@@ -1,3 +1,9 @@
+---
+title: claude-code
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/claude-code
+---
+
 # Harness Routing — Claude Code
 
 `SKILL.md` routes here when running inside Claude Code (v2.0.21 or later).

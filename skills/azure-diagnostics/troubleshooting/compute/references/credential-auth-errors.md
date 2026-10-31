@@ -1,3 +1,9 @@
+---
+title: credential-auth-errors
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/credential-auth-errors
+---
+
 # Credential and Authentication Errors
 
 Use when the VM is reachable but sign-in fails.

@@ -1,3 +1,9 @@
+---
+title: consumption-to-flex
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/services/functions/consumption-to-flex
+---
+
 # Consumption Plan to Flex Consumption Plan Upgrade
 
 > **Source**: Azure Functions Consumption Plan (Y1/Dynamic) on Linux

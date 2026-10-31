@@ -1,6 +1,8 @@
 ---
-name: "source-command-python-review"
-description: "Comprehensive Python code review for PEP 8 compliance, type hints, security, and Pythonic idioms. Invokes the python-reviewer agent."
+name: source-command-python-review
+description: Comprehensive Python code review for PEP 8 compliance, type hints, security,
+  and Pythonic idioms. Invokes the python-reviewer agent.
+permalink: dqverify-repo-20261013/skills/source-command-python-review/skill
 ---
 
 # source-command-python-review

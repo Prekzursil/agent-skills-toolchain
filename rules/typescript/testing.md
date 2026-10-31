@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/rules/typescript/testing
 ---
+
 # TypeScript/JavaScript Testing
 
 > This file extends [common/testing.md](../common/testing.md) with TypeScript/JavaScript specific content.

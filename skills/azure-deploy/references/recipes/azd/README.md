@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/readme
+---
+
 # AZD Deploy Recipe
 
 Deploy to Azure using Azure Developer CLI (azd).

@@ -1,3 +1,9 @@
+---
+title: mechanism-selection
+type: note
+permalink: dqverify-repo-20261013/skills/long-copy-orchestrator/references/mechanism-selection
+---
+
 # Mechanism Selection
 
 ## Use `rsync`

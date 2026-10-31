@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/tests/fixtures/readme
+---
+
 # Test Fixtures
 
 This directory contains JSONL session fixtures for smoke testing the Ralph event loop.

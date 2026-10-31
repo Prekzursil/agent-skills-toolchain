@@ -1,6 +1,10 @@
 ---
 name: fabric-patterns
-description: Use Fabric (danielmiessler) patterns and strategies from the CLI - summarize, extract_wisdom, create_summary, raw_query and 250+ more - on OpenRouter (plain fabric) or Cursor quota (fabric-cursor). Consumer of the .agents/skills SSOT; patterns stay private. Use when a pipeline-style text transform beats writing a prompt.
+description: Use Fabric (danielmiessler) patterns and strategies from the CLI - summarize,
+  extract_wisdom, create_summary, raw_query and 250+ more - on OpenRouter (plain fabric)
+  or Cursor quota (fabric-cursor). Consumer of the .agents/skills SSOT; patterns stay
+  private. Use when a pipeline-style text transform beats writing a prompt.
+permalink: dqverify-repo-20261013/skills/fabric-patterns/skill
 ---
 
 # Fabric patterns (estate wiring)

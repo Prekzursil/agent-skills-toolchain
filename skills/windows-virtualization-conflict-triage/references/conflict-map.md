@@ -1,3 +1,9 @@
+---
+title: conflict-map
+type: note
+permalink: dqverify-repo-20261013/skills/windows-virtualization-conflict-triage/references/conflict-map
+---
+
 # Conflict Map
 
 ## Host stack checks

@@ -1,3 +1,9 @@
+---
+title: implementation_agnostic_format
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/references/implementation-agnostic-format
+---
+
 # Implementation-Agnostic Documentation Format
 
 **Principle**: Separate general workflow (SKILL.md) from implementation code

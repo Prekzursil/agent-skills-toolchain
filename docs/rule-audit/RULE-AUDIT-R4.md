@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-R4
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-r4
+---
+
 # RULERESEARCH — BUILD round 4 (re-entry on a CONFIRMED defect)
 
 **Status: COMPLETE for the must-fix. Every claim below was executed, not read.**

@@ -1,3 +1,9 @@
+---
+title: cli
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/cli
+---
+
 # CLI reference (`scripts/sora.py`)
 
 This file contains the command catalog for the bundled video generation CLI. Keep `SKILL.md` overview-first; put verbose CLI details here.

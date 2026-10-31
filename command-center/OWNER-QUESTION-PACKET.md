@@ -1,3 +1,9 @@
+---
+title: OWNER-QUESTION-PACKET
+type: note
+permalink: dqverify-repo-20261013/command-center/owner-question-packet
+---
+
 # OWNER-QUESTION-PACKET
 
 **Built 2026-08-09** · lane `side:questions` · source: `command-center/sources/REGISTER.md` §6 (27 questions)

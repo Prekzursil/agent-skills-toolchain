@@ -1,3 +1,9 @@
+---
+title: researcher-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/researcher-agent
+---
+
 # Researcher Agent
 
 **Type**: `researcher-agent`

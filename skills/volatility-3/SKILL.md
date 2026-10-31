@@ -1,6 +1,8 @@
 ---
 name: volatility-3
-description: Use when a memory image must be analyzed to recover processes, modules, or unpacked binaries that only exist in RAM.
+description: Use when a memory image must be analyzed to recover processes, modules,
+  or unpacked binaries that only exist in RAM.
+permalink: dqverify-repo-20261013/skills/volatility-3/skill
 ---
 
 # Volatility 3

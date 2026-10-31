@@ -1,3 +1,9 @@
+---
+title: dataset-curation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/dataset-curation
+---
+
 # Dataset Curation — Human-in-the-Loop Review
 
 Review, annotate, and approve harvested trace candidates before including them in evaluation datasets. This ensures dataset quality by adding a human review gate between raw trace extraction and finalized test cases.

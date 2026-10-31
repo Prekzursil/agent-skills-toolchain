@@ -1,3 +1,9 @@
+---
+title: D5-VENDOR-ROLE-CANONICAL
+type: note
+permalink: dqverify-repo-20261013/command-center/d5-vendor-role-canonical
+---
+
 # D5 — `assigned_model_vendor_role` canonicalisation
 
 Unit: `defect/d5-vendor-role-canonical`. Catalog: `command-center/WORK-UNIT-CATALOG.json`

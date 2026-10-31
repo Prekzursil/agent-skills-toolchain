@@ -1,3 +1,9 @@
+---
+title: hypervisor-coexistence-lab
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/hypervisor-coexistence-lab
+---
+
 # hypervisor-coexistence-lab
 
 ## Purpose

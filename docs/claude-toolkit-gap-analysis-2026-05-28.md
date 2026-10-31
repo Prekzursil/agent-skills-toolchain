@@ -1,3 +1,9 @@
+---
+title: claude-toolkit-gap-analysis-2026-05-28
+type: note
+permalink: dqverify-repo-20261013/docs/claude-toolkit-gap-analysis-2026-05-28
+---
+
 # Claude Code Toolkit — Tailored Gap Analysis & Power-User Playbook
 *Generated 2026-05-28 · 7 parallel research agents · ~390 tools cataloged · deduped against your installed stack · Confidence: High (star counts verified live via `gh api`, claims cited)*
 

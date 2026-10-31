@@ -1,3 +1,9 @@
+---
+title: project-decision
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/examples/project-decision
+---
+
 # Example: Project Decision Meeting Prep
 
 ## User Request
@@ -428,4 +434,3 @@ rich_text: [{
 - **Capture**: Templates for decision and actions
 
 Perfect for: Architecture decisions, technical trade-offs, strategic choices
-

@@ -1,3 +1,9 @@
+---
+title: stack-wiring
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/audit/stack-wiring
+---
+
 # Stack-wiring audit — D:\opt (cyberstrike-mcp, decepticon, decepticon-upstream, pentagi, hexstrike-ai)
 
 Date: 2026-09-29. Method: file reads (path:line cited) + live read-only checks (exact command + output cited). All live checks were executed during this audit on the box itself. Nothing was modified.

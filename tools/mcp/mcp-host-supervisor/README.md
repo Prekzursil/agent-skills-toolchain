@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/mcp-host-supervisor/readme
+---
+
 # mcp-host-supervisor — always-on launcher for the shared MCP hosts
 
 Keeps exactly ONE `mcp_http_host.py` per enabled server alive on its loopback port, so every

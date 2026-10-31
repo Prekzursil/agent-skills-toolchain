@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/home/readme
+---
+
 # agent-self/home — captures of HOME-ROOT harness files
 
 This directory versions files that live directly in `%USERPROFILE%` (home root), NOT in

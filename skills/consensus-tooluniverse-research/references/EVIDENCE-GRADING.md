@@ -1,3 +1,9 @@
+---
+title: EVIDENCE-GRADING
+type: note
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/references/evidence-grading
+---
+
 # Evidence Grading — canonical T1–T4 (single source of truth)
 
 > Referenced by `AI-SCOPE.md`, `USER-SCOPE.md`, and the `consensus-tooluniverse-research` skill.

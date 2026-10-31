@@ -1,3 +1,9 @@
+---
+title: typescript
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/runtimes/typescript
+---
+
 # TypeScript — Azure Functions v4 Triggers & Bindings
 
 > **Model**: Node.js v4 programming model (TypeScript). Same as JavaScript v4 with type annotations.

@@ -1,3 +1,9 @@
+---
+title: runtime-token-exchange
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/runtime-token-exchange
+---
+
 # Runtime Token Exchange (`fmi_path`)
 
 Source: [Agent ID Setup Instructions](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-id-setup-instructions)

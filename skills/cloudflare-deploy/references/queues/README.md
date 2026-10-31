@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/queues/readme
+---
+
 # Cloudflare Queues
 
 Flexible message queuing for async task processing with guaranteed at-least-once delivery and configurable batching.

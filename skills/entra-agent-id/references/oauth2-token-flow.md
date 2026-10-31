@@ -1,3 +1,9 @@
+---
+title: oauth2-token-flow
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/oauth2-token-flow
+---
+
 # OAuth2 Token Flow
 
 Source: [Agent ID Setup Instructions](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-id-setup-instructions)

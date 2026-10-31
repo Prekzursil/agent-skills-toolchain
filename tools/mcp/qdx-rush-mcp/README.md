@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/qdx-rush-mcp/readme
+---
+
 # QDX Rush / EXESS MCP (`qdx-rush`)
 
 MCP server wrapping the **`rush-py` 7.1.0** SDK to drive QDX's Rush cloud (quantum chemistry +

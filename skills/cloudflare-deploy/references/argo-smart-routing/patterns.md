@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/argo-smart-routing/patterns
+---
+
 # Integration Patterns
 
 ## Enable Argo + Tiered Cache

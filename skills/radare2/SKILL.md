@@ -1,6 +1,8 @@
 ---
 name: radare2
-description: Use when command-line disassembly, debugging, hex editing, or scriptable low-level binary triage is needed without relying on a heavyweight GUI first.
+description: Use when command-line disassembly, debugging, hex editing, or scriptable
+  low-level binary triage is needed without relying on a heavyweight GUI first.
+permalink: dqverify-repo-20261013/skills/radare2/skill
 ---
 
 # radare2

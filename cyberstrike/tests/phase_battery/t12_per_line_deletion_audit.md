@@ -1,3 +1,9 @@
+---
+title: t12_per_line_deletion_audit
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/tests/phase-battery/t12-per-line-deletion-audit
+---
+
 # T-12 per-line deletion audit — prompt template (owner-executed)
 
 The Phase-3 rewrite deletes ~34 KB of instruction prose (6 files → 2).

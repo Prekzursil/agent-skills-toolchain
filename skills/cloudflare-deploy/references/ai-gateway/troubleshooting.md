@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/ai-gateway/troubleshooting
+---
+
 # AI Gateway Troubleshooting
 
 ## Common Errors

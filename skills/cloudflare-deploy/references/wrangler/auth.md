@@ -1,3 +1,9 @@
+---
+title: auth
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/wrangler/auth
+---
+
 # Authentication
 
 Authenticate with Cloudflare before deploying Workers or Pages.

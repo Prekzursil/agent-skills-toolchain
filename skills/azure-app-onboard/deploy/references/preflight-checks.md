@@ -1,3 +1,9 @@
+---
+title: preflight-checks
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/preflight-checks
+---
+
 # Preflight Checks
 
 Pre-deployment validation steps. Run after user approval, before deployment execution.

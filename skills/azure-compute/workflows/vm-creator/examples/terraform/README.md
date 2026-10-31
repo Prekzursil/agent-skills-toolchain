@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/examples/terraform/readme
+---
+
 # {vm-name} — Terraform
 
 Deploys a Linux VM (RG, VNet, subnet, NSG with SSH allow, public IP, NIC).

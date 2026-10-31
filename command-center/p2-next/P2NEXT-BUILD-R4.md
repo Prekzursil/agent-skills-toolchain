@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-R4
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-r4
+---
+
 # P2NEXT — BUILD round 2 (artifact R4): the refuted sentence, and the anchor hole under it
 
 COVERAGE: every claim below names the probe that produced it. Two things stay unmeasured and say

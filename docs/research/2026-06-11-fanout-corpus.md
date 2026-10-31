@@ -1,3 +1,9 @@
+---
+title: 2026-06-11-fanout-corpus
+type: note
+permalink: dqverify-repo-20261013/docs/research/2026-06-11-fanout-corpus
+---
+
 ## CLUSTER: discovery
 DISCOVERY CLUSTER BRIEF
 Generated: 2026-06-10 | Corroborator role

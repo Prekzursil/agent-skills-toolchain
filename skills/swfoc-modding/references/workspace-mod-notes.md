@@ -1,3 +1,9 @@
+---
+title: workspace-mod-notes
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/workspace-mod-notes
+---
+
 # Workspace Mod Notes (Current Project)
 
 Workspace snapshot source: `/mnt/c/Users/Prekzursil/Downloads/SWFOC editor`

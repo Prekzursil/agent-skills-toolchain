@@ -1,3 +1,9 @@
+---
+title: blueprint-spec
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/blueprint-spec
+---
+
 # Render Blueprint Specification
 
 Complete reference for render.yaml Blueprint files. Blueprints define your infrastructure as code for reproducible deployments on Render.

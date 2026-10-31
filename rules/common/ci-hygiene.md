@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.yml"
-  - "**/*.yaml"
-  - ".github/workflows/**"
-  - "**/*.py"
-  - "**/conftest.py"
-  - "**/pytest.ini"
-  - "**/tox.ini"
-  - "**/pyproject.toml"
-  - "**/noxfile.py"
+- '**/*.yml'
+- '**/*.yaml'
+- .github/workflows/**
+- '**/*.py'
+- '**/conftest.py'
+- '**/pytest.ini'
+- '**/tox.ini'
+- '**/pyproject.toml'
+- '**/noxfile.py'
+permalink: dqverify-repo-20261013/rules/common/ci-hygiene
 ---
+
 # CI Hygiene (non-negotiables)
 
 Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). CI footguns

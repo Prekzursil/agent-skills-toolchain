@@ -1,3 +1,9 @@
+---
+title: P2-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-grounding
+---
+
 # P2 GROUNDING LANE — what exists today, prior art, and the ranked plan
 
 STATUS: COMPLETE. Written as a skeleton first, rewritten at each milestone per write-as-you-go.

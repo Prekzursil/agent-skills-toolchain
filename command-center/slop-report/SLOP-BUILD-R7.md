@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R7
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r7
+---
+
 # SLOP — BUILD lane, round 7
 
 **Headline: round 6 shipped its new gate with the exact defect its own sibling documents.**

@@ -1,3 +1,9 @@
+---
+title: networking
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/networking
+---
+
 # App Service Networking
 
 VNet integration, Private Endpoints, Access Restrictions, and Hybrid Connections.

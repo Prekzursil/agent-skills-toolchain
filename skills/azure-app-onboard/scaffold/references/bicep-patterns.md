@@ -1,3 +1,9 @@
+---
+title: bicep-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/bicep-patterns
+---
+
 # Bicep Patterns
 
 Bicep default-path patterns for AppOnboard scaffold. Used as the primary IaC format. For the alternative Terraform path (existing `.tf` files or user override), scaffold uses `mcp_azure_mcp_azureterraformbestpractices` output patterns.

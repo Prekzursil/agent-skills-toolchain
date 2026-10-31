@@ -1,6 +1,9 @@
 ---
 name: ghidra-automation-recipes
-description: Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge, or repeatable Python-driven recipes, especially for batch queries, symbol harvesting, structure extraction, or cross-tool analysis handoffs.
+description: Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge,
+  or repeatable Python-driven recipes, especially for batch queries, symbol harvesting,
+  structure extraction, or cross-tool analysis handoffs.
+permalink: dqverify-repo-20261013/skills/ghidra-automation-recipes/skill
 ---
 
 # Ghidra Automation Recipes

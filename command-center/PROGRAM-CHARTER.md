@@ -1,3 +1,9 @@
+---
+title: PROGRAM-CHARTER
+type: note
+permalink: dqverify-repo-20261013/command-center/program-charter
+---
+
 # PROGRAM-CHARTER
 
 The command center for the four interleaved programs: **A-toolchain** (Prompt Two),

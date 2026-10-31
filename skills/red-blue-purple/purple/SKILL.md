@@ -1,6 +1,9 @@
 ---
 name: purple
-description: Combined red+blue operations with the scoring system — how to run both sides simultaneously, measure injection success, guardrail hold, concealment, and mitigation effectiveness with statistical rigor. Child of red-blue-purple.
+description: Combined red+blue operations with the scoring system — how to run both
+  sides simultaneously, measure injection success, guardrail hold, concealment, and
+  mitigation effectiveness with statistical rigor. Child of red-blue-purple.
+permalink: dqverify-repo-20261013/skills/red-blue-purple/purple/skill
 ---
 
 # PURPLE — combined operations + scoring

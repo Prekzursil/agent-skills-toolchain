@@ -1,12 +1,17 @@
 ---
-title: Identify-before-absence — probe the artifact-class space before claiming "does not exist"
+title: Identify-before-absence — probe the artifact-class space before claiming "does
+  not exist"
 scope: common
-loads: on-demand (cited from AGENTS-RUNTIME §12); harness-tree sessions; project-session enforcement carried by fan-out-contract spawn prompts
-verified: 2026-09-30 (council wf_75558a8a-f5d run 2; disk-verified with two mechanically independent probes)
+loads: on-demand (cited from AGENTS-RUNTIME §12); harness-tree sessions; project-session
+  enforcement carried by fan-out-contract spawn prompts
+verified: 2026-09-30 (council wf_75558a8a-f5d run 2; disk-verified with two mechanically
+  independent probes)
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
+- '**/.claude/**'
+- '**/.agents/**'
+permalink: dqverify-repo-20261013/rules/common/identify-before-absence
 ---
+
 # Identify-before-absence — probe the FULL artifact-class space before claiming "does not exist"
 
 "X does not exist" is a per-class verdict, available only after probing every root of that

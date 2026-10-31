@@ -1,6 +1,8 @@
 ---
 name: setup
-description: Interactive project setup — detects your project, configures metaswarm, writes project-local files
+description: Interactive project setup — detects your project, configures metaswarm,
+  writes project-local files
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/skill
 ---
 
 # Setup

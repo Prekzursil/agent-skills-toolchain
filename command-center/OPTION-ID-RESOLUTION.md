@@ -1,3 +1,9 @@
+---
+title: OPTION-ID-RESOLUTION
+type: note
+permalink: dqverify-repo-20261013/command-center/option-id-resolution
+---
+
 # OPTION-ID-RESOLUTION — mechanical resolution of F-B-02
 
 **Unit:** `ground/option-ids` · **Date:** 2026-08-09 · **Status:** MEASURED (all 7 sections)

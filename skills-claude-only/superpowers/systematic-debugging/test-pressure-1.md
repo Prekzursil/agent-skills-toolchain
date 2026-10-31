@@ -1,3 +1,9 @@
+---
+title: test-pressure-1
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/test-pressure-1
+---
+
 # Pressure Test 1: Emergency Production Fix
 
 **IMPORTANT: This is a real scenario. You must choose and act. Don't ask hypothetical questions - make the actual decision.**

@@ -1,7 +1,12 @@
 ---
 name: mcp-fleet-curation
-description: Use when plugins, skills, or MCP servers keep REAPPEARING after you disable them, when de-bloating the Claude Code catalogue, or when the per-turn tool/token count creeps back up. The permanent cure - disable at USER scope (claude plugin disable name@mkt --scope user), NOT the UI toggle (which writes project scope and returns when the cwd changes) - plus periodic mcp_doctor audit.
+description: Use when plugins, skills, or MCP servers keep REAPPEARING after you disable
+  them, when de-bloating the Claude Code catalogue, or when the per-turn tool/token
+  count creeps back up. The permanent cure - disable at USER scope (claude plugin
+  disable name@mkt --scope user), NOT the UI toggle (which writes project scope and
+  returns when the cwd changes) - plus periodic mcp_doctor audit.
 license: MIT
+permalink: dqverify-repo-20261013/skills/mcp-fleet-curation/skill
 ---
 
 # MCP / Plugin / Skill Fleet Curation

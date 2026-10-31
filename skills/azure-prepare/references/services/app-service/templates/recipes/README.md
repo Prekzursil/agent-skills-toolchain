@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/readme
+---
+
 # App Service Template Recipes — REFERENCE ONLY
 
 Composable IaC + source code modules that extend the Web API or Web App base template to support specific Azure service integrations.

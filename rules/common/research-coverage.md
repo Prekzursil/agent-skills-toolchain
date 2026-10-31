@@ -1,12 +1,16 @@
 ---
 title: Research coverage — never pay twice for the same discovery
 scope: common
-loads: on-demand (referenced from AGENTS-RUNTIME §1d); read BEFORE dispatching any research agent
-verified: 2026-09-25 (register built from run wf_a2bae891-84b — 3,070 urls / 1,360 queries, reproduced by an independent verifier)
+loads: on-demand (referenced from AGENTS-RUNTIME §1d); read BEFORE dispatching any
+  research agent
+verified: 2026-09-25 (register built from run wf_a2bae891-84b — 3,070 urls / 1,360
+  queries, reproduced by an independent verifier)
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
+- '**/.claude/**'
+- '**/.agents/**'
+permalink: dqverify-repo-20261013/rules/common/research-coverage
 ---
+
 # Research coverage — register 5 of 5
 
 **A sweep that re-runs is indistinguishable from a sweep that works.** Both burn quota, both

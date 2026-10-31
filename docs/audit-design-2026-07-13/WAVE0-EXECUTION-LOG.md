@@ -1,3 +1,9 @@
+---
+title: WAVE0-EXECUTION-LOG
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/wave0-execution-log
+---
+
 # Wave-0 Execution Log + Learnings (2026-07-13)
 
 The reliability-bootstrap wave of the unified harness control-plane program, run

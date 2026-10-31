@@ -1,3 +1,9 @@
+---
+title: partitioning
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/cosmos-db/partitioning
+---
+
 # Cosmos DB Partition Key Selection
 
 ## Good Partition Keys

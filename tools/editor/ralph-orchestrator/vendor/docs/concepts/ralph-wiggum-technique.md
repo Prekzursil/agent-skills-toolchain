@@ -1,3 +1,9 @@
+---
+title: ralph-wiggum-technique
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/ralph-wiggum-technique
+---
+
 # The Ralph Wiggum Technique
 
 The Ralph Wiggum technique is a simple but powerful approach to autonomous AI task completion through continuous iteration.

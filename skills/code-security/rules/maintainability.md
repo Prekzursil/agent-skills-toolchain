@@ -3,6 +3,7 @@ title: Code Maintainability
 impact: LOW
 impactDescription: Technical debt and code confusion
 tags: maintainability, code-quality, python, django, flask
+permalink: dqverify-repo-20261013/skills/code-security/rules/maintainability
 ---
 
 ## Code Maintainability

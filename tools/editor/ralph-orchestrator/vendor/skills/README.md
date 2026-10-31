@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/readme
+---
+
 # Ralph Orchestrator Agent Skills
 
 This directory is the canonical public skill package for external agent

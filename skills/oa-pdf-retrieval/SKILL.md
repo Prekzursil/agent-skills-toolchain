@@ -1,6 +1,11 @@
 ---
 name: oa-pdf-retrieval
-description: Use when downloading an open-access paper PDF with verified provenance (allowlisted host, license, sha256) via paper_find_oa_pdf and paper_download_oa_pdf ; do NOT use for mere metadata lookup or citation graphs (use scholarly-literature-review), or for biomedical ranking (use biomedical-paper-triage) ; returns downloaded PDF path with access classification.
+description: Use when downloading an open-access paper PDF with verified provenance
+  (allowlisted host, license, sha256) via paper_find_oa_pdf and paper_download_oa_pdf
+  ; do NOT use for mere metadata lookup or citation graphs (use scholarly-literature-review),
+  or for biomedical ranking (use biomedical-paper-triage) ; returns downloaded PDF
+  path with access classification.
+permalink: dqverify-repo-20261013/skills/oa-pdf-retrieval/skill
 ---
 
 # Open-Access PDF Retrieval

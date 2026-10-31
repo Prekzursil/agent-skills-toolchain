@@ -1,3 +1,9 @@
+---
+title: MON-ROUND2
+type: note
+permalink: dqverify-repo-20261013/docs/monitor/mon-round2
+---
+
 # MON lane — round 2 (re-entry after an adversarial refutation)
 
 STATUS: MEASURED. Every claim below carries a pasted command output or names the file:line it

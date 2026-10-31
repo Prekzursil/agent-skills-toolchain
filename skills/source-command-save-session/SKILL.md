@@ -1,6 +1,8 @@
 ---
-name: "source-command-save-session"
-description: "Save current session state to a dated file in ~/.claude/sessions/ so work can be resumed in a future session with full context."
+name: source-command-save-session
+description: Save current session state to a dated file in ~/.claude/sessions/ so
+  work can be resumed in a future session with full context.
+permalink: dqverify-repo-20261013/skills/source-command-save-session/skill
 ---
 
 # source-command-save-session

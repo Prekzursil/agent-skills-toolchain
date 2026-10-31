@@ -1,3 +1,9 @@
+---
+title: write_path_desktop_fiddler_proxy_on_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/write-path-desktop-fiddler-proxy-on-2026-07-20
+---
+
 # Desktop capture note (Fiddler system proxy ON) — 2026-07-20
 
 ## Confirmed

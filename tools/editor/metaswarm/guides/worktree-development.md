@@ -1,3 +1,9 @@
+---
+title: worktree-development
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/guides/worktree-development
+---
+
 # Worktree Development Guide
 
 This guide covers git worktree usage patterns for parallel development in projects using the metaswarm framework. Worktrees enable multiple agents (or developers) to work on different features simultaneously without interfering with each other.

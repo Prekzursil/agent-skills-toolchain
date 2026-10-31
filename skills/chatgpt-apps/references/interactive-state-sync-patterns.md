@@ -1,3 +1,9 @@
+---
+title: interactive-state-sync-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/interactive-state-sync-patterns
+---
+
 # Interactive State Sync Patterns
 
 Use this reference when building ChatGPT apps with long-lived widget state, repeated interactions, or component-initiated tool calls (for example: games, boards, maps, dashboards, editors, or realtime-ish UIs).

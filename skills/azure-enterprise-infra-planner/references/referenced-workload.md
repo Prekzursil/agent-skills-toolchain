@@ -1,3 +1,9 @@
+---
+title: referenced-workload
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/referenced-workload
+---
+
 # Referenced-Workload Handling (on-demand)
 
 > Read this when the user provides something that already EXISTS — a live Azure resource / resource

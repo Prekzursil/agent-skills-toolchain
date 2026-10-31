@@ -1,3 +1,9 @@
+---
+title: citations
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/citations
+---
+
 # Citation Styles
 
 ## Basic Page Citation
@@ -187,4 +193,3 @@ Revenue grew 23% (<mention-page url="...">Q4 Financial Report</mention-page>). C
 ```
 
 **Recommend formal style** for most research documentation as it provides clickable navigation.
-

@@ -1,3 +1,9 @@
+---
+title: opencode-tools
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/references/opencode-tools
+---
+
 # OpenCode Tool Mapping (Future)
 
 This file maps Claude Code tool names to OpenCode equivalents.

@@ -1,3 +1,9 @@
+---
+title: readme_RedTeamOperations_RedBeacon-AI
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-red-team-operations-red-beacon-ai
+---
+
 # RedBeacon AI: LLM-Powered Red Team Signals
 
 ```

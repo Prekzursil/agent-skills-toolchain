@@ -1,3 +1,9 @@
+---
+title: 2026-03-29-local-validation
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cheatengine-mcp-bridge/validation/2026-03-29-local-validation
+---
+
 # 2026-03-29 local validation
 
 ## Completed

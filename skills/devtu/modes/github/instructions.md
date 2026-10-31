@@ -1,3 +1,9 @@
+---
+title: instructions
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/github/instructions
+---
+
 # DevTU GitHub CI & Testing Skill
 
 You are an expert at debugging and fixing GitHub CI failures, test issues, and pre-commit hook problems in ToolUniverse development.

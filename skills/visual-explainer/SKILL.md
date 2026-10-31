@@ -1,6 +1,10 @@
 ---
 name: visual-explainer
-description: Use when a visual explanation beats prose — diagrams, architecture overviews, diff or plan reviews, project recaps, comparison tables, dashboards, timelines, or HTML slide decks. Generates one self-contained HTML page (embedded CSS/JS, interactive Mermaid) that explains systems, code changes, plans, data, or technical concepts.
+description: Use when a visual explanation beats prose — diagrams, architecture overviews,
+  diff or plan reviews, project recaps, comparison tables, dashboards, timelines,
+  or HTML slide decks. Generates one self-contained HTML page (embedded CSS/JS, interactive
+  Mermaid) that explains systems, code changes, plans, data, or technical concepts.
+permalink: dqverify-repo-20261013/skills/visual-explainer/skill
 ---
 
 <!-- Source: cherry-picked from https://github.com/coco-research/coco (skills/visual-explainer, MIT, author nicobailon, v0.8.1) on 27.08.2026 per grill decision G-11/11B. Adapted to house format; coco template/reference files not ported — all invariants needed to build pages from scratch are inlined below. -->

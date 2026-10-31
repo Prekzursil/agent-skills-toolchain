@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-sql/readme
+---
+
 # Cloudflare R2 SQL Skill Reference
 
 Expert guidance for Cloudflare R2 SQL - serverless distributed query engine for Apache Iceberg tables.

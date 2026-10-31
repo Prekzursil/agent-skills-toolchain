@@ -1,3 +1,9 @@
+---
+title: sku-matrix
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/sku-matrix
+---
+
 # SKU Selection Matrix
 
 Select SKU based on `context.json.intent.budget`. Cross-reference with `intent.scale` for right-sizing.

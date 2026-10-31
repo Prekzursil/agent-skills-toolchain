@@ -1,3 +1,9 @@
+---
+title: multi-agent-quickstart
+type: note
+permalink: dqverify-repo-20261013/docs/multi-agent-quickstart
+---
+
 # Multi-Agent Quickstart
 
 This is the shortest mental model for using the system without getting lost.

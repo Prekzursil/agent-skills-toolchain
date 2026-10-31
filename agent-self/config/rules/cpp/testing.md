@@ -1,13 +1,15 @@
 ---
 paths:
-  - "**/*.cpp"
-  - "**/*.hpp"
-  - "**/*.cc"
-  - "**/*.hh"
-  - "**/*.cxx"
-  - "**/*.h"
-  - "**/CMakeLists.txt"
+- '**/*.cpp'
+- '**/*.hpp'
+- '**/*.cc'
+- '**/*.hh'
+- '**/*.cxx'
+- '**/*.h'
+- '**/CMakeLists.txt'
+permalink: dqverify-repo-20261013/agent-self/config/rules/cpp/testing
 ---
+
 # C++ Testing
 
 > This file extends [common/testing.md](../common/testing.md) with C++ specific content.

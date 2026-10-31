@@ -1,3 +1,9 @@
+---
+title: tool-loop
+type: note
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/tool-loop
+---
+
 # Tool loop (give any agent tools)
 
 Works for any chat model that can emit tool calls (OpenAI `tool_calls`, Qwen XML, Hermes JSON, …). The **runtime only translates**; the **harness only executes**.

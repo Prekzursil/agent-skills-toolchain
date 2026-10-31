@@ -1,3 +1,9 @@
+---
+title: sandbox-AGENTS
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/sandbox-agents
+---
+
 # D:\opt\sandbox-agents — Contained Lab Agent Contract (FULL FORCE edition)
 
 Applies to every agent launched from this harness: the refusal bench (`bench/bench.py`),

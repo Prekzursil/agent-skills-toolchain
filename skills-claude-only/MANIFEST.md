@@ -1,3 +1,9 @@
+---
+title: MANIFEST
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/manifest
+---
+
 # Claude-Only Skills Manifest
 
 Skills that exist in ~/.agents/skills/ but NOT in ~/.codex/skills/.

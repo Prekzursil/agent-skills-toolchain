@@ -1,6 +1,8 @@
 ---
 name: docs-research
-description: Gather official, up-to-date documentation and convert it into a concise implementation checklist for the current coding task.
+description: Gather official, up-to-date documentation and convert it into a concise
+  implementation checklist for the current coding task.
+permalink: dqverify-repo-20261013/skills-claude-only/docs-research/skill
 ---
 
 When the user asks for implementation guidance that depends on external docs:

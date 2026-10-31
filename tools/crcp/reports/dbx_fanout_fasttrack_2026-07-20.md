@@ -1,3 +1,9 @@
+---
+title: dbx_fanout_fasttrack_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-fanout-fasttrack-2026-07-20
+---
+
 # CRCP Databricks fast-track — 2026-07-20
 
 ## Runs

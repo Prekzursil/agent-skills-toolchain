@@ -1,3 +1,9 @@
+---
+title: mcp-gui
+type: note
+permalink: dqverify-repo-20261013/commands/mcp-gui
+---
+
 Launch the mcp-manager — a cross-plane MCP server manager (PySide6 desktop window).
 
 Usage: /mcp-gui [--inline]   (add -Tui to launch.ps1 for the legacy Textual TUI)

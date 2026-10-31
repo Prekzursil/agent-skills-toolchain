@@ -1,3 +1,9 @@
+---
+title: cli-crud
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/routine/references/cli-crud
+---
+
 # CLI CRUD and Operations
 
 Use `azd ai routine` for imperative routine CRUD and operations. Every verb accepts `--output json` or `--output table` (default), and `-p <endpoint>` to override the resolved project endpoint.

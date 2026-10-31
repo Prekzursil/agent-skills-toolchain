@@ -1,6 +1,10 @@
 ---
 name: clone-website
-description: Use when the user wants to clone, replicate, reverse-engineer, or create a pixel-perfect copy of a website or web app as a single self-contained HTML prototype — extracts design tokens, assets, computed CSS, interaction patterns, and content via Playwright, then rebuilds one dependency-free HTML file.
+description: Use when the user wants to clone, replicate, reverse-engineer, or create
+  a pixel-perfect copy of a website or web app as a single self-contained HTML prototype
+  — extracts design tokens, assets, computed CSS, interaction patterns, and content
+  via Playwright, then rebuilds one dependency-free HTML file.
+permalink: dqverify-repo-20261013/skills/clone-website/skill
 ---
 
 <!-- Source: cherry-picked from https://github.com/coco-research/coco (skills/clone-website) on 27.08.2026 per grill decision G-11/11B; itself adapted from https://github.com/JCodesMore/ai-website-cloner-template. Adapted to house format; coco brain-DB integration removed. -->

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/evaluations/readme
+---
+
 # Spec to Implementation Skill Evaluations
 
 Evaluation scenarios for testing the Spec to Implementation skill across different Codex models.
@@ -117,4 +123,3 @@ When adding Spec to Implementation evaluations:
 - "Tasks are well-structured"
 - "Breaks down spec appropriately"
 - "Links to spec"
-

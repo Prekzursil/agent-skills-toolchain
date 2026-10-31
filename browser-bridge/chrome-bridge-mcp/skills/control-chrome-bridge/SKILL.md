@@ -1,6 +1,13 @@
 ---
 name: control-chrome-bridge
-description: "Drive the user's real Chrome browser — their own profile, tabs, cookies and logged-in sessions — through the chrome-bridge MCP server. Use for tasks that need existing browser state: reading a page behind a login, filling a form on a site the user is signed into, testing a local app in a real browser, or inspecting what is on screen. Prefer a purpose-built API, CLI or connector when one exists; reach for the browser when none does, when it lacks a needed capability, or when the work is genuinely UI-shaped."
+description: 'Drive the user''s real Chrome browser — their own profile, tabs, cookies
+  and logged-in sessions — through the chrome-bridge MCP server. Use for tasks that
+  need existing browser state: reading a page behind a login, filling a form on a
+  site the user is signed into, testing a local app in a real browser, or inspecting
+  what is on screen. Prefer a purpose-built API, CLI or connector when one exists;
+  reach for the browser when none does, when it lacks a needed capability, or when
+  the work is genuinely UI-shaped.'
+permalink: dqverify-repo-20261013/browser-bridge/chrome-bridge-mcp/skills/control-chrome-bridge/skill
 ---
 
 # Control Chrome (chrome-bridge)

@@ -1,3 +1,9 @@
+---
+title: ui-blazor
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/ui-blazor
+---
+
 # Blazor
 
 Primary docs:

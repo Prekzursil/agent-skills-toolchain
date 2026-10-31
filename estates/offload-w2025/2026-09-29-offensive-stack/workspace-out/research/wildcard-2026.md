@@ -1,3 +1,9 @@
+---
+title: wildcard-2026
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/wildcard-2026
+---
+
 # Research notes: wildcard-2026 — brand-new 2026 agentic offensive tools
 
 Date: 2026-09-29. Researcher lane: wildcard-2026. VM: Windows Server (win32 10.0.26100), no Docker engine (GCP, no VT-x ⇒ WSL2 also unavailable). Estate: CyberStrike 1.1.16 + MCP gateway 127.0.0.1:31100 (43 backends/17 live), Decepticon LangGraph, PentAGI staged docker-pending, Ollama qwen3:4b.

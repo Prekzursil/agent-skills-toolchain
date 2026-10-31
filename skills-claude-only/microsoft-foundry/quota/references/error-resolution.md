@@ -1,3 +1,9 @@
+---
+title: error-resolution
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/quota/references/error-resolution
+---
+
 # Error Resolution Workflows
 
 **Table of Contents:** [Workflow 7: Quota Exhausted Recovery](#workflow-7-quota-exhausted-recovery) · [Workflow 8: Resolve 429 Rate Limit Errors](#workflow-8-resolve-429-rate-limit-errors) · [Workflow 9: Resolve DeploymentLimitReached](#workflow-9-resolve-deploymentlimitreached) · [Workflow 10: Resolve InsufficientQuota](#workflow-10-resolve-insufficientquota) · [Workflow 11: Resolve QuotaExceeded](#workflow-11-resolve-quotaexceeded)
@@ -142,4 +148,3 @@ az cognitiveservices account deployment create --name <resource> --resource-grou
 **Decision:** Available < 10% → Different region; 10-50% → Delete/reduce; > 50% → Delete one deployment
 
 ---
-

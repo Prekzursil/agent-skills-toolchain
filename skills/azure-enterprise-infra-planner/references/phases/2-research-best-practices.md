@@ -1,3 +1,9 @@
+---
+title: 2-research-best-practices
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/2-research-best-practices
+---
+
 # Phase 2: Research WAF
 
 > The goal of this phase is to understand user intent and gather WAF guidance using MCP tools.

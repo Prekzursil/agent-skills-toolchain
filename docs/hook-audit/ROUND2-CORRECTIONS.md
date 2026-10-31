@@ -1,3 +1,9 @@
+---
+title: ROUND2-CORRECTIONS
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/round2-corrections
+---
+
 # HOOKRESEARCH round 2 — corrections to round 1, and one new false-positive fix
 
 STATUS: COMPLETE for round 2. Every number below carries a machine-checkable citation to a

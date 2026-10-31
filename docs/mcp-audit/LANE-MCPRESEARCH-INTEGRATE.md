@@ -1,3 +1,9 @@
+---
+title: LANE-MCPRESEARCH-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/lane-mcpresearch-integrate
+---
+
 # LANE MCPRESEARCH — INTEGRATE (final stage)
 
 Measured 2026-08-14 in `C:/Users/Prekzursil/source/ast-integrate`. Companion to

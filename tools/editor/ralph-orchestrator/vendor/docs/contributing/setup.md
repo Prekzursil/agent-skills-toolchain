@@ -1,3 +1,9 @@
+---
+title: setup
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/contributing/setup
+---
+
 # Development Setup
 
 Set up your environment for Ralph development.

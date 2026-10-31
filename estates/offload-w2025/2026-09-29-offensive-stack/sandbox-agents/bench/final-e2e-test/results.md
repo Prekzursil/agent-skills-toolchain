@@ -1,3 +1,9 @@
+---
+title: results
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/sandbox-agents/bench/final-e2e-test/results
+---
+
 # Refusal bench — ollama-qwen3-4b (ollama)
 
 - model: `qwen3:4b`  endpoint: `http://127.0.0.1:11434/api/chat`

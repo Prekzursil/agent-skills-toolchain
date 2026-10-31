@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/static-assets/patterns
+---
+
 ### Common Patterns
 
 **1. Forward request to assets:**

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/tests/readme
+---
+
 # tests/ — G-13 conformance battery (A+B+C stacked)
 
 Owner-approved roadmap (grill decisions 2026-09-20, G-13): full T-1..T-13

@@ -1,3 +1,9 @@
+---
+title: tool-mcp-key-auth
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-key-auth
+---
+
 # Tool — Remote MCP server, static key (`type: mcp`)
 
 Attach a remote MCP server that authenticates with a **static key** (e.g. a GitHub PAT passed as a Bearer token) to a toolbox. This needs a **connection** (`--kind remote-tool --auth-type custom-keys`) — the toolbox references it by name and the created toolbox tool carries a populated `project_connection_id`. The key is stored on the connection, never in the toolbox spec.

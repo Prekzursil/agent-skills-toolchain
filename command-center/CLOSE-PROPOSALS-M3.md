@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-M3
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-m3
+---
+
 # CLOSE-PROPOSALS-M3 — LANE B3 (MONITOR + B-workflow_design)
 
 **Lane:** B3 · **Owner file:** `command-center/CLOSE-PROPOSALS-M3.md` (mine alone)

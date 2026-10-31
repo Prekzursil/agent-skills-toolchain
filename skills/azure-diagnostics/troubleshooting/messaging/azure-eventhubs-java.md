@@ -1,3 +1,9 @@
+---
+title: azure-eventhubs-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-eventhubs-java
+---
+
 # Azure Event Hubs SDK — Java
 
 Package: `azure-messaging-eventhubs` | [README](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/eventhubs/azure-messaging-eventhubs/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/eventhubs/azure-messaging-eventhubs/TROUBLESHOOTING.md)

@@ -1,6 +1,9 @@
 ---
 name: langfuse-v4-project-migration
-description: Prepare an application and Langfuse project for v4 by upgrading ingestion and API usage, migrating legacy evaluators, and moving exports to the enriched observation schema.
+description: Prepare an application and Langfuse project for v4 by upgrading ingestion
+  and API usage, migrating legacy evaluators, and moving exports to the enriched observation
+  schema.
+permalink: dqverify-repo-20261013/skills/langfuse/references/v4-project-migration
 ---
 
 # Langfuse v4 project migration

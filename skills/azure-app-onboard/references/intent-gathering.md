@@ -1,3 +1,9 @@
+---
+title: intent-gathering
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/intent-gathering
+---
+
 # Intent Gathering
 
 ## Scope Triage (Step 2 — before prereq)

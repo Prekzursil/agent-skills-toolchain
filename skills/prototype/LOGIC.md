@@ -1,3 +1,9 @@
+---
+title: LOGIC
+type: note
+permalink: dqverify-repo-20261013/skills/prototype/logic
+---
+
 # Logic Prototype
 
 A tiny interactive terminal app that lets the user drive a state model by hand. Use this when the question is about **business logic, state transitions, or data shape** — the kind of thing that looks reasonable on paper but only feels wrong once you push it through real cases.

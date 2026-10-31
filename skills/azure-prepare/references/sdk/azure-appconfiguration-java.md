@@ -1,3 +1,9 @@
+---
+title: azure-appconfiguration-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azure-appconfiguration-java
+---
+
 # App Configuration — Java SDK Quick Reference
 
 > Condensed from **azure-appconfiguration-java**. Full patterns (feature flags,

@@ -1,3 +1,9 @@
+---
+title: slop-setup
+type: note
+permalink: dqverify-repo-20261013/skills/slop-check/references/slop-setup
+---
+
 # Slop or Not setup and app-bundle fallback
 
 `SKILL.md` reads this file when CLI execution is needed, or when neither

@@ -1,3 +1,9 @@
+---
+title: HOME-ELEVATION-PROPOSAL
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/home-elevation-proposal
+---
+
 # HOME-ELEVATION-PROPOSAL.md — PROPOSAL ONLY (G-6=A)
 
 **Status: DRAFT. HOME `C:\Users\Prekzursil\AGENTS.md` is NOT touched by Phase-3.** The owner

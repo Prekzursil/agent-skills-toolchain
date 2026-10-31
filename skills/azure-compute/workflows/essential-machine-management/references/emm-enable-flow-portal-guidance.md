@@ -1,3 +1,9 @@
+---
+title: emm-enable-flow-portal-guidance
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/essential-machine-management/references/emm-enable-flow-portal-guidance
+---
+
 # EMM Enable Flow (Portal)
 
 Step-by-step guide for enabling Essential Machine Management through the Azure portal UI.

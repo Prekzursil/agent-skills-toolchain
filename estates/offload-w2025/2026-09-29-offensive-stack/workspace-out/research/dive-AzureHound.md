@@ -1,3 +1,9 @@
+---
+title: dive-AzureHound
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-azure-hound
+---
+
 # Deep-dive: AzureHound (SpecterOps/AzureHound)
 
 Lane: ad-entra-paths · Date: 2026-09-29 · Verifier: ran every check on this VM (Git Bash on Windows 10 26100).

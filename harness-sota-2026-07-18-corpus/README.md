@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/harness-sota-2026-07-18-corpus/readme
+---
+
 # harness-sota-2026-07-18 — Codex analysis corpus
 
 608 analysis artifacts produced by the **harness-sota-2026-07-18** program: an autonomous

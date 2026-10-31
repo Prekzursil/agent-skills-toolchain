@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/readme
+---
+
 # docs/agentic-perfection/
 
 The durable record of the *agentic-perfection / proactive-partner* program — the

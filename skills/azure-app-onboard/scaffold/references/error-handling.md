@@ -1,3 +1,9 @@
+---
+title: error-handling
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/error-handling
+---
+
 # Error Handling — Scaffold Sub-Skill
 
 | Error | Remediation |

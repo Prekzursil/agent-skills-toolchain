@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api-shield/api
+---
+
 # API Reference
 
 Base: `/zones/{zone_id}/api_gateway`

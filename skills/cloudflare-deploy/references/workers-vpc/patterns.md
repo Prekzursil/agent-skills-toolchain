@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-vpc/patterns
+---
+
 # Common Patterns
 
 Real-world patterns and examples for TCP Sockets in Cloudflare Workers.
@@ -205,5 +211,3 @@ export default {
   }
 };
 ```
-
-

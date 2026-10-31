@@ -1,3 +1,9 @@
+---
+title: CONSOLIDATED
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/consolidated
+---
+
 # CONSOLIDATED — research fleet output, merged and ranked
 
 Date: 2026-09-29. Merged from 45 fleet files in `out/research/`:

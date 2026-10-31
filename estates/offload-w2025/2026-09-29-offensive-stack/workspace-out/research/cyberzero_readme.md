@@ -1,3 +1,9 @@
+---
+title: cyberzero_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/cyberzero-readme
+---
+
 # Cyber-Zero: Training Cybersecurity Agents without Runtime
 
 <p align="left">

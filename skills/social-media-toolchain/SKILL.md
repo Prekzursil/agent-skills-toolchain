@@ -1,6 +1,11 @@
 ---
 name: social-media-toolchain
-description: Use when working with the user's personal social-media MCP servers (Instagram live, Facebook Messenger groups/pages, WhatsApp proof-of-concept, TikTok public read-only) - which server does what, their auth and setup, the per-platform tool inventory, residential-proxy and account-state guidance, and the hard limits (E2EE, client-version gotchas, ToS and ban risk).
+description: Use when working with the user's personal social-media MCP servers (Instagram
+  live, Facebook Messenger groups/pages, WhatsApp proof-of-concept, TikTok public
+  read-only) - which server does what, their auth and setup, the per-platform tool
+  inventory, residential-proxy and account-state guidance, and the hard limits (E2EE,
+  client-version gotchas, ToS and ban risk).
+permalink: dqverify-repo-20261013/skills/social-media-toolchain/skill
 ---
 
 # Social Media MCP Toolchain

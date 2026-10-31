@@ -1,3 +1,9 @@
+---
+title: dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/auth/source/dotnet
+---
+
 # Auth Recipe — C# (.NET) — REFERENCE ONLY
 
 ## Microsoft Identity Web (ASP.NET Core)

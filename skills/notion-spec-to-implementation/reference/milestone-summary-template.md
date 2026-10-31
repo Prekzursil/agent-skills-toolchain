@@ -1,3 +1,9 @@
+---
+title: milestone-summary-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/milestone-summary-template
+---
+
 # Milestone Summary Template
 
 Use this when completing major phases or milestones.
@@ -24,4 +30,3 @@ Use this when completing major phases or milestones.
 ### Next Phase
 Starting [Phase name] on [Date]
 ```
-

@@ -1,3 +1,9 @@
+---
+title: context-window-utilization
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/specs/context-window-utilization
+---
+
 # Spec: Context Window Utilization Tracking
 
 ## Problem

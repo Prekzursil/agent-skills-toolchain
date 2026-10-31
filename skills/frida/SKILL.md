@@ -1,6 +1,8 @@
 ---
 name: frida
-description: Use when runtime hooking, device instrumentation, API tracing matters more than static disassembly. NOT for MCP setup (use frida-mcp).
+description: Use when runtime hooking, device instrumentation, API tracing matters
+  more than static disassembly. NOT for MCP setup (use frida-mcp).
+permalink: dqverify-repo-20261013/skills/frida/skill
 ---
 
 # Frida

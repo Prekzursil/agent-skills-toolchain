@@ -1,3 +1,9 @@
+---
+title: external-tools-health
+type: note
+permalink: dqverify-repo-20261013/commands/external-tools-health
+---
+
 # External Tools Health Check
 
 Check the status of external AI tools (Codex CLI, Gemini CLI) and their configuration.

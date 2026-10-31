@@ -1,3 +1,9 @@
+---
+title: D4-ID-COLLISION-CLOSE
+type: note
+permalink: dqverify-repo-20261013/command-center/d4-id-collision-close
+---
+
 # D4 CLOSE — workflow id uniqueness over platform/workflows/
 
 STATUS: CLOSED and MEASURED. Nothing below is unmeasured.

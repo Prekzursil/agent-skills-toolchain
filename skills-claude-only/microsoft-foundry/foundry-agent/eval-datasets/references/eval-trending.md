@@ -1,3 +1,9 @@
+---
+title: eval-trending
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/eval-datasets/references/eval-trending
+---
+
 # Eval Trending — Metrics Over Time
 
 Track evaluation metrics across multiple runs and versions to visualize improvement trends and detect regressions. This addresses the gap of understanding how agent quality changes over time.

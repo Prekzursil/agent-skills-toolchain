@@ -1,6 +1,8 @@
 ---
-name: "source-command-self-reflect"
-description: "Extract learnings from recent PR reviews, conversations, and session patterns to update the knowledge base"
+name: source-command-self-reflect
+description: Extract learnings from recent PR reviews, conversations, and session
+  patterns to update the knowledge base
+permalink: dqverify-repo-20261013/skills/source-command-self-reflect/skill
 ---
 
 # source-command-self-reflect

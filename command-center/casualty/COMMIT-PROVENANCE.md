@@ -1,3 +1,9 @@
+---
+title: COMMIT-PROVENANCE
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/commit-provenance
+---
+
 # Commit provenance for LANE CASUALTY, build round 1
 
 Recorded because the attribution is misleading and a future reader would otherwise be unable

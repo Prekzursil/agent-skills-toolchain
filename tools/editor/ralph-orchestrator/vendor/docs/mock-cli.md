@@ -1,3 +1,9 @@
+---
+title: mock-cli
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/mock-cli
+---
+
 # Mock CLI: Cost-Free E2E Testing
 
 ## Problem Statement
@@ -481,4 +487,3 @@ Error: cassette parse error in cassettes/e2e/test.jsonl
 2. **Real for validation**: Run real E2E tests nightly or weekly
 3. **Hybrid approach**: Mock for most scenarios, real for critical paths
 4. **Cassette freshness**: Re-record cassettes quarterly or when backends update
-

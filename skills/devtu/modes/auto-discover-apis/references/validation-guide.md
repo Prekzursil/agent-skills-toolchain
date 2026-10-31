@@ -1,3 +1,9 @@
+---
+title: validation-guide
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/auto-discover-apis/references/validation-guide
+---
+
 # Validation & Integration Guide
 
 ## Phase 3: Validation

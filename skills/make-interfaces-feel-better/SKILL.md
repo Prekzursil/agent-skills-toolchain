@@ -1,7 +1,10 @@
 ---
 name: make-interfaces-feel-better
-description: Apply concrete design-engineering details that make interfaces feel polished. Use when reviewing or improving UI spacing, typography, borders, shadows, motion, hit areas, icons, text wrapping, and interaction states.
+description: Apply concrete design-engineering details that make interfaces feel polished.
+  Use when reviewing or improving UI spacing, typography, borders, shadows, motion,
+  hit areas, icons, text wrapping, and interaction states.
 origin: community
+permalink: dqverify-repo-20261013/skills/make-interfaces-feel-better/skill
 ---
 
 # Make Interfaces Feel Better

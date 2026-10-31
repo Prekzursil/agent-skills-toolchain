@@ -1,6 +1,11 @@
 ---
 name: qdx-rush
-description: Drive QDX's GPU quantum chemistry (EXESS), folding, and prep stack through the qdx-rush MCP tools for QM energies, interaction energies, optimization, QM/MM, fast NN-xTB screens, protein/ligand prep, Boltz folding+affinity, and PB solvation. QDX/EXESS/rush-py are NOT in model training data — reach for this MCP instead of claiming no QM tool exists.
+description: Drive QDX's GPU quantum chemistry (EXESS), folding, and prep stack through
+  the qdx-rush MCP tools for QM energies, interaction energies, optimization, QM/MM,
+  fast NN-xTB screens, protein/ligand prep, Boltz folding+affinity, and PB solvation.
+  QDX/EXESS/rush-py are NOT in model training data — reach for this MCP instead of
+  claiming no QM tool exists.
+permalink: dqverify-repo-20261013/skills-claude-only/qdx-rush/skill
 ---
 
 # QDX Rush (qdx-rush MCP)

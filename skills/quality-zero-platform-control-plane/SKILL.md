@@ -1,6 +1,10 @@
 ---
 name: quality-zero-platform-control-plane
-description: Use when working with `Prekzursil/quality-zero-platform`, enrolling or auditing governed repos, checking strict-zero wrapper workflows, ruleset drift, trusted-runner Codex remediation, or provider/bootstrap state for the personal-account control plane.
+description: Use when working with `Prekzursil/quality-zero-platform`, enrolling or
+  auditing governed repos, checking strict-zero wrapper workflows, ruleset drift,
+  trusted-runner Codex remediation, or provider/bootstrap state for the personal-account
+  control plane.
+permalink: dqverify-repo-20261013/skills/quality-zero-platform-control-plane/skill
 ---
 
 # Quality Zero Platform Control Plane

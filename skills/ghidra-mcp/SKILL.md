@@ -1,6 +1,9 @@
 ---
 name: ghidra-mcp
-description: Use when installing or configuring GhidraMCP for a local Ghidra workflow, or when bridging its MCP client into Codex, Claude Code, or Gemini CLI after the Ghidra extension is installed.
+description: Use when installing or configuring GhidraMCP for a local Ghidra workflow,
+  or when bridging its MCP client into Codex, Claude Code, or Gemini CLI after the
+  Ghidra extension is installed.
+permalink: dqverify-repo-20261013/skills/ghidra-mcp/skill
 ---
 
 # Ghidra MCP

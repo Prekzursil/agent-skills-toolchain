@@ -1,3 +1,9 @@
+---
+title: NEO4J-MIGRATION
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/knowledge-graph/neo4-j-migration
+---
+
 # NEO4J-MIGRATION — the Graphiti/Neo4j path for the docker era
 
 Status 2026-09-29. The estate's shared knowledge graph today is an **embedded

@@ -1,3 +1,9 @@
+---
+title: coder-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/coder-agent
+---
+
 # Coder Agent
 
 **Type**: `coder-agent`

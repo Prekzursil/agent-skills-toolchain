@@ -1,6 +1,11 @@
 ---
 name: quality-gate-automation-architect
-description: Use when designing, comparing, or reviewing autonomous repo-quality automation for pull-request repair, coverage ratchets, analyzer debt burn-down, or merge-governance decisions. Triggers include requests to keep PRs green, auto-fix failing checks, plan Sonar or Codacy workflows, compare GitHub-native versus Codex versus local automation, or decide between zero-touch and human-approved merges.
+description: Use when designing, comparing, or reviewing autonomous repo-quality automation
+  for pull-request repair, coverage ratchets, analyzer debt burn-down, or merge-governance
+  decisions. Triggers include requests to keep PRs green, auto-fix failing checks,
+  plan Sonar or Codacy workflows, compare GitHub-native versus Codex versus local
+  automation, or decide between zero-touch and human-approved merges.
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/skill
 ---
 
 # Quality Gate Automation Architect

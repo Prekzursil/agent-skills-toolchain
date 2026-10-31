@@ -1,3 +1,9 @@
+---
+title: dotnet-entry-point
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/common/dotnet-entry-point
+---
+
 # C# (.NET) Entry Point (DO NOT MODIFY)
 
 The base Azure Functions template includes a properly configured `Program.cs` that should NOT be modified or replaced by recipes.

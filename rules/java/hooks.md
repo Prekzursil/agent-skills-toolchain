@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.java"
-  - "**/pom.xml"
-  - "**/build.gradle"
-  - "**/build.gradle.kts"
+- '**/*.java'
+- '**/pom.xml'
+- '**/build.gradle'
+- '**/build.gradle.kts'
+permalink: dqverify-repo-20261013/rules/java/hooks
 ---
+
 # Java Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Java-specific content.

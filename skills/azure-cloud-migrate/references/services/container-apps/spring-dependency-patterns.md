@@ -1,3 +1,9 @@
+---
+title: spring-dependency-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/spring-dependency-patterns
+---
+
 # Spring Dependency Configuration Patterns
 
 Common dependency and configuration patterns to identify during assessment.

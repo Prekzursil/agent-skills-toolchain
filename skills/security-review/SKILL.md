@@ -1,7 +1,10 @@
 ---
 name: security-review
-description: Use when adding authentication, handling user input, secrets, API endpoints, or payment/sensitive features -- gives a security checklist and patterns. NOT for scanning your .claude config (use security-scan).
+description: Use when adding authentication, handling user input, secrets, API endpoints,
+  or payment/sensitive features -- gives a security checklist and patterns. NOT for
+  scanning your .claude config (use security-scan).
 origin: ECC
+permalink: dqverify-repo-20261013/skills/security-review/skill
 ---
 
 # Security Review Skill

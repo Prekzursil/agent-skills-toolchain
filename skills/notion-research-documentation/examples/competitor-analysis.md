@@ -1,3 +1,9 @@
+---
+title: competitor-analysis
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/examples/competitor-analysis
+---
+
 # Example: Competitor Analysis
 
 ## User Request
@@ -280,4 +286,3 @@ High Volume / Enterprise
 - **Comparison template** (matrix + detailed analysis)
 - **Strategic layer** (implications and recommendations)
 - **Action-oriented** (next steps included)
-

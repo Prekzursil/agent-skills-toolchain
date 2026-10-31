@@ -1,3 +1,9 @@
+---
+title: NO-REMOTE-REPO-TRIAGE
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/no-remote-repo-triage
+---
+
 # Triage: the two NO-REMOTE repos (`chk`, `scratch`) — the decision is now cheap
 
 Standing owner decision was **"Triage first, then decide"** for repos with no remote, with an

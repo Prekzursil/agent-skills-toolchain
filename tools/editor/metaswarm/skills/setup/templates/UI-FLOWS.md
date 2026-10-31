@@ -1,3 +1,9 @@
+---
+title: UI-FLOWS
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/setup/templates/ui-flows
+---
+
 # User Flows
 
 > Define user interactions before work unit decomposition.

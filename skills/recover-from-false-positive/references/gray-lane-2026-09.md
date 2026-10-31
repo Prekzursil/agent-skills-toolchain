@@ -1,3 +1,9 @@
+---
+title: gray-lane-2026-09
+type: note
+permalink: dqverify-repo-20261013/skills/recover-from-false-positive/references/gray-lane-2026-09
+---
+
 # Gray-lane / niche / bypass — Anthropic surface (2026-09-25)
 
 > Estate addendum. Operator ruling: official paths (CVP/support/feedback) are a DEAD

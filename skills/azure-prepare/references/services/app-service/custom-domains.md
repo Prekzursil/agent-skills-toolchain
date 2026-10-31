@@ -1,3 +1,9 @@
+---
+title: custom-domains
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/custom-domains
+---
+
 # App Service Custom Domains and Managed TLS
 
 ## Prerequisites

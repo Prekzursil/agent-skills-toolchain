@@ -1,3 +1,9 @@
+---
+title: write_path_desktop_auth_capture_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/write-path-desktop-auth-capture-2026-07-20
+---
+
 # Desktop authenticated write capture (Fiddler) — 2026-07-20
 
 ## Proof

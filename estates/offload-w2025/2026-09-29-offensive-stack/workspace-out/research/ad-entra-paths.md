@@ -1,3 +1,9 @@
+---
+title: ad-entra-paths
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/ad-entra-paths
+---
+
 # Research: ad-entra-paths — BloodHound MCP, SpecterOps AI hunting agent, Entra/AWS attack-path tools, AD-graph MCPs
 
 Date: 2026-09-29. Environment context (from ask): Windows Server VM, no Docker engine (GCP no VT-x → no WSL2/nested virt), CyberStrike 1.1.16 + MCP gateway 127.0.0.1:31100 with 43 backends (stdio workers pattern), Ollama qwen3:4b local. Everything below was found via GitHub REST search (`gh api search/repositories`), repo README/release fetches, WebSearch (EN+ZH) and WebFetch (specterops.io) during this session.

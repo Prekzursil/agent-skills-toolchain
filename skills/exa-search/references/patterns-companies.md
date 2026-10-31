@@ -1,3 +1,9 @@
+---
+title: patterns-companies
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-companies
+---
+
 # Query Patterns: Companies
 
 Use `category:company` for structured company data (funding, headcount, description).

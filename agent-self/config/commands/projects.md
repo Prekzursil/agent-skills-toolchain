@@ -2,6 +2,7 @@
 name: projects
 description: List known projects and their instinct statistics
 command: true
+permalink: dqverify-repo-20261013/agent-self/config/commands/projects
 ---
 
 # Projects Command

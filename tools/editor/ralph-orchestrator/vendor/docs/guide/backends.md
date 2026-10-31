@@ -1,3 +1,9 @@
+---
+title: backends
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/backends
+---
+
 # Backends
 
 Ralph supports multiple AI CLI backends. This guide covers setup and selection.

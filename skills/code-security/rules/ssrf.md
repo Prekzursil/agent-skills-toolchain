@@ -1,8 +1,10 @@
 ---
 title: Prevent Server-Side Request Forgery
 impact: HIGH
-impactDescription: Attackers can make requests from the server to internal systems, cloud metadata endpoints, or external services
+impactDescription: Attackers can make requests from the server to internal systems,
+  cloud metadata endpoints, or external services
 tags: security, ssrf, cwe-918
+permalink: dqverify-repo-20261013/skills/code-security/rules/ssrf
 ---
 
 ## Prevent Server-Side Request Forgery (SSRF)

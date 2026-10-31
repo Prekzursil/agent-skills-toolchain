@@ -1,3 +1,9 @@
+---
+title: node-issues
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/node-issues
+---
+
 # Node & Cluster Troubleshooting
 
 ## Node NotReady

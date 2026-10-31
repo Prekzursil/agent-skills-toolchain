@@ -1,3 +1,9 @@
+---
+title: USER-SCOPE
+type: note
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/references/user-scope
+---
+
 # User Scope — paste-ready custom instructions ("about me / how I want responses")
 
 > Paste into Gemini *Saved info → Instructions*, ChatGPT *Custom instructions*, or Claude *Personal preferences*.

@@ -1,6 +1,9 @@
 ---
 name: codex-runtime-recovery
-description: Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, state_5.sqlite files churn, or CODEX_HOME and launch routing drift need diagnosis before destructive repair.
+description: Use when Codex state is split across Windows, WSL, or VS Code, sessions
+  disappear, state_5.sqlite files churn, or CODEX_HOME and launch routing drift need
+  diagnosis before destructive repair.
+permalink: dqverify-repo-20261013/skills/codex-runtime-recovery/skill
 ---
 
 # Codex Runtime Recovery

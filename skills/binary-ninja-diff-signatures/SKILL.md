@@ -1,6 +1,9 @@
 ---
 name: binary-ninja-diff-signatures
-description: Use when working in Binary Ninja to compare versions, analyze changed functions, or generate stable signatures for runtime hooks, trainer features, or address portability across builds.
+description: Use when working in Binary Ninja to compare versions, analyze changed
+  functions, or generate stable signatures for runtime hooks, trainer features, or
+  address portability across builds.
+permalink: dqverify-repo-20261013/skills/binary-ninja-diff-signatures/skill
 ---
 
 # Binary Ninja Diff and Signatures

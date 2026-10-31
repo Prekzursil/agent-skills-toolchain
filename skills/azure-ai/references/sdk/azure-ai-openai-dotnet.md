@@ -1,3 +1,9 @@
+---
+title: azure-ai-openai-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-openai-dotnet
+---
+
 # Azure OpenAI — .NET SDK Quick Reference
 
 > Condensed from **azure-ai-openai-dotnet**. Full patterns (function calling, structured outputs, RAG with Search)

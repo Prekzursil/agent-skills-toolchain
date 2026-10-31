@@ -1,3 +1,9 @@
+---
+title: cursor-provider-followup-2026-09-02
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/cursor-provider-followup-2026-09-02
+---
+
 # FOLLOW-UP: no Cursor provider in the hook harness (filed, not built)
 
 Filed 2026-09-02 during the harness lineage reunion

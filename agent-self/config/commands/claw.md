@@ -1,5 +1,7 @@
 ---
-description: Start NanoClaw v2 — ECC's persistent, zero-dependency REPL with model routing, skill hot-load, branching, compaction, export, and metrics.
+description: Start NanoClaw v2 — ECC's persistent, zero-dependency REPL with model
+  routing, skill hot-load, branching, compaction, export, and metrics.
+permalink: dqverify-repo-20261013/agent-self/config/commands/claw
 ---
 
 # Claw Command

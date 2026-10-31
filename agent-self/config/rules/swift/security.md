@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+- '**/*.swift'
+- '**/Package.swift'
+permalink: dqverify-repo-20261013/agent-self/config/rules/swift/security
 ---
+
 # Swift Security
 
 > This file extends [common/security.md](../common/security.md) with Swift specific content.

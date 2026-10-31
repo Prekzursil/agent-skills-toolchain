@@ -1,3 +1,9 @@
+---
+title: tool-azure-ai-search
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-azure-ai-search
+---
+
 # Tool — Azure AI Search (`type: azure_ai_search`)
 
 Attach an Azure AI Search index to a toolbox. The index is referenced by an existing **`CognitiveSearch`** project connection (connection kind `cognitive-search`). The tool uses the **nested** shape: an `azure_ai_search: { indexes: [...] }` object under the tool entry, where each index carries `project_connection_id` + `index_name` (not a top-level `connections:` array). For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

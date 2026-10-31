@@ -1,3 +1,9 @@
+---
+title: adv-nonenglish
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/adv-nonenglish
+---
+
 # Adversarial hunter: non-English lanes — offensive-AI tooling haul
 
 Angle: Chinese (先知/t00ls/看雪/freebuf/安全客/跳跳糖), Japanese, Korean, Russian, Spanish/Brazilian

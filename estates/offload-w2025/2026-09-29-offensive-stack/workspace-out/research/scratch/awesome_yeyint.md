@@ -1,3 +1,9 @@
+---
+title: awesome_yeyint
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/awesome-yeyint
+---
+
 # This List is no longer updated.
 
 ## Awesome Red Teaming

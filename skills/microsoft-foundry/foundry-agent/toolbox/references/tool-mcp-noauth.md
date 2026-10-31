@@ -1,3 +1,9 @@
+---
+title: tool-mcp-noauth
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-noauth
+---
+
 # Tool — Remote MCP server, no auth (`type: mcp`)
 
 Attach a **public** remote MCP server (no credentials) to a toolbox. A no-auth server still needs a **connection** (`--kind remote-tool --auth-type none`) — the toolbox references it by name and the created toolbox tool carries a populated `project_connection_id`.

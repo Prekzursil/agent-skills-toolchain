@@ -1,3 +1,9 @@
+---
+title: eval-lineage
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/eval-lineage
+---
+
 # Eval Lineage — Full Traceability from Production to Deployment
 
 Track the complete chain from production traces through dataset creation, evaluation runs, comparisons, and deployment decisions. Enables "why was this deployed?" audit queries and compliance reporting.

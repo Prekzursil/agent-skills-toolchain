@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/evaluations/readme
+---
+
 # Meeting Intelligence Skill Evaluations
 
 Evaluation scenarios for testing the Meeting Intelligence skill across different Codex models.

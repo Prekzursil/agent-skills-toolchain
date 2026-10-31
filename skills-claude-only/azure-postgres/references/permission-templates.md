@@ -1,3 +1,9 @@
+---
+title: permission-templates
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/permission-templates
+---
+
 # PostgreSQL Permission Templates
 
 Copy-paste SQL templates for common permission scenarios when setting up Entra ID authentication.

@@ -1,6 +1,18 @@
 ---
 name: voice-cloning-sota
-description: Use when cloning ANY target speaker's voice end-to-end — source acquisition + speaker verification (resemblyzer vs frozen probes, own-f0 re-measure, never trust shipped pitch metadata), register-stratified sample curation (f0 first, centroid second, flatness last; 60-90s IVC / 1-3h PVC), engine selection across ElevenLabs IVC/PVC + XTTS-v2 local + F5-TTS cloud, the four-part acceptance gate (resemblyzer sim >= 0.70 vs ALL frozen probes + f0 register + spectral centroid + owner ABX, self-cloud calibrated), ops gotchas (16k feeds muffle, post-hoc pitch-shift costs identity, EQ is sim-neutral, sync-not-backgrounded GPU runs), and CDP-Chrome PVC verification automation (virtual-mic patch, exact-text discipline, attempt conservation). Triggers — clone a voice, voice clone, speaker cloning, ElevenLabs IVC/PVC, XTTS/F5 reference curation, synthetic voice acceptance gate, voice verification automation. NOT for real-time voice changing (RVC live conversion) or non-speech audio.
+description: Use when cloning ANY target speaker's voice end-to-end — source acquisition
+  + speaker verification (resemblyzer vs frozen probes, own-f0 re-measure, never trust
+  shipped pitch metadata), register-stratified sample curation (f0 first, centroid
+  second, flatness last; 60-90s IVC / 1-3h PVC), engine selection across ElevenLabs
+  IVC/PVC + XTTS-v2 local + F5-TTS cloud, the four-part acceptance gate (resemblyzer
+  sim >= 0.70 vs ALL frozen probes + f0 register + spectral centroid + owner ABX,
+  self-cloud calibrated), ops gotchas (16k feeds muffle, post-hoc pitch-shift costs
+  identity, EQ is sim-neutral, sync-not-backgrounded GPU runs), and CDP-Chrome PVC
+  verification automation (virtual-mic patch, exact-text discipline, attempt conservation).
+  Triggers — clone a voice, voice clone, speaker cloning, ElevenLabs IVC/PVC, XTTS/F5
+  reference curation, synthetic voice acceptance gate, voice verification automation.
+  NOT for real-time voice changing (RVC live conversion) or non-speech audio.
+permalink: dqverify-repo-20261013/skills/voice-cloning-sota/skill
 ---
 
 # Voice Cloning SOTA — generalized pipeline for any target voice

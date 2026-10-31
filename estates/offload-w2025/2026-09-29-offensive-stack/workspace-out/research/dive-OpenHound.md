@@ -1,3 +1,9 @@
+---
+title: dive-OpenHound
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-open-hound
+---
+
 # Deep-dive: OpenHound (SpecterOps/OpenHound)
 
 Lane: ad-entra-paths · Date: 2026-09-29 · Verifier: lead-verifier subagent

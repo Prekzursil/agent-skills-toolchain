@@ -1,3 +1,9 @@
+---
+title: IDENTITY
+type: note
+permalink: dqverify-repo-20261013/agent-self/identity
+---
+
 # Agent Self — 1:1 Bootstrap
 
 This folder is a **self-contained snapshot of "me"** — the configured Claude Code agent as of 2026-06-11 —

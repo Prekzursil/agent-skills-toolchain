@@ -1,3 +1,9 @@
+---
+title: emm-prerequisites
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/essential-machine-management/references/emm-prerequisites
+---
+
 # EMM Prerequisites
 
 Requirements that must be met before enabling Essential Machine Management.

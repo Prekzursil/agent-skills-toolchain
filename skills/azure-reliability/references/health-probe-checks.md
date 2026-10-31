@@ -1,3 +1,9 @@
+---
+title: health-probe-checks
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/health-probe-checks
+---
+
 # Health Probe & Monitoring — Platform-Level Checks
 
 ## Overview

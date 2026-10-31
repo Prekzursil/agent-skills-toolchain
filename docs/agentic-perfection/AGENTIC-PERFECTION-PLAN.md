@@ -1,3 +1,9 @@
+---
+title: AGENTIC-PERFECTION-PLAN
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/agentic-perfection-plan
+---
+
 # Agentic-Perfection Plan — make the agent reliable / proactive / human-like / AGI-close (2026-06-29)
 <!-- From the 12-lens exploration (wf wtu6j73mb; 11/12 lenses, AGI-gap lens schema-failed). Grounded in
      MAST failure taxonomy (arXiv 2503.13657) + the self-calibration LAW (Huang ICLR'24: intrinsic

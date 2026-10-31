@@ -1,3 +1,9 @@
+---
+title: compute-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/compute-apps
+---
+
 # Compute (PaaS) Pairing Constraints
 
 ### App Service

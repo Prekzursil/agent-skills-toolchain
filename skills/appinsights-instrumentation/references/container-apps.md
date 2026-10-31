@@ -1,3 +1,9 @@
+---
+title: container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/appinsights-instrumentation/references/container-apps
+---
+
 ## Container Apps Observability
 
 Observability guide for apps running in Azure Container Apps.

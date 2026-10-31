@@ -1,3 +1,9 @@
+---
+title: errors
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-validate/references/recipes/bicep/errors
+---
+
 # Bicep Validation Errors
 
 | Error | Fix |

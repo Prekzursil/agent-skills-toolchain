@@ -1,3 +1,9 @@
+---
+title: blocked-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/blocked-patterns
+---
+
 # Blocked Patterns
 
 Commands the agent must NEVER execute. Block decisions are non-negotiable — user must run blocked commands manually outside AppOnboard.

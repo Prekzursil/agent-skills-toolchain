@@ -1,3 +1,9 @@
+---
+title: javascript-general-web-frontend-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-general-web-frontend-security
+---
+
 # Frontend JavaScript/TypeScript Web Security Spec (Vanilla Browser JS/TS, Modern Browsers)
 
 This document is designed as a **security spec** that supports:

@@ -1,3 +1,9 @@
+---
+title: dataset-creation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/workflows/dataset-creation
+---
+
 # Dataset Creation Workflow
 
 Three paths to training data (these combine well: curate seeds → augment → generate at scale):

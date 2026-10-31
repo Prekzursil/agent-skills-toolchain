@@ -1,3 +1,9 @@
+---
+title: debt-burndown-orchestrator
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/debt-burndown-orchestrator
+---
+
 # debt-burndown-orchestrator
 
 ## Purpose

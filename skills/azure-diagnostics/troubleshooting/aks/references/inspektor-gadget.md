@@ -1,3 +1,9 @@
+---
+title: inspektor-gadget
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/references/inspektor-gadget
+---
+
 # Inspektor Gadget (IG) Reference
 
 Use Inspektor Gadget for low-level node/pod diagnostics when `kubectl` is insufficient.

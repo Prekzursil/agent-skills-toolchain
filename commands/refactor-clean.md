@@ -1,3 +1,9 @@
+---
+title: refactor-clean
+type: note
+permalink: dqverify-repo-20261013/commands/refactor-clean
+---
+
 # Refactor Clean
 
 Safely identify and remove dead code with test verification at every step.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/terraform/readme
+---
+
 # Cloudflare Terraform Provider
 
 **Expert guidance for Cloudflare Terraform Provider - infrastructure as code for Cloudflare resources.**

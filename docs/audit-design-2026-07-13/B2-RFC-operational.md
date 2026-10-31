@@ -1,3 +1,9 @@
+---
+title: B2-RFC-operational
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b2-rfc-operational
+---
+
 # B2 — RFC Operational: Hooks · Stop-Loop Fix · Monitoring · Memory · Orchestration · Mingling · New-Features · Leanness
 
 **Deliverable:** Workflow B (RFC) — the OPERATIONAL sections of the Unified Harness Control-Plane RFC.

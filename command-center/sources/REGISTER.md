@@ -1,3 +1,9 @@
+---
+title: REGISTER
+type: note
+permalink: dqverify-repo-20261013/command-center/sources/register
+---
+
 THE CONSISTENCY CONTRACT. This is the single authoritative list of everything NOT done for the
 harness / agent-skills-toolchain / workflow_design / monitor programs. Nothing may be dropped
 without an explicit recorded owner decision naming it.

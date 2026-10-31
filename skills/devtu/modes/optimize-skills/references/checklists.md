@@ -1,3 +1,9 @@
+---
+title: checklists
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-skills/references/checklists
+---
+
 # Skill Quality Checklists
 
 ## Skill Review Checklist

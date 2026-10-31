@@ -1,6 +1,8 @@
 ---
-name: "source-command-plan"
-description: "Restate requirements, assess risks, and create step-by-step implementation plan. WAIT for user CONFIRM before touching any code."
+name: source-command-plan
+description: Restate requirements, assess risks, and create step-by-step implementation
+  plan. WAIT for user CONFIRM before touching any code.
+permalink: dqverify-repo-20261013/skills/source-command-plan/skill
 ---
 
 # source-command-plan

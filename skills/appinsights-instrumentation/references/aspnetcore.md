@@ -1,3 +1,9 @@
+---
+title: aspnetcore
+type: note
+permalink: dqverify-repo-20261013/skills/appinsights-instrumentation/references/aspnetcore
+---
+
 ## Modify code
 
 Make these necessary changes to the app.

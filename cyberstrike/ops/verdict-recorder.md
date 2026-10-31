@@ -1,3 +1,9 @@
+---
+title: verdict-recorder
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/ops/verdict-recorder
+---
+
 # ops: verdict-recorder — how CyberStrike engagements emit verdicts
 
 SSOT module: `scripts/verdict_recorder.py` (G-13=C, garak-style JSONL recorder). Every

@@ -3,6 +3,7 @@ title: Prevent SQL Injection
 impact: CRITICAL
 impactDescription: Attackers can read, modify, or delete database data
 tags: security, sql, database, cwe-89, owasp-a03
+permalink: dqverify-repo-20261013/skills/code-security/rules/sql-injection
 ---
 
 ## Prevent SQL Injection

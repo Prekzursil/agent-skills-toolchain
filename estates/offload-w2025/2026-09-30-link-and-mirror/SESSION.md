@@ -1,3 +1,9 @@
+---
+title: SESSION
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-30-link-and-mirror/session
+---
+
 # Session: link restoration, home-work audit, mirror staging (2026-09-30, ZCode on VM)
 
 The VM-side session that paired with home's Claude session (same night, both

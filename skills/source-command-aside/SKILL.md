@@ -1,6 +1,8 @@
 ---
-name: "source-command-aside"
-description: "Answer a quick side question without interrupting or losing context from the current task. Resume work automatically after answering."
+name: source-command-aside
+description: Answer a quick side question without interrupting or losing context from
+  the current task. Resume work automatically after answering.
+permalink: dqverify-repo-20261013/skills/source-command-aside/skill
 ---
 
 # source-command-aside

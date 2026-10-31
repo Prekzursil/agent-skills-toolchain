@@ -1,3 +1,9 @@
+---
+title: cicd-monitoring
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/observe/references/cicd-monitoring
+---
+
 # Step 11 — Enable CI/CD Evals & Continuous Monitoring
 
 After confirming the final agent version, prompt with two options:

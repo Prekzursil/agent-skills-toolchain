@@ -1,6 +1,9 @@
 ---
 name: bindiff
-description: Use when comparing two related binaries or database exports to identify changed functions, patch deltas, or version-to-version differences in native reverse-engineering workflows.
+description: Use when comparing two related binaries or database exports to identify
+  changed functions, patch deltas, or version-to-version differences in native reverse-engineering
+  workflows.
+permalink: dqverify-repo-20261013/skills/bindiff/skill
 ---
 
 # BinDiff

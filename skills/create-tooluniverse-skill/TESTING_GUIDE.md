@@ -1,3 +1,9 @@
+---
+title: TESTING_GUIDE
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/testing-guide
+---
+
 # Testing Guide
 
 Comprehensive testing procedures for ToolUniverse skills. This phase is MANDATORY -- no skill is complete without passing comprehensive tests.

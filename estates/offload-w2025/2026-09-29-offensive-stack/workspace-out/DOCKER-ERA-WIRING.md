@@ -1,3 +1,9 @@
+---
+title: DOCKER-ERA-WIRING
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/docker-era-wiring
+---
+
 # Docker-era wiring report — 2026-10-01
 
 Remote engine: ssh://offload-linux (34.118.74.210, Debian 12, e2-standard-4)

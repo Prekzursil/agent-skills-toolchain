@@ -1,3 +1,9 @@
+---
+title: nodejs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/runtimes/nodejs
+---
+
 # Node.js/Express Production Configuration for Azure
 
 Configure Express/Node.js applications for production deployment on Azure Container Apps and App Service.

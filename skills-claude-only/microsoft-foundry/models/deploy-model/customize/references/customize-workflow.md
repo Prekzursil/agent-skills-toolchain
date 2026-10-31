@@ -1,3 +1,9 @@
+---
+title: customize-workflow
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/models/deploy-model/customize/references/customize-workflow
+---
+
 # Customize Workflow — Detailed Phase Instructions
 
 > Reference for: `models/deploy-model/customize/SKILL.md`

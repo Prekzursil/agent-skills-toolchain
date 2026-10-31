@@ -1,5 +1,7 @@
 ---
-description: Load the most recent session file from ~/.claude/sessions/ and resume work with full context from where the last session ended.
+description: Load the most recent session file from ~/.claude/sessions/ and resume
+  work with full context from where the last session ended.
+permalink: dqverify-repo-20261013/agent-self/config/commands/resume-session
 ---
 
 # Resume Session Command

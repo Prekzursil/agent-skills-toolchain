@@ -1,3 +1,9 @@
+---
+title: azure-servicebus-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-servicebus-java
+---
+
 # Azure Service Bus SDK — Java
 
 Package: `azure-messaging-servicebus` | [README](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/servicebus/azure-messaging-servicebus/TROUBLESHOOTING.md)

@@ -1,3 +1,9 @@
+---
+title: beads-readme
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/templates/beads-readme
+---
+
 # Beads - AI-Native Issue Tracking
 
 Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.

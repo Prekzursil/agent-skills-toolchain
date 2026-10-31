@@ -1,3 +1,9 @@
+---
+title: mcp-cursor-merge-lineage-2026-09-02
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/mcp-cursor-merge-lineage-2026-09-02
+---
+
 # FLAG (RESOLVED 2026-09-02): `merge_generated_cursor_mcp.py` had diverged in BOTH directions
 
 Filed 2026-09-02 while building the surgical-deploy step of

@@ -1,6 +1,8 @@
 ---
 name: evidence-ledger-synthesis
-description: Use when the user needs a claim-by-claim evidence ledger before writing a review, memo, paper section, or recommendation.
+description: Use when the user needs a claim-by-claim evidence ledger before writing
+  a review, memo, paper section, or recommendation.
+permalink: dqverify-repo-20261013/skills/evidence-ledger-synthesis/skill
 ---
 
 # evidence-ledger-synthesis

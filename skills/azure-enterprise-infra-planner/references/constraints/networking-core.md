@@ -1,3 +1,9 @@
+---
+title: networking-core
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/networking-core
+---
+
 # Networking (Core) Pairing Constraints
 
 ### Virtual Network

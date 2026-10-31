@@ -1,3 +1,9 @@
+---
+title: NEXT-WAVES-ROADMAP
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/next-waves-roadmap
+---
+
 # Next-Waves Roadmap — post Wave-0 (2026-07-13)
 
 Wave-0 (harness config SSOT: CAS-lite deploy + enforcement live + push) is **DONE**

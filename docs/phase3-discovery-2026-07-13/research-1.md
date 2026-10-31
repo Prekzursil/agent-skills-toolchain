@@ -1,3 +1,9 @@
+---
+title: research-1
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/research-1
+---
+
 ## SOTA: MCP centralization + multi-session concurrency — findings & recommendation
 
 ### 0. Recall (basic-memory, two requested notes)
@@ -62,4 +68,3 @@ The failed approach = **bidirectional file-sync** (promote-script copying betwee
 - Process duplication/concurrency: [#28860](https://github.com/anthropics/claude-code/issues/28860) (closed-dup), [#45880](https://github.com/anthropics/claude-code/issues/45880), [#40667](https://github.com/anthropics/claude-code/issues/40667), [#40220](https://github.com/anthropics/claude-code/issues/40220), [#53134](https://github.com/anthropics/claude-code/issues/53134), [shyamverma: shared MCP servers](https://shyamverma.com/shared-mcp-servers-claude-code)
 - Gateway/aggregator SOTA: [Hey It Works — Q1-2026 gateway survey](https://www.heyitworks.tech/blog/mcp-aggregation-gateway-proxy-tools-q1-2026), [AgentGateway multiplexing](https://agentgateway.dev/blog/2026-02-20-mcp-multiplexing-tool-access-agentgateway/), [ChatForest gateway/proxy patterns (MetaMCP)](https://chatforest.com/guides/mcp-gateway-proxy-patterns/)
 - basic-memory: `main/harness/config-drift-audit-auto-compact-fix-2026-07-13`, `main/harness/reconcile-committed-2026-07-13-enshrine-runtime-config`; MEMORY.md summaries of `reference_mcp_live_toggle_verdict_2026-07-06` + `reference_mcp_nodrift_architecture_2026-07-04`
-

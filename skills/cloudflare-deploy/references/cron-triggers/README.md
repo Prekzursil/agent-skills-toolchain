@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/cron-triggers/readme
+---
+
 # Cloudflare Cron Triggers
 
 Schedule Workers execution using cron expressions. Runs on Cloudflare's global network during underutilized periods.

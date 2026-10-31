@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/d1/configuration
+---
+
 # D1 Configuration
 
 ## wrangler.jsonc Setup

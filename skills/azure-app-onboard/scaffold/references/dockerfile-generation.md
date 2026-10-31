@@ -1,3 +1,9 @@
+---
+title: dockerfile-generation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/dockerfile-generation
+---
+
 # Dockerfile Generation
 
 Generate Dockerfiles for components targeting Container Apps (or B1+ App Service) that have no existing Dockerfile. Read this when `iac-generation-rules.md` Step 6b applies.

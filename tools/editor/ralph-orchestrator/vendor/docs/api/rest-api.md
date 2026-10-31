@@ -1,3 +1,9 @@
+---
+title: rest-api
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/api/rest-api
+---
+
 # REST API Reference
 
 Legacy Node Web Server exposes a REST API at `/api/v1/*` for consumers that still depend on the old tRPC/REST surface. This API is deprecated; RPC v1 (`/rpc/v1`) is the canonical control plane.

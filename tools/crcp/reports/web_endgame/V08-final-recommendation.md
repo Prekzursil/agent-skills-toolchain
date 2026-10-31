@@ -1,3 +1,9 @@
+---
+title: V08-final-recommendation
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/v08-final-recommendation
+---
+
 # V08 — Final recommendation: durable ChatGPT web-account access for CRCP
 
 ## Decision

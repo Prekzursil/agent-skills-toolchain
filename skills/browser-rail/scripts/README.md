@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/browser-rail/scripts/readme
+---
+
 # browser-rail scripts
 
 | File | What it is | Verified how |

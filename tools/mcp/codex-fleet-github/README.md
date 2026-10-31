@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/codex-fleet-github/readme
+---
+
 # codex-fleet-github MCP
 
 A small **FastMCP (stdio)** server that lets a LOCAL Claude Code / Codex agent

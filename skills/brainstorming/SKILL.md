@@ -1,6 +1,9 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: You MUST use this before any creative work - creating features, building
+  components, adding functionality, or modifying behavior. Explores user intent, requirements
+  and design before implementation.
+permalink: dqverify-repo-20261013/skills/brainstorming/skill
 ---
 
 # Brainstorming Ideas Into Designs

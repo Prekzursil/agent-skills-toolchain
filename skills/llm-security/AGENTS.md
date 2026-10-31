@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/skills/llm-security/agents
+---
+
 # Llm Security
 
 **Version 1.0**  
@@ -3370,4 +3376,3 @@ def chat():
 **References:**
 
 ---
-

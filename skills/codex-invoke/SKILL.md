@@ -1,8 +1,14 @@
 ---
 name: codex-invoke
-description: The ONE canonical entry point for invoking OpenAI Codex with per-call scoping. Use whenever you run `codex exec` (or drive the `mcp__codex__codex` / `codex-reply` rail) with a specific model, sandbox/approval policy, MCP allowlist or seal, skills allowlist, or structured `--output-schema` output. NEVER hand-roll `codex exec` argv. NOT for MCP-rail routing (codex-orchestrate).
+description: The ONE canonical entry point for invoking OpenAI Codex with per-call
+  scoping. Use whenever you run `codex exec` (or drive the `mcp__codex__codex` / `codex-reply`
+  rail) with a specific model, sandbox/approval policy, MCP allowlist or seal, skills
+  allowlist, or structured `--output-schema` output. NEVER hand-roll `codex exec`
+  argv. NOT for MCP-rail routing (codex-orchestrate).
 license: MIT
+permalink: dqverify-repo-20261013/skills/codex-invoke/skill
 ---
+
 # Codex Invoke
 
 The single, definitory way to invoke Codex with **per-call scoping**. Every other

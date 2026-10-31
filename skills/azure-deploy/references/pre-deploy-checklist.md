@@ -1,3 +1,9 @@
+---
+title: pre-deploy-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/pre-deploy-checklist
+---
+
 # Pre-Deployment Checklist
 
 > **CRITICAL**: Before running ANY provisioning commands, you MUST complete this checklist IN ORDER.

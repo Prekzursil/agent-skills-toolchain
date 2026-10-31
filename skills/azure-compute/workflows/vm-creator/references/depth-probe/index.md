@@ -1,3 +1,9 @@
+---
+title: index
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/depth-probe/index
+---
+
 # Depth Probe — Meet the User Where They Are
 
 The VM Creator adapts its questioning to the user's expertise and intent. A beginner asking for a "dev VM" should not get peppered with networking and egress questions. An advanced networking engineer specifying "VMSS behind App Gateway with private endpoints" should not be asked whether they want a public IP.

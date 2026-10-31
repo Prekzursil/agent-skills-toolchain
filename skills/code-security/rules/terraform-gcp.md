@@ -3,6 +3,7 @@ title: Secure GCP Terraform Configurations
 impact: HIGH
 impactDescription: Cloud misconfigurations and data exposure
 tags: security, terraform, gcp, infrastructure, iac, gcs, gce, gke
+permalink: dqverify-repo-20261013/skills/code-security/rules/terraform-gcp
 ---
 
 ## Secure GCP Terraform Configurations

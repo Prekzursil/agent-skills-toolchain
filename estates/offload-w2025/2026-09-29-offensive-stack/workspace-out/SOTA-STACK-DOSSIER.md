@@ -1,3 +1,9 @@
+---
+title: SOTA-STACK-DOSSIER
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/sota-stack-dossier
+---
+
 # SOTA-STACK-DOSSIER — red-team estate build round
 
 **Date:** 2026-09-30 · **Estate VM:** Windows Server 10.0.26100 (GCP, no VT-x → no Docker engine/WSL2) · **Gateway:** cyberstrike-gateway 1.29.0 @ `http://127.0.0.1:31100/mcp`

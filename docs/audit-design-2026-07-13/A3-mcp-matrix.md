@@ -1,3 +1,9 @@
+---
+title: A3-mcp-matrix
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a3-mcp-matrix
+---
+
 # A3 — MCP Scope / Topology / Lifecycle + Disposition Matrix
 
 **Document:** `A3-mcp-matrix` · **Status:** EVIDENCE (Workflow A) — READ-ONLY audit, no config mutated · **Valid as of:** 2026-07-13  

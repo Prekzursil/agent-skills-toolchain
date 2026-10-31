@@ -1,3 +1,9 @@
+---
+title: recipes
+type: note
+permalink: dqverify-repo-20261013/skills/ghidra-automation-recipes/references/recipes
+---
+
 # Ghidra Automation Recipes
 
 ## Local automation surfaces

@@ -1,3 +1,9 @@
+---
+title: workspace
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-reverse-engineering/references/workspace
+---
+
 # SWFOC Reverse Engineering Workspace Notes
 
 ## Important paths

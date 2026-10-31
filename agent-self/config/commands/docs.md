@@ -1,5 +1,6 @@
 ---
 description: Look up current documentation for a library or topic via Context7.
+permalink: dqverify-repo-20261013/agent-self/config/commands/docs
 ---
 
 # /docs

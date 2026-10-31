@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/hooks/**"
-  - "**/settings*.json"
-  - "**/.claude/**"
+- '**/hooks/**'
+- '**/settings*.json'
+- '**/.claude/**'
+permalink: dqverify-repo-20261013/rules/common/hooks
 ---
+
 # Hooks System
 
 ## Hook Types

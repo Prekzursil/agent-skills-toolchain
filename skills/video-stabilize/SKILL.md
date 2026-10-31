@@ -1,6 +1,10 @@
 ---
 name: video-stabilize
-description: "Use when stabilizing a shaky / handheld / camera-shake video so it looks steadied (locked-down or smooth-pan). PRIMARY method = ffmpeg libvidstab TWO-PASS — vidstabdetect (analyze → writes a .trf transforms file) then vidstabtransform (read the .trf → render the steadied clip), with adaptive."
+description: Use when stabilizing a shaky / handheld / camera-shake video so it looks
+  steadied (locked-down or smooth-pan). PRIMARY method = ffmpeg libvidstab TWO-PASS
+  — vidstabdetect (analyze → writes a .trf transforms file) then vidstabtransform
+  (read the .trf → render the steadied clip), with adaptive.
+permalink: dqverify-repo-20261013/skills/video-stabilize/skill
 ---
 
 # Video stabilization (ffmpeg libvidstab, 2-pass)

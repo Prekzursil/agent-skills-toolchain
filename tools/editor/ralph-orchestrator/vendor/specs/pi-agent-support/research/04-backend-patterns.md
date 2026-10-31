@@ -1,3 +1,9 @@
+---
+title: 04-backend-patterns
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/04-backend-patterns
+---
+
 # Research: Existing Backend Patterns in Ralph
 
 ## Summary

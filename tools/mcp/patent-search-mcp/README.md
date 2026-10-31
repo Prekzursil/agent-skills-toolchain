@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/patent-search-mcp/readme
+---
+
 # Patent search MCP
 
 A small keyless FastMCP server for chemical patent discovery and freedom-to-operate (FTO)

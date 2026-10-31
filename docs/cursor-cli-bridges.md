@@ -1,3 +1,9 @@
+---
+title: cursor-cli-bridges
+type: note
+permalink: dqverify-repo-20261013/docs/cursor-cli-bridges
+---
+
 # Cursor CLI Bridges (Windows-native, token-auth)
 
 **Updated:** 26.08.2026 · **Status:** live, verified e2e

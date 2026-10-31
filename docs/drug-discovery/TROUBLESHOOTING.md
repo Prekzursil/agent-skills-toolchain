@@ -1,3 +1,9 @@
+---
+title: TROUBLESHOOTING
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/troubleshooting
+---
+
 # Drug-Discovery MCP Stack — Troubleshooting
 
 Troubleshooting for the local drug-discovery research stack on **Windows** (with

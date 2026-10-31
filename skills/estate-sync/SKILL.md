@@ -1,6 +1,10 @@
 ---
 name: estate-sync
-description: Bootstrap, reconcile and audit this estate across machines. Use when setting up a second machine from the private repo, when the VM and home have drifted, when the VM/home file link is down, or when checking whether committed work was ever actually pushed. Also carries the private-estate plaintext credential policy.
+description: Bootstrap, reconcile and audit this estate across machines. Use when
+  setting up a second machine from the private repo, when the VM and home have drifted,
+  when the VM/home file link is down, or when checking whether committed work was
+  ever actually pushed. Also carries the private-estate plaintext credential policy.
+permalink: dqverify-repo-20261013/skills/estate-sync/skill
 ---
 
 # estate-sync

@@ -1,3 +1,9 @@
+---
+title: source-index
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/source-index
+---
+
 # Source Index
 
 Last consolidated: 2026-02-15 (UTC)

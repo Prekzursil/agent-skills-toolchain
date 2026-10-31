@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/triage-dispatch/readme
+---
+
 # triage-dispatch
 
 The multi-bug repair methodology skill from the agentic-repair-reliability program: **audit-first →

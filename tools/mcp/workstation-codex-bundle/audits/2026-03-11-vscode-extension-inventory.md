@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-vscode-extension-inventory
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/audits/2026-03-11-vscode-extension-inventory
+---
+
 # 2026-03-11 VS Code extension inventory
 
 Generated from `code --list-extensions --show-versions` plus workstation-specific keep/optional/review heuristics. This is an audit-and-signoff inventory; it is not an uninstall script.

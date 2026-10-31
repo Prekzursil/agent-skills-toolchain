@@ -1,3 +1,9 @@
+---
+title: local-run
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/local-run
+---
+
 # Local Run Reference
 
 Use this when iterating on a hosted agent before deploying.

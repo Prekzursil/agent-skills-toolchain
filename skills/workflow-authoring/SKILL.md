@@ -1,7 +1,13 @@
 ---
 name: workflow-authoring
-description: "Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs script under ~/.claude/workflows using the injected agent/parallel/phase globals to fan out subagents). Covers the runtime API, banned Date.now() non-determinism, worktree isolation, per-fan-in schemas, null-tolerant barriers, and the typed Codex output-schema landmine. Triggers: author a workflow, fan out subagents."
+description: 'Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs
+  script under ~/.claude/workflows using the injected agent/parallel/phase globals
+  to fan out subagents). Covers the runtime API, banned Date.now() non-determinism,
+  worktree isolation, per-fan-in schemas, null-tolerant barriers, and the typed Codex
+  output-schema landmine. Triggers: author a workflow, fan out subagents.'
+permalink: dqverify-repo-20261013/skills/workflow-authoring/skill
 ---
+
 # workflow-authoring
 
 How to write a **saved Claude Code Workflow** — an orchestration script under

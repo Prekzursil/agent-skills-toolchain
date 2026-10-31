@@ -1,6 +1,9 @@
 ---
 name: ralph-orchestrator-setup
-description: Use when installing, updating, validating, or troubleshooting the local Ralph Orchestrator CLI, its MCP server registration, or the mirrored Ralph skills for Codex, Claude, and Gemini.
+description: Use when installing, updating, validating, or troubleshooting the local
+  Ralph Orchestrator CLI, its MCP server registration, or the mirrored Ralph skills
+  for Codex, Claude, and Gemini.
+permalink: dqverify-repo-20261013/skills-claude-only/ralph-orchestrator-setup/skill
 ---
 
 # Ralph Orchestrator Setup

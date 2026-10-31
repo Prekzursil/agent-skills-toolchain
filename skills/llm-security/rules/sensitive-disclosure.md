@@ -3,6 +3,7 @@ title: LLM02 - Prevent Sensitive Information Disclosure
 impact: CRITICAL
 impactDescription: Exposure of PII, credentials, proprietary data, or training data
 tags: security, llm, data-leakage, pii, owasp-llm02, mitre-atlas-t0024
+permalink: dqverify-repo-20261013/skills/llm-security/rules/sensitive-disclosure
 ---
 
 ## LLM02: Prevent Sensitive Information Disclosure

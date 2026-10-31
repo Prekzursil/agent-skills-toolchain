@@ -1,3 +1,9 @@
+---
+title: BOTH-STATES-VERIFICATION_2026-09-22
+type: note
+permalink: dqverify-repo-20261013/hooks/claude-code-mcp-guard/both-states-verification-2026-09-22
+---
+
 # BOTH-STATES verification — claude-code-mcp-guard (G-3b/G-2c) — 2026-09-22
 
 Unit: wf_c8e4c79c-1c8 both-states probe unit. Provenance: disk-verified (driver output

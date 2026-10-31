@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/hyperdrive/readme
+---
+
 # Hyperdrive
 
 Accelerates database queries from Workers via connection pooling, edge setup, query caching.

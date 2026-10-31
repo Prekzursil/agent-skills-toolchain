@@ -1,3 +1,9 @@
+---
+title: phase0_status_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/phase0-status-2026-07-20
+---
+
 # Phase 0 Status Report — 20.07.2026
 
 ## Owner decisions locked

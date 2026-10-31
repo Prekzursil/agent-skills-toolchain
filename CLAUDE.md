@@ -1,3 +1,9 @@
+---
+title: CLAUDE
+type: note
+permalink: dqverify-repo-20261013/claude
+---
+
 # Repo guidance for Claude Code
 
 ## AgentBridge is RETIRED — do not follow the old protocol

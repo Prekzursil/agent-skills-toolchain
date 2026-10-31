@@ -1,3 +1,9 @@
+---
+title: aks-mcp
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/references/aks-mcp
+---
+
 # AKS MCP Reference
 
 Use this reference when AKS-aware MCP tools are available in the client.

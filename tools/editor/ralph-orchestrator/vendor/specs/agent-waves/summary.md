@@ -1,3 +1,9 @@
+---
+title: summary
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/summary
+---
+
 # Agent Waves: Summary
 
 ## Artifacts

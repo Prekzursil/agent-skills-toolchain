@@ -1,3 +1,9 @@
+---
+title: security-deep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/depth-probe/security-deep
+---
+
 # Security-deep branch
 
 | Topic | Question | Default |

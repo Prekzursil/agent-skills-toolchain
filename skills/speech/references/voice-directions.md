@@ -1,3 +1,9 @@
+---
+title: voice-directions
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/voice-directions
+---
+
 # Voice directions
 
 ## Template

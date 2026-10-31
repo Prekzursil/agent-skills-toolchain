@@ -1,6 +1,8 @@
 ---
 name: pr-shepherd
-description: Monitor a PR through to merge — handle CI failures, review comments, and thread resolution automatically until all checks pass
+description: Monitor a PR through to merge — handle CI failures, review comments,
+  and thread resolution automatically until all checks pass
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-pr-shepherd/skill
 ---
 
 # pr-shepherd

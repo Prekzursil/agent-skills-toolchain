@@ -1,3 +1,9 @@
+---
+title: code-reviewer
+type: note
+permalink: dqverify-repo-20261013/skills/requesting-code-review/code-reviewer
+---
+
 # Code Review Agent
 
 You are reviewing code changes for production readiness.

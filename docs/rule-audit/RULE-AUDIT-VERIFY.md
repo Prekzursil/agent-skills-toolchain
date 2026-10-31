@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-VERIFY
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-verify
+---
+
 # RULERESEARCH — VERIFY lane: independent re-measurement of the BUILD lane
 
 Every claim below was produced by a command **I executed in this session**, not read from the

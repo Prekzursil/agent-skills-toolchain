@@ -1,3 +1,9 @@
+---
+title: local-consult-lane
+type: note
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/references/local-consult-lane
+---
+
 # Local Consultation Lane
 
 Use this reference when the design includes a local agent sidecar, local Codex app automations, or a local-only scheduler flow.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/ddos/readme
+---
+
 # Cloudflare DDoS Protection
 
 Autonomous, always-on protection against DDoS attacks across L3/4 and L7.

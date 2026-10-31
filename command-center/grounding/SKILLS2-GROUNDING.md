@@ -1,3 +1,9 @@
+---
+title: SKILLS2-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills2-grounding
+---
+
 # LANE SKILLS2 — grounding artifact (write-as-you-go)
 
 STATUS: **MEASURED**, round 3. Every verdict below names the probe that produced it and the

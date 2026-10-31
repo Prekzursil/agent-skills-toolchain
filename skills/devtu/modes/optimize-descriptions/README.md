@@ -1,6 +1,10 @@
 ---
 name: devtu-optimize-descriptions
-description: Optimize tool descriptions in ToolUniverse JSON configs for clarity and usability. Reviews descriptions for missing prerequisites, unexpanded abbreviations, unclear parameters, and missing usage guidance. Use when reviewing tool descriptions, improving API documentation, or when user asks to check if tools are easy to understand.
+description: Optimize tool descriptions in ToolUniverse JSON configs for clarity and
+  usability. Reviews descriptions for missing prerequisites, unexpanded abbreviations,
+  unclear parameters, and missing usage guidance. Use when reviewing tool descriptions,
+  improving API documentation, or when user asks to check if tools are easy to understand.
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-descriptions/readme
 ---
 
 # ToolUniverse Tool Description Optimization

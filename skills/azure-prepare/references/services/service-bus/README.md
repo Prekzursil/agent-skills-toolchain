@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/service-bus/readme
+---
+
 # Azure Service Bus
 
 Enterprise messaging with queues and pub/sub topics.

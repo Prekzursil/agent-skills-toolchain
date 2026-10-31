@@ -1,3 +1,9 @@
+---
+title: QUALITY-CHARTER
+type: note
+permalink: dqverify-repo-20261013/quality-charter
+---
+
 # Quality Charter — Lean Deterministic Gate Model
 
 This repository runs a **closed set of 6 deterministic, local-first quality gates** behind

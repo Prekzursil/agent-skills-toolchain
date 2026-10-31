@@ -1,3 +1,9 @@
+---
+title: agent-memory
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/agent-memory
+---
+
 # Research notes — domain `agent-memory`
 
 Lane: shared knowledge graphs for agents (Graphiti, Kùzu embedded + successors, Agentic-Mythos-SOC chained hypothesis generation, MCP graph servers, cross-engagement memory patterns).

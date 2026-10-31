@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+- '**/*.go'
+- '**/go.mod'
+- '**/go.sum'
+permalink: dqverify-repo-20261013/agent-self/config/rules/golang/coding-style
 ---
+
 # Go Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Go specific content.

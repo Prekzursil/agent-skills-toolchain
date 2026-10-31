@@ -1,8 +1,11 @@
 ---
 name: codex
-description: Synchronous cross-vendor work-unit executor. Blocks until Codex finishes and returns a schema-valid result or a terminal FAILED line. Use for fan-out work units that must produce artifacts; never for fire-and-forget exploration.
+description: Synchronous cross-vendor work-unit executor. Blocks until Codex finishes
+  and returns a schema-valid result or a terminal FAILED line. Use for fan-out work
+  units that must produce artifacts; never for fire-and-forget exploration.
 model: opus
 tools: Bash, Read, Write, Grep, Monitor
+permalink: dqverify-repo-20261013/agents/codex
 ---
 
 # codex — synchronous Codex work-unit adapter

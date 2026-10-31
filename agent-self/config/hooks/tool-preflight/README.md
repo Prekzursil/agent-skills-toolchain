@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/hooks/tool-preflight/readme
+---
+
 # tool-preflight
 
 SessionStart hook that catches dead/missing MCP servers and project CLIs **before** the

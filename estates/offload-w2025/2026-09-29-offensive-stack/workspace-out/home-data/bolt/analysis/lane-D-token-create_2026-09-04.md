@@ -1,3 +1,9 @@
+---
+title: lane-D-token-create_2026-09-04
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/home-data/bolt/analysis/lane-d-token-create-2026-09-04
+---
+
 # Lane D — POST /api/2.0/token/create — 04.09.2026
 
 UNIT-COMPLETE: lane-D

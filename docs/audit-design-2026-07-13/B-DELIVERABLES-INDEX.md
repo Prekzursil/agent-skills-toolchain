@@ -1,3 +1,9 @@
+---
+title: B-DELIVERABLES-INDEX
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-deliverables-index
+---
+
 # B — RFC Deliverables Index (Workflow B / design gate)
 
 **Program:** Unified Harness Control-Plane (Claude + Codex). **Date:** 2026-07-13.

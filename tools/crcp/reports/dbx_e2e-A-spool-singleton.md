@@ -1,3 +1,9 @@
+---
+title: dbx_e2e-A-spool-singleton
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-e2e-a-spool-singleton
+---
+
 # e2e-A-spool-singleton
 
 ## Summary

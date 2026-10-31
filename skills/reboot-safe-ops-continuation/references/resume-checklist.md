@@ -1,3 +1,9 @@
+---
+title: resume-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/reboot-safe-ops-continuation/references/resume-checklist
+---
+
 # Resume Checklist
 
 1. Reconfirm host health after boot.

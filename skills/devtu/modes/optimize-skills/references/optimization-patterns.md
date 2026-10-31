@@ -1,3 +1,9 @@
+---
+title: optimization-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-skills/references/optimization-patterns
+---
+
 # Optimization Patterns
 
 Detailed patterns for improving ToolUniverse skill quality.

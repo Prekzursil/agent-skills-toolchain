@@ -1,3 +1,9 @@
+---
+title: NOTICE
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hacktricks-mcp-server/notice
+---
+
 # NOTICE — HackTricks MCP server (hardened derivative)
 
 This directory holds the provenance, license, and review record for a hardened

@@ -1,3 +1,9 @@
+---
+title: docker
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azd/docker
+---
+
 # Dockerfile Generation
 
 Create Dockerfiles for containerized services.

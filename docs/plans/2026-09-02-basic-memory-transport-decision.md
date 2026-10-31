@@ -1,3 +1,9 @@
+---
+title: 2026-09-02-basic-memory-transport-decision
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-09-02-basic-memory-transport-decision
+---
+
 # Basic Memory transport: decision record and reverse-proxy proposal (2026-09-02)
 
 **Decision:** Cursor talks to the shared Basic Memory daemon through a

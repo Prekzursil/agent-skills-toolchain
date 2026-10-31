@@ -1,3 +1,9 @@
+---
+title: api-feature
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/examples/api-feature
+---
+
 # Example: API Feature Implementation
 
 ## User Request
@@ -458,4 +464,3 @@ new_str: "
 - Easy navigation between all artifacts
 
 Perfect for: Feature implementation, API development, technical projects
-

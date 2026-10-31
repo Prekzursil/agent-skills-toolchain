@@ -1,3 +1,9 @@
+---
+title: neo4j-import
+type: note
+permalink: dqverify-repo-20261013/skills/security-ownership-map/references/neo4j-import
+---
+
 # Neo4j Import Notes
 
 Use these steps when persisting the ownership graph to Neo4j.

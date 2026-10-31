@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.java"
+- '**/*.java'
+permalink: dqverify-repo-20261013/agent-self/config/rules/java/coding-style
 ---
+
 # Java Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Java-specific content.

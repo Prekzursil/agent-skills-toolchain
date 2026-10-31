@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/search-expansion/readme
+---
+
 # tools/search-expansion
 
 Two independent capabilities behind one small, dependency-free package:

@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/terraform/patterns
+---
+
 # Terraform Patterns & Use Cases
 
 Architecture patterns, multi-environment setups, and real-world use cases.

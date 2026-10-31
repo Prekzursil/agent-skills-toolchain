@@ -1,3 +1,9 @@
+---
+title: quick-start
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/getting-started/quick-start
+---
+
 # Quick Start
 
 Run your first Ralph orchestration in about 10 minutes.

@@ -1,3 +1,9 @@
+---
+title: quick-start-hosted
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/quick-start-hosted
+---
+
 # Quick Start: Hosted Foundry Agent
 
 Opinionated happy-path for first-time users creating their first hosted Foundry agent. Safe defaults, minimal decisions.

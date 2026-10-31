@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/c3/configuration
+---
+
 # C3 Generated Configuration
 
 ## Output Structure

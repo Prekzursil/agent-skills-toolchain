@@ -1,3 +1,9 @@
+---
+title: vm-families
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/references/vm-families
+---
+
 # VM Family Guide
 
 Select a VM family by matching the user's workload to the right category. Families describe hardware intent — not individual SKUs.

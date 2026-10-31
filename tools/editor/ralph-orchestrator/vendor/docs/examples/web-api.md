@@ -1,3 +1,9 @@
+---
+title: web-api
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/web-api
+---
+
 # Building a Web API with Ralph
 
 This example demonstrates how to use Ralph Orchestrator to build a complete REST API with database integration.

@@ -1,3 +1,9 @@
+---
+title: MCP-FLEET-AUDIT
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/mcp-fleet-audit
+---
+
 # MCP Fleet Audit — GROUNDING lane (MCPRESEARCH)
 
 Measured 2026-08-12 on this box, worktree `C:/Users/Prekzursil/source/ast-integrate` @ `ae8205a4`.

@@ -1,7 +1,12 @@
 ---
 name: bcsfe-save-roundtrip
-description: Use when pulling, editing, or pushing a Battle Cats (EN, rooted BlueStacks) SAVE_DATA file - the byte-exact PowerShell + HOME-key flush pull, the headless BCSFE-Python library edit, and the in-place cat-redirect push that preserves uid 10065 and the SELinux app_data_file context. Includes the MSYS path-conversion 0-byte-truncation gotcha, the force-stop-before-push rule, and Ototo cannon fields.
+description: Use when pulling, editing, or pushing a Battle Cats (EN, rooted BlueStacks)
+  SAVE_DATA file - the byte-exact PowerShell + HOME-key flush pull, the headless BCSFE-Python
+  library edit, and the in-place cat-redirect push that preserves uid 10065 and the
+  SELinux app_data_file context. Includes the MSYS path-conversion 0-byte-truncation
+  gotcha, the force-stop-before-push rule, and Ototo cannon fields.
 license: MIT
+permalink: dqverify-repo-20261013/skills/bcsfe-save-roundtrip/skill
 ---
 
 # BCSFE Save Round-Trip (Battle Cats EN, rooted BlueStacks)

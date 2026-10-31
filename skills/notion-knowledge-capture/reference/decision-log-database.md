@@ -1,3 +1,9 @@
+---
+title: decision-log-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/decision-log-database
+---
+
 # Decision Log Database (ADR - Architecture Decision Records)
 
 **Purpose**: Track important decisions with context and rationale.
@@ -55,4 +61,3 @@ Each decision page should include:
 3. **Track superseded decisions**: Update status when decisions change
 4. **Link related decisions**: Use relations to show dependencies
 5. **Review periodically**: Check if old decisions are still valid
-

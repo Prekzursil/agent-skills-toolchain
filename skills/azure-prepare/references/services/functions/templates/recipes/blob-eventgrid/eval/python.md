@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/blob-eventgrid/eval/python
+---
+
 # blob-eventgrid Recipe - Python Eval
 
 ## MCP Template Validation

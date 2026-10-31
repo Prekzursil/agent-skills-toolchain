@@ -1,15 +1,17 @@
 ---
 name: visual-review
-description: Take screenshots of web pages and UI using Playwright for visual review and iteration
+description: Take screenshots of web pages and UI using Playwright for visual review
+  and iteration
 auto_activate: false
 triggers:
-  - "visual review"
-  - "screenshot"
-  - "take a screenshot"
-  - "review visually"
-  - "check how it looks"
-  - "review the UI"
-  - "review the slides"
+- visual review
+- screenshot
+- take a screenshot
+- review visually
+- check how it looks
+- review the UI
+- review the slides
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-visual-review/skill
 ---
 
 # Visual Review

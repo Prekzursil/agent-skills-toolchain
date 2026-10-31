@@ -1,6 +1,15 @@
 ---
 name: multi-ai-mingle
-description: Use when the user wants seamless local collaboration between Claude Code and OpenAI Codex on the same machine - fanning out parallel Codex coding threads from Claude as native MCP tool calls via the official codex mcp-server, and running a live symmetric two-way chat and file-lease channel between the two agents through mcp_agent_mail. Covers mounting codex-as-MCP at user scope, standing up the shared agent-mail http channel, verifying it before use, and the sequenced adoption waves. Triggers include mingle Claude and Codex, run Codex from Claude in parallel, set up the agent mail channel, replace AgentBridge, or coordinate the two local AI agents. Not for single-agent work or remote or cloud multi-agent orchestration.
+description: Use when the user wants seamless local collaboration between Claude Code
+  and OpenAI Codex on the same machine - fanning out parallel Codex coding threads
+  from Claude as native MCP tool calls via the official codex mcp-server, and running
+  a live symmetric two-way chat and file-lease channel between the two agents through
+  mcp_agent_mail. Covers mounting codex-as-MCP at user scope, standing up the shared
+  agent-mail http channel, verifying it before use, and the sequenced adoption waves.
+  Triggers include mingle Claude and Codex, run Codex from Claude in parallel, set
+  up the agent mail channel, replace AgentBridge, or coordinate the two local AI agents.
+  Not for single-agent work or remote or cloud multi-agent orchestration.
+permalink: dqverify-repo-20261013/skills/multi-ai-mingle/skill
 ---
 
 # multi-ai-mingle

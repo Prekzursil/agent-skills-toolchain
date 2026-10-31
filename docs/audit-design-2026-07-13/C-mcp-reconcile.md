@@ -1,3 +1,9 @@
+---
+title: C-mcp-reconcile
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/c-mcp-reconcile
+---
+
 # C-mcp-reconcile — whole-drive MCP-config disposition matrix
 
 **Deliverable:** the POST-GATE disposition plan for the whole-drive (C: + D:) MCP-config file surface — which file is the CANONICAL source vs a duplicate-copy / vendored / stale / divergent, per-server canonical scope (G-5), and the dedup / remove-stale / reconcile-drift targets. **Domain:** `mcp`. **Mode:** READ-ONLY (active-work freeze) — every row is a FINDING/PLAN, never an applied change; modifications are POST-GATE (owner G-13). **Date:** 2026-07-13. Machine twin: `C-mcp-reconcile.json`.

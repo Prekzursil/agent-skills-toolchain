@@ -1,3 +1,9 @@
+---
+title: qchat-production
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/deployment/qchat-production
+---
+
 # Q Chat Adapter Production Deployment Guide
 
 !!! warning "Deprecated"

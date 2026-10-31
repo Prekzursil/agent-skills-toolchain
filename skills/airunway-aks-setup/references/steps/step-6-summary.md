@@ -1,3 +1,9 @@
+---
+title: step-6-summary
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-6-summary
+---
+
 # Step 6 — Summary & Smoke Test
 
 **Goal**: Confirm everything is working and guide the user on next steps.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/mcp-http-host/readme
+---
+
 # mcp-http-host — SUPERVISE a shared stdio→HTTP MCP bridge (the per-session-process cure)
 
 **What this is (post-re-scope — see [RESCOPE.md](RESCOPE.md)):** the commodity

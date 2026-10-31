@@ -1,3 +1,9 @@
+---
+title: patterns-papers
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-papers
+---
+
 # Query Patterns: Research Papers
 
 Use `category:research paper` for Exa's paper index.

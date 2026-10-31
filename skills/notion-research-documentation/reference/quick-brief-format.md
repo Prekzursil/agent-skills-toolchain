@@ -1,3 +1,9 @@
+---
+title: quick-brief-format
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/quick-brief-format
+---
+
 # Quick Brief Format
 
 **When to use**:
@@ -34,4 +40,3 @@ See [quick-brief-template.md](quick-brief-template.md) for the full template.
 - "Fast brief on the meeting notes from yesterday"
 - "What are the key points from that spec?"
 - "Give me a quick overview of the project status"
-

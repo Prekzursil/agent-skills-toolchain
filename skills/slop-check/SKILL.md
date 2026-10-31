@@ -1,6 +1,10 @@
 ---
 name: slop-check
-description: Use when the user asks if text or an image is AI-generated, to clean AI artifacts or invisible characters, or to score readability (Flesch-Kincaid) via Slop or Not Pro on-device tools (macOS only) ; do NOT use for rewriting or humanizing text (use agentic-humanizer or humanizer) ; returns AI-detection verdict, cleaned text, or readability grade.
+description: Use when the user asks if text or an image is AI-generated, to clean
+  AI artifacts or invisible characters, or to score readability (Flesch-Kincaid) via
+  Slop or Not Pro on-device tools (macOS only) ; do NOT use for rewriting or humanizing
+  text (use agentic-humanizer or humanizer) ; returns AI-detection verdict, cleaned
+  text, or readability grade.
 license: MIT
 allowed-tools:
 - Read
@@ -10,6 +14,7 @@ metadata:
   compatibility: claude-code codex cursor gemini-cli opencode
   source: https://github.com/numen-tech/slopornot
   upstream_author: Numen Technologies
+permalink: dqverify-repo-20261013/skills/slop-check/skill
 ---
 
 > **Windows note (vendored):** `slop-check` routes to the Slop or Not Pro on-device MCP / `slop` CLI, which is **macOS-only**. On Windows these AI-detection / readability calls will not resolve; the skill is vendored for completeness and cross-platform parity. To humanize text on Windows use `agentic-humanizer` (works standalone) or `humanizer`.

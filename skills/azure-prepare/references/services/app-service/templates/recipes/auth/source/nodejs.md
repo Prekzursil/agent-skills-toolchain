@@ -1,3 +1,9 @@
+---
+title: nodejs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/auth/source/nodejs
+---
+
 # Auth Recipe — Node.js (Express) — REFERENCE ONLY
 
 ## JWT Validation with jsonwebtoken + jwks-rsa

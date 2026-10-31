@@ -1,3 +1,9 @@
+---
+title: write_path_fiddler_capture_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/write-path-fiddler-capture-2026-07-20
+---
+
 # ChatGPT write-path capture (2026-07-20)
 
 ## Capture path

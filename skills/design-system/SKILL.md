@@ -1,7 +1,11 @@
 ---
 name: design-system
-description: Use this skill to generate or audit design systems, check visual consistency, and review PRs that touch styling. Emits/consumes the single `.design/` artifact contract and scores on the canonical DESIGN-EVAL v1 rubric (9 dims, 0-4) — the legacy 10-dim 0-10 visual-audit scale is RETIRED.
+description: Use this skill to generate or audit design systems, check visual consistency,
+  and review PRs that touch styling. Emits/consumes the single `.design/` artifact
+  contract and scores on the canonical DESIGN-EVAL v1 rubric (9 dims, 0-4) — the legacy
+  10-dim 0-10 visual-audit scale is RETIRED.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/design-system/skill
 ---
 
 # Design System — Generate & Audit Visual Systems

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/hooks/cmd-rewrite/readme
+---
+
 # cmd-rewrite hooks
 
 Two companion hooks that rewrite Bash tool input/output deterministically at

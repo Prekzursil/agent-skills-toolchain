@@ -1,3 +1,9 @@
+---
+title: dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/redis/source/dotnet
+---
+
 # Redis Recipe — C# (.NET) — REFERENCE ONLY
 
 ## ASP.NET Core Distributed Cache Setup

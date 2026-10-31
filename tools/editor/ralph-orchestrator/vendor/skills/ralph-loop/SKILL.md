@@ -1,6 +1,9 @@
 ---
 name: ralph-loop
-description: Run, monitor, resume, merge, and debug Ralph loops. Use this skill whenever the user asks to operate `ralph run` or `ralph loops`, inspect loop state, recover suspended loops, analyze diagnostics, or unblock merge queue issues.
+description: Run, monitor, resume, merge, and debug Ralph loops. Use this skill whenever
+  the user asks to operate `ralph run` or `ralph loops`, inspect loop state, recover
+  suspended loops, analyze diagnostics, or unblock merge queue issues.
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/ralph-loop/skill
 ---
 
 # Ralph Loop

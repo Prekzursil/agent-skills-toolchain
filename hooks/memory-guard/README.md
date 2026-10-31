@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/memory-guard/readme
+---
+
 # memory-guard — inbound tool-output injection guard
 
 **Type:** PostToolUse hook  

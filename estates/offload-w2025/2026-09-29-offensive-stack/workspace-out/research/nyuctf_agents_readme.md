@@ -1,3 +1,9 @@
+---
+title: nyuctf_agents_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/nyuctf-agents-readme
+---
+
 # NYU CTF Automation Framework
 
 This repository holds the LLM agents for solving CTF challenges developed for the [NYU CTF Bench](https://nyu-llm-ctf.github.io).
@@ -48,4 +54,3 @@ python3 run_baseline.py -c configs/baseline/base_config.yaml --split <test|devel
 
 While the baseline agent code is present in the main branch, you can access the baseline's last updated version at [v20250206](https://github.com/NYU-LLM-CTF/llm_ctf_automation/releases/tag/20250206).
 This is the code used for the [NYU CTF Bench](https://nyu-llm-ctf.github.io) paper.
-

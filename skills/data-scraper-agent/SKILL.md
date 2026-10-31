@@ -1,7 +1,9 @@
 ---
 name: data-scraper-agent
-description: "Use when building an automated public-data collector that scrapes on a schedule, enriches records with an LLM, stores results, and learns from feedback."
+description: Use when building an automated public-data collector that scrapes on
+  a schedule, enriches records with an LLM, stores results, and learns from feedback.
 origin: community
+permalink: dqverify-repo-20261013/skills/data-scraper-agent/skill
 ---
 
 # Data Scraper Agent

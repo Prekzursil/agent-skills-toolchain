@@ -3,6 +3,7 @@ title: Secure JWT Authentication
 impact: HIGH
 impactDescription: Authentication bypass and token forgery
 tags: security, authentication, jwt, cwe-287, cwe-347, owasp-a07
+permalink: dqverify-repo-20261013/skills/code-security/rules/authentication-jwt
 ---
 
 ## Secure JWT Authentication

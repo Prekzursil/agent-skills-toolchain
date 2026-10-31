@@ -1,3 +1,9 @@
+---
+title: P2NEXT-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-grounding
+---
+
 # P2NEXT — GROUNDING lane: the 48 blocked units, split by what they actually demand
 
 **Measured 2026-08-12** against `ast-integrate` @ `ae8205a4` (worktree of `agent-skills-toolchain`,

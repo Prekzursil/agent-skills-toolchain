@@ -1,3 +1,9 @@
+---
+title: apps-sdk-docs-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/apps-sdk-docs-workflow
+---
+
 # Apps SDK Docs Workflow
 
 Use this reference to keep code generation aligned with current OpenAI Apps SDK docs.

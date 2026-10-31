@@ -1,3 +1,9 @@
+---
+title: azure-security-keyvault-secrets-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-security-keyvault-secrets-java
+---
+
 # Key Vault Secrets — Java SDK Quick Reference
 
 > Condensed from **azure-security-keyvault-secrets-java**. Full patterns

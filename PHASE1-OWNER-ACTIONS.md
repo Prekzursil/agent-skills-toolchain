@@ -1,3 +1,9 @@
+---
+title: PHASE1-OWNER-ACTIONS
+type: note
+permalink: dqverify-repo-20261013/phase1-owner-actions
+---
+
 # Phase 1 Completion — Owner Actions Required
 
 **Status:** Phase 1 blocked on two owner-level issues. Code quality verified locally. All gates pass except secrets (which has a real AWS key leak).

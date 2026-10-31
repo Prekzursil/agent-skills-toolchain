@@ -1,3 +1,9 @@
+---
+title: cross-host-session-visibility
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/cross-host-session-visibility
+---
+
 # cross-host-session-visibility
 
 ## Purpose

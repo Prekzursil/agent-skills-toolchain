@@ -1,3 +1,9 @@
+---
+title: oauth-flows
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/entra-app-registration/references/oauth-flows
+---
+
 # OAuth 2.0 Flows
 
 This document provides an illustration of OAuth 2.0 authentication flows supported by Microsoft Entra ID.

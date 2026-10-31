@@ -1,6 +1,9 @@
 ---
 name: docker-cli
-description: Manage Docker containers, images, volumes, and networks using the Docker CLI. Use when the user mentions docker, containers, images, volumes, docker-compose, or Dockerfile.
+description: Manage Docker containers, images, volumes, and networks using the Docker
+  CLI. Use when the user mentions docker, containers, images, volumes, docker-compose,
+  or Dockerfile.
+permalink: dqverify-repo-20261013/skills-claude-only/docker-cli/skill
 ---
 
 # Docker CLI

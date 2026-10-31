@@ -1,3 +1,9 @@
+---
+title: tool-selection
+type: note
+permalink: dqverify-repo-20261013/skills/reverse-engineering-toolkit/references/tool-selection
+---
+
 # Reverse Engineering Toolkit Reference
 
 ## Local commands and installs

@@ -1,3 +1,9 @@
+---
+title: README.zh
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/r2-dms/package/readme.zh
+---
+
 <p align="center">
   <a href="README.md">English</a> |
   <strong>简体中文</strong> |

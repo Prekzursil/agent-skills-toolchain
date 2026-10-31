@@ -1,0 +1,115 @@
+{
+  "name": "unified",
+  "auth": "ONE TUI, BOTH providers via local router http://127.0.0.1:8377 (model-prefix dispatch). glm-* bills the z.ai plan (rotation-fresh key, read per-request); claude-* bills an Anthropic API key via CC_ANTHROPIC_KEY env (STASH ONE to enable the claude leg - subscription OAuth cannot ride a proxy). Start the router with D:/opt/cc-router/router-run.cmd before launching.",
+  "env_set": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8377",
+    "ANTHROPIC_AUTH_TOKEN": "cc-router-local"
+  },
+  "env_remove": [
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+  ],
+  "top_set": {
+    "model": "glm-5.3[1m]",
+    "fallbackModel": [
+      "glm-5.3-flash[1m]"
+    ],
+    "deniedMcpServers": [
+      {
+        "serverName": "claude-code-mcp"
+      },
+      {
+        "serverName": "markitdown"
+      },
+      {
+        "serverName": "rdkit"
+      },
+      {
+        "serverName": "serena"
+      },
+      {
+        "serverName": "gitlab"
+      },
+      {
+        "serverName": "meta-tool"
+      }
+    ],
+    "extraKnownMarketplaces.zai-coding-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\Prekzursil\\.claude\\profiles\\vendor\\zai-coding-plugins"
+      }
+    }
+  },
+  "top_remove": [],
+  "hooks_add": [
+    {
+      "event": "StopFailure",
+      "matcher": "rate_limit|billing_error|authentication_failed",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python \"C:/Users/Prekzursil/.agents/scripts/zai_key_failover.py\" --on-failure",
+          "timeout": 60,
+          "statusMessage": "Z.ai key auto-rotate on exhausted/auth failure"
+        }
+      ]
+    }
+  ],
+  "hooks_removeMarkers": [],
+  "plugins_merge": {
+    "glm-plan-usage@zai-coding-plugins": true,
+    "glm-plan-bug@zai-coding-plugins": true
+  },
+  "skills_hide": [],
+  "local_set": {
+    "enableAllProjectMcpServers": false,
+    "enabledMcpjsonServers": [
+      "ralph-orchestrator",
+      "repomix",
+      "excel",
+      "firecrawl",
+      "tavily",
+      "binary-ninja-mcp",
+      "ghidra-mcp",
+      "ida-pro-mcp",
+      "frida-mcp",
+      "cheatengine",
+      "hexstrike-ai",
+      "markitdown",
+      "angr",
+      "cloud-hub",
+      "figma",
+      "playwright",
+      "schrodinger",
+      "social-hub",
+      "search-hub",
+      "playwright-extension",
+      "playwright-cdp",
+      "brightdata",
+      "nuclei",
+      "osint",
+      "cve-mcp",
+      "github-security",
+      "cloud-audit",
+      "mitmproxy",
+      "semgrep",
+      "cve",
+      "firecrawl-kit",
+      "hacktricks",
+      "metasploit",
+      "sliver",
+      "sliver-full",
+      "agent-mail",
+      "basic-memory",
+      "context7",
+      "apify",
+      "github",
+      "cursor-bridge",
+      "burp"
+    ]
+  }
+}

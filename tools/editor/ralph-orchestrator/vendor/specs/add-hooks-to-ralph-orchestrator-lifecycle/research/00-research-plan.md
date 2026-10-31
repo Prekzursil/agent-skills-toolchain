@@ -1,3 +1,9 @@
+---
+title: 00-research-plan
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/research/00-research-plan
+---
+
 # Research Plan (Draft)
 
 ## Goal

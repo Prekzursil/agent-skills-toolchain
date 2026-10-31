@@ -1,3 +1,9 @@
+---
+title: generic
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/generic
+---
+
 # Harness Routing — Generic (plain-text questions)
 
 `SKILL.md` routes here when the host harness is unrecognized OR when a

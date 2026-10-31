@@ -1,6 +1,10 @@
 ---
 name: vercel-deploy
-description: Use when deploying an application or website to Vercel, creating preview deployments, or getting a Vercel deployment link ; do NOT use for Cloudflare Workers/Pages (use cloudflare-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Vercel deployment URL.
+description: Use when deploying an application or website to Vercel, creating preview
+  deployments, or getting a Vercel deployment link ; do NOT use for Cloudflare Workers/Pages
+  (use cloudflare-deploy), Netlify (use netlify-deploy), or Render (use render-deploy)
+  ; returns Vercel deployment URL.
+permalink: dqverify-repo-20261013/skills/vercel-deploy/skill
 ---
 
 # Vercel Deploy

@@ -1,6 +1,11 @@
 ---
 name: semgrep
-description: "Run Semgrep static analysis scans and create custom detection rules. Use when asked to scan code with Semgrep, find security vulnerabilities, write custom YAML rules, or detect specific bug patterns. IMPORTANT: Also use when users ask to 'scan for bugs', 'check code quality', 'find vulnerabilities', or 'audit this code' - even without naming Semgrep. Pattern-based scanning across 30+ languages."
+description: 'Run Semgrep static analysis scans and create custom detection rules.
+  Use when asked to scan code with Semgrep, find security vulnerabilities, write custom
+  YAML rules, or detect specific bug patterns. IMPORTANT: Also use when users ask
+  to ''scan for bugs'', ''check code quality'', ''find vulnerabilities'', or ''audit
+  this code'' - even without naming Semgrep. Pattern-based scanning across 30+ languages.'
+permalink: dqverify-repo-20261013/skills/semgrep/skill
 ---
 
 # Semgrep Static Analysis

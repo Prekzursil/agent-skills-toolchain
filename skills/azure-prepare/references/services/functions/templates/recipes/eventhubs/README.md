@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/eventhubs/readme
+---
+
 # Event Hubs Recipe
 
 Event Hubs streaming trigger with managed identity authentication.

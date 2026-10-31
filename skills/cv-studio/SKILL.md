@@ -1,8 +1,16 @@
 ---
 name: cv-studio
-description: Generate an ATS-clean PDF resume AND a visually-designed CV from ONE structured profile, plus tailored cover letters and an optimised LinkedIn profile. Use when the user wants to create, redesign, tailor, or ATS-optimise a resume/CV, write a cover letter, or rewrite their LinkedIn headline/About. Zero-fabrication. ATS PDF via RenderCV; visual CV via JSON Resume or figma.
-license: "MIT (skill). Engines: RenderCV + JSON Resume are MIT. Reference content is paraphrased from MIT-licensed repos (credited in references/); no unlicensed text vendored."
+description: Generate an ATS-clean PDF resume AND a visually-designed CV from ONE
+  structured profile, plus tailored cover letters and an optimised LinkedIn profile.
+  Use when the user wants to create, redesign, tailor, or ATS-optimise a resume/CV,
+  write a cover letter, or rewrite their LinkedIn headline/About. Zero-fabrication.
+  ATS PDF via RenderCV; visual CV via JSON Resume or figma.
+license: 'MIT (skill). Engines: RenderCV + JSON Resume are MIT. Reference content
+  is paraphrased from MIT-licensed repos (credited in references/); no unlicensed
+  text vendored.'
+permalink: dqverify-repo-20261013/skills/cv-studio/skill
 ---
+
 # cv-studio — one profile → ATS PDF · visual CV · tailored letter · LinkedIn
 
 A CV is **two artifacts with opposite constraints** (this is the load-bearing insight):

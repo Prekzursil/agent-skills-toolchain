@@ -1,3 +1,9 @@
+---
+title: global-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/global-rules
+---
+
 # Global Rules
 
 These rules apply to ALL phases of the azure-upgrade skill.

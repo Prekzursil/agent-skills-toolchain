@@ -1,3 +1,9 @@
+---
+title: database-best-practices
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/database-best-practices
+---
+
 # Database Best Practices
 
 General guidance for creating and maintaining knowledge capture databases.
@@ -109,4 +115,3 @@ This returns the exact property names and types to use.
 5. **Review properties** quarterly - remove unused ones
 6. **Document the schema** in database description
 7. **Train team** on property usage and conventions
-

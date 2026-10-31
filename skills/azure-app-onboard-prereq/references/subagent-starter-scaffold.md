@@ -1,3 +1,9 @@
+---
+title: subagent-starter-scaffold
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/subagent-starter-scaffold
+---
+
 # Subagent Template — Starter App Scaffold (Zero-Code Path Step 4)
 
 Generate a minimal, Azure-compatible starter project from scratch based on user requirements.

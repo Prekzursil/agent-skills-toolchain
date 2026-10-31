@@ -1,3 +1,9 @@
+---
+title: MON-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/docs/monitor/mon-integrate
+---
+
 # MON lane — INTEGRATE stage (the last stage; the loop is over)
 
 STATUS: **MEASURED.** Every claim below carries a pasted command output or names the file:line it

@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "**/*.ts"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.html"
-  - "**/*.vue"
-  - "**/*.svelte"
+- '**/*.tsx'
+- '**/*.jsx'
+- '**/*.ts'
+- '**/*.js'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.html'
+- '**/*.vue'
+- '**/*.svelte'
+permalink: dqverify-repo-20261013/rules/web/security
 ---
+
 > This file extends [common/security.md](../common/security.md) with web-specific security content.
 
 # Web Security Rules

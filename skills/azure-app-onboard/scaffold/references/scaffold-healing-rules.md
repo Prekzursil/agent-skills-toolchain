@@ -1,3 +1,9 @@
+---
+title: scaffold-healing-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/scaffold-healing-rules
+---
+
 # Scaffold Healing Rules
 
 Self-healing loop for scaffold validation failures. Contains error classification (FIXABLE vs BLOCKING) and scaffold-specific escalation and plan-change rules.

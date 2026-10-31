@@ -1,3 +1,9 @@
+---
+title: BUILD-ROUND-SALVAGE-2026-08-13
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/build-round-salvage-2026-08-13
+---
+
 # LANE SSOT — BUILD lane, salvage + enumeration round
 
 Measured 2026-08-13 in `C:/Users/Prekzursil/source/ast-integrate` @ `main`. Every number below

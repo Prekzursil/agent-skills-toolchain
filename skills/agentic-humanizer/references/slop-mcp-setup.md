@@ -1,3 +1,9 @@
+---
+title: slop-mcp-setup
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/slop-mcp-setup
+---
+
 # Slop MCP Setup
 
 `SKILL.md` reads this file when the user wants to register Slop or Not's

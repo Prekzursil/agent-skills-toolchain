@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/runtimes/python
+---
+
 # Python — Azure Functions v2 Triggers & Bindings
 
 > **Model**: Python v2 programming model. **NO** `function.json` files.

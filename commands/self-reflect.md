@@ -1,5 +1,7 @@
 ---
-description: Extract learnings from recent PR reviews, conversations, and session patterns to update the knowledge base
+description: Extract learnings from recent PR reviews, conversations, and session
+  patterns to update the knowledge base
+permalink: dqverify-repo-20261013/commands/self-reflect
 ---
 
 # BEADS Self-Reflect

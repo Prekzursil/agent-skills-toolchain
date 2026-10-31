@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*"
+- '**/*'
+permalink: dqverify-repo-20261013/rules/common/windows-shell
 ---
 
 # Windows-Shell Footguns (non-negotiables)

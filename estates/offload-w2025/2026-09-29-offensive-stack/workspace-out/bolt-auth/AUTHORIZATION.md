@@ -1,3 +1,9 @@
+---
+title: AUTHORIZATION
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/authorization
+---
+
 # ACCEPTED AUTHORIZATION — FULL FORCE (2026-10-01 supersession)
 
 Canonical in-container record: `/work/AUTHORIZATION.md` (`D:\AUTHORIZATION.md`).

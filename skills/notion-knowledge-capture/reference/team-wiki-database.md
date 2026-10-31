@@ -1,3 +1,9 @@
+---
+title: team-wiki-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/team-wiki-database
+---
+
 # Team Wiki Database
 
 **Purpose**: Centralized team knowledge and resources.
@@ -24,4 +30,3 @@ Use for team-specific documentation that doesn't fit other databases.
 3. **Control visibility**: Set appropriate access levels
 4. **Link extensively**: Connect related pages
 5. **Keep current**: Regular reviews to remove outdated content
-

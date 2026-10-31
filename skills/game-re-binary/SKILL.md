@@ -1,6 +1,9 @@
 ---
 name: game-re-binary
-description: Use when asked to analyze, reverse engineer, or understand an unknown binary, game executable, or DLL. Applies when the goal is mapping the binary structure, finding notable functions, or understanding what a binary does without running it.
+description: Use when asked to analyze, reverse engineer, or understand an unknown
+  binary, game executable, or DLL. Applies when the goal is mapping the binary structure,
+  finding notable functions, or understanding what a binary does without running it.
+permalink: dqverify-repo-20261013/skills/game-re-binary/skill
 ---
 
 # Game Binary Static Analysis Pipeline

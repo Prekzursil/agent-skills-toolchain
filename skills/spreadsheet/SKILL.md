@@ -1,8 +1,10 @@
 ---
-name: "spreadsheet"
-description: "Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified."
+name: spreadsheet
+description: Use when tasks involve creating, editing, analyzing, or formatting spreadsheets
+  (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas,
+  references, and formatting need to be preserved and verified.
+permalink: dqverify-repo-20261013/skills/spreadsheet/skill
 ---
-
 
 # Spreadsheet Skill (Create, Edit, Analyze, Visualize)
 

@@ -1,3 +1,9 @@
+---
+title: CAPABILITY-ASSIMILATION-PROGRAM
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/docs/capability-assimilation-program
+---
+
 # Capability Assimilation Program — Handoff (2026-06-11)
 
 Fresh-agent handoff for a multi-session program: assimilate high-value capabilities into the

@@ -1,6 +1,11 @@
 ---
 name: deep-research
-description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports. Use when the user wants thorough, evidence-backed research.
+description: Multi-source deep research with a routing + caching + grading harness
+  over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface,
+  and context7 MCPs. Routes each sub-question to the best live provider, caches provider
+  calls by query hash, grades every source by confidence, and delivers cited reports.
+  Use when the user wants thorough, evidence-backed research.
+permalink: dqverify-repo-20261013/skills/deep-research/skill
 ---
 
 # Deep Research

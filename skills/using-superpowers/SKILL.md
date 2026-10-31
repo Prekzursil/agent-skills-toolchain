@@ -1,6 +1,9 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+description: Use when starting any conversation - establishes how to find and use
+  skills, requiring Skill tool invocation before ANY response including clarifying
+  questions
+permalink: dqverify-repo-20261013/skills/using-superpowers/skill
 ---
 
 <EXTREMELY-IMPORTANT>

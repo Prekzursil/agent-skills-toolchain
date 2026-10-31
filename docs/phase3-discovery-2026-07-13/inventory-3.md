@@ -1,3 +1,9 @@
+---
+title: inventory-3
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/inventory-3
+---
+
 # Harness SOTA/Coherence Audit — HAVE vs NEED per 9-thread consolidation goal
 
 **Scope:** live `C:/Users/Prekzursil/.agents/harness` vs committed repo `C:/Users/Prekzursil/source/ast-harness-reconcile/ci/harness`. Read-only. Recalled basic-memory note `main/harness/phase-3-harness-mcp-doc-sota-consolidation-program-2026-07-13` (the 9-thread program).

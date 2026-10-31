@@ -1,3 +1,9 @@
+---
+title: azure-ai-contentsafety-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-contentsafety-java
+---
+
 # Azure AI Content Safety — Java SDK Quick Reference
 
 > Condensed from **azure-ai-contentsafety-java**. Full patterns (blocklist management, image moderation, 8-severity)

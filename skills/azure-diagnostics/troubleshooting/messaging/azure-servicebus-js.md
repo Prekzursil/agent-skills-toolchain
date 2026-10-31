@@ -1,3 +1,9 @@
+---
+title: azure-servicebus-js
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-servicebus-js
+---
+
 # Azure Service Bus SDK — JavaScript
 
 Package: `@azure/service-bus` | [README](https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/servicebus/service-bus/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-js/blob/main/sdk/servicebus/service-bus/TROUBLESHOOTING.md)

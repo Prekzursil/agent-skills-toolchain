@@ -1,6 +1,9 @@
 ---
-name: "source-command-devfleet"
-description: "Orchestrate parallel Codex agents via Codex DevFleet — plan projects from natural language, dispatch agents in isolated worktrees, monitor progress, and read structured reports."
+name: source-command-devfleet
+description: Orchestrate parallel Codex agents via Codex DevFleet — plan projects
+  from natural language, dispatch agents in isolated worktrees, monitor progress,
+  and read structured reports.
+permalink: dqverify-repo-20261013/skills/source-command-devfleet/skill
 ---
 
 # source-command-devfleet

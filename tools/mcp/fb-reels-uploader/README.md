@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/fb-reels-uploader/readme
+---
+
 # fb-reels-uploader
 
 > **Status: standalone Playwright script — NOT (yet) an MCP.**

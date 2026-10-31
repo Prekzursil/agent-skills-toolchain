@@ -1,3 +1,9 @@
+---
+title: EXTRA-findings
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/audit/extra-findings
+---
+
 # Extra audit findings (owner-side, 2026-09-29)
 
 Findings surfaced outside the four workflow audit lanes. The audit-fixes

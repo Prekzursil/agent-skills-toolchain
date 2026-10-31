@@ -1,6 +1,8 @@
 ---
-name: "source-command-rules-distill"
-description: "Scan skills to extract cross-cutting principles and distill them into rules"
+name: source-command-rules-distill
+description: Scan skills to extract cross-cutting principles and distill them into
+  rules
+permalink: dqverify-repo-20261013/skills/source-command-rules-distill/skill
 ---
 
 # source-command-rules-distill

@@ -1,3 +1,9 @@
+---
+title: ingest-axis-b-engine
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-axis-b-engine
+---
+
 # Ingest — Axis-B Workflow-Orchestration ENGINE gems (for folding into Axis-C)
 
 **Subsystem:** `axis-b-engine`

@@ -1,3 +1,9 @@
+---
+title: research
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/research
+---
+
 # Research and Theory
 
 ## The Ralph Wiggum Technique

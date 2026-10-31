@@ -1,6 +1,8 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+description: Use when encountering any bug, test failure, or unexpected behavior,
+  before proposing fixes
+permalink: dqverify-repo-20261013/skills/systematic-debugging/skill
 ---
 
 # Systematic Debugging

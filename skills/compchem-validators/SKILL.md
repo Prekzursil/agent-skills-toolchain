@@ -1,6 +1,18 @@
 ---
 name: compchem-validators
-description: Use when a docking / MD / free-energy campaign needs an OUTPUT quality gate - post-dock pose validity (PoseBusters), a cheap-tier prefilter before the token-gated tiers (Uni-Dock GPU-Vina before Glide, Boltz-2 affinity before FEP+/QDX credits), or a "docking done / ΔG=… / MD converged" claim that should be backed by a validity artifact before it is treated as done. compchem-preflight guards INPUT; this skill guards OUTPUT (a pose can score well yet be physically impossible). Also the map for the open-weights compute arm - MACE-OFF near-DFT MD, OpenFE token-free FEP twin, REINVENT 4 generative loop, PLINDER leakage-free splits, and the TxAgent/ToolUniverse grounded-reasoning pattern (Opus reasoner, not the fine-tuned model). All ride the existing schrodinger / qdx-rush / cloud-hub MCPs - scientific compute is NOT agent runtime. Do NOT use for the receptor-prep-to-dock pipeline itself (use structure-based-screening) or license-free cheminformatics (use cheminformatics-rdkit).
+description: Use when a docking / MD / free-energy campaign needs an OUTPUT quality
+  gate - post-dock pose validity (PoseBusters), a cheap-tier prefilter before the
+  token-gated tiers (Uni-Dock GPU-Vina before Glide, Boltz-2 affinity before FEP+/QDX
+  credits), or a "docking done / ΔG=… / MD converged" claim that should be backed
+  by a validity artifact before it is treated as done. compchem-preflight guards INPUT;
+  this skill guards OUTPUT (a pose can score well yet be physically impossible). Also
+  the map for the open-weights compute arm - MACE-OFF near-DFT MD, OpenFE token-free
+  FEP twin, REINVENT 4 generative loop, PLINDER leakage-free splits, and the TxAgent/ToolUniverse
+  grounded-reasoning pattern (Opus reasoner, not the fine-tuned model). All ride the
+  existing schrodinger / qdx-rush / cloud-hub MCPs - scientific compute is NOT agent
+  runtime. Do NOT use for the receptor-prep-to-dock pipeline itself (use structure-based-screening)
+  or license-free cheminformatics (use cheminformatics-rdkit).
+permalink: dqverify-repo-20261013/skills/compchem-validators/skill
 ---
 
 # Compchem validators (guard the OUTPUT of a compchem run)

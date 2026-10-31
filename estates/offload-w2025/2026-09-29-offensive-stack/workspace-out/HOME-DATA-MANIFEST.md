@@ -1,3 +1,9 @@
+---
+title: HOME-DATA-MANIFEST
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/home-data-manifest
+---
+
 # Home data copied 2026-10-01
 
 Source: desktop-a60s9gp (100.97.16.36) via rclone SFTP

@@ -1,3 +1,9 @@
+---
+title: tool-file-search
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-file-search
+---
+
 # Tool — File Search (`type: file_search`)
 
 Vector-store-backed retrieval over uploaded files — a **connectionless built-in** (the vector store is referenced by the toolbox tool). Use the **flat** tool shape: `vector_store_ids` is a sibling of `type`, not nested under `file_search`. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

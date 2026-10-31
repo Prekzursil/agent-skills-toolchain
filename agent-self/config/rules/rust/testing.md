@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.rs"
+- '**/*.rs'
+permalink: dqverify-repo-20261013/agent-self/config/rules/rust/testing
 ---
+
 # Rust Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Rust-specific content.

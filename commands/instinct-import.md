@@ -2,6 +2,7 @@
 name: instinct-import
 description: Import instincts from file or URL into project/global scope
 command: true
+permalink: dqverify-repo-20261013/commands/instinct-import
 ---
 
 # Instinct Import Command

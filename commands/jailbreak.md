@@ -1,3 +1,9 @@
+---
+title: jailbreak
+type: note
+permalink: dqverify-repo-20261013/commands/jailbreak
+---
+
 Jailbreak operations for the cs-agent-integrity lane — TWO modes of use:
 
 (A) OPERATIONAL — continue the flow: wrap the CURRENT work so the model executes it.

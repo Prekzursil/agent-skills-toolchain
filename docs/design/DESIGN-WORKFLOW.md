@@ -1,3 +1,9 @@
+---
+title: DESIGN-WORKFLOW
+type: note
+permalink: dqverify-repo-20261013/docs/design/design-workflow
+---
+
 # The TCR Loop — a Systematic, Named Design-Review + Code↔Figma Workflow
 
 **Synthesized:** 2026-06-30 from the 9 design-research lens digests in this folder.

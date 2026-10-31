@@ -1,3 +1,9 @@
+---
+title: gate_findings_at_head
+type: note
+permalink: dqverify-repo-20261013/skills/ci-silent-pass-lint/gate-findings-at-head
+---
+
 # SHA-Finding Primitive — Cross-Check Findings at HEAD
 
 This runbook documents the **shared SHA-finding primitive** used by:

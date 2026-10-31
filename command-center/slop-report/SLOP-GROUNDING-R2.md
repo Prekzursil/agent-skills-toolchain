@@ -1,3 +1,9 @@
+---
+title: SLOP-GROUNDING-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-grounding-r2
+---
+
 # SLOP lane — GROUNDING round 2: what already exists, and what actually remains
 
 LANE: SLOP (grounding — measure only, no production code, no destructive execution)

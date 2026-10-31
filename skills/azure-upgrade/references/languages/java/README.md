@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/readme
+---
+
 # Java Legacy Azure SDK → Modern Azure SDK
 
 > **Scenario scope**: Upgrade a Maven/Gradle project's Azure SDK dependencies from `com.microsoft.azure.*` (legacy, end-of-support 2023) to `com.azure.*` (modern) — source code, build files, tests.

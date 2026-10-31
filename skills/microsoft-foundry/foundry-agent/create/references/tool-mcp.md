@@ -1,3 +1,9 @@
+---
+title: tool-mcp
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tool-mcp
+---
+
 # MCP Tool (Model Context Protocol)
 
 Connect agents to remote MCP servers to extend capabilities with external tools and data sources. MCP is an open standard for LLM tool integration.

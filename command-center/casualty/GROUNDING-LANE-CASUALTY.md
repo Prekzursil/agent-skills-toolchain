@@ -1,3 +1,9 @@
+---
+title: GROUNDING-LANE-CASUALTY
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/grounding-lane-casualty
+---
+
 # GROUNDING — LANE CASUALTY
 
 STATUS: COMPLETE for the grounding mandate. Every number below was executed, not asserted.

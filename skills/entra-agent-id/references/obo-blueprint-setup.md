@@ -1,3 +1,9 @@
+---
+title: obo-blueprint-setup
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/obo-blueprint-setup
+---
+
 # OBO Blueprint Setup
 
 To use **OBO (on-behalf-of)** mode — where an agent acts on behalf of a user — the Blueprint must be configured as an OAuth2 API so the user's token can target it as audience.

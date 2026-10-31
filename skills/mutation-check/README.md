@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/mutation-check/readme
+---
+
 # mutation-check — empirical test-strength gate (agentic-perfection gem C3)
 
 A cheap, execution-grounded check of test **strength**, not just coverage. Coverage

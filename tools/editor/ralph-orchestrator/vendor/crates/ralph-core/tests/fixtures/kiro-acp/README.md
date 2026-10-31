@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/tests/fixtures/kiro-acp/readme
+---
+
 # kiro-acp Test Fixtures
 
 This directory contains JSONL session fixtures for smoke testing the Ralph orchestrator with the kiro-acp adapter (agent-client-protocol mode via `kiro-cli acp`).

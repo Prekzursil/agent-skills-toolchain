@@ -1,3 +1,9 @@
+---
+title: monitoring
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/monitoring
+---
+
 # Monitoring Pairing Constraints
 
 ### Application Insights

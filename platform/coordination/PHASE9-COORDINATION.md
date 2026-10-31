@@ -1,3 +1,9 @@
+---
+title: PHASE9-COORDINATION
+type: note
+permalink: dqverify-repo-20261013/platform/coordination/phase9-coordination
+---
+
 # Phase 9 — Multi-session and cross-vendor coordination
 
 **Spec anchor:** `C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10965-10983`

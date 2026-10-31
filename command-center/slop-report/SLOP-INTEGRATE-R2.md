@@ -1,3 +1,9 @@
+---
+title: SLOP-INTEGRATE-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-integrate-r2
+---
+
 # SLOP lane — INTEGRATE round 2: the lane's second gate, wired and red-proved
 
 MEASURED ACROSS `46029e92` → `77182bb0`. HEAD moved at least five times under this round

@@ -1,3 +1,9 @@
+---
+title: hyperparameters
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/hyperparameters
+---
+
 # Hyperparameter Guide
 
 ## SFT / DPO Core Parameters

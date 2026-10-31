@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/readme
+---
+
 # Azure Functions
 
 Serverless compute for event-driven workloads, APIs, and scheduled tasks.

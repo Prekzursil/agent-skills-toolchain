@@ -1,3 +1,9 @@
+---
+title: health-check-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/health-check-patterns
+---
+
 # Health Check Patterns
 
 Post-deployment health verification for AppOnboard-deployed resources.

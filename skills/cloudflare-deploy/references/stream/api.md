@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/stream/api
+---
+
 # Stream API Reference
 
 Upload, playback, live streaming, and management APIs.

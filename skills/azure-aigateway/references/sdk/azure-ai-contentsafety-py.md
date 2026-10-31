@@ -1,3 +1,9 @@
+---
+title: azure-ai-contentsafety-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/sdk/azure-ai-contentsafety-py
+---
+
 # Azure AI Content Safety — Python SDK Quick Reference
 
 > Condensed from **azure-ai-contentsafety-py**. Full patterns (blocklist management, image analysis, 8-severity mode)

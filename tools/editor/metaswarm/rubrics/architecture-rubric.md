@@ -1,3 +1,9 @@
+---
+title: architecture-rubric
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/rubrics/architecture-rubric
+---
+
 # Architecture Rubric
 
 **Used By**: Architect Agent

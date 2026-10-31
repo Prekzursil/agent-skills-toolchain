@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
-  - "**/analysis_options.yaml"
+- '**/*.dart'
+- '**/pubspec.yaml'
+- '**/analysis_options.yaml'
+permalink: dqverify-repo-20261013/agent-self/config/rules/dart/coding-style
 ---
+
 # Dart/Flutter Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Dart and Flutter-specific content.

@@ -1,13 +1,15 @@
 ---
 paths:
-  - "**/*.cpp"
-  - "**/*.hpp"
-  - "**/*.cc"
-  - "**/*.hh"
-  - "**/*.cxx"
-  - "**/*.h"
-  - "**/CMakeLists.txt"
+- '**/*.cpp'
+- '**/*.hpp'
+- '**/*.cc'
+- '**/*.hh'
+- '**/*.cxx'
+- '**/*.h'
+- '**/CMakeLists.txt'
+permalink: dqverify-repo-20261013/agent-self/config/rules/cpp/coding-style
 ---
+
 # C++ Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with C++ specific content.

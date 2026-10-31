@@ -1,3 +1,9 @@
+---
+title: report-template
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/report-template
+---
+
 # Cost Optimization Report Template
 
 Use `create_file` with path `output/costoptimizereport<YYYYMMDD_HHMMSS>.md` and the following structure:

@@ -1,3 +1,9 @@
+---
+title: web_scraper
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/examples/web-scraper
+---
+
 # Web Scraper Example
 
 Build a Python web scraper that:

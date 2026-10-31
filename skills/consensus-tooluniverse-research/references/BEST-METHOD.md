@@ -1,3 +1,9 @@
+---
+title: BEST-METHOD
+type: note
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/references/best-method
+---
+
 # Best Method — downloading Consensus searches, their papers, and their graphs
 
 **Conclusion (TL;DR):** the most reliable, reproducible, browser-free pipeline is a **3-stage chain** —

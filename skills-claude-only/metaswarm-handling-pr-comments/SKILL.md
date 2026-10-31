@@ -1,6 +1,8 @@
 ---
 name: handling-pr-comments
-description: Address PR review feedback systematically — fetch inline comments, review bodies, handle outside-diff-range comments, resolve threads with proper attribution
+description: Address PR review feedback systematically — fetch inline comments, review
+  bodies, handle outside-diff-range comments, resolve threads with proper attribution
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-handling-pr-comments/skill
 ---
 
 # handling-pr-comments

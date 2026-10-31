@@ -1,3 +1,9 @@
+---
+title: post-deploy-checks
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/post-deploy-checks
+---
+
 # Post-deploy checks
 
 Use this after any deploy or service creation. Keep it short; stop when a check fails.

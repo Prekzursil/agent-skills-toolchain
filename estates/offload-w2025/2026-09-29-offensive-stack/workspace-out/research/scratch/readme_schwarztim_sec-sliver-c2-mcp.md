@@ -1,3 +1,9 @@
+---
+title: readme_schwarztim_sec-sliver-c2-mcp
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-schwarztim-sec-sliver-c2-mcp
+---
+
 # Sliver C2 MCP Server
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for interacting with the [Sliver C2](https://github.com/BishopFox/sliver) adversary emulation framework.

@@ -1,3 +1,9 @@
+---
+title: routing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/static-web-apps/routing
+---
+
 # Static Web Apps - Routing & Authentication
 
 ## Route Configuration

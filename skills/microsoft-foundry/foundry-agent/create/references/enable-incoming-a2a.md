@@ -1,3 +1,9 @@
+---
+title: enable-incoming-a2a
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/enable-incoming-a2a
+---
+
 # Enable Incoming A2A on a Foundry Agent
 
 Expose a Foundry agent (prompt or hosted) as an Agent2Agent (A2A) endpoint so other agents can discover and call it.

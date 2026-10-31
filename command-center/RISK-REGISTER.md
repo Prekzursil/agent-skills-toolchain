@@ -1,3 +1,9 @@
+---
+title: RISK-REGISTER
+type: note
+permalink: dqverify-repo-20261013/command-center/risk-register
+---
+
 # RISK-REGISTER
 
 Risks to *this* command center and to the programs it tracks. Each row names the failure, the

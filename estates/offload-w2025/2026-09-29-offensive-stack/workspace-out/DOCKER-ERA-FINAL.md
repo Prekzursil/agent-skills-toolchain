@@ -1,3 +1,9 @@
+---
+title: DOCKER-ERA-FINAL
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/docker-era-final
+---
+
 # Docker-era final status — 2026-10-01
 
 Remote engine: ssh://offload-linux (34.116.205.199, e2-highmem-4, 32GB RAM)

@@ -1,6 +1,10 @@
 ---
 name: clarify-requirements
-description: Resolve genuine pre-execution ambiguity by scanning repo context, generating 1-6 grounded options, and asking 1-3 focused questions via AskUserQuestion. NOT for mid-task use (injection risk); NOT when the goal is already unambiguous; use to disambiguate vague prompts before any file edits.
+description: Resolve genuine pre-execution ambiguity by scanning repo context, generating
+  1-6 grounded options, and asking 1-3 focused questions via AskUserQuestion. NOT
+  for mid-task use (injection risk); NOT when the goal is already unambiguous; use
+  to disambiguate vague prompts before any file edits.
+permalink: dqverify-repo-20261013/ci/skills-allowlist/clarify-requirements/skill
 ---
 
 # clarify-requirements

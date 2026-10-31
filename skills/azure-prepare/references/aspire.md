@@ -1,3 +1,9 @@
+---
+title: aspire
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/aspire
+---
+
 # .NET Aspire Projects
 
 > ⛔ **CRITICAL - READ THIS FIRST**

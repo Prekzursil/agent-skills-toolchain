@@ -1,3 +1,9 @@
+---
+title: conversation-to-faq
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/examples/conversation-to-faq
+---
+
 # Example: Conversation to FAQ
 
 ## User Request
@@ -223,4 +229,3 @@ Each FAQ includes:
 - Created permanent team resource
 
 Perfect for: FAQ creation, knowledge preservation, team documentation
-

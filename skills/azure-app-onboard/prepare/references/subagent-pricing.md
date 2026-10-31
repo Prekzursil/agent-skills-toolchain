@@ -1,3 +1,9 @@
+---
+title: subagent-pricing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/subagent-pricing
+---
+
 # Subagent Template — Cost Estimation (Step 6)
 
 Estimate monthly costs for planned Azure services using Azure Retail Prices API.

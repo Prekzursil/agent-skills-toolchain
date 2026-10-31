@@ -1,3 +1,9 @@
+---
+title: request-body-schema
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-query/request-body-schema
+---
+
 # Cost Management Query API — Request Body Schema
 
 Schema for the [Cost Management Query API](https://learn.microsoft.com/en-us/rest/api/cost-management/query/usage).

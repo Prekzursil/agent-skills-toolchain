@@ -1,3 +1,9 @@
+---
+title: deep-research-literature-workflow
+type: note
+permalink: dqverify-repo-20261013/docs/workflows/deep-research-literature-workflow
+---
+
 # Deep-Research Literature Workflow
 
 It takes a

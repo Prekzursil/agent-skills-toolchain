@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/process-hygiene-supervisor/readme
+---
+
 # process-hygiene-supervisor — one estate-wide process governor for Windows
 
 Keeps the 31.6 GB workstation that hosts many AI runtimes (Cursor agent CLI+IDE,

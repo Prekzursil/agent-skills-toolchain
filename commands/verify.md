@@ -1,3 +1,9 @@
+---
+title: verify
+type: note
+permalink: dqverify-repo-20261013/commands/verify
+---
+
 # Verification Command
 
 Run comprehensive verification on current codebase state.

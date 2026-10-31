@@ -1,3 +1,9 @@
+---
+title: _sections
+type: note
+permalink: dqverify-repo-20261013/skills/winui-app/references/sections
+---
+
 # Reference Sections
 
 Use this index to choose the narrowest reference file that fits the current task.

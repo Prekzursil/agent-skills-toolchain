@@ -1,3 +1,9 @@
+---
+title: _ed1s0nz_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/ed1s0nz-readme
+---
+
 # SecurityMCP-Hub
 
 构建一个完整的网络安全工具 MCP 服务生态，让大模型能够自主调用各类安全工具，实现智能化的安全测试、资产发现、漏洞扫描等任务。所有服务遵循统一标准，支持完全自主的参数配置，无需人工干预。
@@ -152,5 +158,3 @@ Usage: nmap [Scan Type(s)] [Options] {target specification}
 ## 许可证
 
 MIT License
-
-

@@ -1,3 +1,9 @@
+---
+title: 2026-06-11-fanout-synthesis
+type: note
+permalink: dqverify-repo-20261013/docs/research/2026-06-11-fanout-synthesis
+---
+
 The two notes the contrarian leaned on (`harness_trim` and `bc_fsm_redesign`) are already summarized verbatim in my MEMORY.md system context — the trim cut every-turn load 64% via path-scoped rules, and the FSM redesign replaced a Ralph loop with a deterministic phase state machine that passed all gates. I have what I need; re-reading the full notes would burn tokens for marginal gain and risk the very echo-chamber pattern under analysis. Synthesizing now.
 
 ---

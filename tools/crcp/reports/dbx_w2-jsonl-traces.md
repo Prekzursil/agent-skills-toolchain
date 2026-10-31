@@ -1,3 +1,9 @@
+---
+title: dbx_w2-jsonl-traces
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w2-jsonl-traces
+---
+
 # W2 JSONL traces and SLO counters
 
 ## Summary

@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/configuration
+---
+
 # Configuration
 
 Complete reference for Ralph's YAML configuration.

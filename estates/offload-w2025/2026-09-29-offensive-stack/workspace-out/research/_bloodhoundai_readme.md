@@ -1,3 +1,9 @@
+---
+title: _bloodhoundai_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/bloodhoundai-readme
+---
+
 # BloodHound-MCP
 
 ![BloodHound-MCP](/images/BloodHound-MCP-Banner.png)
@@ -111,5 +117,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Note: This is not an official Anthropic product. BloodHound-MCP is a community-driven integration between BloodHound and MCP.* 
-
+*Note: This is not an official Anthropic product. BloodHound-MCP is a community-driven integration between BloodHound and MCP.*

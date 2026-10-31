@@ -1,3 +1,9 @@
+---
+title: LANE-MCPRESEARCH-BUILD-R3B
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/lane-mcpresearch-build-r3-b
+---
+
 # LANE MCPRESEARCH — BUILD round 3B: the second overclaim
 
 **Round 3 shipped at `9ec1eb33` and closed two of the three audit findings.** This is the

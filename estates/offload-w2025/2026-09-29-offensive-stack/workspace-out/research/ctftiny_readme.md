@@ -1,3 +1,9 @@
+---
+title: ctftiny_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/ctftiny-readme
+---
+
 # CTFTiny: Lite Benchmarking Offensive Cyber Skills in Large Language Models
 This is the official repository for CTFTiny from "Towards Effective Offensive Security LLM Agents: Hyperparameter Tuning, LLM as a Judge, and a Lightweight CTF Benchmark" (AAAI'26) [[paper](https://arxiv.org/abs/2508.05674)].
 

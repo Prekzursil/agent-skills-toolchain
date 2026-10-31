@@ -1,3 +1,9 @@
+---
+title: branch-retirement-nonjuly-2026-09-02
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/branch-retirement-nonjuly-2026-09-02
+---
+
 # Branch retirement: the 17 non-July unmerged branches — 17 tags created, 0 branches deleted
 
 Filed 2026-09-02. Closes item 4 of `reconcile-flags/branch-retirement-2026-09-02.md` §10 ("Tag the

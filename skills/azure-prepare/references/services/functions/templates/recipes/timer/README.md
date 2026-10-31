@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/timer/readme
+---
+
 # Timer Recipe
 
 Scheduled/cron trigger for periodic task execution.

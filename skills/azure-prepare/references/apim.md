@@ -1,3 +1,9 @@
+---
+title: apim
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/apim
+---
+
 # APIM Deployment Guide
 
 Deploy Azure API Management (APIM) as part of your Azure infrastructure.

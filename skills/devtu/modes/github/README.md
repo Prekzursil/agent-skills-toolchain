@@ -1,6 +1,9 @@
 ---
 name: devtu-github
-description: GitHub workflow for ToolUniverse - push code safely by moving temp files, activating pre-commit hooks, running tests, and cleaning staged files. Use when pushing to GitHub, fixing CI failures, or cleaning up before commits.
+description: GitHub workflow for ToolUniverse - push code safely by moving temp files,
+  activating pre-commit hooks, running tests, and cleaning staged files. Use when
+  pushing to GitHub, fixing CI failures, or cleaning up before commits.
+permalink: dqverify-repo-20261013/skills/devtu/modes/github/readme
 ---
 
 # DevTU GitHub Workflow

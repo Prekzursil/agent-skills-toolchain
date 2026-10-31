@@ -1,3 +1,9 @@
+---
+title: nodejs-entry-point
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/common/nodejs-entry-point
+---
+
 # Node.js Entry Point (REQUIRED)
 
 Azure Functions Node.js v4 programming model requires an entry point file that initializes the runtime.

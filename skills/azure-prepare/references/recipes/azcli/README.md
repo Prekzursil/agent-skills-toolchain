@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azcli/readme
+---
+
 # AZCLI Recipe
 
 Azure CLI workflow for imperative Azure deployments.

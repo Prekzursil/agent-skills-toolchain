@@ -1,3 +1,9 @@
+---
+title: simple-task
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/examples/simple-task
+---
+
 # Task: Create a Hello World Program
 
 Write a Python script that prints "Hello, World!" to the console.

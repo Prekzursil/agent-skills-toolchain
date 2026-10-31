@@ -1,3 +1,9 @@
+---
+title: pm2
+type: note
+permalink: dqverify-repo-20261013/commands/pm2
+---
+
 # PM2 Init
 
 Auto-analyze project and generate PM2 service commands.

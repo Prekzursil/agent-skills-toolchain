@@ -1,6 +1,9 @@
 ---
 name: long-copy-orchestrator
-description: Use when moving large trees between Windows, WSL, VMs, or mounted disks and you need to choose rsync, tar, robocopy, or offline copy, track progress, detect stalls, and resume safely.
+description: Use when moving large trees between Windows, WSL, VMs, or mounted disks
+  and you need to choose rsync, tar, robocopy, or offline copy, track progress, detect
+  stalls, and resume safely.
+permalink: dqverify-repo-20261013/skills/long-copy-orchestrator/skill
 ---
 
 # Long Copy Orchestrator

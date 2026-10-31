@@ -1,3 +1,9 @@
+---
+title: 2026-08-29-cursor-agent-mcp-orphan-ram
+type: note
+permalink: dqverify-repo-20261013/docs/incidents/2026-08-29-cursor-agent-mcp-orphan-ram
+---
+
 # Cursor Agent MCP process multiplication and orphan RAM incident
 
 **Date:** 29.08.2026  
@@ -219,4 +225,3 @@ history was unavailable.
 - `NOT COMPLETE`: old live sessions still retain old stacks; no hard
   one-local-agent launcher gate; no automatic orphan kill by deliberate safety
   decision.
-

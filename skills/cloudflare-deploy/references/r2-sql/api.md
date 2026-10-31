@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-sql/api
+---
+
 # R2 SQL API Reference
 
 SQL syntax, functions, operators, and data types for R2 SQL queries.

@@ -1,3 +1,9 @@
+---
+title: post-deployment-validation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/post-deployment-validation
+---
+
 # Post-Deployment Validation
 
 Run after deployment succeeds. Steps 1-3 can run from anywhere (management plane). Steps 4-5 require VNet access.

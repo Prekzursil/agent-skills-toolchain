@@ -1,3 +1,9 @@
+---
+title: azqr-remediation-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/azqr-remediation-patterns
+---
+
 # Remediation Patterns for Common azqr Findings
 
 This document provides remediation templates for frequently identified compliance issues.

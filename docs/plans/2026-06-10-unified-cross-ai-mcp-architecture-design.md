@@ -1,3 +1,9 @@
+---
+title: 2026-06-10-unified-cross-ai-mcp-architecture-design
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-06-10-unified-cross-ai-mcp-architecture-design
+---
+
 # Unified, Cross-AI MCP Architecture — Design Spec (v2.1)
 
 **Date:** 2026-06-10 · **Status:** v2.1, **Design-Review-Gate PASSED** (5/5 approve, round 2) — v2.1 folds in round-2 non-blocking refinements · pending user review → Plan Review Gate → implementation

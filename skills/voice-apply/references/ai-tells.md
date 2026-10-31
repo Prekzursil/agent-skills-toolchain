@@ -1,3 +1,9 @@
+---
+title: ai-tells
+type: note
+permalink: dqverify-repo-20261013/skills/voice-apply/references/ai-tells
+---
+
 # AI Writing Tells — Detection and Avoidance Guide
 
 This reference is the core of Ghostwriter. Every voice profile generated, analyzed, or applied must enforce these rules. The goal: output that sounds like a specific human wrote it, not like it was generated.

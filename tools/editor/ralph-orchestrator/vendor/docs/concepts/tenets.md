@@ -1,3 +1,9 @@
+---
+title: tenets
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/tenets
+---
+
 # The Six Tenets
 
 Ralph's design is guided by six core tenets. Understanding these helps you work with Ralph effectively.

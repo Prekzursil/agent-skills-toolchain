@@ -1,3 +1,9 @@
+---
+title: never-close
+type: note
+permalink: dqverify-repo-20261013/skills/recover-from-false-positive/references/never-close
+---
+
 # Keep a session alive forever (never close, never trip)
 
 For an ALREADY-saturated live session there is no client-side way to keep full

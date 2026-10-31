@@ -1,3 +1,9 @@
+---
+title: PROMPT-ONE-REVERIFY
+type: note
+permalink: dqverify-repo-20261013/command-center/prompt-one-reverify
+---
+
 # LANE D1 — RE-VERIFY of PROMPT-ONE-FLOOR-AUDIT.md
 
 **Measured:** 2026-08-10 · **Target:** `command-center/PROMPT-ONE-FLOOR-AUDIT.md` (measured 2026-08-09,

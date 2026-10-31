@@ -1,6 +1,8 @@
 ---
 name: langfuse-setting-up-evals
-description: Set up evaluation by finding gaps across signal capture, monitoring, and evaluator metrics, then addressing the right one first.
+description: Set up evaluation by finding gaps across signal capture, monitoring,
+  and evaluator metrics, then addressing the right one first.
+permalink: dqverify-repo-20261013/skills/langfuse/references/setting-up-evals
 ---
 
 # Setting up evals

@@ -1,0 +1,2 @@
+@echo off
+powershell -NoProfile -Command "$h = $null; try { $h = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8377/health' -TimeoutSec 2 } catch {}; if ($h) { Write-Host 'router already up:' $h.Content; exit 0 }; $p = Start-Process -FilePath node -ArgumentList '"D:/opt/cc-router/router.mjs"' -WindowStyle Hidden -PassThru; $p.Id | Set-Content -NoNewline 'D:/opt/cc-router/router.pid'; Start-Sleep 2; Write-Host 'router started pid' $p.Id

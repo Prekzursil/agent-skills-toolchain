@@ -1,3 +1,9 @@
+---
+title: extraction
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/extraction
+---
+
 # Extracting Structured Data from Search Results
 
 After running searches, you need to extract structured information from the results. This file covers how to do that well.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/readme
+---
+
 # Salvaged snapshot — 21 files that existed ONLY in a no-remote, zero-commit directory
 
 Taken 2026-08-13 08:1x by the orchestrator from `~/source/_advver_M14/scratch`, mid-wave, while

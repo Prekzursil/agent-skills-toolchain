@@ -1,3 +1,9 @@
+---
+title: iac-patching-terraform
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/iac-patching-terraform
+---
+
 # IaC Patching — Terraform
 
 ## When to Use
@@ -128,4 +134,3 @@ Do NOT bundle the storage SKU change with the safe patches — a failed storage 
 
 Ready to run `terraform plan`? (yes / no)
 ```
-

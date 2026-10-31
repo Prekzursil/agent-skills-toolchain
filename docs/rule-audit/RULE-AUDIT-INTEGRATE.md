@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-integrate
+---
+
 # RULERESEARCH — INTEGRATE
 
 Filled by the BUILD lane, round 1. This file was a skeleton whose every section read

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/social-hub/readme
+---
+
 # social-hub — lazy, name-preserving MCP multiplexer for the social stack
 
 Fronts the user's social MCP servers behind **one** MCP registration while keeping

@@ -1,3 +1,9 @@
+---
+title: V01-top-10-plugin-vulns
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/v01-top-10-plugin-vulns
+---
+
 # V01 — Top 10 plugin/MCP vulnerabilities threatening the ChatGPT web session
 
 ## DIGEST (body: 451 words)

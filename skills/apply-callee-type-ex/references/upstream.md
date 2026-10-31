@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/apply-callee-type-ex/references/upstream
+---
+
 # ApplyCalleeTypeEx Notes
 
 ## Upstream

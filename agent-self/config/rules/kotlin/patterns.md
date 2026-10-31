@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
+- '**/*.kt'
+- '**/*.kts'
+permalink: dqverify-repo-20261013/agent-self/config/rules/kotlin/patterns
 ---
+
 # Kotlin Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Kotlin and Android/KMP-specific content.

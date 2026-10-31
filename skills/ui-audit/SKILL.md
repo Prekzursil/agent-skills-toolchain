@@ -1,8 +1,13 @@
 ---
 name: ui-audit
-description: Drive a running web or Electron app and emit a deterministic UI/UX + functional audit - a11y, contrast, spacing, tap targets, dead buttons, motion, visual regression (Track-A) - then a design-quality VERDICT (Track-B) where Claude reasons over the numbers + screenshot on the DESIGN-EVAL v1 rubric (0-4, critical-error override, weighted composite) against Refactoring-UI/HIG/Nielsen/WCAG. READ-ONLY.
+description: Drive a running web or Electron app and emit a deterministic UI/UX +
+  functional audit - a11y, contrast, spacing, tap targets, dead buttons, motion, visual
+  regression (Track-A) - then a design-quality VERDICT (Track-B) where Claude reasons
+  over the numbers + screenshot on the DESIGN-EVAL v1 rubric (0-4, critical-error
+  override, weighted composite) against Refactoring-UI/HIG/Nielsen/WCAG. READ-ONLY.
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/skills/ui-audit/skill
 ---
 
 # ui-audit Skill

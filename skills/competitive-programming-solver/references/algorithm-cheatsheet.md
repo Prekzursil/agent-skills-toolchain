@@ -1,3 +1,9 @@
+---
+title: algorithm-cheatsheet
+type: note
+permalink: dqverify-repo-20261013/skills/competitive-programming-solver/references/algorithm-cheatsheet
+---
+
 # Algorithm Cheatsheet
 
 Match constraints → algorithm. C++ at 10^8 simple operations per second guideline.

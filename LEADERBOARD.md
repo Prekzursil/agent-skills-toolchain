@@ -1,3 +1,9 @@
+---
+title: LEADERBOARD
+type: note
+permalink: dqverify-repo-20261013/leaderboard
+---
+
 # Toolchain Leaderboard — best-of hooks, skills & MCPs
 
 **What this is:** an opinionated, *evidence-graded* ranking of the components that most improved real work — drawn from lived experience (the multi-front Battle Cats RE/build marathon, the events-resolution research, the extended-program scoping) and the project's documented history, **not** a feature inventory. Includes **vendored** components, not just home-grown ones.

@@ -1,3 +1,9 @@
+---
+title: diagnose-poor-results
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/workflows/diagnose-poor-results
+---
+
 # Diagnosing Poor Results
 
 When your fine-tuned model performs worse than expected, work through this checklist top-down (most common causes first).

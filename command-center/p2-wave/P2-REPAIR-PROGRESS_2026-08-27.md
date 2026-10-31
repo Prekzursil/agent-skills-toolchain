@@ -1,3 +1,9 @@
+---
+title: P2-REPAIR-PROGRESS_2026-08-27
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-repair-progress-2026-08-27
+---
+
 # P2 G-1 repair progress (parallel coordinator, started 28.08.2026 00:45 EEST)
 
 ## Status: IN PROGRESS — recover-first, collision-aware

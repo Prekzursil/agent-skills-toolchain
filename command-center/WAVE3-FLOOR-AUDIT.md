@@ -1,3 +1,9 @@
+---
+title: WAVE3-FLOOR-AUDIT
+type: note
+permalink: dqverify-repo-20261013/command-center/wave3-floor-audit
+---
+
 # WAVE 3 FLOOR AUDIT — mechanical, independent
 
 **Unit:** `verify/wave3` · **Date:** 2026-08-10 · **Baseline pin:** main `0aa6f8fa`

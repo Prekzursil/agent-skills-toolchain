@@ -1,3 +1,9 @@
+---
+title: network-connectivity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/network-connectivity
+---
+
 # Network Connectivity Problems
 
 Use when the VM is running but unreachable due to Azure network configuration: NSG, routing, NIC, public IP, or DNS.

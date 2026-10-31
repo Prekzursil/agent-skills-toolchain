@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R1
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r1
+---
+
 # SLOP lane — BUILD round 1
 
 Round 1 of at most 4. Everything below was measured in this tree, not carried from the brief;

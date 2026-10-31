@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/sql-database/readme
+---
+
 # Azure SQL Database
 
 Managed relational database with ACID compliance and full SQL Server compatibility.

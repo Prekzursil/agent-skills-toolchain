@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/frida-mcp/references/upstream
+---
+
 # Upstream Notes
 
 - Upstream repo: `https://github.com/dnakov/frida-mcp`

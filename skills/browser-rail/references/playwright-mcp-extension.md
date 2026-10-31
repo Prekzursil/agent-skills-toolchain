@@ -1,3 +1,9 @@
+---
+title: playwright-mcp-extension
+type: note
+permalink: dqverify-repo-20261013/skills/browser-rail/references/playwright-mcp-extension
+---
+
 # Playwright MCP: `--extension` bridge and `--cdp-endpoint` attach
 
 Config text for the **claude-closed lane** to apply. Nothing here is applied by the

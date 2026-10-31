@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/snippets/configuration
+---
+
 # Snippets Configuration Guide
 
 ## Configuration Methods
@@ -224,4 +230,4 @@ export CLOUDFLARE_API_TOKEN="your_token_here"
 ```bash
 export CLOUDFLARE_EMAIL="your@email.com"
 export CLOUDFLARE_API_KEY="your_global_api_key"
-``` 
+```

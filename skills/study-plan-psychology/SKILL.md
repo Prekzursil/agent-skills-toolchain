@@ -1,6 +1,8 @@
 ---
 name: study-plan-psychology
-description: Use when building a study plan grounded in cognitive psychology, retrieval practice, spacing, interleaving, and realistic motivation management.
+description: Use when building a study plan grounded in cognitive psychology, retrieval
+  practice, spacing, interleaving, and realistic motivation management.
+permalink: dqverify-repo-20261013/skills/study-plan-psychology/skill
 ---
 
 # study-plan-psychology

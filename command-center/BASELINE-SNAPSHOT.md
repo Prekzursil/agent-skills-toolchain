@@ -1,3 +1,9 @@
+---
+title: BASELINE-SNAPSHOT
+type: note
+permalink: dqverify-repo-20261013/command-center/baseline-snapshot
+---
+
 # BASELINE-SNAPSHOT — Prompt Two Phase 0 freeze
 
 Machine-readable twin: [`BASELINE-SNAPSHOT.json`](BASELINE-SNAPSHOT.json).

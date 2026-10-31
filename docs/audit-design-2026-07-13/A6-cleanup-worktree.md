@@ -1,3 +1,9 @@
+---
+title: A6-cleanup-worktree
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a6-cleanup-worktree
+---
+
 # A6 — Cleanup / Worktree + Stale-Branch Census (Phase 4.8)
 
 **Deliverable of Workflow A (EVIDENCE).** **Mode:** READ-ONLY (active-work freeze) — enumerate +

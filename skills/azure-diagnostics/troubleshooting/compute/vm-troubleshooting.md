@@ -1,3 +1,9 @@
+---
+title: vm-troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/vm-troubleshooting
+---
+
 # Azure VM Connectivity Troubleshooting
 
 Primary compute troubleshooting guide for incidents routed from [../../SKILL.md](../../SKILL.md). Use for Azure VM RDP/SSH failures, NSG/firewall blocks, credential resets, and VM agent/tooling issues.

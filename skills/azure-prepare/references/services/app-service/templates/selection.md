@@ -1,3 +1,9 @@
+---
+title: selection
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/selection
+---
+
 # Template Selection Decision Tree — REFERENCE ONLY
 
 **CRITICAL**: Check for specific scenario indicators IN ORDER before defaulting to Web API.

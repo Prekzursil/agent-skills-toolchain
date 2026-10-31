@@ -1,3 +1,9 @@
+---
+title: decision-meeting-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/decision-meeting-template
+---
+
 # Decision Meeting Template
 
 Use this template when you need to make an important decision with your team.
@@ -91,4 +97,3 @@ Use this template when you need to make an important decision with your team.
 **Next review**: [Date]
 **Success metrics**: [How we'll know this worked]
 ```
-

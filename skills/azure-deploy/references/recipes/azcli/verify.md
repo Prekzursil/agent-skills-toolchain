@@ -1,3 +1,9 @@
+---
+title: verify
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azcli/verify
+---
+
 # Azure CLI Verification
 
 ```bash

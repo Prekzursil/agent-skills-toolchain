@@ -1,3 +1,9 @@
+---
+title: onion-forums
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/onion-forums
+---
+
 # Lane: onion-forums — dark forum/marketplace chatter about AI red-teaming & LLM hacking services
 
 Date: 2026-09-29. VM: Windows Server, Git Bash, curl via Tor SOCKS proxy `socks5h://127.0.0.1:9050` (v0.4.9.13 at D:\opt\tor, see out/research/tor-setup.md).

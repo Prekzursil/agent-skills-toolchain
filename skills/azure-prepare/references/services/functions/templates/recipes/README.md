@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/readme
+---
+
 # Function Template Recipes
 
 Composable templates for Azure Functions integrations.

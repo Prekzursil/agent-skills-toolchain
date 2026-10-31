@@ -1,8 +1,10 @@
 ---
 title: Use Secure Transport
 impact: HIGH
-impactDescription: Exposure of sensitive data through cleartext transmission or improper certificate validation
+impactDescription: Exposure of sensitive data through cleartext transmission or improper
+  certificate validation
 tags: security, insecure-transport, tls, ssl, cwe-295, cwe-319, cwe-311
+permalink: dqverify-repo-20261013/skills/code-security/rules/insecure-transport
 ---
 
 ## Use Secure Transport

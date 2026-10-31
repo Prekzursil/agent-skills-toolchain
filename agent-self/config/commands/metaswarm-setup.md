@@ -1,3 +1,9 @@
+---
+title: metaswarm-setup
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/metaswarm-setup
+---
+
 # Metaswarm Guided Setup
 
 Interactive, Claude-guided setup for metaswarm in your project. Detects your stack, asks targeted questions, and customizes everything automatically.

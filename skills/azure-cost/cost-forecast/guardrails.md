@@ -1,3 +1,9 @@
+---
+title: guardrails
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-forecast/guardrails
+---
+
 # Forecast API Guardrails
 
 Detailed guardrails derived from CCM-LUX getForecastData and CCM-UX-MIDDLEWARE Forecaster.

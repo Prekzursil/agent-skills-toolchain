@@ -1,3 +1,9 @@
+---
+title: advanced-commands
+type: note
+permalink: dqverify-repo-20261013/skills/azure-quotas/references/advanced-commands
+---
+
 # Advanced Azure Quota Commands
 
 Reference for less commonly used Azure quota CLI commands for tracking quota requests and operations.

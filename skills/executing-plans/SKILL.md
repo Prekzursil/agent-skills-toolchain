@@ -1,6 +1,11 @@
 ---
 name: executing-plans
-description: Use when loading a written implementation plan and executing tasks in batches with user review checkpoints between batches, typically in a separate session ; do NOT use when all tasks are independent and can be dispatched in parallel within the current session (use subagent-driven-development) ; returns batch-by-batch progress with review pauses.
+description: Use when loading a written implementation plan and executing tasks in
+  batches with user review checkpoints between batches, typically in a separate session
+  ; do NOT use when all tasks are independent and can be dispatched in parallel within
+  the current session (use subagent-driven-development) ; returns batch-by-batch progress
+  with review pauses.
+permalink: dqverify-repo-20261013/skills/executing-plans/skill
 ---
 
 # Executing Plans

@@ -1,3 +1,9 @@
+---
+title: audio-api
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/audio-api
+---
+
 # Audio Speech API quick reference
 
 ## Endpoint

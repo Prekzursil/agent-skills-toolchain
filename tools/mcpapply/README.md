@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcpapply/readme
+---
+
 # mcpapply — the MUTATION sibling of `mcpctl`
 
 `mcpctl` is the **read** core: the five on-disk MCP configuration scopes, their measured

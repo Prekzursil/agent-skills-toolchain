@@ -1,3 +1,9 @@
+---
+title: t03_boundary_determinism
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/tests/phase-battery/t03-boundary-determinism
+---
+
 # T-3 (CRITICAL) boundary determinism — protocol + 5 fixed probes
 
 **Owner-executed.** G-7=B: boundary = rule text + owner-adjudicated precedent

@@ -1,3 +1,9 @@
+---
+title: windows-disk-pressure-recovery
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/windows-disk-pressure-recovery
+---
+
 # windows-disk-pressure-recovery
 
 ## Purpose

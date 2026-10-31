@@ -1,3 +1,9 @@
+---
+title: code-review
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/code-review
+---
+
 # Code Review
 
 Comprehensive security and quality review of uncommitted changes:

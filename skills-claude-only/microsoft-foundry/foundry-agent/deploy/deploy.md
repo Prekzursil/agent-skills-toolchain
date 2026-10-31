@@ -1,3 +1,9 @@
+---
+title: deploy
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/deploy/deploy
+---
+
 # Foundry Agent Deploy
 
 Create and manage agent deployments in Azure AI Foundry. For hosted agents, this includes the full workflow from containerizing the project to starting the agent container.

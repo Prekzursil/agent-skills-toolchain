@@ -1,3 +1,9 @@
+---
+title: azure-monitor-query-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-query-py
+---
+
 # Azure Monitor Query — Python SDK Quick Reference
 
 > Condensed from **azure-monitor-query-py**. Full patterns (batch queries,

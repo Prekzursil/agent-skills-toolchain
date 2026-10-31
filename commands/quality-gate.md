@@ -1,3 +1,9 @@
+---
+title: quality-gate
+type: note
+permalink: dqverify-repo-20261013/commands/quality-gate
+---
+
 # Quality Gate Command
 
 Run the ECC quality pipeline on demand for a file or project scope.

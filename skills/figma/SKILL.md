@@ -1,6 +1,10 @@
 ---
 name: figma
-description: Use when fetching Figma design context, screenshots, variables, or assets via the Figma MCP server, or when setting up and troubleshooting the Figma MCP connection ; do NOT use for pixel-perfect full-component implementation from Figma nodes (use figma-implement-design) ; returns Figma design data and MCP setup guidance.
+description: Use when fetching Figma design context, screenshots, variables, or assets
+  via the Figma MCP server, or when setting up and troubleshooting the Figma MCP connection
+  ; do NOT use for pixel-perfect full-component implementation from Figma nodes (use
+  figma-implement-design) ; returns Figma design data and MCP setup guidance.
+permalink: dqverify-repo-20261013/skills/figma/skill
 ---
 
 # Figma MCP

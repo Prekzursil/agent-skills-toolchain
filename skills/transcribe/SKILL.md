@@ -1,8 +1,10 @@
 ---
-name: "transcribe"
-description: "Use when asked to transcribe speech to text from audio/video, with diarization to label speakers in recordings, interviews or meetings. Do NOT use for WORD-LEVEL caption or karaoke timing -- use reframe-transcribe."
+name: transcribe
+description: Use when asked to transcribe speech to text from audio/video, with diarization
+  to label speakers in recordings, interviews or meetings. Do NOT use for WORD-LEVEL
+  caption or karaoke timing -- use reframe-transcribe.
+permalink: dqverify-repo-20261013/skills/transcribe/skill
 ---
-
 
 # Audio Transcribe
 

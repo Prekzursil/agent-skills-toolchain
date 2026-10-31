@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/c3/patterns
+---
+
 # C3 Usage Patterns
 
 ## Quick Workflows

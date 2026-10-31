@@ -1,3 +1,9 @@
+---
+title: dependency-compatibility
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/dependency-compatibility
+---
+
 ﻿Dependency compatibility checks for Azure. Part of the [deployability check](deployability-check.md).
 
 ## EOL / Unsupported Runtimes

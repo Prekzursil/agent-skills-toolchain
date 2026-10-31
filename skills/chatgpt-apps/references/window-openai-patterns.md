@@ -1,3 +1,9 @@
+---
+title: window-openai-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/window-openai-patterns
+---
+
 # Window.openai Patterns
 
 Load this reference when a task needs ChatGPT-only widget features, when translating older examples that use an `app` wrapper, or when a React widget should read host globals safely.

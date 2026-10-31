@@ -1,6 +1,9 @@
 ---
 name: humanizer
-description: Use when editing or reviewing text to remove AI-writing patterns (em dashes, filler phrases, passive voice, inflated symbolism) and make it sound more natural and human-written ; do NOT use for full 5-pass rewrite workflows or voice-matching (use agentic-humanizer) ; returns edited text with AI patterns removed.
+description: Use when editing or reviewing text to remove AI-writing patterns (em
+  dashes, filler phrases, passive voice, inflated symbolism) and make it sound more
+  natural and human-written ; do NOT use for full 5-pass rewrite workflows or voice-matching
+  (use agentic-humanizer) ; returns edited text with AI patterns removed.
 license: MIT
 allowed-tools:
 - Read
@@ -14,6 +17,7 @@ metadata:
   compatibility: claude-code opencode
   source: https://github.com/blader/humanizer
   upstream_author: blader
+permalink: dqverify-repo-20261013/skills/humanizer/skill
 ---
 
 # Humanizer: Remove AI Writing Patterns

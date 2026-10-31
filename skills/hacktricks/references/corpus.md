@@ -1,3 +1,9 @@
+---
+title: corpus
+type: note
+permalink: dqverify-repo-20261013/skills/hacktricks/references/corpus
+---
+
 # HackTricks local corpus
 
 - **Location:** `D:\knowledge\hacktricks\` (override with env `HACKTRICKS_CORPUS`)

@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-secrets-ts
+type: note
+permalink: dqverify-repo-20261013/skills/entra-app-registration/references/sdk/azure-keyvault-secrets-ts
+---
+
 # Key Vault Secrets — TypeScript SDK Quick Reference
 
 > Condensed from **azure-keyvault-secrets-ts**. Full patterns (key rotation,

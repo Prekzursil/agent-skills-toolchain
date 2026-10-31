@@ -1,3 +1,9 @@
+---
+title: OPERATIONS
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/docs/operations
+---
+
 # Operations Runbook
 
 ## Environment setup

@@ -1,3 +1,9 @@
+---
+title: print
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/delivery-options/print
+---
+
 # Mode A — Print in chat
 
 Default. Render fenced code blocks for each file, in this order:

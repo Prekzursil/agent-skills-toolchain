@@ -1,3 +1,9 @@
+---
+title: ingest-mingling-mechanics
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-mingling-mechanics
+---
+
 # Axis-C Ingest — Mingling Mechanics (Claude ↔ Codex, TODAY + in-workflow gaps)
 
 > INGEST scope: how Claude and Codex mingle **today** and what is missing to mingle them

@@ -1,6 +1,10 @@
 ---
 name: agentic-humanizer
-description: Use when the user invokes /agentic-humanizer or asks to humanize AI-generated text via a 5-pass rewrite with optional voice-matching and (when Slop or Not Pro is available) detector scoring and readability checks ; do NOT use for mere AI-detection without rewriting (use slop-check) ; returns humanized text with optional readability stats.
+description: Use when the user invokes /agentic-humanizer or asks to humanize AI-generated
+  text via a 5-pass rewrite with optional voice-matching and (when Slop or Not Pro
+  is available) detector scoring and readability checks ; do NOT use for mere AI-detection
+  without rewriting (use slop-check) ; returns humanized text with optional readability
+  stats.
 license: MIT
 allowed-tools:
 - Read
@@ -11,6 +15,7 @@ metadata:
   compatibility: claude-code codex cursor gemini-cli opencode
   source: https://github.com/numen-tech/slopornot
   upstream_author: Numen Technologies
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/skill
 ---
 
 # Agentic Humanizer

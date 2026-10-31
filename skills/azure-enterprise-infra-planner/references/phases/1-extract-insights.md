@@ -1,3 +1,9 @@
+---
+title: 1-extract-insights
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/1-extract-insights
+---
+
 # Phase 1: Extract Insights
 
 > The goal of this phase is to extract insights from the user's existing Azure environment. These insights will be used to guide the planning process in later phases.

@@ -1,6 +1,10 @@
 ---
 name: red-blue-purple
-description: Parent descriptor for the estate's tiered offensive/defensive/combined operations tree. Defines the FEW→MEDIUM→HEAVY→FULL→MAX→SOTA tier taxonomy, the enable/disable doctrine, and the domain-wiring matrix (cyberstrike, claude, codex, cursor, grok). Load the child skill for the side you are running.
+description: Parent descriptor for the estate's tiered offensive/defensive/combined
+  operations tree. Defines the FEW→MEDIUM→HEAVY→FULL→MAX→SOTA tier taxonomy, the enable/disable
+  doctrine, and the domain-wiring matrix (cyberstrike, claude, codex, cursor, grok).
+  Load the child skill for the side you are running.
+permalink: dqverify-repo-20261013/skills/red-blue-purple/skill
 ---
 
 # red-blue-purple — operations tier tree

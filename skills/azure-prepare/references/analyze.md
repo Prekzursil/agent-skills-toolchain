@@ -1,3 +1,9 @@
+---
+title: analyze
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/analyze
+---
+
 # Analyze Workspace
 
 ## ⛔ MANDATORY FIRST — Specialized Technology Delegation

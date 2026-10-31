@@ -1,3 +1,9 @@
+---
+title: trip-planning
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/examples/trip-planning
+---
+
 # Example: Group Trip Research & Planning
 
 **User Request**: "Research and plan our friends' trip to Japan in March - we're 6 people looking for 10 days"

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-telegram/readme
+---
+
 # ralph-telegram
 
 Telegram integration for human-in-the-loop orchestration in Ralph.

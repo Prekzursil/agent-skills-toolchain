@@ -1,3 +1,9 @@
+---
+title: multi-backend
+type: note
+permalink: dqverify-repo-20261013/commands/multi-backend
+---
+
 # Backend - Backend-Focused Development
 
 Backend-focused workflow (Research → Ideation → Plan → Execute → Optimize → Review), Codex-led.

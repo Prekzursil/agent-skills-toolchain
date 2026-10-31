@@ -1,6 +1,8 @@
 ---
 name: reframe-video-cutting
-description: "Use when selecting and cutting moments from a long talk, podcast, interview, stream, or vlog into shorts with scene-aware, sentence-safe boundaries."
+description: Use when selecting and cutting moments from a long talk, podcast, interview,
+  stream, or vlog into shorts with scene-aware, sentence-safe boundaries.
+permalink: dqverify-repo-20261013/skills/reframe-video-cutting/skill
 ---
 
 # Video Cutting / Clip Selection (the short-maker's heart)

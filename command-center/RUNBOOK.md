@@ -1,3 +1,9 @@
+---
+title: RUNBOOK
+type: note
+permalink: dqverify-repo-20261013/command-center/runbook
+---
+
 # RUNBOOK
 
 Everything you can do to this command center, and the one-liner that does it. All paths are

@@ -1,3 +1,9 @@
+---
+title: rbac-roles
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/rbac-roles
+---
+
 # RBAC — Common Roles Reference
 
 Shared reference for role assignment GUIDs used in both Bicep and Terraform. Loaded by both pattern files.

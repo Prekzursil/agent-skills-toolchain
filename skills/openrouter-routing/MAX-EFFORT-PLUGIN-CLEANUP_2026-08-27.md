@@ -1,3 +1,9 @@
+---
+title: MAX-EFFORT-PLUGIN-CLEANUP_2026-08-27
+type: note
+permalink: dqverify-repo-20261013/skills/openrouter-routing/max-effort-plugin-cleanup-2026-08-27
+---
+
 # Max Effort plugin cleanup (2026-08-27)
 
 Date: 27.08.2026  

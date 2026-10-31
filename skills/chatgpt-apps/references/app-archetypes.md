@@ -1,3 +1,9 @@
+---
+title: app-archetypes
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/app-archetypes
+---
+
 # App Archetypes
 
 Load this reference before choosing a starting point for a new ChatGPT app. The goal is to keep the skill inside a small number of supported app shapes instead of inventing a custom structure for every prompt.

@@ -1,3 +1,9 @@
+---
+title: B1-interfaces
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b1-interfaces
+---
+
 # B1 — Interface Signatures (RFC Core)
 
 **Twin of** [`B1-RFC-core.md`](./B1-RFC-core.md). Typed signatures for the authority model, logical

@@ -1,3 +1,9 @@
+---
+title: cursor
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/cursor
+---
+
 # Harness Routing — Cursor
 
 `SKILL.md` routes here when running inside Cursor 2.4 or later. Cursor

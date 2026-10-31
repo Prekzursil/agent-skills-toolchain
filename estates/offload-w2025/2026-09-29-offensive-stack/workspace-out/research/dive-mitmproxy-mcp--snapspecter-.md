@@ -1,3 +1,9 @@
+---
+title: dive-mitmproxy-mcp--snapspecter-
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-mitmproxy-mcp-snapspecter
+---
+
 # Deep-dive: mitmproxy-mcp (snapspecter) — browser-offense lane
 
 Date: 2026-09-29. Verifier session: dynamic-workflow subagent "Deep-dive: mitmproxy-mcp (snapspecter)".

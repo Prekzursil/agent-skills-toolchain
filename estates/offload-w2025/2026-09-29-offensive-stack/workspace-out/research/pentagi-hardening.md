@@ -1,3 +1,9 @@
+---
+title: pentagi-hardening
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/pentagi-hardening
+---
+
 # Research notes: pentagi-hardening (PentAGI two-node worker hardening)
 
 Date: 2026-09-29. Researcher lane: "pentagi-hardening".

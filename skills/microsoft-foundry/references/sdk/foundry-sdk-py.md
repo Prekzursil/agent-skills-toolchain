@@ -1,3 +1,9 @@
+---
+title: foundry-sdk-py
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/references/sdk/foundry-sdk-py
+---
+
 # Microsoft Foundry - Python SDK Guide
 
 Python-specific implementations for working with Microsoft Foundry.

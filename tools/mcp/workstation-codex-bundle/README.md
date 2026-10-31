@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/readme
+---
+
 # Workstation Codex MCP Bundle
 
 Curated Windows-first workstation bundle for the canonical Codex profile at `C:\Users\Prekzursil\.codex\config.toml`. This folder preserves the exact MCP, editor, and env setup needed to rebuild the current Codex + VS Code environment without rediscovery.

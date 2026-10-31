@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-secrets-rust
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-keyvault-secrets-rust
+---
+
 # Key Vault Secrets — Rust SDK Quick Reference
 
 > Condensed from **azure-keyvault-secrets-rust**. Full patterns (versioning,

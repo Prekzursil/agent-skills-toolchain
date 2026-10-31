@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/references/functions/readme
+---
+
 # Function Apps Troubleshooting
 
 ## Find Linked App Insights / Log Analytics
@@ -77,4 +83,3 @@ az rest --method get \
 ```
 
 Compare deployment timestamps against when errors started appearing in App Insights to identify if a deployment caused the issue.
-

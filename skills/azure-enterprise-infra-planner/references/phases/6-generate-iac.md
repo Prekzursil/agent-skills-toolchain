@@ -1,3 +1,9 @@
+---
+title: 6-generate-iac
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/6-generate-iac
+---
+
 # Phase 6: Generate IaC
 
 > Important: Before continuing this phase, `meta.status` must be set to `approved` as required by Phase 5.

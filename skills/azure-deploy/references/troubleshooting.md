@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/troubleshooting
+---
+
 # Troubleshooting
 
 This reference covers common errors encountered during Azure deployment with `azd` and how to resolve them.

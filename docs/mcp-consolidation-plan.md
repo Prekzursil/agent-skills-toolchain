@@ -1,3 +1,9 @@
+---
+title: mcp-consolidation-plan
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-consolidation-plan
+---
+
 # MCP consolidation — ending per-session process multiplication
 
 Companion plan for `tools/mcp/mcp-http-host/` (PR #159, the shared stdio→HTTP host) and

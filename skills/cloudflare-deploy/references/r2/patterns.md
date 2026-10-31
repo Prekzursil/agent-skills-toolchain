@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2/patterns
+---
+
 # R2 Patterns & Best Practices
 
 ## Streaming Large Files

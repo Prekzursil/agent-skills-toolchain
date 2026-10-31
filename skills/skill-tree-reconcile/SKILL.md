@@ -1,6 +1,9 @@
 ---
 name: skill-tree-reconcile
-description: Use when asked to sync skills, reconcile skill trees, deploy skills to live, choose which tree wins, compare live vs vault vs repo, run sync-from-live, or repair drift - classifies differences and applies a human-reviewed direction.
+description: Use when asked to sync skills, reconcile skill trees, deploy skills to
+  live, choose which tree wins, compare live vs vault vs repo, run sync-from-live,
+  or repair drift - classifies differences and applies a human-reviewed direction.
+permalink: dqverify-repo-20261013/skills/skill-tree-reconcile/skill
 ---
 
 # Skill Tree Reconcile

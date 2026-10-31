@@ -1,3 +1,9 @@
+---
+title: SESSION-RECONCILIATION-2026-06-06
+type: note
+permalink: dqverify-repo-20261013/docs/session-reconciliation-2026-06-06
+---
+
 # Session Reconciliation — 2026-06-06
 
 Adversarial audit + completion pass over every open thread of the multi-thread

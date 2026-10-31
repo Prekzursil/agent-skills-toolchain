@@ -1,3 +1,9 @@
+---
+title: general-diagnostics
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/general-diagnostics
+---
+
 # General AKS Investigation & Diagnostics
 
 ## "What happened in my cluster?"

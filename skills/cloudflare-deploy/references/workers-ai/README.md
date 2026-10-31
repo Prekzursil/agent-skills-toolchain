@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-ai/readme
+---
+
 # Cloudflare Workers AI
 
 Expert guidance for Cloudflare Workers AI - serverless GPU-powered AI inference at the edge.

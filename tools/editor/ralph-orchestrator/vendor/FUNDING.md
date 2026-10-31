@@ -1,3 +1,9 @@
+---
+title: FUNDING
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/funding
+---
+
 # Funding Ralph Orchestrator
 
 If Ralph Orchestrator helps your team ship faster, consider sponsoring ongoing development.

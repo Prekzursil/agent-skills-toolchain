@@ -1,3 +1,9 @@
+---
+title: step-4-provider
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-4-provider
+---
+
 # Step 4 — Provider Recommendation & Installation
 
 **Goal**: Select and install the right inference provider for the detected hardware.

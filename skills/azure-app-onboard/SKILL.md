@@ -1,10 +1,20 @@
 ---
 name: azure-app-onboard
-description: "Greenfield-from-idea orchestrator: takes a NEW business or app idea (nothing built yet) to a running Azure deployment with cost estimates and pre-deploy approval. Plans the architecture, auto-detects the right Azure services, and scaffolds the project plus infrastructure from scratch, then deploys — tailored to the idea, not a template. WHEN: help me build a new app, no code yet, starter project, what Azure services do I need, plan my Azure deployment, deploy my new app to Azure, cost to run my app idea, help me get started, build an app. DO NOT USE FOR: existing or already-built apps (use azure-prepare to produce the deployment plan, then azure-deploy to execute), running azd for deployment (use azure-deploy), optimizing existing costs (use azure-cost), code readiness checks only (use azure-app-onboard-prereq)."
+description: 'Greenfield-from-idea orchestrator: takes a NEW business or app idea
+  (nothing built yet) to a running Azure deployment with cost estimates and pre-deploy
+  approval. Plans the architecture, auto-detects the right Azure services, and scaffolds
+  the project plus infrastructure from scratch, then deploys — tailored to the idea,
+  not a template. WHEN: help me build a new app, no code yet, starter project, what
+  Azure services do I need, plan my Azure deployment, deploy my new app to Azure,
+  cost to run my app idea, help me get started, build an app. DO NOT USE FOR: existing
+  or already-built apps (use azure-prepare to produce the deployment plan, then azure-deploy
+  to execute), running azd for deployment (use azure-deploy), optimizing existing
+  costs (use azure-cost), code readiness checks only (use azure-app-onboard-prereq).'
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.2.3"
+  version: 1.2.3
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/skill
 ---
 
 # Azure App Onboard

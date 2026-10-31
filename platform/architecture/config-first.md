@@ -1,3 +1,9 @@
+---
+title: config-first
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/config-first
+---
+
 # Architecture Candidate — CONFIG-FIRST MINIMAL
 
 **Phase 3 architecture tournament entry.** Spec anchor: `_USER-PROMPTS.md:10769-10796` ("config-first

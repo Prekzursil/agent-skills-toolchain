@@ -1,3 +1,9 @@
+---
+title: panel_rubric
+type: note
+permalink: dqverify-repo-20261013/skills/critique-panel/panel-rubric
+---
+
 # Critique-Panel Rubric — the four named personas (G3 CRITIQUE)
 
 The deterministic lens each named persona applies when turning Track-A's pre-computed

@@ -1,3 +1,9 @@
+---
+title: tool-openapi
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-openapi
+---
+
 # Tool — OpenAPI (`type: openapi`)
 
 Expose a REST API to the agent from its **OpenAPI 3.x spec**. The spec is embedded **inline** in the toolbox `tools:` block (under an `openapi` object) — this is a connectionless built-in, **not** a connection-backed tool. API-key auth is the one mode that also needs a `custom-keys` connection. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

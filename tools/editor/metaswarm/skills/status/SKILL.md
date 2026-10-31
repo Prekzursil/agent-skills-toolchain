@@ -1,6 +1,8 @@
 ---
 name: status
-description: Diagnostic status report — shows metaswarm installation state, project setup, and potential issues
+description: Diagnostic status report — shows metaswarm installation state, project
+  setup, and potential issues
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/status/skill
 ---
 
 # Status Skill

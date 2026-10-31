@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/firecrawl-selfhost/readme
+---
+
 # Firecrawl self-host (staged, docker-pending)
 
 Revival of the estate's local firecrawl lane — the one that died with the old

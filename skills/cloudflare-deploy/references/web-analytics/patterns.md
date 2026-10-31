@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/web-analytics/patterns
+---
+
 # Web Analytics Patterns
 
 ## Core Web Vitals Debugging

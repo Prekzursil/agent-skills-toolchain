@@ -1,3 +1,9 @@
+---
+title: standard-implementation-plan
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/reference/standard-implementation-plan
+---
+
 # Standard Implementation Plan Template
 
 Use this template for most feature implementations.
@@ -143,4 +149,3 @@ Use this template for most feature implementations.
 ### Latest Update: [Date]
 [Brief status update]
 ```
-

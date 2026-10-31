@@ -1,3 +1,9 @@
+---
+title: TOURNAMENT-VERDICT
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/tournament-verdict
+---
+
 # TOURNAMENT VERDICT — Nine-Architecture Judge Panel
 
 **Unit:** `tournament/judge-panel` · Phase 3 · Spec `_USER-PROMPTS.md:10769-10796`

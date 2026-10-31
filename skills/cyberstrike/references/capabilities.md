@@ -1,3 +1,9 @@
+---
+title: capabilities
+type: note
+permalink: dqverify-repo-20261013/skills/cyberstrike/references/capabilities
+---
+
 # CyberStrike capability and surface reference
 
 This is a durable operator reference, not a substitute for executable enforcement.

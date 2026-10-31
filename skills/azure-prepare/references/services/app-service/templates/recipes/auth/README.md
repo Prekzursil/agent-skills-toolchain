@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/auth/readme
+---
+
 # Entra ID / Easy Auth Recipe — REFERENCE ONLY
 
 Adds authentication and authorization to an App Service base template using Microsoft Entra ID.

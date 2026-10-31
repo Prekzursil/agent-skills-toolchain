@@ -1,6 +1,9 @@
 ---
 name: ida-pro-mcp
-description: Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro, or when wiring its client config into Codex, Claude Code, or Gemini CLI after the IDA plugin is available.
+description: Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro,
+  or when wiring its client config into Codex, Claude Code, or Gemini CLI after the
+  IDA plugin is available.
+permalink: dqverify-repo-20261013/skills/ida-pro-mcp/skill
 ---
 
 # IDA Pro MCP

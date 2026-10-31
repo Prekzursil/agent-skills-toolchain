@@ -1,3 +1,9 @@
+---
+title: B-doc-clustermap
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-doc-clustermap
+---
+
 # B — Whole-Drive Harness/Agentic Doc Index — Cluster Map
 
 Generated: 2026-07-13T10:45:42 · Drives scanned: C:, D: (WizTree full-file CSVs)
@@ -459,4 +465,3 @@ Generated: 2026-07-13T10:45:42 · Drives scanned: C:, D: (WizTree full-file CSVs
 - **Exclusions (segment-anchored):** \\node_modules\\ , \\\.venv\\ , \\venv\\ , \\site-packages\\ , \\\.git\\ , \\__pycache__\\ , \\[^\\]*cache[^\\]*\\ , \\dist\\ , \\build\\ , \\target\\ , \\vendor\\ , \\vendored\\ , \\third_party\\ , \\third-party\\ , \\bower_components\\ , \\\.tox\\ , \\\.gradle\\ , \\\.rustup\\ , \\\.cargo\\ , \\go\\pkg\\mod\\ , \\pkg\\mod\\ , \\\.next\\ , \\\.nuxt\\ , \\\.svelte-kit\\ , \\\.pnpm\\ , \\\.pnpm-store\\ , \\\.yarn\\
 - **Exclusion note:** Segment-anchored: node_modules, .venv/venv, site-packages, .git, __pycache__, any *cache* dir, dist/build/target, vendor/vendored/third_party, bower_components, .tox/.gradle/.rustup/.cargo/go pkg mod, .next/.nuxt/.svelte-kit/.pnpm/.yarn. Model-weight files (.bin/.safetensors/.gguf/.pt) are excluded by the md/txt/rst extension filter itself. $Recycle.Bin NOT excluded (widest net) but classed superseded-candidate.
 - **Complete index (every path):** B-doc-index-complete.json (files[] array)
-

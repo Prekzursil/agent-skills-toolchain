@@ -1,3 +1,9 @@
+---
+title: summary
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/summary
+---
+
 # Summary: Per-Project Orchestrator Lifecycle Hooks (v1)
 
 ## Overview

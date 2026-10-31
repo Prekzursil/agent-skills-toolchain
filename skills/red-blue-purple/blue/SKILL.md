@@ -1,6 +1,9 @@
 ---
 name: blue
-description: Defensive operations package — full tier tables (FEW/MEDIUM/HEAVY/FULL/MAX/SOTA) for wiring detection, hardening, and guardrail enforcement with exact enable AND disable commands. Child of red-blue-purple.
+description: Defensive operations package — full tier tables (FEW/MEDIUM/HEAVY/FULL/MAX/SOTA)
+  for wiring detection, hardening, and guardrail enforcement with exact enable AND
+  disable commands. Child of red-blue-purple.
+permalink: dqverify-repo-20261013/skills/red-blue-purple/blue/skill
 ---
 
 # BLUE — defensive tier package

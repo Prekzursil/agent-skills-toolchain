@@ -1,3 +1,9 @@
+---
+title: deadends
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/memory/deadends
+---
+
 # Dead-end registry — REFUTED approaches (S4)
 
 Per contract S4 (AGENTS.md:66-71): consult this registry when a task says retry / re-run /

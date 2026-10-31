@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "**/*.ts"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.html"
-  - "**/*.vue"
-  - "**/*.svelte"
+- '**/*.tsx'
+- '**/*.jsx'
+- '**/*.ts'
+- '**/*.js'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.html'
+- '**/*.vue'
+- '**/*.svelte'
+permalink: dqverify-repo-20261013/agent-self/config/rules/web/patterns
 ---
+
 > This file extends [common/patterns.md](../common/patterns.md) with web-specific patterns.
 
 # Web Patterns

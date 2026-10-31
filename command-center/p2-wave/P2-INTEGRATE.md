@@ -1,3 +1,9 @@
+---
+title: P2-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-integrate
+---
+
 # P2 — INTEGRATE lane (the last stage for P2)
 
 STATUS: COMPLETE for this lane. Every section carries a measurement, a control, or an explicit

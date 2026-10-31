@@ -1,3 +1,9 @@
+---
+title: SKILL_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/skill-template
+---
+
 # SKILL.md Template
 
 Use this template when writing the implementation-agnostic SKILL.md for a new ToolUniverse skill.

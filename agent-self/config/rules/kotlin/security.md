@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
+- '**/*.kt'
+- '**/*.kts'
+permalink: dqverify-repo-20261013/agent-self/config/rules/kotlin/security
 ---
+
 # Kotlin Security
 
 > This file extends [common/security.md](../common/security.md) with Kotlin and Android/KMP-specific content.

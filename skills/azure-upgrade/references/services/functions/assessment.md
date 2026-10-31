@@ -1,3 +1,9 @@
+---
+title: assessment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/services/functions/assessment
+---
+
 # Assessment: Functions Plan Upgrade
 
 Generate an upgrade assessment report before any changes to Azure resources.

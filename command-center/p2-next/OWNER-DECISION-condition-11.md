@@ -1,3 +1,9 @@
+---
+title: OWNER-DECISION-condition-11
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/owner-decision-condition-11
+---
+
 # Owner decision — condition 11 has no satisfiable path, and it is a CONTRACT COLLISION
 
 Raised 2026-08-13 by the orchestrator, independently re-measured after the P2NEXT lane found it.

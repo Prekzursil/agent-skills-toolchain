@@ -1,3 +1,9 @@
+---
+title: 03-rpc-mode-analysis
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/03-rpc-mode-analysis
+---
+
 # Research: Pi's RPC Mode for Ralph Integration
 
 ## Summary

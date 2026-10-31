@@ -1,3 +1,9 @@
+---
+title: hat-system
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/research/hat-system
+---
+
 # Hat System & Config Research
 
 ## HatConfig Schema

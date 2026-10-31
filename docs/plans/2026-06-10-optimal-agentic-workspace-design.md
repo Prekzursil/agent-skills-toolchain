@@ -1,3 +1,9 @@
+---
+title: 2026-06-10-optimal-agentic-workspace-design
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-06-10-optimal-agentic-workspace-design
+---
+
 # Optimal Agentic Workspace — Design Spec (draft v0, pre-council)
 
 **Date:** 2026-06-10 · **Status:** DRAFT synthesized from 4 deep-research pillars; pending model-council refinement → user approval → Design Review Gate → plan → build.

@@ -1,6 +1,8 @@
 ---
-name: "source-command-learn-eval"
-description: "Extract reusable patterns from the session, self-evaluate quality before saving, and determine the right save location (Global vs Project)."
+name: source-command-learn-eval
+description: Extract reusable patterns from the session, self-evaluate quality before
+  saving, and determine the right save location (Global vs Project).
+permalink: dqverify-repo-20261013/skills/source-command-learn-eval/skill
 ---
 
 # source-command-learn-eval

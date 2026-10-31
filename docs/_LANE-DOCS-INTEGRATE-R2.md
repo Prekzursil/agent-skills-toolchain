@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-INTEGRATE-R2
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-integrate-r2
+---
+
 # LANE DOCS — INTEGRATE round 2 (last stage; follows BUILD R8 `f5ca2282`)
 
 COVERAGE: every row in §2 is backed by a command executed this round. NOT measured, and said so

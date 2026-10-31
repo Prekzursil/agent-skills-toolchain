@@ -1,3 +1,9 @@
+---
+title: method
+type: note
+permalink: dqverify-repo-20261013/skills/social-corpus-extraction/references/method
+---
+
 # Method — corpus design + drop-reason taxonomy
 
 ## Output shape (every isolator mirrors this)

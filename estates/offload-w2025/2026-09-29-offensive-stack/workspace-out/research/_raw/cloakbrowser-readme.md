@@ -1,3 +1,9 @@
+---
+title: cloakbrowser-readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/raw/cloakbrowser-readme
+---
+
 <p align="center">
 <img src="https://i.imgur.com/cqkp6fG.png" width="500" alt="CloakBrowser">
 </p>

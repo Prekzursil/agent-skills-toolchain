@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/hyperdrive/patterns
+---
+
 # Patterns
 
 See [README.md](./README.md), [configuration.md](./configuration.md), [api.md](./api.md).

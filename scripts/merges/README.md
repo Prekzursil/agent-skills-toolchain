@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/scripts/merges/readme
+---
+
 # `scripts/merges/` — hand-reconciled copies of held files
 
 `sync-from-live.ps1` keeps a **repo-owned hold list**: paths that exist in both the live

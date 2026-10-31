@@ -1,3 +1,9 @@
+---
+title: multi-plan
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/multi-plan
+---
+
 # Plan - Multi-Model Collaborative Planning
 
 Multi-model collaborative planning - Context retrieval + Dual-model analysis → Generate step-by-step implementation plan.

@@ -1,3 +1,9 @@
+---
+title: cursor-tools
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/references/cursor-tools
+---
+
 # Cursor Tool Mapping (Future)
 
 This file maps Claude Code tool names to Cursor equivalents.

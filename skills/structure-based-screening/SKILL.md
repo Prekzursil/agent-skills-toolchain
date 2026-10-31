@@ -1,6 +1,11 @@
 ---
 name: structure-based-screening
-description: Use when running a structure-based drug-discovery / molecular-docking campaign on the local schrodinger MCP - taking a receptor (PDB) and one or more ligands (SMILES or files) all the way to docked, MM-GBSA-rescored, ADMET-profiled poses. Covers the full prepwizard to glide_grid to ligprep to glide_dock to prime_mmgbsa to qikprop chain, grid-box centering, and license-token sequencing.
+description: Use when running a structure-based drug-discovery / molecular-docking
+  campaign on the local schrodinger MCP - taking a receptor (PDB) and one or more
+  ligands (SMILES or files) all the way to docked, MM-GBSA-rescored, ADMET-profiled
+  poses. Covers the full prepwizard to glide_grid to ligprep to glide_dock to prime_mmgbsa
+  to qikprop chain, grid-box centering, and license-token sequencing.
+permalink: dqverify-repo-20261013/skills/structure-based-screening/skill
 ---
 
 # Structure-based screening (end-to-end Schrodinger pipeline)

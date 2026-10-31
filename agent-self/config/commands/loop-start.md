@@ -1,3 +1,9 @@
+---
+title: loop-start
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/loop-start
+---
+
 # Loop Start Command
 
 Start a managed autonomous loop pattern with safety defaults.

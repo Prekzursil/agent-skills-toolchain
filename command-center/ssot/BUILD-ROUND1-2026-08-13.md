@@ -1,3 +1,9 @@
+---
+title: BUILD-ROUND1-2026-08-13
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/build-round1-2026-08-13
+---
+
 # LANE SSOT — BUILD lane, round 1
 
 **Status: COMPLETE for round 1.** Every claim below is measured; each names the command that

@@ -1,3 +1,9 @@
+---
+title: association-disassociation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/capacity-reservation/references/association-disassociation
+---
+
 # Associating and Disassociating VMs/VMSS with a Capacity Reservation Group
 
 ## Association Model

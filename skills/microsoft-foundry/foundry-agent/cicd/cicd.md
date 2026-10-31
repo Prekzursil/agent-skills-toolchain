@@ -1,3 +1,9 @@
+---
+title: cicd
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/cicd/cicd
+---
+
 # Set Up CI/CD for a Foundry Agent
 
 ## Hosted Agent

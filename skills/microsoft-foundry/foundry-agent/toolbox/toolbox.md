@@ -1,3 +1,9 @@
+---
+title: toolbox
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/toolbox
+---
+
 # Foundry Toolbox — Concept, API Shape & Schema
 
 # Understand

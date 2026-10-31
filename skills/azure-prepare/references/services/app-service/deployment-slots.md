@@ -1,3 +1,9 @@
+---
+title: deployment-slots
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/deployment-slots
+---
+
 # App Service Deployment Slots
 
 Zero-downtime deployments using staging slots.

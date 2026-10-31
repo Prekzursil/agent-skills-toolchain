@@ -1,3 +1,9 @@
+---
+title: flask
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/flask
+---
+
 # Flask Knowledge Pack
 
 > **Applies to:** Projects detected with `requirements.txt`, `pyproject.toml`, or `Pipfile` containing `flask`

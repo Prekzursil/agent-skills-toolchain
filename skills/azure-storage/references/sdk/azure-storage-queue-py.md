@@ -1,3 +1,9 @@
+---
+title: azure-storage-queue-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-storage-queue-py
+---
+
 # Queue Storage — Python SDK Quick Reference
 
 > Condensed from **azure-storage-queue-py**. Full patterns (async client,

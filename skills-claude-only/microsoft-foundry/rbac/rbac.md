@@ -1,3 +1,9 @@
+---
+title: rbac
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/rbac/rbac
+---
+
 # Microsoft Foundry RBAC Management
 
 Reference for managing RBAC for Microsoft Foundry resources: user permissions, managed identity configuration, and service principal setup for CI/CD.

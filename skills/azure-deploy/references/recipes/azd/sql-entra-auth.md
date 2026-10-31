@@ -1,3 +1,9 @@
+---
+title: sql-entra-auth
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/sql-entra-auth
+---
+
 # SQL Database Entra Authentication
 
 Quick reference for Azure SQL Database Entra authentication in post-deployment scenarios.

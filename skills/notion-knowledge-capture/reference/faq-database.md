@@ -1,3 +1,9 @@
+---
+title: faq-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/faq-database
+---
+
 # FAQ Database
 
 **Purpose**: Organize frequently asked questions with answers.
@@ -54,4 +60,3 @@ Each FAQ page should include:
 3. **Link related FAQs**: Help users discover related information
 4. **Review regularly**: Keep answers current and accurate
 5. **Track what's helpful**: Use feedback to improve frequently accessed FAQs
-

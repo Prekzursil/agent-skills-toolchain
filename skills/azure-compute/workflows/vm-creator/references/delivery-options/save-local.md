@@ -1,3 +1,9 @@
+---
+title: save-local
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/delivery-options/save-local
+---
+
 # Mode B — Save to a local folder
 
 ## Step 1 — Suggest a path

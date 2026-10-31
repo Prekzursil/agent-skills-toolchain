@@ -1,6 +1,14 @@
 ---
 name: design-studio-session
-description: The interactive-modify capability behind `design-studio session` mode. Use when the owner wants to point at a LIVE element in a running app (Reframe, momentstudio, WebCoder, bilbo) and iteratively restyle it with Claude and Codex — preview candidates as injected style overlays FIRST, resolve the clicked element back to its source file:line, apply ONE scoped micro-commit, incrementally re-audit only the changed screen, and auto-decide KEEP or REVERT through the SAME revert-gate as the batch design-review loop. Do NOT use for a whole-app batch audit (use design-studio / ui-audit) or for driving the app without modifying it (use ui-drive).
+description: The interactive-modify capability behind `design-studio session` mode.
+  Use when the owner wants to point at a LIVE element in a running app (Reframe, momentstudio,
+  WebCoder, bilbo) and iteratively restyle it with Claude and Codex — preview candidates
+  as injected style overlays FIRST, resolve the clicked element back to its source
+  file:line, apply ONE scoped micro-commit, incrementally re-audit only the changed
+  screen, and auto-decide KEEP or REVERT through the SAME revert-gate as the batch
+  design-review loop. Do NOT use for a whole-app batch audit (use design-studio /
+  ui-audit) or for driving the app without modifying it (use ui-drive).
+permalink: dqverify-repo-20261013/skills/design-studio-session/skill
 ---
 
 # design-studio session — interactive-modify (gem N.2)

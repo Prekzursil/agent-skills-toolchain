@@ -1,3 +1,9 @@
+---
+title: D1-hybrid
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/d1-hybrid
+---
+
 # D1 — Hybrid Architect Verdict (combination / both+extension lens)
 
 **Role:** the HYBRID architect the owner explicitly asked for — "a combination of both, or both+extension."

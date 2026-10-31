@@ -1,3 +1,9 @@
+---
+title: RECONCILE-LOG
+type: note
+permalink: dqverify-repo-20261013/reconcile-log
+---
+
 # Reconcile Log
 
 Append-only record of runtime-config reconciliation sweeps (live `~/.agents` + `~/.claude`

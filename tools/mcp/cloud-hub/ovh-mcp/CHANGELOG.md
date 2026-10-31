@@ -1,3 +1,9 @@
+---
+title: CHANGELOG
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/ovh-mcp/changelog
+---
+
 # Changelog
 
 ## [2.0.1] - 2026-03-15

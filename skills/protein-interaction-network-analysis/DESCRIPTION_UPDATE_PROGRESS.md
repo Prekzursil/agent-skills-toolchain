@@ -1,3 +1,9 @@
+---
+title: DESCRIPTION_UPDATE_PROGRESS
+type: note
+permalink: dqverify-repo-20261013/skills/protein-interaction-network-analysis/description-update-progress
+---
+
 # Tool Description Update Progress
 
 **Date**: 2026-02-12

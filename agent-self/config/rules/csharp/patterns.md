@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.cs"
-  - "**/*.csx"
+- '**/*.cs'
+- '**/*.csx'
+permalink: dqverify-repo-20261013/agent-self/config/rules/csharp/patterns
 ---
+
 # C# Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with C#-specific content.

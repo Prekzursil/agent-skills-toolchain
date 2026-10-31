@@ -1,3 +1,9 @@
+---
+title: architecture
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/advanced/architecture
+---
+
 # Architecture
 
 Ralph's system architecture and how the pieces fit together.

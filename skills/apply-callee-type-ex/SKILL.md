@@ -1,6 +1,9 @@
 ---
 name: apply-callee-type-ex
-description: Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx to improve call prototypes and downstream analysis quality.
+description: Use when IDA Pro decompiler output suffers from missing or bad indirect-call
+  types and you need ApplyCalleeTypeEx to improve call prototypes and downstream analysis
+  quality.
+permalink: dqverify-repo-20261013/skills/apply-callee-type-ex/skill
 ---
 
 # ApplyCalleeTypeEx

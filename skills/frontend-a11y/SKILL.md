@@ -1,10 +1,12 @@
 ---
 name: frontend-a11y
-description: >
-  Accessibility patterns for React and Next.js — semantic HTML, ARIA attributes,
+description: 'Accessibility patterns for React and Next.js — semantic HTML, ARIA attributes,
   form labeling, keyboard navigation, focus management, and screen reader support.
   Use when building any interactive UI component or form.
+
+  '
 origin: community
+permalink: dqverify-repo-20261013/skills/frontend-a11y/skill
 ---
 
 # Frontend Accessibility Patterns

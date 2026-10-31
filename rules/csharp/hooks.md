@@ -1,12 +1,14 @@
 ---
 paths:
-  - "**/*.cs"
-  - "**/*.csx"
-  - "**/*.csproj"
-  - "**/*.sln"
-  - "**/Directory.Build.props"
-  - "**/Directory.Build.targets"
+- '**/*.cs'
+- '**/*.csx'
+- '**/*.csproj'
+- '**/*.sln'
+- '**/Directory.Build.props'
+- '**/Directory.Build.targets'
+permalink: dqverify-repo-20261013/rules/csharp/hooks
 ---
+
 # C# Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with C#-specific content.

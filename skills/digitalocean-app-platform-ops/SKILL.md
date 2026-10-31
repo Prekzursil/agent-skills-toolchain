@@ -1,6 +1,9 @@
 ---
 name: digitalocean-app-platform-ops
-description: Use when operating DigitalOcean App Platform through the archived DigitalOcean MCP server, especially for listing apps, deployments, logs, restarts, deletes, or spec validation.
+description: Use when operating DigitalOcean App Platform through the archived DigitalOcean
+  MCP server, especially for listing apps, deployments, logs, restarts, deletes, or
+  spec validation.
+permalink: dqverify-repo-20261013/skills/digitalocean-app-platform-ops/skill
 ---
 
 # DigitalOcean App Platform Ops

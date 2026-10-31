@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-C5
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-c5
+---
+
 # P2NEXT — BUILD: close the two holes that let a gate certify an unexamined review
 
 **Measured 2026-08-13** against `ast-integrate` (linked worktree of `agent-skills-toolchain`, `main`).

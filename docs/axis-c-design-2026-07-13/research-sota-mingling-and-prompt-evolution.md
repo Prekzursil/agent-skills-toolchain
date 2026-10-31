@@ -1,3 +1,9 @@
+---
+title: research-sota-mingling-and-prompt-evolution
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/research-sota-mingling-and-prompt-evolution
+---
+
 # Axis-C Research — SOTA Cross-LLM Mingling & Prompt/Workflow Evolution
 
 > **Scope (DESIGN GATE):** external state-of-the-art research to inform two Axis-C pillars —

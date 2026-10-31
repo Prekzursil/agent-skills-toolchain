@@ -1,3 +1,9 @@
+---
+title: validation-gates
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/validation-gates
+---
+
 # Validation Gates
 
 Step 4 of the create-flow runs four read-only checks before the Plan Card is shown. Required path: Azure MCP. Fallback: CLI patterns in [mcp-tools.md](mcp-tools.md). Do **not** substitute generic guidance tools (`get_azure_bestpractices`, `pricing`) — they don't validate quota, SKU availability, or region support.

@@ -1,6 +1,8 @@
 ---
 name: binja-sigmaker
-description: Use when generating byte signatures or AOB patterns from Binary Ninja for runtime hooks, trainer work, or version-resilient function identification.
+description: Use when generating byte signatures or AOB patterns from Binary Ninja
+  for runtime hooks, trainer work, or version-resilient function identification.
+permalink: dqverify-repo-20261013/skills/binja-sigmaker/skill
 ---
 
 # binja_sigmaker

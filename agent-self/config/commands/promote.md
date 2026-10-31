@@ -2,6 +2,7 @@
 name: promote
 description: Promote project-scoped instincts to global scope
 command: true
+permalink: dqverify-repo-20261013/agent-self/config/commands/promote
 ---
 
 # Promote Command

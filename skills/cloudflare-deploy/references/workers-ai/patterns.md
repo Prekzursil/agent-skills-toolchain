@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-ai/patterns
+---
+
 # Workers AI Patterns
 
 ## RAG (Retrieval-Augmented Generation)

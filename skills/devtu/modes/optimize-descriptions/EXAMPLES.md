@@ -1,3 +1,9 @@
+---
+title: EXAMPLES
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-descriptions/examples
+---
+
 # Tool Description Optimization - Detailed Examples
 
 This file contains comprehensive examples of description improvements organized by issue type.

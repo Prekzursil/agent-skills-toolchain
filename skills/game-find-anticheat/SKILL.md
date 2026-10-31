@@ -1,6 +1,9 @@
 ---
 name: game-find-anticheat
-description: Use when asked to identify, map, locate, or analyze anti-cheat components in a game process or binary. Applies both to static pre-launch analysis and runtime behavioral identification.
+description: Use when asked to identify, map, locate, or analyze anti-cheat components
+  in a game process or binary. Applies both to static pre-launch analysis and runtime
+  behavioral identification.
+permalink: dqverify-repo-20261013/skills/game-find-anticheat/skill
 ---
 
 # Anti-Cheat Identification

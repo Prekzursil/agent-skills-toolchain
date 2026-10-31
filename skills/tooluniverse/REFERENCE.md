@@ -1,3 +1,9 @@
+---
+title: REFERENCE
+type: note
+permalink: dqverify-repo-20261013/skills/tooluniverse/reference
+---
+
 # ToolUniverse Reference Guide
 
 Detailed tool chains, fallback strategies, and examples for comprehensive scientific research.

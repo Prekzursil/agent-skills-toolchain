@@ -1,3 +1,9 @@
+---
+title: tool-azure-ai-search
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/references/tool-azure-ai-search
+---
+
 # Azure AI Search Tool
 
 Ground agent responses with data from an Azure AI Search vector index. Requires a project connection and proper RBAC setup.

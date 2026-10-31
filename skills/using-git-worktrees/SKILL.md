@@ -1,6 +1,9 @@
 ---
 name: using-git-worktrees
-description: Use when feature work needs isolation from the current workspace, or before executing a plan - creates isolated worktrees with safety checks. NOT for parallel agents (use dispatching-parallel-agents).
+description: Use when feature work needs isolation from the current workspace, or
+  before executing a plan - creates isolated worktrees with safety checks. NOT for
+  parallel agents (use dispatching-parallel-agents).
+permalink: dqverify-repo-20261013/skills/using-git-worktrees/skill
 ---
 
 # Using Git Worktrees

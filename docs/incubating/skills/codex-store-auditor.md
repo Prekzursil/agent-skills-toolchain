@@ -1,3 +1,9 @@
+---
+title: codex-store-auditor
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/codex-store-auditor
+---
+
 # codex-store-auditor
 
 ## Purpose

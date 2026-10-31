@@ -1,3 +1,9 @@
+---
+title: MOUNT
+type: note
+permalink: dqverify-repo-20261013/skills/multi-ai-mingle/mount
+---
+
 # MOUNT — codex-as-MCP into Claude Code (USER scope)
 
 Goal: mount the **official** `codex mcp-server` (stdio) into Claude Code at user scope so

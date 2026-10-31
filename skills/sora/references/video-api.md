@@ -1,3 +1,9 @@
+---
+title: video-api
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/video-api
+---
+
 # Sora Video API quick reference
 
 Keep this file short; the full docs live in the OpenAI platform docs.

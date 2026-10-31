@@ -1,3 +1,9 @@
+---
+title: subagent-preflight
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/subagent-preflight
+---
+
 # Subagent Template — Deploy Preflight & Checklist Generation
 
 Read deploy reference files and distill deployment-specific rules into `deploy-checklist.md`. This is the main agent's ONLY source of deploy rules.

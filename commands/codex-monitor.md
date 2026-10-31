@@ -1,3 +1,9 @@
+---
+title: codex-monitor
+type: note
+permalink: dqverify-repo-20261013/commands/codex-monitor
+---
+
 Launch the codex-monitor — a live dashboard of OpenAI Codex threads (the Codex-side counterpart to /agent-monitor, which shows Claude Code subagents).
 
 Usage: /codex-monitor [--once] [--since-min N] [--idle N] [--max-threads N] [--width N]

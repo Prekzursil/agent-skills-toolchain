@@ -1,3 +1,9 @@
+---
+title: CONVENTIONS
+type: note
+permalink: dqverify-repo-20261013/hooks/tms/conventions
+---
+
 # TMS auto-retraction — record convention + helper
 
 A Truth-Maintenance justification graph for **derived reverse-engineering facts**.

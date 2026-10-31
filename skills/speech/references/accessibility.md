@@ -1,3 +1,9 @@
+---
+title: accessibility
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/accessibility
+---
+
 # Accessibility read defaults
 
 ## Suggested defaults

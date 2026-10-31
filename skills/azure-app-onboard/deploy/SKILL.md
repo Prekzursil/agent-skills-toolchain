@@ -1,3 +1,9 @@
+---
+title: SKILL
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/skill
+---
+
 # Deploy — IaC Execution & Health Verification
 
 ## Quick Reference

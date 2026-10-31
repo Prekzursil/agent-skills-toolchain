@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/agents
+---
+
 # Cross-Tool Behavior Contract
 
 Authoritative behavior contract for Claude Code · Codex CLI · Antigravity (agy); provider

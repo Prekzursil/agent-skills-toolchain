@@ -1,3 +1,9 @@
+---
+title: debugging-playbook
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/debugging-playbook
+---
+
 # Debugging Playbook
 
 ## 1. Confirm Runtime Context First

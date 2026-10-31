@@ -1,3 +1,9 @@
+---
+title: auth_broker_probes_cdp_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-broker-probes-cdp-2026-07-20
+---
+
 # Live probes + CDP + broker notes — 2026-07-20
 
 See also: live_auth_probes_2026-07-20.json, desktop_cdp_cookies_2026-07-20.json

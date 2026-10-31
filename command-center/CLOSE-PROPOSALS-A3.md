@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-A3
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-a3
+---
+
 # CLOSE-PROPOSALS-A3 — lane A3 (A-toolchain `R-A23`..`R-A32` + HARNESS `R-H01`..`R-H10`)
 
 **STATUS: COMPLETE — 20 of 20 items investigated, 2026-08-10.**

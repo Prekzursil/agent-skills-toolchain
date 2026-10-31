@@ -1,3 +1,9 @@
+---
+title: auth-A-mirror
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-a-mirror
+---
+
 # CRCP auth-A-mirror implementation report
 
 ## Summary

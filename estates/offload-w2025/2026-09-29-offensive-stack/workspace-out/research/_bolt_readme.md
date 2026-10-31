@@ -1,3 +1,9 @@
+---
+title: _bolt_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/bolt-readme
+---
+
 # Bolt
 
 Plugin-based security tool server via MCP. Each tool is a plugin — all directly callable in a single LLM turn.
@@ -257,4 +263,3 @@ Register in `bolt.config.json`:
 ## License
 
 AGPL-3.0-only
-

@@ -1,3 +1,9 @@
+---
+title: bicep-patterns-data
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/bicep-patterns-data
+---
+
 # Bicep Patterns — Data Service Modules
 
 Bicep module templates for database and cache services. Read when the prepare plan includes PostgreSQL, MySQL, or Redis.

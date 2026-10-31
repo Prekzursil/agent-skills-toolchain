@@ -1,3 +1,9 @@
+---
+title: step-5-deploy
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/steps/step-5-deploy
+---
+
 # Step 5 — First Model Deployment
 
 **Goal**: Deploy a starter model that fits the cluster's GPU capacity and reach `Ready` status.

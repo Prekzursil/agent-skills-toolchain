@@ -1,3 +1,9 @@
+---
+title: INSTALL
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/install
+---
+
 # Installation
 
 metaswarm works with Claude Code, Gemini CLI, and Codex CLI. Install for one platform or all three.

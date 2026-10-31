@@ -1,3 +1,9 @@
+---
+title: GEMINI
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/templates/gemini
+---
+
 # Project Instructions
 
 This project uses [metaswarm](https://github.com/dsifry/metaswarm), a multi-agent orchestration framework. It provides 18 specialized agents, a 9-phase development workflow, and quality gates that enforce TDD, coverage thresholds, and spec-driven development.

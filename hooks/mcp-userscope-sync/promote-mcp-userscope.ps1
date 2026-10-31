@@ -1,5 +1,41 @@
 <#
 ================================================================================
+ !!! DEPRECATED - DO NOT RUN - DEMOTED 2026-10-24 (SOTA sync-audit verdict) !!!
+================================================================================
+ VERDICT: NOT still correct post-profile-system. Dead primary AND hazardous if
+ re-sourced. Retained for history only; the profile system supersedes it.
+
+ WHY DEAD:
+   * Declared source of truth ~/.mcp.json NO LONGER EXISTS -> the script
+     aborts unconditionally at startup. It cannot do its job today.
+
+ WHY HAZARDOUS IF NAIVELY RE-SOURCED (e.g. after recreating ~/.mcp.json):
+   * Any full canonical set re-promoted into USER scope re-arms the offensive
+     servers (hexstrike-ai, sliver, nuclei, breach-intel, osint, cve-mcp,
+     frida-mcp, ghidra-mcp, ida-pro-mcp, jadx-mcp, binary-ninja-mcp,
+     cheatengine, apktool-mcp, proxy-mcp) in profile-SHARED state that RAW
+     unwrapped claude loads UNFILTERED. The claude profile is shielded
+     (cc-cc.ps1 unconditionally passes --strict-mcp-config --mcp-config
+     clean-mcp.json; claude.profile.json denies 28 incl. hexstrike-ai/sliver/
+     sliver-full/nuclei/burp/cve-mcp/frida-mcp/osint) but raw sessions are not
+     - the exact hexstrike-x150 / sliver-x74 refusal vector.
+   * -PruneExtraUserServers would additionally strip zai-mcp-server /
+     zai-lane-a / McpHub / web-search-prime, breaking glm sessions.
+
+ SUPERSEDED BY:
+   * cc-profiles control plane: cc-use / cc-glm / cc-cc (user scope = glm/raw
+     default tier); clean tier derived to ~/.claude/profiles/clean-mcp.json;
+     offensive servers belong ONLY to D:/opt/cyberstrike-mcp/mcp-ssot.json
+     fronts and explicit --mcp-config payloads.
+
+ Pre-existing safety machinery (DryRun default, claude-process guard,
+ backup-then-atomic-replace, post-write verify) was correct and is preserved
+ below UNCHANGED, byte-exact. Do not modernize; do not re-point; do not run.
+================================================================================
+#>
+
+<#
+================================================================================
  promote-mcp-userscope.ps1
 ================================================================================
  PURPOSE

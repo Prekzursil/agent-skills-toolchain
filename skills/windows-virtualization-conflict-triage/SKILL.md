@@ -1,6 +1,9 @@
 ---
 name: windows-virtualization-conflict-triage
-description: Use when Hyper-V, VBS, VMware Workstation, vmware-vmx, vmrun, Docker, or WSL conflict on a Windows host and you need a safe diagnosis before changing host virtualization settings.
+description: Use when Hyper-V, VBS, VMware Workstation, vmware-vmx, vmrun, Docker,
+  or WSL conflict on a Windows host and you need a safe diagnosis before changing
+  host virtualization settings.
+permalink: dqverify-repo-20261013/skills/windows-virtualization-conflict-triage/skill
 ---
 
 # Windows Virtualization Conflict Triage

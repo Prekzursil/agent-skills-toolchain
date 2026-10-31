@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/rules/typescript/patterns
 ---
+
 # TypeScript/JavaScript Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with TypeScript/JavaScript specific content.

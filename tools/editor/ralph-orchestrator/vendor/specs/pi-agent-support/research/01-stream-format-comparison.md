@@ -1,3 +1,9 @@
+---
+title: 01-stream-format-comparison
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/01-stream-format-comparison
+---
+
 # Research: Pi NDJSON Stream Format vs Claude stream-json
 
 ## Summary

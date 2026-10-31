@@ -188,7 +188,12 @@ def heal_skills(actions):
     src_dirs = {
         n
         for n in os.listdir(CLAUDE_SKILLS)
-        if os.path.isdir(os.path.join(CLAUDE_SKILLS, n))
+        if os.path.isdir(os.path.join(CLAUDE_SKILLS, n)) and not n.endswith(".cc-off")
+    }
+    hidden = {
+        n[: -len(".cc-off")]
+        for n in os.listdir(CLAUDE_SKILLS)
+        if n.endswith(".cc-off") and os.path.isdir(os.path.join(CLAUDE_SKILLS, n))
     }
     dst_dirs = {
         n
@@ -209,8 +214,8 @@ def heal_skills(actions):
         if sc != dc or sm > dm:
             drifted.append(name)
     extras = sorted(
-        dst_dirs - src_dirs
-    )  # present only in mirror (reported, not deleted)
+        dst_dirs - src_dirs - hidden
+    )  # present only in mirror (reported, not deleted); cc-profile-hidden skills excluded
 
     # write throttle stamp regardless of outcome so we don't rescan every session
     try:

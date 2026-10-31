@@ -1,3 +1,9 @@
+---
+title: scholarly-access-mcp
+type: note
+permalink: dqverify-repo-20261013/docs/mcps/scholarly-access-mcp
+---
+
 # Scholarly Access MCP
 
 It resolves DOI / PMID / arXiv / title queries, classifies access honestly, and routes only to available open-access and rights-holder-entitled sources. It is the compliant replacement for a Sci-Hub MCP.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/docs/search-expansion/readme
+---
+
 # Search expansion — multilingual / multi-engine reach + rank fusion
 
 A general harness capability: make research **reach further** — into RU / CN / KR / regional

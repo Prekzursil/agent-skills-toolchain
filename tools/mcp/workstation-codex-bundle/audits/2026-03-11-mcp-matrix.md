@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-mcp-matrix
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/audits/2026-03-11-mcp-matrix
+---
+
 # 2026-03-11 MCP matrix
 
 This matrix reflects the current canonical Windows profile at `C:\Users\Prekzursil\.codex\config.toml`, the secondary VS Code settings at `C:\Users\Prekzursil\AppData\Roaming\Code\User\settings.json`, and the validated workstation bundle after the owner-requested Serena, Nuxt, Netlify, and Terraform removal.

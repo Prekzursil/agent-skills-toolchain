@@ -1,3 +1,9 @@
+---
+title: SKILLS2-ROUND2
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills2-round2
+---
+
 # LANE SKILLS2 — ROUND 2 (re-entry after a CONFIRMED refutation)
 
 STATUS: **MEASURED.** Every row below names the probe that produced it and the control that

@@ -1,3 +1,9 @@
+---
+title: startup-commands
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/startup-commands
+---
+
 # Startup Commands by Framework
 
 Linux App Service (Oryx) auto-detects **Flask** and **Django** — no startup command is needed for these. **FastAPI does NOT rely on Oryx auto-detection** in this skill: we always set an explicit uvicorn startup command so the behavior is identical on every supported Python runtime (3.12, 3.13, 3.14, …). This skill also sets a startup command (or emits a manual hint) for non-Flask/Django/FastAPI frameworks.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/blob-eventgrid/readme
+---
+
 # Blob Storage with Event Grid Recipe
 
 Blob trigger via Event Grid for high-scale, low-latency blob processing.

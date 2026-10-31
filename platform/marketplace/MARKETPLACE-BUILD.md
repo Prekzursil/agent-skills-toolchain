@@ -1,3 +1,9 @@
+---
+title: MARKETPLACE-BUILD
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/marketplace-build
+---
+
 # Phase 6 — The real marketplace (build record)
 
 **Unit:** `build/phase6-marketplace` · **Spec:** `_USER-PROMPTS.md:10844-10871` ·

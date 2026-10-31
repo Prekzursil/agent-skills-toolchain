@@ -1,3 +1,9 @@
+---
+title: QDX_REFERENCE
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/qdx-rush-mcp/qdx-reference
+---
+
 # QDX / Rush / EXESS — Canonical Reference
 
 QDX exposes its GPU-accelerated quantum chemistry and drug-discovery stack through **Rush**. Three pillars:

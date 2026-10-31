@@ -1,3 +1,9 @@
+---
+title: LANE-MCPRESEARCH-BUILD-R1
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/lane-mcpresearch-build-r1
+---
+
 # LANE MCPRESEARCH — BUILD round 1
 
 Executed 2026-08-13. Every number below was produced by running the thing, and every command

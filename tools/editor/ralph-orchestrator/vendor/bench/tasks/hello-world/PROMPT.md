@@ -1,3 +1,9 @@
+---
+title: PROMPT
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/bench/tasks/hello-world/prompt
+---
+
 # Hello World Task
 
 Create a Python script called `hello.py` that prints "Hello, World!" to stdout.

@@ -1,3 +1,9 @@
+---
+title: error-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/error-patterns
+---
+
 # Error patterns (compact)
 
 Use this to quickly map log signatures to likely causes and fixes.

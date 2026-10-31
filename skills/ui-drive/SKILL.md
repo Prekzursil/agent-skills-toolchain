@@ -1,8 +1,20 @@
 ---
 name: ui-drive
-description: Thin rail-router driver for a LIVE running web or Electron app — attach to it, resolve any target through three fallback rails (a11y-ref then CDP css then vision xy), point at an element with a screenshot-visible highlight, discuss it with full context, and actuate it (click/fill/hover/press/select). Also drives the ephemeral restyle loop — preview a CSS candidate as an injected style overlay, apply/accept/revert it, and harvest the accepted deltas as a PROPOSED patch — WITHOUT ever editing application source. Rides the vendored playwright at exactly 1.61.1 from the sibling ui-audit skill, so no new browser dependency. Every mutating verb logs to a bounded shadow sink (observe-only, never blocks). Use as the low-level app-driving and pointing channel under design-studio-session and design-studio. NOT for the design-quality verdict (use ui-audit) and NOT for element-to-source mapping or micro-commits (use design-studio-session).
+description: Thin rail-router driver for a LIVE running web or Electron app — attach
+  to it, resolve any target through three fallback rails (a11y-ref then CDP css then
+  vision xy), point at an element with a screenshot-visible highlight, discuss it
+  with full context, and actuate it (click/fill/hover/press/select). Also drives the
+  ephemeral restyle loop — preview a CSS candidate as an injected style overlay, apply/accept/revert
+  it, and harvest the accepted deltas as a PROPOSED patch — WITHOUT ever editing application
+  source. Rides the vendored playwright at exactly 1.61.1 from the sibling ui-audit
+  skill, so no new browser dependency. Every mutating verb logs to a bounded shadow
+  sink (observe-only, never blocks). Use as the low-level app-driving and pointing
+  channel under design-studio-session and design-studio. NOT for the design-quality
+  verdict (use ui-audit) and NOT for element-to-source mapping or micro-commits (use
+  design-studio-session).
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/skills/ui-drive/skill
 ---
 
 # ui-drive Skill

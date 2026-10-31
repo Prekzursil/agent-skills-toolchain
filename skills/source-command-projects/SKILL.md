@@ -1,6 +1,7 @@
 ---
-name: "source-command-projects"
-description: "List known projects and their instinct statistics"
+name: source-command-projects
+description: List known projects and their instinct statistics
+permalink: dqverify-repo-20261013/skills/source-command-projects/skill
 ---
 
 # source-command-projects

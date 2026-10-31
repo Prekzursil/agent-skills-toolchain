@@ -1,3 +1,9 @@
+---
+title: dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/sql/source/dotnet
+---
+
 # SQL Database — C# (.NET) — REFERENCE ONLY
 
 ## Entity Framework Core Setup

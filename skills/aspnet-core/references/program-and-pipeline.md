@@ -1,3 +1,9 @@
+---
+title: program-and-pipeline
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/program-and-pipeline
+---
+
 # Program And Pipeline
 
 Primary docs:

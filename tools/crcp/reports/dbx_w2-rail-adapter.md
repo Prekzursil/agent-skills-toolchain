@@ -1,3 +1,9 @@
+---
+title: dbx_w2-rail-adapter
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w2-rail-adapter
+---
+
 # W2 rail adapter
 
 ## Summary

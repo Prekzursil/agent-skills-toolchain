@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-for-platforms/readme
+---
+
 # Cloudflare Workers for Platforms
 
 Multi-tenant platform with isolated customer code execution at scale.

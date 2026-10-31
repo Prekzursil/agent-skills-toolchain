@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.rs"
+- '**/*.rs'
+permalink: dqverify-repo-20261013/rules/rust/security
 ---
+
 # Rust Security
 
 > This file extends [common/security.md](../common/security.md) with Rust-specific content.

@@ -1,3 +1,9 @@
+---
+title: orchestrator-flake-note
+type: note
+permalink: dqverify-repo-20261013/command-center/ci/orchestrator-flake-note
+---
+
 # gate-sast fails CLOSED on a transient download — it produced a false verdict once
 
 Recorded 2026-08-12 by the orchestrator, from a firing that has already been re-run away.

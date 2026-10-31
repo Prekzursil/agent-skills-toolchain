@@ -4,6 +4,7 @@ description: Container marker for learned pattern files created by /learn and /l
 disable-model-invocation: true
 user-invocable: false
 origin: local-control-plane
+permalink: dqverify-repo-20261013/skills/learned/skill
 ---
 
 # Learned Patterns Container

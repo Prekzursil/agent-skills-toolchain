@@ -1,3 +1,9 @@
+---
+title: pdd-ralph
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/sops/addendums/pdd-ralph
+---
+
 ## Ralph Loop Handoff
 
 After the planning session is complete and the user wants implementation, tell them how to start the Ralph loop themselves.

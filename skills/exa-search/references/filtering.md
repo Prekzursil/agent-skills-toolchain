@@ -1,3 +1,9 @@
+---
+title: filtering
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/filtering
+---
+
 # Filtering Results
 
 After extracting data from search results, you may need to filter rows based on criteria from the original query. This file covers how to apply filters effectively.

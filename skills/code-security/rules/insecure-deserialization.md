@@ -1,8 +1,10 @@
 ---
 title: Prevent Insecure Deserialization
 impact: CRITICAL
-impactDescription: Remote code execution allowing attackers to run arbitrary code on the server
+impactDescription: Remote code execution allowing attackers to run arbitrary code
+  on the server
 tags: security, deserialization, cwe-502
+permalink: dqverify-repo-20261013/skills/code-security/rules/insecure-deserialization
 ---
 
 ## Prevent Insecure Deserialization

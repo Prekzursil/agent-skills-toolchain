@@ -1,3 +1,9 @@
+---
+title: beanstalk-to-app-service
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/app-service/beanstalk-to-app-service
+---
+
 # AWS Elastic Beanstalk to Azure App Service Migration
 
 Detailed guidance for migrating AWS Elastic Beanstalk applications to Azure App Service.

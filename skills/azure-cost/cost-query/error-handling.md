@@ -1,3 +1,9 @@
+---
+title: error-handling
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-query/error-handling
+---
+
 # Cost Query Error Handling
 
 Detailed error handling reference for the Cost Management Query API.

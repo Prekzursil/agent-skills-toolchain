@@ -1,3 +1,9 @@
+---
+title: OWNER-PACKET-2026-08-11
+type: note
+permalink: dqverify-repo-20261013/command-center/owner-packet-2026-08-11
+---
+
 # OWNER PACKET — what actually needs your call, 2026-08-11 03:30
 
 Current as of `1bdb1189`. Supersedes the owner sections of `FOUR-PROGRAM-DECISION-QUEUE.md`, which

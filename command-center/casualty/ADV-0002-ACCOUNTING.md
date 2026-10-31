@@ -1,3 +1,9 @@
+---
+title: ADV-0002-ACCOUNTING
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/adv-0002-accounting
+---
+
 # ADV-0002 (and ADV-0038) — accounting
 
 Measured 2026-08-12, build round 1, lane CASUALTY. Every number below came from a probe with

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/readme
+---
+
 # Azure Messaging Troubleshooting
 
 Diagnose and resolve issues with Azure Event Hubs and Service Bus SDKs.

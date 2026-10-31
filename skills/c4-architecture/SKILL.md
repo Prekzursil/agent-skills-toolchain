@@ -1,6 +1,9 @@
 ---
 name: c4-architecture
-description: Use when asked to create architecture diagrams, document system architecture, visualize software structure, or generate context/container/component/deployment diagrams — produces C4 model Mermaid diagrams written to docs/architecture/.
+description: Use when asked to create architecture diagrams, document system architecture,
+  visualize software structure, or generate context/container/component/deployment
+  diagrams — produces C4 model Mermaid diagrams written to docs/architecture/.
+permalink: dqverify-repo-20261013/skills/c4-architecture/skill
 ---
 
 <!-- Source: cherry-picked from https://github.com/coco-research/coco (skills/c4-architecture) on 27.08.2026 per grill decision G-11/11B. Adapted to house format; coco reference files not ported. -->

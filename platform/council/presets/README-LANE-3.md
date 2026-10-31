@@ -1,3 +1,9 @@
+---
+title: README-LANE-3
+type: note
+permalink: dqverify-repo-20261013/platform/council/presets/readme-lane-3
+---
+
 # Council presets 33-48 — editing guide (lane 3)
 
 Sixteen editable CouncilSpec instances for design cards **C-D33 … C-D45** and **C-X46 … C-X48**

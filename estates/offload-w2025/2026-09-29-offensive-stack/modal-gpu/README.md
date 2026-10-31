@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/modal-gpu/readme
+---
+
 # Modal GPU bench tier (credential-ready, staged-a per grill Q1c)
 
 ## What exists here

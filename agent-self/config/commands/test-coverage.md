@@ -1,3 +1,9 @@
+---
+title: test-coverage
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/test-coverage
+---
+
 # Test Coverage
 
 Analyze test coverage, identify gaps, and generate missing tests to reach 80%+ coverage.

@@ -1,3 +1,9 @@
+---
+title: slop-cli-setup
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/slop-cli-setup
+---
+
 # Slop CLI Setup
 
 `SKILL.md` reads this file when it needs to use the `slop` CLI. The CLI

@@ -1,3 +1,9 @@
+---
+title: SETUP
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/linkedin-mcp/setup
+---
+
 # linkedin-mcp — owner setup (the unblocker)
 
 This is the one thing only you can do: create a LinkedIn developer app, request

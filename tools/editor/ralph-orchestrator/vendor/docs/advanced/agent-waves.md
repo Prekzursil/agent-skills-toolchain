@@ -1,3 +1,9 @@
+---
+title: agent-waves
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/advanced/agent-waves
+---
+
 # Agent Waves
 
 Agent Waves add intra-loop parallelism to Ralph's orchestration. Instead of processing work items one at a time, a hat can dispatch a **wave** of items that run as parallel backend instances — all within a single iteration.

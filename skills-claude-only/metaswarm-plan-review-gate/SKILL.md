@@ -1,12 +1,14 @@
 ---
 name: plan-review-gate
-description: Automatic adversarial review gate that spawns 3 independent reviewers in parallel after any plan is drafted - all must PASS before presenting to user
+description: Automatic adversarial review gate that spawns 3 independent reviewers
+  in parallel after any plan is drafted - all must PASS before presenting to user
 auto_activate: true
 triggers:
-  - "plan drafted"
-  - "implementation plan created"
-  - after:writing-plans
-  - after:orchestrated-execution:plan-validation
+- plan drafted
+- implementation plan created
+- after:writing-plans
+- after:orchestrated-execution:plan-validation
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-plan-review-gate/skill
 ---
 
 # Plan Review Gate

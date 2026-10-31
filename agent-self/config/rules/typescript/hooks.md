@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/agent-self/config/rules/typescript/hooks
 ---
+
 # TypeScript/JavaScript Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with TypeScript/JavaScript specific content.

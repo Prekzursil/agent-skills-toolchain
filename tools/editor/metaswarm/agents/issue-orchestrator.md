@@ -1,3 +1,9 @@
+---
+title: issue-orchestrator
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/agents/issue-orchestrator
+---
+
 # Issue Orchestrator Agent
 
 **Type**: `issue-orchestrator`
@@ -696,4 +702,3 @@ The Issue Orchestrator reports progress via GitHub comments:
 
 <What happens next>
 ```
-

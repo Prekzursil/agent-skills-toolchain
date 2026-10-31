@@ -1,3 +1,9 @@
+---
+title: java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/runtimes/java
+---
+
 # Java — Azure Functions Triggers & Bindings
 
 > **Model**: Java annotation-based model. Uses `@FunctionName` and trigger/binding annotations.

@@ -1,3 +1,9 @@
+---
+title: CODE_TEMPLATES
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/code-templates
+---
+
 # Code Templates
 
 Python implementation and test templates for ToolUniverse skills.

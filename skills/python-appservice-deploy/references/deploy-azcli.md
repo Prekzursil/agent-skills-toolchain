@@ -1,3 +1,9 @@
+---
+title: deploy-azcli
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/deploy-azcli
+---
+
 # Deploy via `az` CLI
 
 Use this path when there is **no** `azure.yaml` or it doesn't target `appservice`.

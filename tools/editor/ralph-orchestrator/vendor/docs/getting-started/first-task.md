@@ -1,3 +1,9 @@
+---
+title: first-task
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/getting-started/first-task
+---
+
 # Your First Task
 
 Let's walk through creating and running a complete task with Ralph.

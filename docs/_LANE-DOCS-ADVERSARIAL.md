@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-ADVERSARIAL
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-adversarial
+---
+
 # LANE DOCS — ADVERSARIAL VERIFICATION of BUILD d2a77e15 + its AUDIT
 
 COVERAGE: every row below was EXECUTED. Nothing here is inherited from the build or the audit

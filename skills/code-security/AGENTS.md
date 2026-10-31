@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/skills/code-security/agents
+---
+
 # Code Security
 
 **Version 0.1.0**  
@@ -4782,4 +4788,3 @@ app = Flask(__name__)
 ```
 
 ---
-

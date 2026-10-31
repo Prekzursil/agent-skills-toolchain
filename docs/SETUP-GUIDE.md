@@ -1,3 +1,9 @@
+---
+title: SETUP-GUIDE
+type: note
+permalink: dqverify-repo-20261013/docs/setup-guide
+---
+
 # MCP Toolchain — Setup & Onboarding Guide
 
 How to configure this whole personal MCP toolchain correctly **for your

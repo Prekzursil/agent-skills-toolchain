@@ -1,3 +1,9 @@
+---
+title: rdp-service-config
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/rdp-service-config
+---
+
 # RDP Service and Configuration Issues
 
 VM is reachable but the RDP service itself is broken or misconfigured.

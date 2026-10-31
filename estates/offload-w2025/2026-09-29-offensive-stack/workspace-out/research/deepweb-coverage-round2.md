@@ -1,3 +1,9 @@
+---
+title: deepweb-coverage-round2
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/deepweb-coverage-round2
+---
+
 # deepweb-coverage-round2 — full research notes (2026-09-29)
 
 Round-2 lane: deeper-than-round-1 sweep with expanded toolkit (GATEWAY darknet backend,

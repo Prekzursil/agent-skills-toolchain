@@ -1,3 +1,9 @@
+---
+title: verification
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/verification
+---
+
 # Resource Verification
 
 Run these checks immediately after writing each resource to `plan.resources[]`. Fix issues in-place before moving to the next resource. Load the relevant category file from [resources/](resources/README.md) for naming constraints, valid SKUs, and pairing rules.

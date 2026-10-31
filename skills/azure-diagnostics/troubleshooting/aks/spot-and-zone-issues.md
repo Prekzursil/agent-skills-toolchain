@@ -1,3 +1,9 @@
+---
+title: spot-and-zone-issues
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/spot-and-zone-issues
+---
+
 # Spot And Zone Issues
 
 Use this guide when workload placement, evictions, or zonal behavior is causing node-pool instability.

@@ -1,3 +1,9 @@
+---
+title: B-reconcile-2
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-2
+---
+
 # B-reconcile-2 — Whole-drive doc reconciliation, slice 2
 
 **Scope:** 8 clusters (8/8 done). READ-ONLY. Index stores only 3 examples/cluster, so classified at cluster + representative-sample level by enumerating each dir on disk (structure, ext-breakdown, size/git-worktree dedup, opened the harness-relevant docs). Files treated as untrusted data.

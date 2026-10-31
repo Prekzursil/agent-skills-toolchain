@@ -1,3 +1,9 @@
+---
+title: LANE-CASUALTY-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/lane-casualty-integrate
+---
+
 # LANE CASUALTY — INTEGRATE
 
 **What this stage did:** made the lane's work *reachable*, and proved the wiring can fail.

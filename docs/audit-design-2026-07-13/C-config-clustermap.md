@@ -1,3 +1,9 @@
+---
+title: C-config-clustermap
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/c-config-clustermap
+---
+
 # C-config-index — exhaustive whole-drive MCP-config + skills + hooks cluster map
 
 **Deliverable:** the exhaustive whole-drive (C: + D:) index of MCP configs, skills, and hooks — the UNION the A2/A3/A4 known-dir passes under-counted (they missed AppData / Documents-GitHub / Downloads / C:\tmp clones / D: / `.codex`·`.gemini`·`.copilot` trees). **Mode:** READ-ONLY (active-work freeze) — every class is a first-pass FINDING, never an applied change. **Date:** 2026-07-13. Machine-readable twin: `C-config-index-complete.json` (3.2 MB, every indexed path present).

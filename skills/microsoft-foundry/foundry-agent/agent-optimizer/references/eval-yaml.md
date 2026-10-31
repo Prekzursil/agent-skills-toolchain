@@ -1,3 +1,9 @@
+---
+title: eval-yaml
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/references/eval-yaml
+---
+
 # eval.yaml Guidance
 
 Create `eval.yaml` directly when the conversation or `.foundry/agent-metadata*.yaml` already selected the dataset/evaluators. Otherwise ask whether to run `azd ai agent eval generate` or let optimize use built-in defaults.

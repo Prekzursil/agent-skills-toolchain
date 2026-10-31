@@ -3,9 +3,10 @@ title: Controls, Layout, and Adaptive UI
 priority: HIGH
 tags: controls, layout, adaptive-ui, responsive, forms, lists
 sources:
-  - https://learn.microsoft.com/windows/apps/design/layout/responsive-design
-  - https://learn.microsoft.com/windows/apps/design/basics/navigation-basics
-  - https://github.com/microsoft/WinUI-Gallery
+- https://learn.microsoft.com/windows/apps/design/layout/responsive-design
+- https://learn.microsoft.com/windows/apps/design/basics/navigation-basics
+- https://github.com/microsoft/WinUI-Gallery
+permalink: dqverify-repo-20261013/skills/winui-app/references/controls-layout-and-adaptive-ui
 ---
 
 ## What This Reference Is For

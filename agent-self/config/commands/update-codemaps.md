@@ -1,3 +1,9 @@
+---
+title: update-codemaps
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/update-codemaps
+---
+
 # Update Codemaps
 
 Analyze the codebase structure and generate token-lean architecture documentation.

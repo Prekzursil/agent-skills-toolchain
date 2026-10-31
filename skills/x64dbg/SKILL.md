@@ -1,6 +1,9 @@
 ---
 name: x64dbg
-description: Use when live-debugging a Windows process, tracing code paths, setting breakpoints, or pairing with ret-sync and a disassembler. NOT for crash-dump debugging (use windbg-preview).
+description: Use when live-debugging a Windows process, tracing code paths, setting
+  breakpoints, or pairing with ret-sync and a disassembler. NOT for crash-dump debugging
+  (use windbg-preview).
+permalink: dqverify-repo-20261013/skills/x64dbg/skill
 ---
 
 # x64dbg

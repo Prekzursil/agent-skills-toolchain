@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-data-catalog/patterns
+---
+
 # Common Patterns
 
 Practical patterns for R2 Data Catalog with PyIceberg.

@@ -1,8 +1,13 @@
 ---
 name: critique-panel
-description: Use to run the G3 CRITIQUE gate of the TCR design-review loop - a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each REASON over ui-audit's Track-A numbers plus the screenshot, run the NN/g "I Like / I Wish / What If" ritual, score the nine DESIGN-EVAL v1 dimensions 0-4, then synthesize a severity-ranked findings list. A TRIAGE accelerator.
+description: Use to run the G3 CRITIQUE gate of the TCR design-review loop - a four
+  named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic)
+  that each REASON over ui-audit's Track-A numbers plus the screenshot, run the NN/g
+  "I Like / I Wish / What If" ritual, score the nine DESIGN-EVAL v1 dimensions 0-4,
+  then synthesize a severity-ranked findings list. A TRIAGE accelerator.
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/skills/critique-panel/skill
 ---
 
 <!-- origin: user (design-SOTA research, 2026-06-30); implements DESIGN-WORKFLOW.md G3 (NN/g Design Critique ritual + I Like/I Wish/What If + named multi-agent panel as TRIAGE), DESIGN-SKILLS-AND-EVAL.md §1.1 (one-persona-per-call reliability protocol), §1.2 (the four personas + quota), §2.1-§2.4 (0-4 scale, 9 dimensions/weights/critical triggers, weighted composite + cap), §3 (defer DIRECTION to the human; enumerate don't pick). -->

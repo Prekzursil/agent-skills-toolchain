@@ -3,10 +3,11 @@ title: Template-First Recovery for Startup and XAML Failures
 priority: CRITICAL
 tags: template, recovery, xaml-compiler, msb3073, startup
 sources:
-  - https://learn.microsoft.com/windows/apps/get-started/start-here
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-packaged-apps
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-unpackaged-apps
-  - https://github.com/microsoft/WinUI-Gallery
+- https://learn.microsoft.com/windows/apps/get-started/start-here
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-packaged-apps
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/deploy-unpackaged-apps
+- https://github.com/microsoft/WinUI-Gallery
+permalink: dqverify-repo-20261013/skills/winui-app/references/foundation-template-first-recovery
 ---
 
 ## What This Reference Is For

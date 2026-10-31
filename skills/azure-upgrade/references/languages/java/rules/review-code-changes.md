@@ -1,3 +1,9 @@
+---
+title: review-code-changes
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/rules/review-code-changes
+---
+
 # Review Code Changes (MANDATORY for each step)
 
 After completing changes in each step, review code changes per the rules in the Progress Template BEFORE verification. Key areas:

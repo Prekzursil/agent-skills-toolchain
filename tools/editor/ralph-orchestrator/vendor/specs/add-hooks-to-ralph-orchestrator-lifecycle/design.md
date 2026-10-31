@@ -1,3 +1,9 @@
+---
+title: design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/design
+---
+
 # Design: Per-Project Orchestrator Lifecycle Hooks for Ralph
 
 ## Overview
@@ -618,4 +624,3 @@ Each acceptance criterion below maps to a **Cucumber BDD scenario** in v1.
 - No parallel hook execution.
 - No full orchestration mutation surfaces.
 - Semantic `plan.created` depends on plan-topic publication patterns.
-

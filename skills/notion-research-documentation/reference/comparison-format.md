@@ -1,3 +1,9 @@
+---
+title: comparison-format
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/comparison-format
+---
+
 # Comparison Format
 
 **When to use**:
@@ -34,4 +40,3 @@ See [comparison-template.md](comparison-template.md) for the full template.
 - "What are the pros and cons of each deployment approach?"
 - "Compare the vendor proposals"
 - "Evaluate the different authentication methods we've documented"
-

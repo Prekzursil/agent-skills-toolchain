@@ -1,3 +1,9 @@
+---
+title: P2NEXT-INTEGRATE-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-integrate-r2
+---
+
 # P2NEXT — INTEGRATE lane, round 2: the sweep that closed round 4's residual was reachable by nobody
 
 STATUS: COMPLETE. Every claim below was executed; the commands and their real output are in §3

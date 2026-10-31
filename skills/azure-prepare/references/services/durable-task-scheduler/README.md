@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/readme
+---
+
 # Durable Task Scheduler
 
 Build reliable, fault-tolerant workflows using durable execution with Azure Durable Task Scheduler.

@@ -1,3 +1,9 @@
+---
+title: QUICKSTART_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/quickstart-template
+---
+
 # QUICK_START.md Template
 
 Use this template when writing the QUICK_START.md for a new ToolUniverse skill.

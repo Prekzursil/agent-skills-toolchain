@@ -1,6 +1,10 @@
 ---
 name: reframe-transcribe
-description: "Use when transcribing speech from audio/video to text with WORD-LEVEL timing (for captions, karaoke subtitles, clip-boundary snapping, or diarization). The proven local pipeline is faster-whisper (large-v3-turbo on GPU / small on CPU) for the transcript, then a SEPARATE ctc-forced-aligner second."
+description: Use when transcribing speech from audio/video to text with WORD-LEVEL
+  timing (for captions, karaoke subtitles, clip-boundary snapping, or diarization).
+  The proven local pipeline is faster-whisper (large-v3-turbo on GPU / small on CPU)
+  for the transcript, then a SEPARATE ctc-forced-aligner second.
+permalink: dqverify-repo-20261013/skills/reframe-transcribe/skill
 ---
 
 # Transcribe (speech to timed text)

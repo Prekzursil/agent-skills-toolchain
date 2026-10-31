@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/pulumi/readme
+---
+
 # Cloudflare Pulumi Provider
 
 Expert guidance for Cloudflare Pulumi Provider (@pulumi/cloudflare).

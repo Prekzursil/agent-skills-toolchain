@@ -1,6 +1,9 @@
 ---
 name: red
-description: Offensive operations package — full tier tables (FEW/MEDIUM/HEAVY/FULL/MAX/SOTA) for wiring the estate's offensive arsenal with exact enable AND disable commands, including the agent-integrity/jailbreak vector library. Child of red-blue-purple.
+description: Offensive operations package — full tier tables (FEW/MEDIUM/HEAVY/FULL/MAX/SOTA)
+  for wiring the estate's offensive arsenal with exact enable AND disable commands,
+  including the agent-integrity/jailbreak vector library. Child of red-blue-purple.
+permalink: dqverify-repo-20261013/skills/red-blue-purple/red/skill
 ---
 
 # RED — offensive tier package

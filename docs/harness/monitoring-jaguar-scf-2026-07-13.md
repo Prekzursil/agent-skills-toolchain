@@ -1,3 +1,9 @@
+---
+title: monitoring-jaguar-scf-2026-07-13
+type: note
+permalink: dqverify-repo-20261013/docs/harness/monitoring-jaguar-scf-2026-07-13
+---
+
 # Harness monitoring + Jaguar SCF knowledge (2026-07-13)
 
 Knowledge gained hardening the phenibut compute + observability harness. Companion to the

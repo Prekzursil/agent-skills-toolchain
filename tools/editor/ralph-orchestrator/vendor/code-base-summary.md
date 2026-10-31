@@ -1,3 +1,9 @@
+---
+title: code-base-summary
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/code-base-summary
+---
+
 # Ralph Orchestrator — Codebase Summary
 
 > Multi-agent orchestration framework for AI coding assistants.

@@ -1,3 +1,9 @@
+---
+title: bom-validation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/bom-migration/bom-validation
+---
+
 # BOM Migration — Validation Checklist
 
 After BOM migration, verify:

@@ -1,3 +1,9 @@
+---
+title: workflows
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/create/references/workflows
+---
+
 # Detailed Workflows: Create Foundry Resource
 
 **Table of Contents:** [Workflow 1: Create Resource Group](#workflow-1-create-resource-group---detailed-steps) · [Workflow 2: Create Foundry Resource](#workflow-2-create-foundry-resource---detailed-steps) · [Workflow 3: Register Resource Provider](#workflow-3-register-resource-provider---detailed-steps)

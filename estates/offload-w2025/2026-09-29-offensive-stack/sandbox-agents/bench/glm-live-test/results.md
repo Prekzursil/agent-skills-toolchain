@@ -1,3 +1,9 @@
+---
+title: results
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/sandbox-agents/bench/glm-live-test/results
+---
+
 # Refusal bench — glm-4.6 (anthropic)
 
 - model: `glm-4.6`  endpoint: `https://api.z.ai/api/anthropic/v1/messages`

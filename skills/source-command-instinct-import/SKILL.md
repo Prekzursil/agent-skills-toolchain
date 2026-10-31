@@ -1,6 +1,7 @@
 ---
-name: "source-command-instinct-import"
-description: "Import instincts from file or URL into project/global scope"
+name: source-command-instinct-import
+description: Import instincts from file or URL into project/global scope
+permalink: dqverify-repo-20261013/skills/source-command-instinct-import/skill
 ---
 
 # source-command-instinct-import

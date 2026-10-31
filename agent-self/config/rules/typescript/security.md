@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/agent-self/config/rules/typescript/security
 ---
+
 # TypeScript/JavaScript Security
 
 > This file extends [common/security.md](../common/security.md) with TypeScript/JavaScript specific content.

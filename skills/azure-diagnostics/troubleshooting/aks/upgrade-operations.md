@@ -1,3 +1,9 @@
+---
+title: upgrade-operations
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/upgrade-operations
+---
+
 # Upgrade Operations
 
 Use this guide when node image rotation, Kubernetes version changes, or node-pool upgrade settings appear to be the failure domain.

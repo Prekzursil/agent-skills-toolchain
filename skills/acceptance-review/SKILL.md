@@ -1,6 +1,11 @@
 ---
 name: acceptance-review
-description: Use at the "done" boundary of an app change, before a PR or a "fixed / it works now" claim. Dispatches an INDEPENDENT cross-model reviewer (Codex/Gemini CLI, else fresh Claude) that adversarially judges whether the real end-to-end journey works or is green-but-broken, over the diff + golden-journeys + on-disk evidence. Returns a SHIP/BLOCK verdict. NOT for code review (use code-review).
+description: Use at the "done" boundary of an app change, before a PR or a "fixed
+  / it works now" claim. Dispatches an INDEPENDENT cross-model reviewer (Codex/Gemini
+  CLI, else fresh Claude) that adversarially judges whether the real end-to-end journey
+  works or is green-but-broken, over the diff + golden-journeys + on-disk evidence.
+  Returns a SHIP/BLOCK verdict. NOT for code review (use code-review).
+permalink: dqverify-repo-20261013/skills/acceptance-review/skill
 ---
 
 # Acceptance Review — the cross-model "does it actually work?" verdict

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/closed-batch/readme
+---
+
 # closed-batch — one reversible apply-when-closed batch for the config flips
 
 `apply_closed_batch.py` applies several `~/.claude.json` changes in ONE guarded,

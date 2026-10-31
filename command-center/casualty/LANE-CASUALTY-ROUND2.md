@@ -1,3 +1,9 @@
+---
+title: LANE-CASUALTY-ROUND2
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/lane-casualty-round2
+---
+
 # LANE CASUALTY — BUILD ROUND 2 (re-entry after adversarial refutation)
 
 Build round 2, 2026-08-12. Write-as-you-go: rewritten at every milestone; whatever is on disk is

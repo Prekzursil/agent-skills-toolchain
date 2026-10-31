@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r2
+---
+
 # SLOP lane — BUILD round 2 (re-entry after a CONFIRMED refutation)
 
 Round 2 of at most 4. Two CONFIRMED defects fixed in code, three overclaims rescoped with the

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hexstrike-ai/readme
+---
+
 # HexStrike AI
 
 `tools/mcp/hexstrike-ai/` is the repo-owned Windows-first integration layer for the upstream `0x4m4/hexstrike-ai` project.

@@ -1,3 +1,9 @@
+---
+title: cybergym_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/cybergym-readme
+---
+
 # CyberGym: Evaluating AI Agents' Real-World Cybersecurity Capabilities at Scale
 
 [![Website](https://img.shields.io/badge/Website-cybergym.io-0a9396?style=flat&logo=Google-Chrome&logoColor=white)](https://cybergym.io)

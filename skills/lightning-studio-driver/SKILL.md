@@ -1,6 +1,10 @@
 ---
 name: lightning-studio-driver
-description: "Use when driving Lightning.ai Studios via the lightning_sdk (auth, account switching, org-aware teamspace/studio discovery, create/start/stop/ switch-machine, upload, run commands) or when installing a big licensed suite (e.g. Schrödinger) on a Studio and running GPU jobs (FEP/MD) on it. Encodes."
+description: Use when driving Lightning.ai Studios via the lightning_sdk (auth, account
+  switching, org-aware teamspace/studio discovery, create/start/stop/ switch-machine,
+  upload, run commands) or when installing a big licensed suite (e.g. Schrödinger)
+  on a Studio and running GPU jobs (FEP/MD) on it. Encodes.
+permalink: dqverify-repo-20261013/skills/lightning-studio-driver/skill
 ---
 
 # lightning-studio-driver

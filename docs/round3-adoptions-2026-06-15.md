@@ -1,3 +1,9 @@
+---
+title: round3-adoptions-2026-06-15
+type: note
+permalink: dqverify-repo-20261013/docs/round3-adoptions-2026-06-15
+---
+
 # Round-3 deep-research adoptions — 2026-06-15
 
 Third scan over less-explored angles, ruthless default-reject vs the two prior

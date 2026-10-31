@@ -1,3 +1,9 @@
+---
+title: generate-seed-dataset
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/eval-datasets/references/generate-seed-dataset
+---
+
 # Generate Seed Evaluation Dataset
 
 Generate a seed evaluation dataset for a Foundry agent by producing realistic, diverse test queries grounded in the agent's instructions and tool capabilities.

@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-INTEGRATE-R3
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-integrate-r3
+---
+
 # RULE-AUDIT — INTEGRATE lane, round 3
 
 STATUS: complete and measured. Every claim below was executed, not read.

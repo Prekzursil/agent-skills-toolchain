@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/codex/profiles/readme
+---
+
 # Versioned Codex profiles
 
 Source of truth for the per-invocation Codex scoping profiles (spec §2). These are the

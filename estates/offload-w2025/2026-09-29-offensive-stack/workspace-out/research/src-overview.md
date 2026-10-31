@@ -1,14 +1,14 @@
 ---
 title: Overview of Microsoft MCP Server for Enterprise
-description: "Microsoft MCP Server for Enterprise enables AI agents to query enterprise identity data using natural language through the Model Context Protocol."
+description: Microsoft MCP Server for Enterprise enables AI agents to query enterprise
+  identity data using natural language through the Model Context Protocol.
 author: FaithOmbongi
 ms.author: ombongifaith
 ms.reviewer: Licantrop0
 ms.subservice: ent-mcp-server
 ms.topic: overview
 ms.date: 11/18/2025
-
-#customer intent: As a developer or IT administrator, I want to understand the Microsoft MCP Server for Enterprise so that I can effectively use natural language to query and manage my organization's identity and device data.
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/src-overview
 ---
 
 # Overview of Microsoft MCP Server for Enterprise (preview)

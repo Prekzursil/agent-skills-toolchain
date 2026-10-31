@@ -1,3 +1,9 @@
+---
+title: api-live
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/stream/api-live
+---
+
 # Stream Live Streaming API
 
 Live input creation, status checking, simulcast, and WebRTC streaming.

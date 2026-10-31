@@ -1,3 +1,9 @@
+---
+title: WORKSPACE-CURATION
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/docs/workspace-curation
+---
+
 # Workspace Curation — Single Source of Truth
 
 **Last curated:** 2026-06-11 · **Backup of pre-cleanup config:** `~/.claude/_config-backups/cleanup_2026-06-11_045014/`

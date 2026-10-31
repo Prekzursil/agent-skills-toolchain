@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/detector-self-test/readme
+---
+
 # TG-1 · detector self-test
 
 A **both-states fixture gate** for the estate's harness detectors, hooks, and

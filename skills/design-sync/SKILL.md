@@ -1,7 +1,11 @@
 ---
 name: design-sync
-description: "Use when design sync is needed. Push a local component library to a claude.ai/design design-system project incrementally — one component at a time, never a wholesale replace. Builds self-contained @dsCard preview HTML bundles, validates the card manifest, then drives the DesignSync MCP push flow."
+description: Use when design sync is needed. Push a local component library to a claude.ai/design
+  design-system project incrementally — one component at a time, never a wholesale
+  replace. Builds self-contained @dsCard preview HTML bundles, validates the card
+  manifest, then drives the DesignSync MCP push flow.
 origin: forged (FORGE-DISCIPLINE 2026-06-30)
+permalink: dqverify-repo-20261013/skills/design-sync/skill
 ---
 
 # design-sync — push a component library to claude.ai/design

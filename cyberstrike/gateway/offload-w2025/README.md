@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/gateway/offload-w2025/readme
+---
+
 # CyberStrike MCP engagement kit (rebuilt 2026-09-29, single-process design)
 
 ## Architecture (no supervisor, no watchdog, no front fleet)

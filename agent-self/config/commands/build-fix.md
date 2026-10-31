@@ -1,3 +1,9 @@
+---
+title: build-fix
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/build-fix
+---
+
 # Build and Fix
 
 Incrementally fix build and type errors with minimal, safe changes.

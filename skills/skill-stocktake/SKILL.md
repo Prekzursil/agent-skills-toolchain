@@ -1,6 +1,9 @@
 ---
 name: skill-stocktake
-description: "Use when auditing Claude skills and commands for quality. Supports Quick Scan (changed skills only) and Full Stocktake modes with sequential subagent batch evaluation."
+description: Use when auditing Claude skills and commands for quality. Supports Quick
+  Scan (changed skills only) and Full Stocktake modes with sequential subagent batch
+  evaluation.
+permalink: dqverify-repo-20261013/skills/skill-stocktake/skill
 ---
 
 # skill-stocktake

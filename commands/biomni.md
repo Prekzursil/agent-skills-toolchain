@@ -1,5 +1,7 @@
 ---
-description: Control the local Biomni stack (bm dispatcher) - open, ensure, status, fix, doctor, task, tool, r
+description: Control the local Biomni stack (bm dispatcher) - open, ensure, status,
+  fix, doctor, task, tool, r
+permalink: dqverify-repo-20261013/commands/biomni
 ---
 
 # /biomni — local Biomni control

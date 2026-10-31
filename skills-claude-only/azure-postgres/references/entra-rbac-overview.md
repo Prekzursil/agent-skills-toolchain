@@ -1,3 +1,9 @@
+---
+title: entra-rbac-overview
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/entra-rbac-overview
+---
+
 # Azure PostgreSQL Entra ID RBAC Setup
 
 This guide helps you set up Microsoft Entra ID (formerly Azure AD) authentication for Azure Database for PostgreSQL Flexible Server. It covers the confusing two-layer mapping: **Azure Identity → PostgreSQL Role → Database Permissions**.

@@ -1,3 +1,9 @@
+---
+title: generated-ssot
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/generated-ssot
+---
+
 # Architecture Candidate: Generated Single-Source-of-Truth
 
 > **Does this architecture discard Wave 1? No — it deletes zero Wave-1 artifacts.** All 8 compiling

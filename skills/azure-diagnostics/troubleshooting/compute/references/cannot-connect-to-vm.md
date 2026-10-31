@@ -1,3 +1,9 @@
+---
+title: cannot-connect-to-vm
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/cannot-connect-to-vm
+---
+
 # Cannot Connect to VM
 
 Router for Azure VM connectivity issues. Determine OS first: Windows usually means RDP/3389 and TermService; Linux means SSH/22 and sshd; other images usually use SSH but may need current docs.

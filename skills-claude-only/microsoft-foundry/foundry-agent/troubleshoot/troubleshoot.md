@@ -1,3 +1,9 @@
+---
+title: troubleshoot
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/troubleshoot/troubleshoot
+---
+
 # Foundry Agent Troubleshoot
 
 Troubleshoot and debug Foundry agents by collecting container logs, discovering observability connections, and querying Application Insights telemetry.

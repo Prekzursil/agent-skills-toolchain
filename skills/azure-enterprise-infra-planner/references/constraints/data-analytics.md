@@ -1,3 +1,9 @@
+---
+title: data-analytics
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/data-analytics
+---
+
 # Data (Analytics) Pairing Constraints
 
 ### Cosmos DB

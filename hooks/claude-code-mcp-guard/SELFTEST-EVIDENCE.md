@@ -1,3 +1,9 @@
+---
+title: SELFTEST-EVIDENCE
+type: note
+permalink: dqverify-repo-20261013/hooks/claude-code-mcp-guard/selftest-evidence
+---
+
 ﻿# SELFTEST EVIDENCE -- claude-code-mcp-guard (G-3b/G-2c)
 
 - Date: 2026-09-22T20:27:59

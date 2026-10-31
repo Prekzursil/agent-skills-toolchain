@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/hexstrike-ai-mcp/references/upstream
+---
+
 # Upstream and Local Notes
 
 - Upstream repo: `https://github.com/0x4m4/hexstrike-ai`

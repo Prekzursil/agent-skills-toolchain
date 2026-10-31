@@ -1,3 +1,9 @@
+---
+title: plan-review-rubric
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/rubrics/plan-review-rubric
+---
+
 # Plan Review Rubric
 
 **Used By**: CTO Agent

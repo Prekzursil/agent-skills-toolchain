@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/cron-triggers/configuration
+---
+
 # Cron Triggers Configuration
 
 ## wrangler.jsonc

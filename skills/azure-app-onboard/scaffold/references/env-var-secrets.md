@@ -1,3 +1,9 @@
+---
+title: env-var-secrets
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/env-var-secrets
+---
+
 # Environment Variables & Secrets — Cross-Cutting Rules
 
 Applies to ALL compute targets (App Service, Container Apps, Functions). For Container Apps-specific Bicep patterns (secretRef, identity), see [bicep-container-apps.md](bicep-container-apps.md).

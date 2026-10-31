@@ -1,3 +1,9 @@
+---
+title: session-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/session-protocol
+---
+
 # Session Protocol — Step 1
 
 ## All Prompts Are Actionable

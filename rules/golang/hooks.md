@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+- '**/*.go'
+- '**/go.mod'
+- '**/go.sum'
+permalink: dqverify-repo-20261013/rules/golang/hooks
 ---
+
 # Go Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Go specific content.

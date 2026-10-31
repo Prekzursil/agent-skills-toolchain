@@ -1,3 +1,9 @@
+---
+title: hook-experiment-PROTOCOL
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/plugin/hook-experiment-protocol
+---
+
 # hook-experiment.ts — owner-assisted protocol for sleep/throw modes (2026-09-22)
 
 **Lane:** cs-sota experiments · **Status:** DOCUMENTED, NOT RUN (destructive modes never run

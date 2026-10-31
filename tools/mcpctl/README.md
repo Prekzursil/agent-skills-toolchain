@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcpctl/readme
+---
+
 # mcpctl
 
 Read-only MCP inventory + health matrix core. Pure functions over the **five** on-disk

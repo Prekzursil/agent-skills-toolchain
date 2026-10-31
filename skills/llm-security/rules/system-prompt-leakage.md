@@ -3,6 +3,7 @@ title: LLM07 - Prevent System Prompt Leakage
 impact: HIGH
 impactDescription: Disclosure of security controls, business logic, or credentials
 tags: security, llm, system-prompt, information-disclosure, owasp-llm07, mitre-atlas-t0051
+permalink: dqverify-repo-20261013/skills/llm-security/rules/system-prompt-leakage
 ---
 
 ## LLM07: Prevent System Prompt Leakage

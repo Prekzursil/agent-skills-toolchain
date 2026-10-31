@@ -1,3 +1,9 @@
+---
+title: apps-and-extensions
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/recommendations/apps-and-extensions
+---
+
 # Recommended Codex apps, MCPs, skills, and extension cleanup
 
 ## Best immediate MCP and Codex Settings installs

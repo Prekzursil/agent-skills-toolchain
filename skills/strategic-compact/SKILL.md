@@ -1,7 +1,9 @@
 ---
 name: strategic-compact
-description: Suggests manual context compaction at logical intervals to preserve context through task phases rather than arbitrary auto-compaction.
+description: Suggests manual context compaction at logical intervals to preserve context
+  through task phases rather than arbitrary auto-compaction.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/strategic-compact/skill
 ---
 
 # Strategic Compact Skill

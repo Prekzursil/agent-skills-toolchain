@@ -1,3 +1,9 @@
+---
+title: vision-fine-tuning
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/vision-fine-tuning
+---
+
 # Vision Fine-Tuning
 
 Fine-tune models with image data to customize visual understanding. Uses the same chat-completions JSONL format as text SFT, but with image content blocks in user messages.

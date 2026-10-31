@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-sql/configuration
+---
+
 # R2 SQL Configuration
 
 Setup and configuration for R2 SQL queries.

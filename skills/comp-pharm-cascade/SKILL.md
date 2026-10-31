@@ -1,6 +1,11 @@
 ---
 name: comp-pharm-cascade
-description: Use when ranking/prioritizing a congeneric small-molecule series against a protein target (binding-affinity SAR, hit triage, mechanism-of-action), or scoping such a campaign. Routes through a cost-escalating cascade - experimental anchors, license-free ML (Boltz-2) breadth + pose, licensed Schrodinger physics, QM (EXESS) - with consensus checks at the pose and published-number gates.
+description: Use when ranking/prioritizing a congeneric small-molecule series against
+  a protein target (binding-affinity SAR, hit triage, mechanism-of-action), or scoping
+  such a campaign. Routes through a cost-escalating cascade - experimental anchors,
+  license-free ML (Boltz-2) breadth + pose, licensed Schrodinger physics, QM (EXESS)
+  - with consensus checks at the pose and published-number gates.
+permalink: dqverify-repo-20261013/skills/comp-pharm-cascade/skill
 ---
 
 # comp-pharm-cascade

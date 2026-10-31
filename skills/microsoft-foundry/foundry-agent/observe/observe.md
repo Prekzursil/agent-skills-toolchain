@@ -1,3 +1,9 @@
+---
+title: observe
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/observe
+---
+
 # Agent Observability Loop
 
 Orchestrate the full eval-driven optimization cycle for a Foundry agent. This skill manages the **multi-step workflow** for a selected agent root and environment: reusing or refreshing `.foundry` cache in that folder only, generating evaluation suites, caching generated datasets and rubric-based evaluators, running agent-target batch evals, clustering failures, optimizing prompts, redeploying, and comparing versions. Use this skill instead of calling individual `azure` MCP evaluation tools manually.

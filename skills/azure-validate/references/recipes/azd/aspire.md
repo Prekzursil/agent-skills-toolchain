@@ -1,3 +1,9 @@
+---
+title: aspire
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/azd/aspire
+---
+
 # Aspire Validation
 
 > ⚠️ **Only load this file when the project is a .NET Aspire application.**

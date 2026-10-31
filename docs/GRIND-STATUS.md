@@ -1,3 +1,9 @@
+---
+title: GRIND-STATUS
+type: note
+permalink: dqverify-repo-20261013/docs/grind-status
+---
+
 # GRIND-STATUS — what is done, what is not, and what only the owner can unblock
 
 > **THERE ARE TWO GRIND-STATUS DOCUMENTS. Read both; neither supersedes the other.**

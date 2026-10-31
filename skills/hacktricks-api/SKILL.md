@@ -1,7 +1,12 @@
 ---
 name: hacktricks-api
-description: Query the HackTricks AI for a synthesized, curated answer when the local hacktricks corpus search is not enough. Cached (repeat queries cost nothing) and rate-limit-aware (weekly RAG quota). Covers the same broad domains as HackTricks — security, cloud, web, network, forensics, AI, and general dev. Prefer the local hacktricks skill first; use this to escalate.
+description: Query the HackTricks AI for a synthesized, curated answer when the local
+  hacktricks corpus search is not enough. Cached (repeat queries cost nothing) and
+  rate-limit-aware (weekly RAG quota). Covers the same broad domains as HackTricks
+  — security, cloud, web, network, forensics, AI, and general dev. Prefer the local
+  hacktricks skill first; use this to escalate.
 license: MIT
+permalink: dqverify-repo-20261013/skills/hacktricks-api/skill
 ---
 
 # HackTricks AI API (cached, rate-limited)

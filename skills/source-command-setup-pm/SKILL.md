@@ -1,6 +1,7 @@
 ---
-name: "source-command-setup-pm"
-description: "Configure your preferred package manager (npm/pnpm/yarn/bun)"
+name: source-command-setup-pm
+description: Configure your preferred package manager (npm/pnpm/yarn/bun)
+permalink: dqverify-repo-20261013/skills/source-command-setup-pm/skill
 ---
 
 # source-command-setup-pm

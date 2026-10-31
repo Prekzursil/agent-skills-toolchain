@@ -1,3 +1,9 @@
+---
+title: awesome_corca-ai_awesome-llm-security
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/awesome-corca-ai-awesome-llm-security
+---
+
 # Awesome LLM Security [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/sindresorhus/awesome)
 
 A curation of awesome tools, documents and projects about LLM Security.

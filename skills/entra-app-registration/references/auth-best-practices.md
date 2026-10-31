@@ -1,3 +1,9 @@
+---
+title: auth-best-practices
+type: note
+permalink: dqverify-repo-20261013/skills/entra-app-registration/references/auth-best-practices
+---
+
 # Azure Authentication Best Practices
 
 > Source: [Microsoft — Passwordless connections for Azure services](https://learn.microsoft.com/azure/developer/intro/passwordless-overview) and [Azure Identity client libraries](https://learn.microsoft.com/dotnet/azure/sdk/authentication/).

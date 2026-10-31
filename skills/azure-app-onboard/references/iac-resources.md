@@ -1,3 +1,9 @@
+---
+title: iac-resources
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/iac-resources
+---
+
 # IaC Resources — Official Documentation & Tools
 
 Look up when stuck after 3 tries, edge cases, or validating generated code against ground truth.

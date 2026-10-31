@@ -1,3 +1,9 @@
+---
+title: configuration
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/hyperdrive/configuration
+---
+
 # Configuration
 
 See [README.md](./README.md) for overview.

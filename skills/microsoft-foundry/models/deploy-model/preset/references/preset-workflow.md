@@ -1,3 +1,9 @@
+---
+title: preset-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/models/deploy-model/preset/references/preset-workflow
+---
+
 # Preset Deployment Workflow - Detailed Implementation
 
 This file contains the full step-by-step bash/PowerShell scripts for preset (optimal region) model deployment. Referenced from the main [SKILL.md](../SKILL.md).

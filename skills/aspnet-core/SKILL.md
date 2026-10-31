@@ -1,6 +1,11 @@
 ---
 name: aspnet-core
-description: Build, review, refactor, or architect ASP.NET Core web applications using current official guidance for .NET web development. Use when working on Blazor Web Apps, Razor Pages, MVC, Minimal APIs, controller-based Web APIs, SignalR, gRPC, middleware, dependency injection, configuration, authentication, authorization, testing, performance, deployment, or ASP.NET Core upgrades.
+description: Build, review, refactor, or architect ASP.NET Core web applications using
+  current official guidance for .NET web development. Use when working on Blazor Web
+  Apps, Razor Pages, MVC, Minimal APIs, controller-based Web APIs, SignalR, gRPC,
+  middleware, dependency injection, configuration, authentication, authorization,
+  testing, performance, deployment, or ASP.NET Core upgrades.
+permalink: dqverify-repo-20261013/skills/aspnet-core/skill
 ---
 
 # ASP.NET Core

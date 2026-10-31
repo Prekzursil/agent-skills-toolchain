@@ -1,3 +1,9 @@
+---
+title: transient-retry
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/transient-retry
+---
+
 # Transient ARM error handling for `az ... create`
 
 Load this file only when an `az group create`, `az appservice plan create`, or `az webapp create` command fails. Healthy runs never need it.

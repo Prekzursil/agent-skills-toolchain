@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/proxy-mcp/readme
+---
+
 # proxy-mcp — HTTP(S) traffic inspection over MCP
 
 Lets an agent observe and analyse HTTP(S) traffic: list captured flows, filter

@@ -1,6 +1,8 @@
 ---
 name: ret-sync
-description: Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers so stepping and addresses stay aligned during native reverse-engineering.
+description: Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or
+  compatible disassemblers so stepping and addresses stay aligned during native reverse-engineering.
+permalink: dqverify-repo-20261013/skills/ret-sync/skill
 ---
 
 # ret-sync

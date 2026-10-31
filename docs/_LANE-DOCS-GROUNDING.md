@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-grounding
+---
+
 # LANE DOCS — grounding artifact (scratch, untracked)
 
 Lane: DOCS — "find what the docs promise that the code does not do".

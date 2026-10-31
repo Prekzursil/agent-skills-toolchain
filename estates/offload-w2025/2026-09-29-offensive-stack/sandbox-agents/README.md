@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/sandbox-agents/readme
+---
+
 # sandbox-agents
 
 Sandboxed red-team agent harness for the authorized, contained lab on this

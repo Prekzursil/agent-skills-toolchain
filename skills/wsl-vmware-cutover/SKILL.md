@@ -1,6 +1,9 @@
 ---
 name: wsl-vmware-cutover
-description: Use when moving Linux workloads from WSL into VMware and you need D-first staging, cold backups, rollback checkpoints, and a clear rule that Codex runtime ownership stays on Windows unless explicitly changed.
+description: Use when moving Linux workloads from WSL into VMware and you need D-first
+  staging, cold backups, rollback checkpoints, and a clear rule that Codex runtime
+  ownership stays on Windows unless explicitly changed.
+permalink: dqverify-repo-20261013/skills/wsl-vmware-cutover/skill
 ---
 
 # WSL VMware Cutover

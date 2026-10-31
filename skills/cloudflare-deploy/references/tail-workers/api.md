@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/tail-workers/api
+---
+
 # Tail Workers API Reference
 
 ## Handler Signature

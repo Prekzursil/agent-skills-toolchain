@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/logic-apps/bicep
+---
+
 # Logic Apps - Bicep Patterns
 
 ## Consumption (Multi-tenant)

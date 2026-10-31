@@ -1,6 +1,9 @@
 ---
 name: langfuse-prompt-engineering
-description: Write or change prompts in Langfuse or code. Use whenever the user asks to create, edit, rewrite, debug, tune, or otherwise modify a prompt, including a small wording or instruction change. Distinct from prompt-migration and judge-calibration.
+description: Write or change prompts in Langfuse or code. Use whenever the user asks
+  to create, edit, rewrite, debug, tune, or otherwise modify a prompt, including a
+  small wording or instruction change. Distinct from prompt-migration and judge-calibration.
+permalink: dqverify-repo-20261013/skills/langfuse/references/prompt-engineering
 ---
 
 # Prompt Engineering

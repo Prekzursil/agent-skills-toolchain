@@ -1,3 +1,9 @@
+---
+title: adv-social
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/adv-social
+---
+
 # Adversarial hunter: social/chatter — haul
 
 Angle: tools visible in social/community chatter (HN, Reddit, Telegram indexes, LinkedIn, X) that are NOT in the known-tools list. Date: 2026-09-29.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/userscripts/readme
+---
+
 # userscripts/
 
 Browser **userscripts** (Tampermonkey / Violentmonkey) — small, self-contained

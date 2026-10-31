@@ -3,6 +3,7 @@ title: LLM03 - Secure LLM Supply Chain
 impact: CRITICAL
 impactDescription: Compromised models, backdoors, or malicious code injection
 tags: security, llm, supply-chain, sbom, owasp-llm03, mitre-atlas-t0010
+permalink: dqverify-repo-20261013/skills/llm-security/rules/supply-chain
 ---
 
 ## LLM03: Secure LLM Supply Chain

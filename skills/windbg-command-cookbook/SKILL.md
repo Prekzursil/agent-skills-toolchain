@@ -1,6 +1,9 @@
 ---
 name: windbg-command-cookbook
-description: Use when you need concrete WinDbg Preview command sequences for crash dumps, exception context, thread triage, stack inspection, module inventory, or address extraction before moving to static analysis.
+description: Use when you need concrete WinDbg Preview command sequences for crash
+  dumps, exception context, thread triage, stack inspection, module inventory, or
+  address extraction before moving to static analysis.
+permalink: dqverify-repo-20261013/skills/windbg-command-cookbook/skill
 ---
 
 # WinDbg Command Cookbook

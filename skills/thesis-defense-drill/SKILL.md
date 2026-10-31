@@ -1,6 +1,8 @@
 ---
 name: thesis-defense-drill
-description: Use when preparing for a thesis or dissertation defense with adversarial questioning, concept checks, and evidence-based feedback.
+description: Use when preparing for a thesis or dissertation defense with adversarial
+  questioning, concept checks, and evidence-based feedback.
+permalink: dqverify-repo-20261013/skills/thesis-defense-drill/skill
 ---
 
 # thesis-defense-drill

@@ -1,3 +1,9 @@
+---
+title: azure-identity-rust
+type: note
+permalink: dqverify-repo-20261013/skills/entra-app-registration/references/sdk/azure-identity-rust
+---
+
 # Authentication — Rust SDK Quick Reference
 
 > Condensed from **azure-identity-rust**. Full patterns (ClientSecret,

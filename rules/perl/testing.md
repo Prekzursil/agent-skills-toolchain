@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.t'
+- '**/*.psgi'
+- '**/*.cgi'
+permalink: dqverify-repo-20261013/rules/perl/testing
 ---
+
 # Perl Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Perl-specific content.

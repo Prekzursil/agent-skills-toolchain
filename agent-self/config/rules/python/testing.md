@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
+- '**/*.py'
+- '**/*.pyi'
+permalink: dqverify-repo-20261013/agent-self/config/rules/python/testing
 ---
+
 # Python Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Python specific content.

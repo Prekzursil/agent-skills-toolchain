@@ -1,3 +1,9 @@
+---
+title: WAVE3-AUDIT-CORRECTION
+type: note
+permalink: dqverify-repo-20261013/command-center/wave3-audit-correction
+---
+
 # Wave 3 floor audit — correction to commit 4444005d and 200942b9
 
 Both commit messages describe this audit as **partial**. That is **false** for the artifact as it

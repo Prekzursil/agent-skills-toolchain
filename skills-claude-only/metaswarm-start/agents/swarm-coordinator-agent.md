@@ -1,3 +1,9 @@
+---
+title: swarm-coordinator-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/swarm-coordinator-agent
+---
+
 # Swarm Coordinator Agent
 
 ## Role

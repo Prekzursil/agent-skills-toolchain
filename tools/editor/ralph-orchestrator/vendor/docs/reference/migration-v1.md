@@ -1,3 +1,9 @@
+---
+title: migration-v1
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/reference/migration-v1
+---
+
 # Migration from v1
 
 Guide for migrating from the Python-based Ralph v1 to the Rust-based v2.

@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*"
+- '**/*'
+permalink: dqverify-repo-20261013/rules/common/owner-ops-authorization
 ---
 
 # Owner-Ops Authorization — maximum general cooperation doctrine

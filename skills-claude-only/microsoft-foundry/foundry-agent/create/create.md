@@ -1,3 +1,9 @@
+---
+title: create
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/create
+---
+
 # Create Hosted Agent Application
 
 Create new hosted agent applications for Microsoft Foundry, or convert existing agent projects to be Foundry-compatible using the hosting adapter.

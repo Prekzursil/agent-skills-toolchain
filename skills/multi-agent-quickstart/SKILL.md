@@ -1,6 +1,10 @@
 ---
 name: multi-agent-quickstart
-description: Use when learning how to reach Codex from this Windows-first setup - the beginner mental model for the codex mcp-server rail (mcp__codex__codex / mcp__codex__codex-reply), how the retired per-mode codex_* tools map onto prompt framings, when to fan out parallel calls instead, and how to choose an execution path after planning.
+description: Use when learning how to reach Codex from this Windows-first setup -
+  the beginner mental model for the codex mcp-server rail (mcp__codex__codex / mcp__codex__codex-reply),
+  how the retired per-mode codex_* tools map onto prompt framings, when to fan out
+  parallel calls instead, and how to choose an execution path after planning.
+permalink: dqverify-repo-20261013/skills/multi-agent-quickstart/skill
 ---
 
 # Multi-Agent Quickstart

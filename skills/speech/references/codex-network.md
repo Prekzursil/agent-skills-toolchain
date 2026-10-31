@@ -1,3 +1,9 @@
+---
+title: codex-network
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/codex-network
+---
+
 # Codex network approvals / sandbox notes
 
 This guidance is intentionally isolated from `SKILL.md` because it can vary by environment and may become stale. Prefer the defaults in your environment when in doubt.

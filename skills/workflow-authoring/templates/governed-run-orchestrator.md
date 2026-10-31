@@ -1,3 +1,9 @@
+---
+title: governed-run-orchestrator
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-authoring/templates/governed-run-orchestrator
+---
+
 <!--
 PROVENANCE - vendored reusable TEMPLATE (do not fill in place).
 Source path: ~/.claude/workflow-runs/parallel-adoption-2026-07-24/prompts/final-workflow-prompt.TEMPLATE.md

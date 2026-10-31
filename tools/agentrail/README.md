@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/agentrail/readme
+---
+
 # agentrail
 
 A **config-driven multi-rail agent dispatch shell** over [`agentspec`](../agentspec).

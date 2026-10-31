@@ -1,7 +1,17 @@
 ---
 name: re-triage-preflight
-description: Run a fast, hash-cached reverse-engineering TRIAGE preflight on an unknown binary BEFORE deep analysis — folds file-format detection, Shannon-entropy packer triage (works with zero external tools), Detect-It-Easy (diec), FLOSS auto string-deobfuscation, and capa capabilities into ONE structured TRIAGE block, cached by SHA-256 so re-runs are instant. Use when you are about to reverse a native binary (PE/ELF/Mach-O/DEX/.so), triage an unknown/suspicious file, check whether a sample is packed/obfuscated, or want a cheap first-pass before opening IDA/Ghidra/radare2. Advisory only — never blocks, degrades gracefully when a tool is missing. Inert until an RE context. Triton dynamic-taint and VulnHuntr/objdiff+m2c are documented opt-in follow-ons; the revula mega-bundle is rejected.
+description: Run a fast, hash-cached reverse-engineering TRIAGE preflight on an unknown
+  binary BEFORE deep analysis — folds file-format detection, Shannon-entropy packer
+  triage (works with zero external tools), Detect-It-Easy (diec), FLOSS auto string-deobfuscation,
+  and capa capabilities into ONE structured TRIAGE block, cached by SHA-256 so re-runs
+  are instant. Use when you are about to reverse a native binary (PE/ELF/Mach-O/DEX/.so),
+  triage an unknown/suspicious file, check whether a sample is packed/obfuscated,
+  or want a cheap first-pass before opening IDA/Ghidra/radare2. Advisory only — never
+  blocks, degrades gracefully when a tool is missing. Inert until an RE context. Triton
+  dynamic-taint and VulnHuntr/objdiff+m2c are documented opt-in follow-ons; the revula
+  mega-bundle is rejected.
 origin: user
+permalink: dqverify-repo-20261013/skills/re-triage-preflight/skill
 ---
 
 # re-triage-preflight Skill

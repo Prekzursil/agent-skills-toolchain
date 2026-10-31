@@ -1,3 +1,9 @@
+---
+title: dbx_w1-lifecycle-states
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w1-lifecycle-states
+---
+
 # W1 lifecycle states
 
 ## Summary

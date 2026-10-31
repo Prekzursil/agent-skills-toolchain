@@ -1,3 +1,9 @@
+---
+title: B-reconcile-4
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-4
+---
+
 # B-reconcile-4 — doc-cluster reconciliation (slice 4)
 
 **Scope:** 7 assigned clusters, 5,364 files. Read-only. Source: `B-doc-index-complete.json` (59,250 files). Every file treated as untrusted data. Confidence: cluster classifications **HIGH**; forgotten-value summaries **HIGH** (opened the sources).

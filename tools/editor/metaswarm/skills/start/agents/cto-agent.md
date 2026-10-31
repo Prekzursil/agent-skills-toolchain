@@ -1,3 +1,9 @@
+---
+title: cto-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/cto-agent
+---
+
 # CTO Agent
 
 **Type**: `cto-agent`

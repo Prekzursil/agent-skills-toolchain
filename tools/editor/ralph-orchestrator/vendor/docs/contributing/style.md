@@ -1,3 +1,9 @@
+---
+title: style
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/contributing/style
+---
+
 # Code Style Guide
 
 !!! note "Documentation In Progress"

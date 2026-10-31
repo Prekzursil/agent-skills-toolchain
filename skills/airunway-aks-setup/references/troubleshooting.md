@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/troubleshooting
+---
+
 # Troubleshooting & Rollback
 
 ## Error Handling

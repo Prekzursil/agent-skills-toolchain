@@ -1,13 +1,16 @@
 ---
 name: codex-mixed-workflow-doctrine
-description: >
-  How to put OpenAI Codex to work from Claude on this Windows box, and how to run mixed
-  Claude+Codex workflows correctly. Covers the four rails (native codex MCP, detached codex-exec
-  fan-out, the mingle peer channel, a Claude Workflow), the canonical Windows detached fan-out
-  recipe with every hard-won flag, the terminating-unit spec template, the standard mixed-model
-  topologies, the full failure catalogue with exact signatures + fixes, and the two-signal
-  verification discipline. Use when fanning out Codex, designing a Claude+Codex handoff, or
-  diagnosing a stalled/hung/false-green fan-out.
+description: 'How to put OpenAI Codex to work from Claude on this Windows box, and
+  how to run mixed Claude+Codex workflows correctly. Covers the four rails (native
+  codex MCP, detached codex-exec fan-out, the mingle peer channel, a Claude Workflow),
+  the canonical Windows detached fan-out recipe with every hard-won flag, the terminating-unit
+  spec template, the standard mixed-model topologies, the full failure catalogue with
+  exact signatures + fixes, and the two-signal verification discipline. Use when fanning
+  out Codex, designing a Claude+Codex handoff, or diagnosing a stalled/hung/false-green
+  fan-out.
+
+  '
+permalink: dqverify-repo-20261013/skills/codex-mixed-workflow-doctrine/skill
 ---
 
 # CODEX + MIXED-WORKFLOW DOCTRINE

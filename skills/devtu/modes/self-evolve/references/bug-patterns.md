@@ -1,3 +1,9 @@
+---
+title: bug-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/self-evolve/references/bug-patterns
+---
+
 # Bug Patterns Reference
 
 Detailed code-level fix patterns discovered through role-play debug rounds.

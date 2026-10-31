@@ -1,3 +1,9 @@
+---
+title: azure-storage-file-datalake-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-storage-file-datalake-py
+---
+
 # Data Lake Storage Gen2 — Python SDK Quick Reference
 
 > Condensed from **azure-storage-file-datalake-py**. Full patterns (ACL management,

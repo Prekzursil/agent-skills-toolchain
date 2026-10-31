@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/hyperdrive/gotchas
+---
+
 # Gotchas
 
 See [README.md](./README.md), [configuration.md](./configuration.md), [api.md](./api.md), [patterns.md](./patterns.md).

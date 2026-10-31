@@ -1,3 +1,9 @@
+---
+title: escape-hatches
+type: note
+permalink: dqverify-repo-20261013/skills/codex-vscode-host-routing/references/escape-hatches
+---
+
 # Escape Hatches
 
 Explicit Linux-side use is acceptable when the task truly needs Linux tools. Keep that opt-in by:

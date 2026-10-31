@@ -1,6 +1,11 @@
 ---
 name: pbinfo-python-jit
-description: Makes Python solutions pass strict time limits on pbinfo.ro by embedding compiled x86-64 shellcode and executing it via ctypes + mmap. Use whenever a correct Python solution gets TLE (Limita de timp depasita / Depasit) on pbinfo, especially at N around 10^6 with a sieve, BFS, sliding window, DP, or tight loop, or when the user wants 100p Python. Extends competitive-programming-solver.
+description: Makes Python solutions pass strict time limits on pbinfo.ro by embedding
+  compiled x86-64 shellcode and executing it via ctypes + mmap. Use whenever a correct
+  Python solution gets TLE (Limita de timp depasita / Depasit) on pbinfo, especially
+  at N around 10^6 with a sieve, BFS, sliding window, DP, or tight loop, or when the
+  user wants 100p Python. Extends competitive-programming-solver.
+permalink: dqverify-repo-20261013/skills/pbinfo-python-jit/skill
 ---
 
 # Pbinfo Python JIT — Shellcode Escalation

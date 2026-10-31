@@ -1,3 +1,9 @@
+---
+title: tool-fabric-iq
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-fabric-iq
+---
+
 # Tool — Fabric IQ (`type: fabric_iq_preview`) — preview
 
 Microsoft Fabric data (**Ontology** / **Fabric data agent** / **Power BI semantic model**) via Fabric IQ. Fabric IQ is exposed as an **MCP-style tool**: a flat tool entry carrying a `server_url` (the Fabric MCP endpoint for your artifact) + a `project_connection_id`. The workspace / ontology / artifact ids live in the **connection's target URL**, not the tool. Auth is a Fabric OAuth connection and requires **tenant admin consent**. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

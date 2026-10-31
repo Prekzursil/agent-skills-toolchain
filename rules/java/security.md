@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.java"
+- '**/*.java'
+permalink: dqverify-repo-20261013/rules/java/security
 ---
+
 # Java Security
 
 > This file extends [common/security.md](../common/security.md) with Java-specific content.

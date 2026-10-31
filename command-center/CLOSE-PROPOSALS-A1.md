@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-A1
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-a1
+---
+
 # CLOSE-PROPOSALS-A1 — Lane A1 (A-toolchain register items R-A01..R-A11)
 
 **Lane:** A1 · **Owner file:** `command-center/CLOSE-PROPOSALS-A1.md` (mine alone)

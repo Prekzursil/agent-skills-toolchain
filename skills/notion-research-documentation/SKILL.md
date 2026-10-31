@@ -1,8 +1,11 @@
 ---
 name: notion-research-documentation
-description: Research across Notion and synthesize into structured documentation; use when gathering info from multiple Notion sources to produce briefs, comparisons, or reports with citations.
+description: Research across Notion and synthesize into structured documentation;
+  use when gathering info from multiple Notion sources to produce briefs, comparisons,
+  or reports with citations.
 metadata:
   short-description: Research Notion content and produce briefs/reports
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/skill
 ---
 
 # Research & Documentation

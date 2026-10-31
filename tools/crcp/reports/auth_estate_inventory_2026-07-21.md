@@ -1,3 +1,9 @@
+---
+title: auth_estate_inventory_2026-07-21
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-estate-inventory-2026-07-21
+---
+
 # Auth estate inventory + multi-browser ChatGPT inject (2026-07-21)
 
 **No secrets in this file.** Cookie values, PATs, passwords, and JWT material stay on-disk outside git.

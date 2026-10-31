@@ -1,6 +1,11 @@
 ---
 name: forge-discipline
-description: Use when turning a named behavioral pattern (gem, fresh arXiv finding, matured instinct) into an INSTALLED, self-tested Claude Code hook in one pass. A BEHAVIOR forge, not a tool forge - it forges hooks/tripwires the harness runs deterministically, not MCP tools. Scaffolds the hook, runs a chaos self-test proving it fires and fails open on garbage, then stages it with the one-line install.
+description: Use when turning a named behavioral pattern (gem, fresh arXiv finding,
+  matured instinct) into an INSTALLED, self-tested Claude Code hook in one pass. A
+  BEHAVIOR forge, not a tool forge - it forges hooks/tripwires the harness runs deterministically,
+  not MCP tools. Scaffolds the hook, runs a chaos self-test proving it fires and fails
+  open on garbage, then stages it with the one-line install.
+permalink: dqverify-repo-20261013/skills/forge-discipline/skill
 ---
 
 # Discipline-Forge

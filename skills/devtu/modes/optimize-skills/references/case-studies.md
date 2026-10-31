@@ -1,3 +1,9 @@
+---
+title: case-studies
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-skills/references/case-studies
+---
+
 # Case Studies: Fixing Non-Functional Skills
 
 Real-world examples from fixing 4 broken skills in February 2026.

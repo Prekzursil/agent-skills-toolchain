@@ -1,7 +1,9 @@
 ---
 name: plan-orchestrate
-description: "Use when converting a multi-step plan into dependency-aware agent chains and ready-to-run orchestration prompts without executing the plan."
+description: Use when converting a multi-step plan into dependency-aware agent chains
+  and ready-to-run orchestration prompts without executing the plan.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/plan-orchestrate/skill
 ---
 
 # Plan Orchestrate

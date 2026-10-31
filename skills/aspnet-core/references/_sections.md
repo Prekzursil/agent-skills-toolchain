@@ -1,3 +1,9 @@
+---
+title: _sections
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/sections
+---
+
 # Reference Sections
 
 Use this file as the routing table for the rest of the skill.

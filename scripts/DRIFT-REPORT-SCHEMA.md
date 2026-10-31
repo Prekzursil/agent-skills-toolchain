@@ -1,3 +1,9 @@
+---
+title: DRIFT-REPORT-SCHEMA
+type: note
+permalink: dqverify-repo-20261013/scripts/drift-report-schema
+---
+
 # `harness-drift/v1` — machine-readable drift contract
 
 Emitted by `scripts/sync-from-live.ps1 -Report json`. This is the binding surface for any

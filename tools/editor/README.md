@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/readme
+---
+
 # Editor Tools
 
 `tools/editor/` is the live home for editor-local tooling such as VS Code extensions and vendored host-local agent frameworks that do not fit the MCP-native or browser-mediated surfaces.

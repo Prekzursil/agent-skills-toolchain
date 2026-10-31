@@ -1,3 +1,9 @@
+---
+title: design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/design
+---
+
 # Design: Pi Agent Support for Ralph Orchestrator
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+title: load-balancer-and-ingress
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/load-balancer-and-ingress
+---
+
 # Load Balancer And Ingress Troubleshooting
 
 Use this guide when AKS networking symptoms point at Azure load balancer provisioning, ingress controller behavior, or backend routing.

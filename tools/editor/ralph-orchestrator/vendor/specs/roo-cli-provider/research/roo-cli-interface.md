@@ -1,3 +1,9 @@
+---
+title: roo-cli-interface
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/research/roo-cli-interface
+---
+
 # Research: roo-cli Interface & Stream Format
 
 ## CLI Binary & Version

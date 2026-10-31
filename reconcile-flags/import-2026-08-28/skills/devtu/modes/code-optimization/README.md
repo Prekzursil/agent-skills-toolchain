@@ -1,11 +1,14 @@
 ---
 name: devtu-code-optimization
-description: >
-  Code quality patterns and guidelines for ToolUniverse tool development.
-  Apply when writing, fixing, or refactoring tool Python code in the ToolUniverse project.
-  Encodes lessons from 80+ debug rounds. Use alongside devtu-fix-tool and devtu-self-evolve.
-  Triggers: implementing tool fixes, writing new tool classes, reviewing tool code quality,
-  checking schema correctness, looking up API-specific bug fixes.
+description: 'Code quality patterns and guidelines for ToolUniverse tool development.
+  Apply when writing, fixing, or refactoring tool Python code in the ToolUniverse
+  project. Encodes lessons from 80+ debug rounds. Use alongside devtu-fix-tool and
+  devtu-self-evolve. Triggers: implementing tool fixes, writing new tool classes,
+  reviewing tool code quality, checking schema correctness, looking up API-specific
+  bug fixes.
+
+  '
+permalink: dqverify-repo-20261013/reconcile-flags/import-2026-08-28/skills/devtu/modes/code-optimization/readme
 ---
 
 # ToolUniverse Code Optimization

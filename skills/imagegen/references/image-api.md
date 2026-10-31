@@ -1,3 +1,9 @@
+---
+title: image-api
+type: note
+permalink: dqverify-repo-20261013/skills/imagegen/references/image-api
+---
+
 # Image API quick reference
 
 ## Endpoints

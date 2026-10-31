@@ -1,3 +1,9 @@
+---
+title: mcp-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/mcp-protocol
+---
+
 # Toolbox MCP protocol, tool naming & testing
 
 ## Endpoint URL details

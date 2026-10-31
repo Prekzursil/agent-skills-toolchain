@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api/readme
+---
+
 # Cloudflare API Integration
 
 Guide for working with Cloudflare's REST API - authentication, SDK usage, common patterns, and troubleshooting.

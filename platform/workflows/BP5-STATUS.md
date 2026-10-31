@@ -1,3 +1,9 @@
+---
+title: BP5-STATUS
+type: note
+permalink: dqverify-repo-20261013/platform/workflows/bp5-status
+---
+
 # Unit `blueprints/bp-5` - workflow blueprints 49-60 of 96
 
 Phase 2B/7. Status: **DELIVERED, 12 of 12**. Every number below was produced by a command

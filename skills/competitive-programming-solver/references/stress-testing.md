@@ -1,3 +1,9 @@
+---
+title: stress-testing
+type: note
+permalink: dqverify-repo-20261013/skills/competitive-programming-solver/references/stress-testing
+---
+
 # Stress Testing — Verify Correctness Without Judge Test Data
 
 When the user gives you a problem but no example tests (or only the trivial one from the statement), you can still verify your solution. The technique is **stress testing**: generate random inputs, run a brute-force solution, run your fast solution, compare outputs.

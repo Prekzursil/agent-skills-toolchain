@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-BUILD-R4
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-build-r4
+---
+
 # LANE DOCS — BUILD round 4
 
 Docs-vs-reality reconcile. Every row below is an **executed** probe, not a read.

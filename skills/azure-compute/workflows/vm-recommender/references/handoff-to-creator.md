@@ -1,3 +1,9 @@
+---
+title: handoff-to-creator
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-recommender/references/handoff-to-creator
+---
+
 # Hand-off to vm-creator
 
 When the user wants to **provision** the recommended option (not just compare), hand off to [vm-creator](../../vm-creator/vm-creator.md). Don't skip directly to an output adapter — the user must see and approve the Plan Card first.

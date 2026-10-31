@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-ADV-R4
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-adv-r4
+---
+
 # RULERESEARCH — adversarial verification of round 4 (attacks BOTH the build and the audit)
 
 Everything below was EXECUTED by this lane from `C:/Users/Prekzursil/source/ast-integrate`.

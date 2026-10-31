@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/foundry/readme
+---
+
 # Azure AI Foundry
 
 Azure AI Foundry (formerly Azure OpenAI) for building AI-powered applications with models like GPT-4o, GPT-4, and embeddings.

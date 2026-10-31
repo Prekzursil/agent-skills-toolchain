@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/kv/readme
+---
+
 # Cloudflare Workers KV
 
 Globally-distributed, eventually-consistent key-value store optimized for high read volume and low latency.

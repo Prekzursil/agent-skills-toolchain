@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/tools/web/readme
+---
+
 # Web Tools
 
 `tools/web/` is the live home for browser- or session-mediated tooling.

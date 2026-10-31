@@ -1,6 +1,9 @@
 ---
 name: game-frida-trace
-description: Use when asked to trace, intercept, hook, or monitor function calls in a live process using Frida dynamic instrumentation. Applies to game processes, anti-cheat DLLs, or any running Windows/Android process.
+description: Use when asked to trace, intercept, hook, or monitor function calls in
+  a live process using Frida dynamic instrumentation. Applies to game processes, anti-cheat
+  DLLs, or any running Windows/Android process.
+permalink: dqverify-repo-20261013/skills/game-frida-trace/skill
 ---
 
 # Frida Dynamic Tracing

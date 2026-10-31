@@ -1,3 +1,9 @@
+---
+title: test-academic
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/test-academic
+---
+
 # Academic Test: Systematic Debugging Skill
 
 You have access to the systematic debugging skill at skills/debugging/systematic-debugging

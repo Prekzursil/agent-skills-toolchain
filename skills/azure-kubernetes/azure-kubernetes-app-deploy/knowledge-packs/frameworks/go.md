@@ -1,3 +1,9 @@
+---
+title: go
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/go
+---
+
 # Go Knowledge Pack
 
 > **Applies to:** Projects detected with `go.mod` containing `github.com/gin-gonic/gin`, `github.com/labstack/echo`, `github.com/gofiber/fiber`, or any Go project using the standard library `net/http` for HTTP serving

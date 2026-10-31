@@ -1,3 +1,9 @@
+---
+title: A2-inventory
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/a2-inventory
+---
+
 # A2 — Multi-Provider Inventory + Source-to-Runtime Provenance (Phase 2, 2026-07-13)
 
 **Workflow A / Phase 2 (EVIDENCE).** Read-only audit-design. **ACTIVE-WORK FREEZE honored** —

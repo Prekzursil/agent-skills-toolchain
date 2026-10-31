@@ -1,3 +1,9 @@
+---
+title: gemini-cli
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/gemini-cli
+---
+
 # Harness Routing — Gemini CLI
 
 `SKILL.md` routes here when running inside Gemini CLI. Gemini exposes a

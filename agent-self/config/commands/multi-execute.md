@@ -1,3 +1,9 @@
+---
+title: multi-execute
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/multi-execute
+---
+
 # Execute - Multi-Model Collaborative Execution
 
 Multi-model collaborative execution - Get prototype from plan → Claude refactors and implements → Multi-model audit and delivery.

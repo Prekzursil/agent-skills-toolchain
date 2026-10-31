@@ -1,10 +1,15 @@
 ---
 name: azure-compliance
-description: "Run Azure compliance and security audits with azqr plus Key Vault expiration checks. Covers best-practice assessment, resource review, policy/compliance validation, and security posture checks. WHEN: compliance scan, security audit, BEFORE running azqr (compliance cli tool), Azure best practices, Key Vault expiration check, expired certificates, expiring secrets, orphaned resources, compliance assessment."
+description: 'Run Azure compliance and security audits with azqr plus Key Vault expiration
+  checks. Covers best-practice assessment, resource review, policy/compliance validation,
+  and security posture checks. WHEN: compliance scan, security audit, BEFORE running
+  azqr (compliance cli tool), Azure best practices, Key Vault expiration check, expired
+  certificates, expiring secrets, orphaned resources, compliance assessment.'
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.2.2"
+  version: 1.2.2
+permalink: dqverify-repo-20261013/skills/azure-compliance/skill
 ---
 
 # Azure Compliance & Security Auditing
@@ -84,4 +89,3 @@ For programmatic Key Vault access, see the condensed SDK guides:
 - **Secrets**: [TypeScript](references/sdk/azure-keyvault-secrets-ts.md) | [Rust](references/sdk/azure-keyvault-secrets-rust.md) | [Java](references/sdk/azure-security-keyvault-secrets-java.md)
 - **Keys**: [.NET](references/sdk/azure-security-keyvault-keys-dotnet.md) | [Java](references/sdk/azure-security-keyvault-keys-java.md) | [TypeScript](references/sdk/azure-keyvault-keys-ts.md) | [Rust](references/sdk/azure-keyvault-keys-rust.md)
 - **Certificates**: [Rust](references/sdk/azure-keyvault-certificates-rust.md)
-

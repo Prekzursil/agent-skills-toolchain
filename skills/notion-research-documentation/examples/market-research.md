@@ -1,3 +1,9 @@
+---
+title: market-research
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/examples/market-research
+---
+
 # Example: Market Research
 
 **User Request**: "Research the current state of AI coding assistants market and create a summary document in Notion"

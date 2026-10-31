@@ -1,6 +1,11 @@
 ---
 name: harness-module-authoring
-description: Author, register, test, or review lifecycle harness modules and hook checks in agent-skills-toolchain. Use when changing ci/harness HookEvent or HookResult modules, hooks/_dispatch/manifest.json checks, fail-open behavior, redaction, persistent side effects, deduplication, calibrated-silence confidence gates, contraindication registry rows, or block-versus-inject policy.
+description: Author, register, test, or review lifecycle harness modules and hook
+  checks in agent-skills-toolchain. Use when changing ci/harness HookEvent or HookResult
+  modules, hooks/_dispatch/manifest.json checks, fail-open behavior, redaction, persistent
+  side effects, deduplication, calibrated-silence confidence gates, contraindication
+  registry rows, or block-versus-inject policy.
+permalink: dqverify-repo-20261013/skills/harness-module-authoring/skill
 ---
 
 # Harness Module Authoring

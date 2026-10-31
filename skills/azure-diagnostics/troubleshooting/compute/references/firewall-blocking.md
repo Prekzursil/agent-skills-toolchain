@@ -1,3 +1,9 @@
+---
+title: firewall-blocking
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/firewall-blocking
+---
+
 # Firewall Blocking Connectivity
 
 Use when NSG/platform rules allow traffic but the guest OS firewall blocks RDP/SSH.

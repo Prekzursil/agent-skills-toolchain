@@ -1,3 +1,9 @@
+---
+title: eval-regression
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/eval-regression
+---
+
 # Eval Regression — Automated Regression Detection
 
 Automatically detect when evaluation metrics degrade between agent versions. Compare each evaluation run against the baseline and generate pass/fail verdicts with actionable recommendations.

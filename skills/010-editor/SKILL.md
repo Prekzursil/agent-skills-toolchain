@@ -1,6 +1,9 @@
 ---
 name: 010-editor
-description: Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor. Supports command-line batch processing of binary files with templates and scripts.
+description: Use when applying binary templates (.bt), running 010 Editor scripts
+  (.1sc), or performing hex editing with SweetScape 010 Editor. Supports command-line
+  batch processing of binary files with templates and scripts.
+permalink: dqverify-repo-20261013/skills/010-editor/skill
 ---
 
 # 010 Editor

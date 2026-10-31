@@ -1,6 +1,8 @@
 ---
 name: reporting-guideline-router
-description: Use when the manuscript or protocol needs the correct reporting guideline lane such as PRISMA, CONSORT, STROBE, ARRIVE, STARD, CARE, or COREQ.
+description: Use when the manuscript or protocol needs the correct reporting guideline
+  lane such as PRISMA, CONSORT, STROBE, ARRIVE, STARD, CARE, or COREQ.
+permalink: dqverify-repo-20261013/skills/reporting-guideline-router/skill
 ---
 
 # reporting-guideline-router

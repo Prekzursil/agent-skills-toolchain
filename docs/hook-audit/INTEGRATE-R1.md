@@ -1,3 +1,9 @@
+---
+title: INTEGRATE-R1
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/integrate-r1
+---
+
 # HOOKRESEARCH — INTEGRATE lane
 
 **COVERAGE.** Everything below was executed; exit codes were captured without a pipe. What is

@@ -1,3 +1,9 @@
+---
+title: HARDENING
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/pentagi/hardening
+---
+
 # PentAGI staging hardening — Docker socket isolation
 
 Staging root: `D:\opt\pentagi` (Windows 11 estate VM, Docker Desktop).

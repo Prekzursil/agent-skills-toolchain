@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/cosmos-db/bicep
+---
+
 # Cosmos DB Bicep Patterns
 
 ## Account

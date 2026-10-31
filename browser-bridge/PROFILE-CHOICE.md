@@ -1,3 +1,9 @@
+---
+title: PROFILE-CHOICE
+type: note
+permalink: dqverify-repo-20261013/browser-bridge/profile-choice
+---
+
 # Browser-automation profile-choice contract
 
 **Status:** mandatory invocation contract for every browser-automation run on this box.

@@ -1,3 +1,9 @@
+---
+title: promotion-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/codex-session-reunion/references/promotion-workflow
+---
+
 # Promotion Workflow
 
 ## Read-only phase

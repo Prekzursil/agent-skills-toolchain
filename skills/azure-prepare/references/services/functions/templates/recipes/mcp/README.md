@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/mcp/readme
+---
+
 # MCP (Model Context Protocol) Recipe
 
 MCP tool endpoints for AI agent integration via the JSON-RPC 2.0 protocol.

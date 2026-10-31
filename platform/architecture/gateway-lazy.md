@@ -1,3 +1,9 @@
+---
+title: gateway-lazy
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/gateway-lazy
+---
+
 # Architecture Candidate: Gateway / Lazy-Activation
 
 **Tournament entry, PHASE 3 — ARCHITECTURE TOURNAMENT.** Advocate position, honest costs.

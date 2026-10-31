@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/agents
+---
+
 # Native Codex and Shared Control Plane Contract
 
 <!-- pentagi-acceptance-2026-10-01:start -->

@@ -1,3 +1,9 @@
+---
+title: VERIFY-MCPRESEARCH-r3
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/verify-mcpresearch-r3
+---
+
 # VERIFY LANE MCPRESEARCH round 3 — independent re-measurement — COMPLETE
 
 VERDICT: **PARTIAL** — all four DoD items PASS when I execute them; one REAL DEFECT in a

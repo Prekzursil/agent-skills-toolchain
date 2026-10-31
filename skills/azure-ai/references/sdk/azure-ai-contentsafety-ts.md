@@ -1,3 +1,9 @@
+---
+title: azure-ai-contentsafety-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-contentsafety-ts
+---
+
 # Azure AI Content Safety — TypeScript SDK Quick Reference
 
 > Condensed from **azure-ai-contentsafety-ts**. Full patterns (blocklist CRUD, image moderation, severity thresholds)

@@ -1,6 +1,8 @@
 ---
 name: langfuse-user-feedback
-description: Capture user feedback as Langfuse scores. Use when choosing or implementing explicit ratings, behavioral signals, conversation signals, or task outcomes.
+description: Capture user feedback as Langfuse scores. Use when choosing or implementing
+  explicit ratings, behavioral signals, conversation signals, or task outcomes.
+permalink: dqverify-repo-20261013/skills/langfuse/references/user-feedback
 ---
 
 # User Feedback

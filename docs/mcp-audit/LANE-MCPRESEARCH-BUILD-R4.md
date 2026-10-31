@@ -1,3 +1,9 @@
+---
+title: LANE-MCPRESEARCH-BUILD-R4
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/lane-mcpresearch-build-r4
+---
+
 # LANE MCPRESEARCH — BUILD round 4: the denominator that was never unmeasurable
 
 Round 4 of at most 4. The re-entry instruction was *"a verifier CONFIRMED defects last round —

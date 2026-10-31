@@ -1,3 +1,9 @@
+---
+title: ingest-task9-codex-invoke
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-task9-codex-invoke
+---
+
 # Ingest — task-9 `codex-invoke` (scoped-Codex-exec primitive) → Axis-C
 
 **Scope of this doc:** extract the task-9 `codex-invoke` primitive from worktree

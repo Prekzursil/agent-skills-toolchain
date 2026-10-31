@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-R6
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-r6
+---
+
 # P2NEXT — BUILD round 4: the retraction landed in one page, and the gate watching the other one only counts
 
 COVERAGE: every claim below names the probe that produced it. Two things stay unmeasured and say

@@ -1,3 +1,9 @@
+---
+title: ci-coverage-gap-2026-07-25
+type: note
+permalink: dqverify-repo-20261013/docs/ci-coverage-gap-2026-07-25
+---
+
 # CI coverage gap: which `hooks/` and `tools/` test suites does CI actually execute?
 
 Lane `r4-ci-coverage-gap` - branch `docs/ci-coverage-gap-report`. Investigation only.

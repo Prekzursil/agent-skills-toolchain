@@ -1,3 +1,9 @@
+---
+title: PROACTIVE-PARTNER-PROGRAM
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/proactive-partner-program
+---
+
 # PROACTIVE-PARTNER PROGRAM — session arc, the unlocking prompts, research, revisit-guide
 <!-- LIVING record (created 2026-06-29, finalize at program end). PURPOSE: the user fears that this
      rich exploration gets FORGOTTEN if they can't re-articulate the unlocking prompt later ("last

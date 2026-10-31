@@ -1,3 +1,9 @@
+---
+title: cost-management
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/cost-management
+---
+
 # Cost Management Guide
 
 Effective cost management is crucial when running AI orchestration at scale. This guide helps you optimize spending while maintaining task quality.

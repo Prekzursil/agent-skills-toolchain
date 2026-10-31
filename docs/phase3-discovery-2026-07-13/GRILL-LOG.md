@@ -1,3 +1,9 @@
+---
+title: GRILL-LOG
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/grill-log
+---
+
 # Phase-3 Grill + ChatGPT-Reframe Decision Log
 
 Append-only. Companion to `DECISION-QUEUE.md` (the discovery output). Records owner-steered

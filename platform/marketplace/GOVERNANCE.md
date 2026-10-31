@@ -1,3 +1,9 @@
+---
+title: GOVERNANCE
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/governance
+---
+
 # Marketplace governance model
 
 The machine-readable half of this document is `governance-policy.json`. `mkt lint` rule

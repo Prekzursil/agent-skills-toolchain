@@ -1,3 +1,9 @@
+---
+title: stop-rules
+type: note
+permalink: dqverify-repo-20261013/skills/offline-linux-disk-surgery/references/stop-rules
+---
+
 # Stop Rules
 
 - Stop if the disk identity is ambiguous.

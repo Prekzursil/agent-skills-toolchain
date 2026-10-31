@@ -1,3 +1,9 @@
+---
+title: security-design-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/security-design-agent
+---
+
 # Security Design Agent
 
 **Type**: `security-design-agent`

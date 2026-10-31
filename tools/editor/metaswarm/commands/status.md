@@ -1,3 +1,9 @@
+---
+title: status
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/status
+---
+
 # Status
 
 Show metaswarm diagnostic information.

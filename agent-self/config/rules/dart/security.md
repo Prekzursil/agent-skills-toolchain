@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
-  - "**/AndroidManifest.xml"
-  - "**/Info.plist"
+- '**/*.dart'
+- '**/pubspec.yaml'
+- '**/AndroidManifest.xml'
+- '**/Info.plist'
+permalink: dqverify-repo-20261013/agent-self/config/rules/dart/security
 ---
+
 # Dart/Flutter Security
 
 > This file extends [common/security.md](../common/security.md) with Dart, Flutter, and mobile-specific content.

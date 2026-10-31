@@ -1,3 +1,9 @@
+---
+title: codex-fleet-expansion-decision-queue
+type: note
+permalink: dqverify-repo-20261013/docs/codex-fleet-expansion-decision-queue
+---
+
 # Codex Fleet Expansion + CI Parity Runner — Decision Queue
 
 > **Source:** 9-agent ultracode research workflow (8 Opus lenses + synthesis), 2026-07-11, 0 errors, ~968K tokens.

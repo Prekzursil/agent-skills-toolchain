@@ -1,3 +1,9 @@
+---
+title: ux-product-first
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/ux-product-first
+---
+
 # Architecture Candidate — UX / PRODUCT-FIRST ("the projection is the architecture")
 
 - **Unit:** `tournament/ux-product-first` · Phase 3, architecture tournament

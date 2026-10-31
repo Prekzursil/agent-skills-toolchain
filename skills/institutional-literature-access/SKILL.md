@@ -1,6 +1,10 @@
 ---
 name: institutional-literature-access
-description: Use when the user has lawful university or consortium access and needs a disciplined route through institutional library portals, ORCID identity, DOI/OA fallback, and secret-safe configuration. Includes the working E-nformation (Anelis Plus) Muse Proxy recipe, canonical cookie-jar location, and refresh procedure.
+description: Use when the user has lawful university or consortium access and needs
+  a disciplined route through institutional library portals, ORCID identity, DOI/OA
+  fallback, and secret-safe configuration. Includes the working E-nformation (Anelis
+  Plus) Muse Proxy recipe, canonical cookie-jar location, and refresh procedure.
+permalink: dqverify-repo-20261013/skills/institutional-literature-access/skill
 ---
 
 # institutional-literature-access

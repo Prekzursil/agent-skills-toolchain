@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/knowledge-graph/readme
+---
+
 # knowledge-graph — shared estate graph store (embedded Kùzu)
 
 One graph store for the estate: hosts, credentials, findings, techniques and

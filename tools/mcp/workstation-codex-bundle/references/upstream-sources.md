@@ -1,3 +1,9 @@
+---
+title: upstream-sources
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/references/upstream-sources
+---
+
 # Upstream sources used for the curated picks
 
 - Notion MCP docs: https://developers.notion.com/guides/mcp/get-started-with-mcp

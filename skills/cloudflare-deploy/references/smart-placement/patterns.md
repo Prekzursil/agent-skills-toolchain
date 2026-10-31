@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/smart-placement/patterns
+---
+
 # Smart Placement Patterns
 
 ## Backend Worker with Database Access

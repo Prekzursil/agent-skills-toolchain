@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/argo-smart-routing/readme
+---
+
 # Cloudflare Argo Smart Routing Skill Reference
 
 ## Overview

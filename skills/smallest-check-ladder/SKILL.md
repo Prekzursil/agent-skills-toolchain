@@ -1,7 +1,12 @@
 ---
 name: smallest-check-ladder
-description: Use when you need to run "the smallest test that could still catch this change" instead of blindly running the whole suite (or nothing). Provides an invocable L0 to L3 ladder - L0 lint the edited file, L1 impacted tests via deterministic selectors, L2 full suite via longrun, L3 e2e - so a "tests pass" claim is backed by a proportionate check. Never ML "predictive test selection".
-origin: gem-hunt-2026-07-12 (A-Tier2, verification-gates #4/#5)
+description: Use when you need to run "the smallest test that could still catch this
+  change" instead of blindly running the whole suite (or nothing). Provides an invocable
+  L0 to L3 ladder - L0 lint the edited file, L1 impacted tests via deterministic selectors,
+  L2 full suite via longrun, L3 e2e - so a "tests pass" claim is backed by a proportionate
+  check. Never ML "predictive test selection".
+origin: gem-hunt-2026-07-12 (A-Tier2, verification-gates
+permalink: dqverify-repo-20261013/skills/smallest-check-ladder/skill
 ---
 
 # Smallest-Check Ladder (L0 -> L3)

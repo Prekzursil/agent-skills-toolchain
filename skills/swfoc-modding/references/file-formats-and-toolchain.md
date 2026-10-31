@@ -1,3 +1,9 @@
+---
+title: file-formats-and-toolchain
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/file-formats-and-toolchain
+---
+
 # File Formats and Toolchain
 
 ## Tools (Petrolution)

@@ -90,6 +90,15 @@
           "slow": true,
           "comment": "Moved from Stop 2026-08-27 (wave A-c) -- see SessionStart.rebalance_note. Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled.",
           "timeout_rationale": "30 leaves 5s of collection headroom under the (raised) 35s SessionStart ceiling -- same headroom pattern the Stop event used. History: was 90 on Stop, which was UNREACHABLE (Stop ceiling 35s; dispatch.py collects with an absolute deadline of start+timeout, so a 90s budget held run() past the cancellation point and the vendor killed the whole dispatcher command, losing all 9 Stop checks' output -- proved by _b12_joinorder.py). Measured range 11.8-32.7s (R4-GITHYGIENE-RANGE.json): runs above 30s lose THIS check's output only, an acceptable trade for an advisory/inject-only check."
+        },
+        {
+          "name": "mcp-userscope-sync/heal",
+          "script": "mcp-userscope-sync/heal.py",
+          "args": [],
+          "timeout": 10,
+          "isolate": "_common",
+          "side_effect": "create-only .mcp.json plant + throttled skills mirror sync (cc-off aware)",
+          "emits": false
         }
       ]
     },
@@ -167,7 +176,7 @@
     },
     "PostToolUse": {
       "settings_matcher": ".*",
-      "settings_timeout": 15,
+      "settings_timeout": 25,
       "checks": [
         {
           "name": "memory-spool/flush_check",
@@ -222,13 +231,44 @@
           "side_effect": "edits-append",
           "emits": false,
           "comment": "The missing PRODUCER for the Stop gate wired above. dark-surface/check.py:190-202 reads <temp>/edit-validate/<session_id>.edits and returns [] on any missing file, so :217-230 found nothing to scan on every turn -- the Stop entry was live but permanently inert. record.py:19-40 is its sole producer and was registered in no surface; stub-ledger/report.py returns 0 on a completion-claim Stop turn to 'defer to dark-surface', so while this was unwired NEITHER half fired on exactly the turns that matter. This is the same GREEN-not-LIVE defect the dark-surface entry was itself added to catch, one layer down. Route pinned by test_wiring.EXPECTED_DISPATCH_ROUTES (args [], matcher Edit|Write|MultiEdit, timeout 5, emits false); presence + route asserted by test_manifest_presence.py. isolate is null because record.py imports no _common/stubscan sibling. side_effect is 'edits-append' not 'none': it appends one line per edit to <temp>/edit-validate/<sid>.edits (record.py:35-40). It NEVER emits and never wakes Claude -- that loop-proofing is the whole point of the design (record.py:5-8)."
+        },
+        {
+          "name": "per-edit-check",
+          "script": "per-edit-check/check.py",
+          "args": [],
+          "timeout": 10,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": null,
+          "side_effect": "block-on-secret-write",
+          "emits": false,
+          "blocking_rc": true,
+          "comment": "Ex-settings.json standalone 2026-10-24 wave (SOTA G4-F7 fold). Its documented contract is exit 2 with the reason on stderr and stdout clean; blocking_rc:true preserves that contract through the dispatcher's blocking protocol (rc forwarded as the process exit, stderr reaches the host). Import-safe (stdlib only, main() under __main__ guard), so in-process execution re-runs the shipped code path verbatim. posttooluse settings_timeout raised 15->25 to match the live settings.json dispatch entry."
+        },
+        {
+          "name": "selection-events/emitter",
+          "script": "selection-events/emitter.py",
+          "args": [],
+          "timeout": 10,
+          "matcher": ".*",
+          "exec": true,
+          "side_effect": "oats-append",
+          "emits": false,
+          "comment": "Ex-SOTA G4-F7 coverage gap: the positive-selection PostToolUse lane was registered NOWHERE (settings.json had emitter only on UserPromptSubmit + PostToolUseFailure), so OATS recorded failures only. exec:true is REQUIRED, not stylistic: in-process, emitter's getattr(sys.stdin,'buffer') resolves through the dispatcher's _ThreadStdin proxy to the REAL stdin -- already at EOF after main() read the payload -- so it would read empty and silently no-op. As a subprocess it gets a fresh stdin carrying the full payload."
+        },
+        {
+          "name": "safeguard-desat/security-digest",
+          "script": "safeguard-desat/security_digest.py",
+          "args": [],
+          "timeout": 12,
+          "isolate": "_common",
+          "emits": true,
+          "note": "deployed copy; source of truth ~/.agents/knowledge/safeguard-desat/ (sync on change)"
         }
       ]
     },
     "PreToolUse": {
       "settings_matcher": ".*",
-      "settings_timeout": 25,
-      "settings_timeout_note": "2026-10-18 P2 thread: raised 20->25 in lockstep with test-tamper-guard's restored 20s budget (below) so the host deadline clears the check budget with 5s of collection headroom — a ceiling at exactly the budget kills the dispatcher at the same instant the check finishes (test_every_check_budget_fits_its_event_ceiling pins budget <= ceiling, never ==).",
+      "settings_timeout": 20,
       "checks": [
         {
           "name": "mcp-liveness/pretool",
@@ -314,11 +354,10 @@
           "name": "test-tamper-guard",
           "script": "test-tamper-guard/guard.py",
           "args": [],
-          "timeout": 20,
+          "timeout": 10,
           "matcher": "Bash",
           "exec": true,
-          "blocking_rc": true,
-          "timeout_rationale": "2026-10-18 P2 thread: restored to the former standalone registration's 20s. guard.py::_run deliberately allows individual git subprocesses up to 15s, so the consolidation wave's 10s dispatcher budget could kill a valid scan before the guard's own operation-level timeout — a fail-open that let the commit proceed unscanned. Ceiling headroom: PreToolUse settings_timeout is 25."
+          "blocking_rc": true
         },
         {
           "name": "inject-nopager",
@@ -371,6 +410,52 @@
           "decision": true,
           "blocking_rc": true,
           "comment": "2026-10-17 blocking-mode wave: bridged out-of-tree guard (owner-reviewed absolute path) - same power as its former standalone settings.json entry, consolidated. Emits deny JSON at exit 0 for runtime claude; blocking_rc kept as belt."
+        },
+        {
+          "name": "re-autolaunch/pretool",
+          "script": "re-autolaunch/autolaunch.py",
+          "args": [
+            "pretool"
+          ],
+          "timeout": 10,
+          "isolate": "_common",
+          "emits": false,
+          "decision": true
+        },
+        {
+          "name": "tms/stale-anchor",
+          "script": "tms/stale_anchor.py",
+          "args": [
+            "pretool"
+          ],
+          "timeout": 8,
+          "isolate": "_common",
+          "emits": false,
+          "exec": true,
+          "blocking_rc": true
+        },
+        {
+          "name": "file-scope/check",
+          "script": "file-scope/check.py",
+          "args": [
+            "pretool"
+          ],
+          "timeout": 10,
+          "isolate": "_common",
+          "emits": false,
+          "exec": true,
+          "blocking_rc": true
+        },
+        {
+          "name": "claude-code-mcp-guard",
+          "script": "claude-code-mcp-guard/guard.py",
+          "args": [
+            "pretool"
+          ],
+          "timeout": 8,
+          "isolate": "_common",
+          "emits": false,
+          "decision": true
         }
       ]
     }

@@ -1,3 +1,9 @@
+---
+title: 02-config-and-execution-model
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/add-hooks-to-ralph-orchestrator-lifecycle/research/02-config-and-execution-model
+---
+
 # Research: Config + Hook Execution Model Fit
 
 ## Goal

@@ -1,3 +1,9 @@
+---
+title: pipeline-rules-runtime
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/pipeline-rules-runtime
+---
+
 # Pipeline Rules — Runtime Reference
 
 Known platform bugs and deploy timing. Read before deploy completion or on scaffold/deploy error.

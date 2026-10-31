@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/binary-ninja-diff-signatures/references/workflow
+---
+
 # Binary Ninja Diff and Signature Workflow
 
 ## Local helpers

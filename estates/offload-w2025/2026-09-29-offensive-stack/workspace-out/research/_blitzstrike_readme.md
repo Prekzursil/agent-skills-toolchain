@@ -1,3 +1,9 @@
+---
+title: _blitzstrike_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/blitzstrike-readme
+---
+
 <div align="center">
 
 <a href="https://github.com/shinthink/blitzstrike"><img src="./.github/assets/banner.webp" alt="Blitz Strike" width="100%" /></a>
@@ -442,4 +448,3 @@ Do not use against systems without explicit permission from the owner.
 - [Roadmap](ROADMAP.md) — where this is headed.
 - [Security](SECURITY.md) — responsible disclosure + authorized use.
 - [Third-Party Notices](THIRD-PARTY-NOTICES.md) — vendored data licenses.
-

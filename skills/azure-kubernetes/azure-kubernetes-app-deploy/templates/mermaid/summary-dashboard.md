@@ -1,3 +1,9 @@
+---
+title: summary-dashboard
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/templates/mermaid/summary-dashboard
+---
+
 # Deployment Summary Template
 
 After successful deployment, render this summary in the terminal.

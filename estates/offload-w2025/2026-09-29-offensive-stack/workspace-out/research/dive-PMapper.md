@@ -1,3 +1,9 @@
+---
+title: dive-PMapper
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-pmapper
+---
+
 # Deep-dive: PMapper (Principal Mapper) — nccgroup/PMapper
 
 Lane: ad-entra-paths (note: PMapper targets **AWS IAM**, not AD/Entra ID — its graph/authz-simulation pattern is presumably why it surfaced in this lane).

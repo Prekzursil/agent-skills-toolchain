@@ -1,7 +1,13 @@
 ---
 name: delegated-build-verify
-description: "Use when delegating a large build to a generator (Codex fan-out, subagents, or a Workflow) and you must independently verify the result - the \"agent builds X, then you evaluate\" pattern. Turns a converged plan/grill into an authoritative build-spec that doubles as the evaluation rubric, fans out the generator, then verifies with an active fabrication hunt. Triggers: \"build X then evaluate\"."
+description: 'Use when delegating a large build to a generator (Codex fan-out, subagents,
+  or a Workflow) and you must independently verify the result - the "agent builds
+  X, then you evaluate" pattern. Turns a converged plan/grill into an authoritative
+  build-spec that doubles as the evaluation rubric, fans out the generator, then verifies
+  with an active fabrication hunt. Triggers: "build X then evaluate".'
+permalink: dqverify-repo-20261013/skills/delegated-build-verify/skill
 ---
+
 # Delegated Build + Verify
 
 Generator–verifier delegation for big builds. The generator (Codex threads / a Workflow /

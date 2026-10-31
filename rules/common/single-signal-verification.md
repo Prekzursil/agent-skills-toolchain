@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*"
+- '**/*'
+permalink: dqverify-repo-20261013/rules/common/single-signal-verification
 ---
 
 # Single-Signal Verification (two independent signals before a load-bearing claim)

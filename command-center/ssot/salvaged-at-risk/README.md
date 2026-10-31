@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-at-risk/readme
+---
+
 # Salvage — the 5 files that were reachable from NO git ref
 
 Taken 2026-08-13 by the SSOT lane. Produced by `command-center/ssot/salvage_atrisk.py --salvage`,

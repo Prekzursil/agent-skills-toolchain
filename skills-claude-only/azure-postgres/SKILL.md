@@ -1,6 +1,12 @@
 ---
 name: azure-postgres
-description: Create new Azure Database for PostgreSQL Flexible Server instances and configure passwordless authentication with Microsoft Entra ID. Set up developer access, managed identities for apps, group-based permissions, and migrate from password-based to Entra ID authentication. Trigger phrases include "passwordless for postgres", "entra id postgres", "azure ad postgres authentication", "postgres managed identity", "migrate postgres to passwordless".
+description: Create new Azure Database for PostgreSQL Flexible Server instances and
+  configure passwordless authentication with Microsoft Entra ID. Set up developer
+  access, managed identities for apps, group-based permissions, and migrate from password-based
+  to Entra ID authentication. Trigger phrases include "passwordless for postgres",
+  "entra id postgres", "azure ad postgres authentication", "postgres managed identity",
+  "migrate postgres to passwordless".
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/skill
 ---
 
 # Azure Database for PostgreSQL

@@ -1,3 +1,9 @@
+---
+title: sdk-operations
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/references/sdk-operations
+---
+
 # SDK Operations for Foundry Agent Service
 
 Use the Foundry MCP tools for agent CRUD operations. When MCP tools are unavailable, use the `azure-ai-projects` Python SDK or REST API.

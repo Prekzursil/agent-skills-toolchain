@@ -1,3 +1,9 @@
+---
+title: BUILD-R5
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/build-r5
+---
+
 # HOOKRESEARCH — BUILD round 5 (re-entry after a CONFIRMED refutation)
 
 The round-4 adversarial verifier CONFIRMED, deterministically, that a probe in this lane

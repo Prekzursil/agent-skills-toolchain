@@ -1,3 +1,9 @@
+---
+title: supplemental-ai-tells
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/supplemental-ai-tells
+---
+
 # Supplemental AI Tells
 
 > **Attribution.** This SlopOrNot-authored supplement is inspired by

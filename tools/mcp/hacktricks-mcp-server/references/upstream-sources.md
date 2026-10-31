@@ -1,3 +1,9 @@
+---
+title: upstream-sources
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hacktricks-mcp-server/references/upstream-sources
+---
+
 # Upstream sources and safe review record
 
 ## Grounding (immutable receipts)

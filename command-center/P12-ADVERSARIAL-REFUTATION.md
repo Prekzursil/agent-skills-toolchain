@@ -1,3 +1,9 @@
+---
+title: P12-ADVERSARIAL-REFUTATION
+type: note
+permalink: dqverify-repo-20261013/command-center/p12-adversarial-refutation
+---
+
 # Phase 12 — Adversarial Refutation
 
 **Unit:** `depth/p12-refutation` · **Spec:** `_USER-PROMPTS.md:11043-11064`

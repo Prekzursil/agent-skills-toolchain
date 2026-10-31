@@ -3,10 +3,11 @@ title: Environment Audit and Remediation
 priority: CRITICAL
 tags: setup, audit, install, dotnet, visual-studio, windows-sdk, developer-mode
 sources:
-  - https://learn.microsoft.com/windows/apps/get-started/start-here
-  - https://learn.microsoft.com/windows/apps/windows-app-sdk/system-requirements
-  - https://learn.microsoft.com/windows/apps/get-started/developer-mode-features-and-debugging
-  - https://learn.microsoft.com/dotnet/core/install/windows
+- https://learn.microsoft.com/windows/apps/get-started/start-here
+- https://learn.microsoft.com/windows/apps/windows-app-sdk/system-requirements
+- https://learn.microsoft.com/windows/apps/get-started/developer-mode-features-and-debugging
+- https://learn.microsoft.com/dotnet/core/install/windows
+permalink: dqverify-repo-20261013/skills/winui-app/references/foundation-environment-audit-and-remediation
 ---
 
 ## What This Reference Is For

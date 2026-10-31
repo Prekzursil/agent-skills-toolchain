@@ -1,3 +1,9 @@
+---
+title: pptxgenjs-helpers
+type: note
+permalink: dqverify-repo-20261013/skills/slides/references/pptxgenjs-helpers
+---
+
 # PptxGenJS Helpers
 
 ## When To Read This

@@ -1,3 +1,9 @@
+---
+title: readme_elder-plinius_T3MP3ST
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-elder-plinius-t3-mp3-st
+---
+
 # 🌩️ T3MP3ST 🌩️
 
 <!-- ⊰ sharp eye on the raw source. there's a flag for the curious: T3MP3ST{r3c31pt5_n0t_v1b3z} — the one that counts, you earn: run `npm run verify-claims`. LOVE PLINY ⊱ -->

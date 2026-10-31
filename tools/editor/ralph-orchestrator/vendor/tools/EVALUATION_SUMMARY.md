@@ -1,3 +1,9 @@
+---
+title: EVALUATION_SUMMARY
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/tools/evaluation-summary
+---
+
 # Preset Evaluation Summary
 
 **Date**: 2026-01-15 (Updated)

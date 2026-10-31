@@ -1,3 +1,9 @@
+---
+title: azure-eventhubs-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-eventhubs-dotnet
+---
+
 # Azure Event Hubs SDK — .NET (C#)
 
 Package: `Azure.Messaging.EventHubs` | [README](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/TROUBLESHOOTING.md)

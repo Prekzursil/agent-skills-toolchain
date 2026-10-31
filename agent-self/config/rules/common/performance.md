@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*"
+- '**/*'
+permalink: dqverify-repo-20261013/agent-self/config/rules/common/performance
 ---
+
 # Performance Optimization
 
 ## Model Selection Strategy

@@ -1,3 +1,9 @@
+---
+title: knowledge-curator-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/knowledge-curator-agent
+---
+
 # Knowledge Curator Agent
 
 **Type**: `learning-curator-agent`

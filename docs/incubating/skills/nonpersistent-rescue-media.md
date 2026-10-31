@@ -1,3 +1,9 @@
+---
+title: nonpersistent-rescue-media
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/nonpersistent-rescue-media
+---
+
 # nonpersistent-rescue-media
 
 ## Purpose

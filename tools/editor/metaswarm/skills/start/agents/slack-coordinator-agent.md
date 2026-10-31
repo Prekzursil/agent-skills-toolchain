@@ -1,3 +1,9 @@
+---
+title: slack-coordinator-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/slack-coordinator-agent
+---
+
 # Slack Coordinator Agent
 
 **Type**: `swarm-coordinator` (Slack interface specialization)

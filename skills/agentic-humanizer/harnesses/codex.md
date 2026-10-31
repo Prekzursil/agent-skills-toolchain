@@ -1,3 +1,9 @@
+---
+title: codex
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/harnesses/codex
+---
+
 # Harness Routing — Codex CLI
 
 `SKILL.md` routes here when running inside the OpenAI Codex CLI. Codex

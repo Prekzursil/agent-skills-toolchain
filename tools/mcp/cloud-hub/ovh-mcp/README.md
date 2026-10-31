@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/ovh-mcp/readme
+---
+
 # OVHcloud MCP Server
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)

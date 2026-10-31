@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/resources/readme
+---
+
 # Resource Reference Index
 
 ## Region Categories

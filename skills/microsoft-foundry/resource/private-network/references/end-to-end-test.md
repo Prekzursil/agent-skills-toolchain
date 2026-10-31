@@ -1,3 +1,9 @@
+---
+title: end-to-end-test
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/end-to-end-test
+---
+
 # End-to-End Test (VNet Access Required)
 
 Continues from [post-deployment-validation.md](post-deployment-validation.md). Steps 1–3 there must be complete first.

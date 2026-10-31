@@ -1,3 +1,9 @@
+---
+title: azure-postgres-ts
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/sdk/azure-postgres-ts
+---
+
 # PostgreSQL — TypeScript SDK Quick Reference
 
 > Condensed from **azure-postgres-ts**. Full patterns (connection pooling,

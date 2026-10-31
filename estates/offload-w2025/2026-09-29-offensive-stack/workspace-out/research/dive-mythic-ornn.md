@@ -1,3 +1,9 @@
+---
+title: dive-mythic-ornn
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-mythic-ornn
+---
+
 # Deep-dive: mythic_ornn
 
 - **Repo:** https://github.com/n0qword/mythic_ornn

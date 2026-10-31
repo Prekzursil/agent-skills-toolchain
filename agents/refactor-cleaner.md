@@ -1,9 +1,18 @@
 ---
 name: refactor-cleaner
-description: Dead code cleanup and consolidation specialist. Use PROACTIVELY for removing unused code, duplicates, and refactoring. Runs analysis tools (knip, depcheck, ts-prune) to identify dead code and safely removes it.
-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+description: Dead code cleanup and consolidation specialist. Use PROACTIVELY for removing
+  unused code, duplicates, and refactoring. Runs analysis tools (knip, depcheck, ts-prune)
+  to identify dead code and safely removes it.
+tools:
+- Read
+- Write
+- Edit
+- Bash
+- Grep
+- Glob
 model: opus
 effort: medium
+permalink: dqverify-repo-20261013/agents/refactor-cleaner
 ---
 
 # Refactor & Dead Code Cleaner

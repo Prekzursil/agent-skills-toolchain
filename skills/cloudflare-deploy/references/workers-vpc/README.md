@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-vpc/readme
+---
+
 # Workers VPC Connectivity
 
 Connect Cloudflare Workers to private networks and internal infrastructure using TCP Sockets.

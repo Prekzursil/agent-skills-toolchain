@@ -1,3 +1,9 @@
+---
+title: bullets
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/references/bullets
+---
+
 # Writing bullets that land (XYZ · STAR · CAR · Brag-Document)
 
 Every bullet is drawn from `x_master` and cites numbers only from `x_metrics`. Turn a long-form

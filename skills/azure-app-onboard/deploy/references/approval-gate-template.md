@@ -1,3 +1,9 @@
+---
+title: approval-gate-template
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/approval-gate-template
+---
+
 # Approval Gate Template
 
 Display template for the deploy approval gate. Present after preflight validation, before execution.

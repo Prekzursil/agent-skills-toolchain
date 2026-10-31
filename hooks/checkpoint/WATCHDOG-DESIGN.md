@@ -1,3 +1,9 @@
+---
+title: WATCHDOG-DESIGN
+type: note
+permalink: dqverify-repo-20261013/hooks/checkpoint/watchdog-design
+---
+
 # Idle-agent watchdog — DESIGN ONLY (no runtime shipped this round)
 
 Status: **DESIGN. Nothing in this directory implements it.** The lane brief says "design only

@@ -1,3 +1,9 @@
+---
+title: agent-coordination
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/guides/agent-coordination
+---
+
 # Agent Coordination Guide
 
 This guide defines two coordination modes for the BEADS multi-agent swarm. Both modes produce identical work products; only the dispatch mechanism changes.

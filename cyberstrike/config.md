@@ -1,3 +1,9 @@
+---
+title: config
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/config
+---
+
 # CyberStrike config.md — standing estate / full-power SSOT
 
 Loaded via `cyberstrike.json` → `instructions` (`{file:~/.config/cyberstrike/config.md}`).

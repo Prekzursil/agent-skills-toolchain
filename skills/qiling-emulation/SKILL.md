@@ -1,6 +1,11 @@
 ---
 name: qiling-emulation
-description: Use to emulate or sandbox a native ARM/ARM64 shared object off-device - the Battle Cats Android .so or any Android/Linux ELF native library inside the Qiling framework, not on a rooted phone. The dynamic-OFF-device complement to frida and static ghidra/radare2/ida - call an exported native function, trace a save-crypto/PRNG/checksum algorithm, or diff behavior across versions. NOT for Java/Smali.
+description: Use to emulate or sandbox a native ARM/ARM64 shared object off-device
+  - the Battle Cats Android .so or any Android/Linux ELF native library inside the
+  Qiling framework, not on a rooted phone. The dynamic-OFF-device complement to frida
+  and static ghidra/radare2/ida - call an exported native function, trace a save-crypto/PRNG/checksum
+  algorithm, or diff behavior across versions. NOT for Java/Smali.
+permalink: dqverify-repo-20261013/skills/qiling-emulation/skill
 ---
 
 # Qiling Emulation (off-device native sandbox)

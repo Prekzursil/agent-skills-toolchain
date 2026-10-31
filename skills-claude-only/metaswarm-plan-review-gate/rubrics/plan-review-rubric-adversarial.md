@@ -1,3 +1,9 @@
+---
+title: plan-review-rubric-adversarial
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-plan-review-gate/rubrics/plan-review-rubric-adversarial
+---
+
 # Plan Review Rubric (Adversarial)
 
 **Used By**: Feasibility, Completeness, and Scope & Alignment reviewers (plan-review-gate)

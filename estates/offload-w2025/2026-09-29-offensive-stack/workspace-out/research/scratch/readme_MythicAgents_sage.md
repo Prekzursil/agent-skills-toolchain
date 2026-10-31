@@ -1,3 +1,9 @@
+---
+title: readme_MythicAgents_sage
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-mythic-agents-sage
+---
+
 <p align="center">
   <img src="docs/assets/sage.png" alt="Sage" width="200">
 </p>

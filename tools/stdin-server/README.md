@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/stdin-server/readme
+---
+
 # tools/stdin-server
 
 A stdlib-only, zero-dependency MCP server that gives an agent a **persistent

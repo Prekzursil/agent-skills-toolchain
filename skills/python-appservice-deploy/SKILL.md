@@ -1,10 +1,14 @@
 ---
 name: python-appservice-deploy
-description: "Deploy Python (Flask/Django/FastAPI) code to Azure App Service Linux. WHEN: \"Flask App Service\", \"Django App Service\", \"FastAPI App Service\", \"deploy Python to App Service\". DO NOT USE FOR: Container Apps, Functions, non-Python, Terraform/Bicep/IaC, full infra — use azure-prepare."
+description: 'Deploy Python (Flask/Django/FastAPI) code to Azure App Service Linux.
+  WHEN: "Flask App Service", "Django App Service", "FastAPI App Service", "deploy
+  Python to App Service". DO NOT USE FOR: Container Apps, Functions, non-Python, Terraform/Bicep/IaC,
+  full infra — use azure-prepare.'
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.1.1"
+  version: 1.1.1
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/skill
 ---
 
 # Python on Azure App Service — Code Deploy

@@ -1,6 +1,12 @@
 ---
 name: devtu-create-tool
-description: Create new scientific tools for ToolUniverse framework with proper structure, validation, and testing. Use when users need to add tools to ToolUniverse, implement new API integrations, create tool wrappers for scientific databases/services, expand ToolUniverse capabilities, or follow ToolUniverse contribution guidelines. Supports creating tool classes, JSON configurations, validation, error handling, and test examples.
+description: Create new scientific tools for ToolUniverse framework with proper structure,
+  validation, and testing. Use when users need to add tools to ToolUniverse, implement
+  new API integrations, create tool wrappers for scientific databases/services, expand
+  ToolUniverse capabilities, or follow ToolUniverse contribution guidelines. Supports
+  creating tool classes, JSON configurations, validation, error handling, and test
+  examples.
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/readme
 ---
 
 # ToolUniverse Tool Creator

@@ -1,3 +1,9 @@
+---
+title: comprehensive-report-format
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/comprehensive-report-format
+---
+
 # Comprehensive Report Format
 
 **When to use**: 
@@ -38,4 +44,3 @@ See [comprehensive-report-template.md](comprehensive-report-template.md) for the
 - "Document the full technical investigation of the database migration"
 - "Prepare an in-depth report on vendor options for executive review"
 - "Analyze the pros and cons of different architectural approaches"
-

@@ -1,3 +1,9 @@
+---
+title: terraform
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/output-adapters/terraform
+---
+
 # Terraform adapter
 
 Multi-cloud, existing TF state, organization standardized on Terraform.

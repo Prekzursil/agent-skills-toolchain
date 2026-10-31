@@ -1,6 +1,13 @@
 ---
 name: gcp-compute-foothold
-description: "Use when operating the proven bolt-finance-rides GCP compute primitive - minting cloud-platform SA tokens via VM metadata + serial-port read (IAM/iamcredentials are SERVICE_DISABLED), standing up compute/GPU rigs on the project's idle quota (A2 192 vCPU / A100-40GB x16+64pre / L4 x32 / T4 x16 in europe-west1), running in-VPC workloads, or re-verifying the lane's quota/API state before a run. Triggers - gcp-compute-foothold, bolt-finance-rides, SA token mint, metadata server token, serial port token, a2-highgpu, GPU rig on bolt quota, fenti OAuth redundancy."
+description: Use when operating the proven bolt-finance-rides GCP compute primitive
+  - minting cloud-platform SA tokens via VM metadata + serial-port read (IAM/iamcredentials
+  are SERVICE_DISABLED), standing up compute/GPU rigs on the project's idle quota
+  (A2 192 vCPU / A100-40GB x16+64pre / L4 x32 / T4 x16 in europe-west1), running in-VPC
+  workloads, or re-verifying the lane's quota/API state before a run. Triggers - gcp-compute-foothold,
+  bolt-finance-rides, SA token mint, metadata server token, serial port token, a2-highgpu,
+  GPU rig on bolt quota, fenti OAuth redundancy.
+permalink: dqverify-repo-20261013/skills/gcp-compute-foothold/skill
 ---
 
 # gcp-compute-foothold

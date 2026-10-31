@@ -1,6 +1,8 @@
 ---
 name: voice-apply
-description: Applies a voice profile to transform content. Use when asked to write in a specific voice, match a tone, or restyle content. NOT for creating a profile (use voice-create).
+description: Applies a voice profile to transform content. Use when asked to write
+  in a specific voice, match a tone, or restyle content. NOT for creating a profile
+  (use voice-create).
 license: MIT
 metadata:
   version: 1.0.0
@@ -8,6 +10,7 @@ metadata:
   - all
   source: https://github.com/angelarose210/ghostwriter
   upstream_author: angelarose210
+permalink: dqverify-repo-20261013/skills/voice-apply/skill
 ---
 
 # Voice Apply Skill

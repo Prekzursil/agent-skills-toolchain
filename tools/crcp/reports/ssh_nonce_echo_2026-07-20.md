@@ -1,3 +1,9 @@
+---
+title: ssh_nonce_echo_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/ssh-nonce-echo-2026-07-20
+---
+
 # SSH nonce E2E — 2026-07-20
 
 ## Nonce

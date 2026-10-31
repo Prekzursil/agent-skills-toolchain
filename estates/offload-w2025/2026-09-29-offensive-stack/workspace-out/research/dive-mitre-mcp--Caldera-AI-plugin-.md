@@ -1,3 +1,9 @@
+---
+title: dive-mitre-mcp--Caldera-AI-plugin-
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-mitre-mcp-caldera-ai-plugin
+---
+
 # Deep-dive: mitre/mcp (Caldera AI plugin)
 
 Lane: c2-agentic. Date of verification: 2026-09-29. All checks below were run in this session.

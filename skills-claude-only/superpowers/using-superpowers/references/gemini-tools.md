@@ -1,3 +1,9 @@
+---
+title: gemini-tools
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/using-superpowers/references/gemini-tools
+---
+
 # Gemini CLI Tool Mapping
 
 Skills use Claude Code tool names. When you encounter these in a skill, use your platform equivalent:

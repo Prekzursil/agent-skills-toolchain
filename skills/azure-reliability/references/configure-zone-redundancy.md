@@ -1,3 +1,9 @@
+---
+title: configure-zone-redundancy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/configure-zone-redundancy
+---
+
 # Configure Zone Redundancy — Platform Notes
 
 ## Storage redundancy is part of the same fix — discover it now, migrate it later
@@ -35,4 +41,3 @@ Resources
 ```
 
 All patched resources should show `zoneRedundant = true`.
-

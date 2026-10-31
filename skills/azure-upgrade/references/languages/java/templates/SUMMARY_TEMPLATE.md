@@ -1,3 +1,9 @@
+---
+title: SUMMARY_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/templates/summary-template
+---
+
 <!--
   This is the upgrade summary generated after successful completion of the Azure SDK migration.
   It documents the final results, changes made, and lessons learned.

@@ -1,3 +1,9 @@
+---
+title: upstream-sources
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/digitalocean-mcp/references/upstream-sources
+---
+
 # Upstream sources
 
 - Selected upstream (user-directed archived repo): https://github.com/digitalocean/digitalocean-mcp

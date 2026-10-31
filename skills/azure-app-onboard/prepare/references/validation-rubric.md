@@ -1,3 +1,9 @@
+---
+title: validation-rubric
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/validation-rubric
+---
+
 # Validation Rubric
 
 Run all 4 dimensions before writing `prepare-plan.json`. All must pass — a failure in any dimension triggers the [Error Handling](../SKILL.md#error-handling) procedures.

@@ -1,3 +1,9 @@
+---
+title: dbx_p1-http-auth-rate
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-p1-http-auth-rate
+---
+
 # P1 HTTP authentication and rate limiting
 
 ## Summary

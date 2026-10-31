@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/readme
+---
+
 # Recipes
 
 Deployment recipes for different infrastructure approaches.

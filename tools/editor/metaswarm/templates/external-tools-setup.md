@@ -1,3 +1,9 @@
+---
+title: external-tools-setup
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/templates/external-tools-setup
+---
+
 # External Tools Setup Guide
 
 This guide helps you install and configure external AI CLI tools for use with

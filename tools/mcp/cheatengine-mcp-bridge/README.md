@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cheatengine-mcp-bridge/readme
+---
+
 # Cheat Engine MCP Bridge
 
 `tools/mcp/cheatengine-mcp-bridge/` is the repo-owned wrapper for the upstream Windows-only `miscusi-peek/cheatengine-mcp-bridge` project.

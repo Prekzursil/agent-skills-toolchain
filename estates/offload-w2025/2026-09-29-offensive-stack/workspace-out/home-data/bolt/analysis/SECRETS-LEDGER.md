@@ -1,3 +1,9 @@
+---
+title: SECRETS-LEDGER
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/home-data/bolt/analysis/secrets-ledger
+---
+
 # Secrets ledger — verified counts as of 2026-09-03 (misty-moon)
 Basis: deep-mine v1 (reconciled) + usefulness audit + jwt_triage_v2 + CSRF cluster analysis. STRICT quarantine: **zero secrets validated by use** — all figures are evidence-grade counts.
 

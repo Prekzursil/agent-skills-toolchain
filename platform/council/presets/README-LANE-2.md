@@ -1,3 +1,9 @@
+---
+title: README-LANE-2
+type: note
+permalink: dqverify-repo-20261013/platform/council/presets/readme-lane-2
+---
+
 # Council presets, design indices 17-32 (lane 2) — editing guide
 
 17 files. Every one is plain JSON, validates standalone against

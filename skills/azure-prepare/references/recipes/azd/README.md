@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azd/readme
+---
+
 # AZD Recipe
 
 Azure Developer CLI workflow for preparing Azure deployments.

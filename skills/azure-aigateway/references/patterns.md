@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/patterns
+---
+
 # AI Gateway Configuration Patterns
 
 Step-by-step patterns for configuring Azure API Management as an AI Gateway.

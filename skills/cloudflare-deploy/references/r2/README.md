@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2/readme
+---
+
 # Cloudflare R2 Object Storage
 
 S3-compatible object storage with zero egress fees, optimized for large file storage and delivery.

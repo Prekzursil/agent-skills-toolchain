@@ -1,6 +1,8 @@
 ---
 name: protein-interaction-network-analysis
-description: "Use when analyzing protein interaction networks, confidence scores, functional enrichment, or structural context with STRING, BioGRID, and SASBDB."
+description: Use when analyzing protein interaction networks, confidence scores, functional
+  enrichment, or structural context with STRING, BioGRID, and SASBDB.
+permalink: dqverify-repo-20261013/skills/protein-interaction-network-analysis/skill
 ---
 
 # Protein Interaction Network Analysis

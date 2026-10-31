@@ -1,6 +1,8 @@
 ---
 name: skill-guide
-description: Explain how to create, organize, and maintain skills in .agents/skills when the user asks about skills.
+description: Explain how to create, organize, and maintain skills in .agents/skills
+  when the user asks about skills.
+permalink: dqverify-repo-20261013/skills-claude-only/skill-guide/skill
 ---
 
 When asked about skills:

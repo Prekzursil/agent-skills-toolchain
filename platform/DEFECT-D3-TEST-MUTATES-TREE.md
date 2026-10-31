@@ -1,3 +1,9 @@
+---
+title: DEFECT-D3-TEST-MUTATES-TREE
+type: note
+permalink: dqverify-repo-20261013/platform/defect-d3-test-mutates-tree
+---
+
 # DEFECT D3 — a test that silently repaired the real tree, and sampled 1.7%
 
 Unit `defect/d3-test-mutates-tree` · baseline main `0aa6f8fa` · measured 2026-08-10.

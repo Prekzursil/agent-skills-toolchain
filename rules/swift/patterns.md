@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+- '**/*.swift'
+- '**/Package.swift'
+permalink: dqverify-repo-20261013/rules/swift/patterns
 ---
+
 # Swift Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Swift specific content.

@@ -1,3 +1,9 @@
+---
+title: RULERESEARCH-GROUNDING-R2
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/ruleresearch-grounding-r2
+---
+
 # RULERESEARCH lane — grounding round 2 (delta since R1)
 
 STATUS: MEASURED. Lane = RULERESEARCH (grounding). No production code written; no rule edited.

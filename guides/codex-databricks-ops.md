@@ -1,3 +1,9 @@
+---
+title: codex-databricks-ops
+type: note
+permalink: dqverify-repo-20261013/guides/codex-databricks-ops
+---
+
 # Codex on Databricks — operator playbook (no sloppy sessions)
 
 **Audience:** any agent session that needs to run many Codex units fast without re-deriving
@@ -83,4 +89,4 @@ Python loopback: `ProxyHandler({})`.
 - 48/48 auth research @ stagger 3s  
 - CRCP 15/15 implement SUCCESS ~560s (run 690432742789715)  
 - CRCP merge 5/5 (run 961988947593804)  
-- Web-endgame 89-unit submit (run 1023601984546724)  
+- Web-endgame 89-unit submit (run 1023601984546724)

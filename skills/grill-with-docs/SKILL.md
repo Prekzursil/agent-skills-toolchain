@@ -1,6 +1,11 @@
 ---
 name: grill-with-docs
-description: Use when stress-testing a plan against the workspace's domain knowledge and prior decisions - challenge terminology, sharpen fuzzy language, and write resolved decisions back. Use when the user says grill against our docs or decisions, or wants a glossary-aware design grill. NOT for a plain plan interview (use grill-me) or a program-scale scope (use grill-me-extensive).
+description: Use when stress-testing a plan against the workspace's domain knowledge
+  and prior decisions - challenge terminology, sharpen fuzzy language, and write resolved
+  decisions back. Use when the user says grill against our docs or decisions, or wants
+  a glossary-aware design grill. NOT for a plain plan interview (use grill-me) or
+  a program-scale scope (use grill-me-extensive).
+permalink: dqverify-repo-20261013/skills/grill-with-docs/skill
 ---
 
 # Grill With Docs

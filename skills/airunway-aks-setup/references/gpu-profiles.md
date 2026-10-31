@@ -1,3 +1,9 @@
+---
+title: gpu-profiles
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/gpu-profiles
+---
+
 # GPU Compatibility Reference
 
 This reference is used by the `airunway-aks-setup` skill during **Step 3 — GPU Assessment** to match detected GPU hardware to known compatibility profiles and surface constraints before model deployment.

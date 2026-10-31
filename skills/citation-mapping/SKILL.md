@@ -1,6 +1,9 @@
 ---
 name: citation-mapping
-description: Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex
+description: Use when you need to build a citation or reference map for a paper, tracing
+  backward references and forward cited-by works from metadata APIs like Semantic
+  Scholar and OpenAlex
+permalink: dqverify-repo-20261013/skills/citation-mapping/skill
 ---
 
 # Citation Mapping

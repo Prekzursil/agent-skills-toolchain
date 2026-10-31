@@ -1,3 +1,9 @@
+---
+title: cloud-sdk-migration
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/cloud-sdk-migration
+---
+
 # Non-Azure Cloud Service Dependencies
 
 > Detected during Step 2 manifest scan. The `ask_user` redirect gate is handled in SKILL.md Step 2 — this file defines the classification rules.

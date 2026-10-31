@@ -1,3 +1,9 @@
+---
+title: SELF-CALIBRATION-PLAN
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/docs/self-calibration-plan
+---
+
 # Self-Calibration Plan — research-backed, 2026-06-11
 
 Evidence-graded research (9-agent workflow `wf_57f0beff-dcf`) + adversarial critique, grounded in the *actual* hook source on this machine.

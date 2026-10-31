@@ -1,3 +1,9 @@
+---
+title: live-role-verification
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/live-role-verification
+---
+
 # Live Role Verification
 
 Query Azure to confirm that provisioned RBAC role assignments are correct and sufficient for the application to function. This complements the static role check in azure-validate by validating **live Azure state**.

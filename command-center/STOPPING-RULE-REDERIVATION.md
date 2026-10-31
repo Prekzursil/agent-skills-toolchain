@@ -1,3 +1,9 @@
+---
+title: STOPPING-RULE-REDERIVATION
+type: note
+permalink: dqverify-repo-20261013/command-center/stopping-rule-rederivation
+---
+
 # STOPPING-RULE RE-DERIVATION — Lane C2, independent check on the Phase-14 scorecard
 
 **Unit:** lane C2. **Output file:** this file, mine alone. Investigation only — nothing committed,

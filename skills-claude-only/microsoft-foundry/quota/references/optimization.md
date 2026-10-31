@@ -1,3 +1,9 @@
+---
+title: optimization
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/quota/references/optimization
+---
+
 # Quota Optimization Strategies
 
 Comprehensive strategies for optimizing Azure AI Foundry quota allocation and reducing costs.

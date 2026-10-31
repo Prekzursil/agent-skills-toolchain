@@ -1,3 +1,9 @@
+---
+title: express
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/knowledge-packs/frameworks/express
+---
+
 # Express / Fastify Knowledge Pack
 
 > **Applies to:** Projects detected with `package.json` containing `express` or `fastify` as a dependency

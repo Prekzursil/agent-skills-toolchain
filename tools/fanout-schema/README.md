@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/fanout-schema/readme
+---
+
 # Fan-out schema design guide
 
 `StructuredOutput` is the fan-in surface of every Claude Code Workflow in this workspace. It

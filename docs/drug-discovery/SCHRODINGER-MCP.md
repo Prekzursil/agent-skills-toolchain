@@ -1,3 +1,9 @@
+---
+title: SCHRODINGER-MCP
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/schrodinger-mcp
+---
+
 # Schrodinger MCP Server
 
 A thin, security-conscious [Model Context Protocol](https://modelcontextprotocol.io) (MCP)

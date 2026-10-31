@@ -1,3 +1,9 @@
+---
+title: tor-setup
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/tor-setup
+---
+
 # Tor setup — VM provisioning notes
 
 Date: 2026-09-29. All commands below were run on this VM during this ask.

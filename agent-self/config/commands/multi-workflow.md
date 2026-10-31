@@ -1,3 +1,9 @@
+---
+title: multi-workflow
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/multi-workflow
+---
+
 # Workflow - Multi-Model Collaborative Development
 
 Multi-model collaborative development workflow (Research → Ideation → Plan → Execute → Optimize → Review), with intelligent routing: Frontend → Gemini, Backend → Codex.

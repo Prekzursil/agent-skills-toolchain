@@ -1,3 +1,9 @@
+---
+title: guardrail-api-create
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/guardrails/guardrail-api-create
+---
+
 # Create a Guardrail via the REST API (`az rest`)
 
 > Use this path only when the user explicitly asks for programmatic/CLI/CI/CD creation. Otherwise, guide them to the [portal](guardrail-manage.md#default-path-portal).

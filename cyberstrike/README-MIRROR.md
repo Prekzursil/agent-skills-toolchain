@@ -1,3 +1,9 @@
+---
+title: README-MIRROR
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/readme-mirror
+---
+
 # CyberStrike config tree (mirror)
 
 LIVE tree (source of truth): C:\Users\Prekzursil\.config\cyberstrike

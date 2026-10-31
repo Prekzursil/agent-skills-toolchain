@@ -1,3 +1,9 @@
+---
+title: prompt-revalidation-design
+type: note
+permalink: dqverify-repo-20261013/skills/codex-databricks-fanout/references/prompt-revalidation-design
+---
+
 # Prompt Revalidation Pipeline — Design Spec
 
 **Status:** owner-approved flow (brainstormed + grilled 2026-07-24). Awaiting spec review → implementation plan.

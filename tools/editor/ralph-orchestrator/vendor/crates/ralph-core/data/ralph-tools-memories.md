@@ -3,6 +3,7 @@ name: ralph-tools-memories
 description: Use when managing runtime memories during Ralph orchestration runs
 metadata:
   internal: true
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/data/ralph-tools-memories
 ---
 
 # Ralph Tools — Memories

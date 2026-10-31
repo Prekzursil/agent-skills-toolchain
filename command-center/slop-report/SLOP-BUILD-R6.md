@@ -1,3 +1,9 @@
+---
+title: SLOP-BUILD-R6
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-build-r6
+---
+
 # SLOP — BUILD lane, round 6
 
 Round 5 shipped two commits (`f725baf4`, `9cc80f55`). This round fixes what did not survive

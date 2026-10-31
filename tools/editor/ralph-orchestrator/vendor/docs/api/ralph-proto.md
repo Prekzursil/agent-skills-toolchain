@@ -1,3 +1,9 @@
+---
+title: ralph-proto
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/api/ralph-proto
+---
+
 # ralph-proto
 
 Protocol types shared across all Ralph crates.

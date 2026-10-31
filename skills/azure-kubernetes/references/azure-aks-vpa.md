@@ -1,3 +1,9 @@
+---
+title: azure-aks-vpa
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/references/azure-aks-vpa
+---
+
 # AKS Vertical Pod Autoscaler (VPA)
 
 Use VPA to get data-driven resource recommendations for rightsizing pods. Always start in recommendation-only mode before considering auto-apply.

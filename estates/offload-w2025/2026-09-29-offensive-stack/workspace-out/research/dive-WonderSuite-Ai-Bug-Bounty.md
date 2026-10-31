@@ -1,3 +1,9 @@
+---
+title: dive-WonderSuite-Ai-Bug-Bounty
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-wonder-suite-ai-bug-bounty
+---
+
 # Deep-dive: WonderSuite-Ai-Bug-Bounty
 
 **Candidate (from the ask):** native-Windows Burp-class offensive suite — MITM proxy impersonating Chrome 137 JA3/JA4+H2 fingerprints, bundled stealth Chrome-for-Testing 148 with isTrusted input + humanlike Bezier/typing and fast/human/paranoid stealth profiles, `browser_storage_full` authenticated-session dump, OAST (HTTP/DNS/SMTP) blind SSRF/cmdi/Log4Shell detection, active scanner, 90 MCP tools on :3100.

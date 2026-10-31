@@ -1,3 +1,9 @@
+---
+title: web-app
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/web-app
+---
+
 # Full-Stack Web App Template — REFERENCE ONLY
 
 Template for server-side rendered web applications on Azure App Service. Use for MVC, Razor Pages, Next.js SSR, Django, or React+API patterns.

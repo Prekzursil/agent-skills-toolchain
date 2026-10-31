@@ -1,3 +1,9 @@
+---
+title: topology-checks
+type: note
+permalink: dqverify-repo-20261013/skills/codex-runtime-recovery/references/topology-checks
+---
+
 # Topology Checks
 
 Confirm topology before recovery work.

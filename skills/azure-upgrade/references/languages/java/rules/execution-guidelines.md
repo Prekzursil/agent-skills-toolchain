@@ -1,3 +1,9 @@
+---
+title: execution-guidelines
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/rules/execution-guidelines
+---
+
 # Execution Guidelines
 
 - **Wrapper preference**: Use Maven Wrapper (`mvnw`/`mvnw.cmd`) or Gradle Wrapper (`gradlew`/`gradlew.bat`) when present in the project root, unless user explicitly specifies otherwise.

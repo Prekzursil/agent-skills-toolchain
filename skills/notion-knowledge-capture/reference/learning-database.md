@@ -1,3 +1,9 @@
+---
+title: learning-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/learning-database
+---
+
 # Learning/Post-Mortem Database
 
 **Purpose**: Capture learnings from incidents, projects, or experiences.
@@ -32,4 +38,3 @@ Each learning page should include:
 4. **Create action items**: Turn learnings into improvements
 5. **Follow up**: Track that action items are completed
 6. **Share widely**: Make learnings accessible to entire team
-

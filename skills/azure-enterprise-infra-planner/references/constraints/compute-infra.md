@@ -1,3 +1,9 @@
+---
+title: compute-infra
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/compute-infra
+---
+
 # Compute (IaaS) Pairing Constraints
 
 ### AKS Cluster

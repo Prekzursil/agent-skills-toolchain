@@ -1,3 +1,9 @@
+---
+title: TRACEABILITY
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-e2e/features/hooks/traceability
+---
+
 # Hooks BDD AC Traceability Matrix (Step 13 Final)
 
 This document is the finalized Step 13 traceability artifact for:

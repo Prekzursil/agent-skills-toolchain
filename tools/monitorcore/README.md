@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/monitorcore/readme
+---
+
 # monitorcore
 
 Shared monitoring + export core for the unified monitoring platform (the 11-PR

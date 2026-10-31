@@ -1,3 +1,9 @@
+---
+title: GEMINI
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/gemini
+---
+
 # metaswarm
 
 Multi-agent orchestration framework for software development. 18 specialized agents, 13 skills, quality gates, TDD enforcement.

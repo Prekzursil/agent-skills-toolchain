@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/git-hygiene/readme
+---
+
 # git-hygiene — no local work is left abandoned or unpushed
 
 A **SessionStart** hook (`check.py`; it ran at **Stop** until the 2026-08-27 rebalance, see

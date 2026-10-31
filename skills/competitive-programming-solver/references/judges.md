@@ -1,3 +1,9 @@
+---
+title: judges
+type: note
+permalink: dqverify-repo-20261013/skills/competitive-programming-solver/references/judges
+---
+
 # Judge-Specific Quirks
 
 Each online judge has its own conventions. Get them wrong and you waste submissions.

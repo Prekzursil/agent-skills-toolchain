@@ -1,3 +1,9 @@
+---
+title: coordination-patterns
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/coordination-patterns
+---
+
 # Coordination Patterns
 
 Ralph's hat system enables sophisticated multi-agent workflows through event-driven coordination. This section covers the architectural patterns, event routing mechanics, and built-in workflow templates.

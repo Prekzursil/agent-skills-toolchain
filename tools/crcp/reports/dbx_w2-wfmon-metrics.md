@@ -1,3 +1,9 @@
+---
+title: dbx_w2-wfmon-metrics
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w2-wfmon-metrics
+---
+
 # W2 wfmon metrics implementation
 
 ## Summary

@@ -1,3 +1,9 @@
+---
+title: plan-document-reviewer-prompt
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/writing-plans/plan-document-reviewer-prompt
+---
+
 # Plan Document Reviewer Prompt Template
 
 Use this template when dispatching a plan document reviewer subagent.

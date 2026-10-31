@@ -1,3 +1,9 @@
+---
+title: dbx_p1-origin-pin
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-p1-origin-pin
+---
+
 # P1 origin pin
 
 ## Summary

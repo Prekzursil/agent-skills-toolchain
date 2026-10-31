@@ -1,3 +1,9 @@
+---
+title: CONSOLE-PATHS
+type: note
+permalink: dqverify-repo-20261013/skills/academy-badge-runner/console-paths
+---
+
 # Console & API path map — 100% coverage of driven flows (v1, 2026-09-30)
 
 Every navigation/execution path this harness drives, with its **verified working method** and the **failure modes already paid for** — so no future session hits a mismatch cold. Built from live sessions GSP322 + GSP1036 (2026-09-30).

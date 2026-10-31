@@ -1,3 +1,9 @@
+---
+title: summary
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/base/eval/summary
+---
+
 # Base HTTP Template - Eval Summary
 
 ## Coverage Status

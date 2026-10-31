@@ -1,3 +1,9 @@
+---
+title: RELEASE-CHECKLIST
+type: note
+permalink: dqverify-repo-20261013/command-center/release-checklist
+---
+
 # RELEASE-CHECKLIST
 
 Two different things get "released" here, and conflating them is how a gate reaches enforce

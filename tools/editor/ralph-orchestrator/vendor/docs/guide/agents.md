@@ -1,3 +1,9 @@
+---
+title: agents
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/agents
+---
+
 # AI Agents Guide
 
 Ralph Orchestrator supports multiple AI agents, each with unique capabilities and cost structures. This guide helps you choose and configure the right agent for your task.

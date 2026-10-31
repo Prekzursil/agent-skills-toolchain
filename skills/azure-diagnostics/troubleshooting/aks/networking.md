@@ -1,3 +1,9 @@
+---
+title: networking
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/networking
+---
+
 # Networking Troubleshooting
 
 For CNI-specific issues, check CNI pod health and review [AKS networking concepts](https://learn.microsoft.com/azure/aks/concepts-network).

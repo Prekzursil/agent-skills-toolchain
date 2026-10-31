@@ -1,3 +1,9 @@
+---
+title: subagent-validate
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/subagent-validate
+---
+
 # Subagent Template — Validation & Manifest (Steps 10–12)
 
 Validate IaC syntax, write `scaffold-manifest.json`, and generate deploy checklist. Follow the workflow below.

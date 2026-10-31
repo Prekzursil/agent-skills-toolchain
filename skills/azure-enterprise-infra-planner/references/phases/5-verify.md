@@ -1,3 +1,9 @@
+---
+title: 5-verify
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/5-verify
+---
+
 # Phase 5: Verify Plan
 
 Thoroughly and objectively verify the generated plan based on the following checklists:

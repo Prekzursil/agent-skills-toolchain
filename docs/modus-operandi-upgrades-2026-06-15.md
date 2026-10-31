@@ -1,3 +1,9 @@
+---
+title: modus-operandi-upgrades-2026-06-15
+type: note
+permalink: dqverify-repo-20261013/docs/modus-operandi-upgrades-2026-06-15
+---
+
 # Modus-operandi upgrades — 2026-06-15
 
 Outcome of an ultracode research scan (5 dimensions × adversarial default-reject)

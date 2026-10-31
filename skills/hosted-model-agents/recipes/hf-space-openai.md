@@ -1,3 +1,9 @@
+---
+title: hf-space-openai
+type: note
+permalink: dqverify-repo-20261013/skills/hosted-model-agents/recipes/hf-space-openai
+---
+
 # Recipe: Hugging Face Space with OpenAI `/v1` (tool proposer)
 
 **Example only.** Checkpoint today: private Space `Prekzursil/qwen38-27b-heretic-chat` (Qwen3.8-27B Heretic-ARA, ZeroGPU). The same recipe applies to any chat model you mount the same way.

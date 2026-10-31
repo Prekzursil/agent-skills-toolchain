@@ -1,3 +1,9 @@
+---
+title: tool-file-search
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/references/tool-file-search
+---
+
 # File Search Tool
 
 Enables agents to search through uploaded files using semantic and keyword search from vector stores. Supports a wide range of file formats including PDF, Markdown, Word, and more.

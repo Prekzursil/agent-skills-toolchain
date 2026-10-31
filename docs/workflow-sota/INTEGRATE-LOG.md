@@ -1,3 +1,9 @@
+---
+title: INTEGRATE-LOG
+type: note
+permalink: dqverify-repo-20261013/docs/workflow-sota/integrate-log
+---
+
 # WFSOTA — INTEGRATE lane log
 
 Lane: WFSOTA INTEGRATE (final stage). Predecessor: build round 1 commit `1f05e805`

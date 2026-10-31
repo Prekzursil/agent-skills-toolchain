@@ -1,6 +1,8 @@
 ---
 name: writing-skills
-description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
+description: Use when creating new skills, editing existing skills, or verifying skills
+  work before deployment
+permalink: dqverify-repo-20261013/skills/writing-skills/skill
 ---
 
 # Writing Skills

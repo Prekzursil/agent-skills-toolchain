@@ -1,3 +1,9 @@
+---
+title: storage-redundancy-checks
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/storage-redundancy-checks
+---
+
 # Storage Redundancy Checks
 
 ## Overview

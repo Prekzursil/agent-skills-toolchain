@@ -1,3 +1,9 @@
+---
+title: tool-templates
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/auto-discover-apis/references/tool-templates
+---
+
 # Tool Creation Templates
 
 ## Python Tool Class Template

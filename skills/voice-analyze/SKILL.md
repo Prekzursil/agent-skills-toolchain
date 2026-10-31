@@ -1,6 +1,7 @@
 ---
 name: voice-analyze
-description: Reverse-engineer voice profiles from samples by analyzing writing patterns. Use when the user pastes samples. NOT from a description (use voice-create).
+description: Reverse-engineer voice profiles from samples by analyzing writing patterns.
+  Use when the user pastes samples. NOT from a description (use voice-create).
 license: MIT
 metadata:
   version: 1.0.0
@@ -8,6 +9,7 @@ metadata:
   - all
   source: https://github.com/angelarose210/ghostwriter
   upstream_author: angelarose210
+permalink: dqverify-repo-20261013/skills/voice-analyze/skill
 ---
 
 # voice-analyze

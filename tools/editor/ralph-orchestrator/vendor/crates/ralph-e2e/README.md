@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-e2e/readme
+---
+
 # ralph-e2e
 
 End-to-end test harness for the Ralph Orchestrator. Validates Ralph's behavior against real AI backends (Claude, Kiro, OpenCode) to ensure the orchestration loop works correctly.

@@ -1,3 +1,9 @@
+---
+title: RULERESEARCH-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/ruleresearch-grounding
+---
+
 # RULERESEARCH — grounding lane artifact
 
 STATUS: MEASURED. Lane = RULERESEARCH (grounding). No production code written; no rule edited.

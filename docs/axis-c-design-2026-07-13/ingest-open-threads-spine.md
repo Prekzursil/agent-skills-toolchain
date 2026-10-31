@@ -1,3 +1,9 @@
+---
+title: ingest-open-threads-spine
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/ingest-open-threads-spine
+---
+
 # INGEST — open-threads-spine → Axis-C (2026-07-13)
 
 **Task:** Extract ONLY the adjacent still-open items that plug into a cross-vendor

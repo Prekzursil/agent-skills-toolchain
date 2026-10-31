@@ -1,3 +1,9 @@
+---
+title: documentation-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/documentation-database
+---
+
 # General Documentation Database
 
 **Purpose**: Store all types of documentation in a searchable, organized database.
@@ -90,4 +96,3 @@ Use `Notion:notion-create-database`:
 4. **Review properties** quarterly - remove unused ones
 5. **Document the schema** in database description
 6. **Train team** on property usage and conventions
-

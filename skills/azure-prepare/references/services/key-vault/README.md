@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/key-vault/readme
+---
+
 # Azure Key Vault
 
 Centralized secrets, keys, and certificate management.

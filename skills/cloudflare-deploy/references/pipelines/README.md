@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/pipelines/readme
+---
+
 # Cloudflare Pipelines
 
 ETL streaming platform for ingesting, transforming, and loading data into R2 with SQL transformations.

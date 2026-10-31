@@ -1,3 +1,9 @@
+---
+title: deploy-azd
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/deploy-azd
+---
+
 # Deploy via `azd`
 
 Use this path when the workspace already has an `azure.yaml` whose service host is `appservice`.

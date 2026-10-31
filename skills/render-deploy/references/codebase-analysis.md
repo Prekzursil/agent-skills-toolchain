@@ -1,3 +1,9 @@
+---
+title: codebase-analysis
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/codebase-analysis
+---
+
 # Codebase Analysis (Deploy)
 
 Use this reference for framework-specific detection and build/start command selection when preparing a Render deployment.

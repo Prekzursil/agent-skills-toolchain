@@ -1,6 +1,10 @@
 ---
 name: run-agent-monitor
-description: Run and smoke-test the monitorcore agent tail + discovery - the read-only per-agent tailer and flat/workflow subagent discovery for Claude Code Task subagents. Use when asked to run, watch, or smoke-test the agent monitor / subagent dashboard, or tail a subagent transcript. NOT the launcher itself (use monitor-launcher).
+description: Run and smoke-test the monitorcore agent tail + discovery - the read-only
+  per-agent tailer and flat/workflow subagent discovery for Claude Code Task subagents.
+  Use when asked to run, watch, or smoke-test the agent monitor / subagent dashboard,
+  or tail a subagent transcript. NOT the launcher itself (use monitor-launcher).
+permalink: dqverify-repo-20261013/skills/run-agent-monitor/skill
 ---
 
 # Run: agent-monitor (monitorcore)

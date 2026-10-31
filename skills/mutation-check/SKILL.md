@@ -1,6 +1,11 @@
 ---
 name: mutation-check
-description: Use at the verify boundary to empirically test test-STRENGTH, not just coverage - given a changed Python source file and the command that runs its tests, it applies a small mutation set to the function(s) under test and asserts each mutation makes at least one test go RED. A mutation the suite leaves green ("survived") is a Goodhart-green gap. Use as a gate after coverage; Python-only.
+description: Use at the verify boundary to empirically test test-STRENGTH, not just
+  coverage - given a changed Python source file and the command that runs its tests,
+  it applies a small mutation set to the function(s) under test and asserts each mutation
+  makes at least one test go RED. A mutation the suite leaves green ("survived") is
+  a Goodhart-green gap. Use as a gate after coverage; Python-only.
+permalink: dqverify-repo-20261013/skills/mutation-check/skill
 ---
 
 # mutation-check — the execution-grounded test-strength gate

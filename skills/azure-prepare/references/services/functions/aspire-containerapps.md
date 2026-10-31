@@ -1,3 +1,9 @@
+---
+title: aspire-containerapps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/aspire-containerapps
+---
+
 # Azure Functions on Azure Container Apps (Aspire)
 
 When .NET Aspire deploys Azure Functions via `azd`, Functions run as containerized workloads on Azure Container Apps. **File-based secret storage is required** when using identity-based storage access.

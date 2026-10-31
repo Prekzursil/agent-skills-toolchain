@@ -1,3 +1,9 @@
+---
+title: ux-findings
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/ux-findings
+---
+
 # CLI UX Findings (Fresh-Eyes Pass)
 
 Date: 2026-02-15

@@ -1,3 +1,9 @@
+---
+title: D1-CLOSE-REGISTRY-GAP
+type: note
+permalink: dqverify-repo-20261013/command-center/d1-close-registry-gap
+---
+
 # D1 CLOSE - the registry gap that turned the fix into NOT-COMPUTABLE
 
 **Unit:** `close/d1-registry-gap` · **Verdict: D1 CLOSED** — 0 incorrect rows in the audit's own

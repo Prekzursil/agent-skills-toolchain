@@ -1,3 +1,9 @@
+---
+title: deploy-safety
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/deploy-safety
+---
+
 # Deploy Safety
 
 Hook-based safety rules for the deploy phase. Block destructive operations.

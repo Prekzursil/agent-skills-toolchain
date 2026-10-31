@@ -1,3 +1,9 @@
+---
+title: compare-iterate
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/references/compare-iterate
+---
+
 # Steps 8–10 — Re-Evaluate, Compare Versions, Iterate
 
 ## Step 8 — Re-Evaluate

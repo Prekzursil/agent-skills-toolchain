@@ -1,6 +1,10 @@
 ---
 name: exa-search
-description: "Deep research powered by Exa. Use for lead generation, literature reviews, deep dives, competitive analysis, or any query where one search falls short, including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
+description: Deep research powered by Exa. Use for lead generation, literature reviews,
+  deep dives, competitive analysis, or any query where one search falls short, including
+  phrases like 'research this', 'find everything about', 'find me all', or 'deep dive
+  on'.
+permalink: dqverify-repo-20261013/skills/exa-search/skill
 ---
 
 # Exa Research Orchestrator

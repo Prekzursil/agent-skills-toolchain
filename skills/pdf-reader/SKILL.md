@@ -1,6 +1,16 @@
 ---
 name: pdf-reader
-description: Read a PDF and ground every extracted claim in a real source span (cited_text plus a page or char location) rather than a model-invented citation. Two paths, use together, the native Anthropic Citations API (attach the PDF as a document content block with citations enabled, so cited claims carry cited_text plus page_location) and the pdf-reader MCP server (read_pdf, search_pdf, pdf_evidence) for literal page and region evidence. Use when a question over a PDF needs defensible, quotable answers, when summarizing or extracting facts from a report or paper or contract, or when a claim about a PDF must point at the exact page and text it came from. Do NOT use for bulk OCR of scans (use ocr-suite) or for academic metadata and access tagging (use scholarly-literature-review).
+description: Read a PDF and ground every extracted claim in a real source span (cited_text
+  plus a page or char location) rather than a model-invented citation. Two paths,
+  use together, the native Anthropic Citations API (attach the PDF as a document content
+  block with citations enabled, so cited claims carry cited_text plus page_location)
+  and the pdf-reader MCP server (read_pdf, search_pdf, pdf_evidence) for literal page
+  and region evidence. Use when a question over a PDF needs defensible, quotable answers,
+  when summarizing or extracting facts from a report or paper or contract, or when
+  a claim about a PDF must point at the exact page and text it came from. Do NOT use
+  for bulk OCR of scans (use ocr-suite) or for academic metadata and access tagging
+  (use scholarly-literature-review).
+permalink: dqverify-repo-20261013/skills/pdf-reader/skill
 ---
 
 # PDF Reader (citation-grounded)

@@ -1,3 +1,9 @@
+---
+title: EnterpriseMCP-README
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/enterprise-mcp-readme
+---
+
 # ![Microsoft MCP Server for Enterprise Logo](assets/MCPEnterprise_EntraGradient.svg) Microsoft MCP Server for Enterprise
 
 > ⚠️ If Visual Studio Code displays the error `Error getting token from server metadata: Error: Cannot force new registration for a non-dynamic authentication provider.`, change `"microsoft-authentication.implementation"` from `"msal"` to `"msal-no-broker"` in your Settings.

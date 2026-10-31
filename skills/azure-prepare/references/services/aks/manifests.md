@@ -1,3 +1,9 @@
+---
+title: manifests
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/aks/manifests
+---
+
 # AKS - Kubernetes Manifests
 
 ## Deployment

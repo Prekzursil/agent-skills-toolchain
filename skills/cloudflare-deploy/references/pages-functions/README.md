@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/pages-functions/readme
+---
+
 # Cloudflare Pages Functions
 
 Serverless functions on Cloudflare Pages using Workers runtime. Full-stack dev with file-based routing.

@@ -1,7 +1,12 @@
 ---
 name: reframe-scrollshot-markdown
-description: Reconstruct a vertically scrolled screen recording into an aligned long screenshot, evidence-preserving OCR, and Markdown through the Reframe app. Use for scroll-capture videos, recorded long screenshots, chat/page/table scrolling captures, or requests to verify a Reframe scrollshot evidence bundle. Do not use for ordinary 16:9-to-9:16 subject reframing.
+description: Reconstruct a vertically scrolled screen recording into an aligned long
+  screenshot, evidence-preserving OCR, and Markdown through the Reframe app. Use for
+  scroll-capture videos, recorded long screenshots, chat/page/table scrolling captures,
+  or requests to verify a Reframe scrollshot evidence bundle. Do not use for ordinary
+  16:9-to-9:16 subject reframing.
 license: MIT
+permalink: dqverify-repo-20261013/skills/reframe-scrollshot-markdown/skill
 ---
 
 # Reframe scrollshot to Markdown

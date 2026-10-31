@@ -1,3 +1,9 @@
+---
+title: AGENTIC-REPAIR-RELIABILITY
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/agentic-repair-reliability
+---
+
 # Agentic-Repair Reliability — the functional-acceptance layer (2026-07-07)
 
 <!-- Extends AGENTIC-PERFECTION-PLAN.md. Grounded in a 7-agent SOTA workflow + 3 exa-research-pro

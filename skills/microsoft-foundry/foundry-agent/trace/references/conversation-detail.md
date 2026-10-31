@@ -1,3 +1,9 @@
+---
+title: conversation-detail
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/trace/references/conversation-detail
+---
+
 # Conversation Detail — Reconstruct Full Span Tree
 
 Reconstruct the complete span tree for a single conversation to see exactly what happened: every LLM call, tool execution, and agent invocation with timing, tokens, and errors.

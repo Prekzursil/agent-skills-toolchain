@@ -1,3 +1,9 @@
+---
+title: self-review-procedure
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/self-review-procedure
+---
+
 # Self-Review Procedure — Step 9
 
 Adversarial self-review using a sub-agent to perform L1–L4 review of generated IaC.

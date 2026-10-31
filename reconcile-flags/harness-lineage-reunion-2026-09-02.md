@@ -1,3 +1,9 @@
+---
+title: harness-lineage-reunion-2026-09-02
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/harness-lineage-reunion-2026-09-02
+---
+
 # Harness lineage reunion, 2026-09-02
 
 Resolves the reconcile direction left open in `harness-lineage-2026-09-01.md`

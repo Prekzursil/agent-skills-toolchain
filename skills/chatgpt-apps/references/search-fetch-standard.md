@@ -1,3 +1,9 @@
+---
+title: search-fetch-standard
+type: note
+permalink: dqverify-repo-20261013/skills/chatgpt-apps/references/search-fetch-standard
+---
+
 # Search And Fetch Standard
 
 Load this reference when the app is connector-like, data-only, sync-oriented, or meant to work well with company knowledge or deep research.

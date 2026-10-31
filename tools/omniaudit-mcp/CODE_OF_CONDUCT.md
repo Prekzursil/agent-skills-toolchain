@@ -1,3 +1,9 @@
+---
+title: CODE_OF_CONDUCT
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/code-of-conduct
+---
+
 # Contributor Covenant Code of Conduct
 
 ## Our Pledge

@@ -1,3 +1,9 @@
+---
+title: WAVE2-FLOOR-AUDIT
+type: note
+permalink: dqverify-repo-20261013/command-center/wave2-floor-audit
+---
+
 # WAVE-2 FLOOR AUDIT — `verify/wave2-floors`
 
 **Method:** every number below was read off disk by

@@ -1,3 +1,9 @@
+---
+title: skill-manage
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/skills/skill-manage
+---
+
 # Skills (azd ai)
 
 How to create, manage, and version **skills** (reusable behavioral guidelines) in a Foundry project using `azd ai skill` CLI and SDK.

@@ -1,3 +1,9 @@
+---
+title: testing-performance-and-operations
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/testing-performance-and-operations
+---
+
 # Testing, Performance, And Operations
 
 Primary docs:

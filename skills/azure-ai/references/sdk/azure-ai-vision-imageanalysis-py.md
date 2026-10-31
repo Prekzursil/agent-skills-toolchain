@@ -1,3 +1,9 @@
+---
+title: azure-ai-vision-imageanalysis-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-vision-imageanalysis-py
+---
+
 # Azure AI Vision Image Analysis — Python SDK Quick Reference
 
 > Condensed from **azure-ai-vision-imageanalysis-py**. Full patterns (dense captions, smart crops, people detection)

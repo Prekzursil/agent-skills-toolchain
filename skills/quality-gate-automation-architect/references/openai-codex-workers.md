@@ -1,3 +1,9 @@
+---
+title: openai-codex-workers
+type: note
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/references/openai-codex-workers
+---
+
 # OpenAI Codex Workers
 
 Use this reference when Codex is a candidate worker in CI, the Codex app, or local tooling.

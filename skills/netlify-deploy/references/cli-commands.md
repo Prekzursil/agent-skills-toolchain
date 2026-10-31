@@ -1,3 +1,9 @@
+---
+title: cli-commands
+type: note
+permalink: dqverify-repo-20261013/skills/netlify-deploy/references/cli-commands
+---
+
 # Netlify CLI Commands Reference
 
 Quick reference for common Netlify CLI commands used in deployments.

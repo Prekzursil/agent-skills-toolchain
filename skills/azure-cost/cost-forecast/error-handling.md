@@ -1,3 +1,9 @@
+---
+title: error-handling
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-forecast/error-handling
+---
+
 # Forecast API Error Handling
 
 ## HTTP Status Codes

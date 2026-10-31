@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hacktricks-mcp-server/readme
+---
+
 # Hardened HackTricks MCP server (derivative)
 
 Standalone, lockfile-owning, hardened Node/TypeScript derivative of the community

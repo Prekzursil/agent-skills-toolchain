@@ -1,7 +1,9 @@
 ---
 name: e2e-testing
-description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.
+description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD
+  integration, artifact management, and flaky test strategies.
 origin: ECC
+permalink: dqverify-repo-20261013/ci/skills-allowlist/e2e-testing/skill
 ---
 
 # E2E Testing Patterns

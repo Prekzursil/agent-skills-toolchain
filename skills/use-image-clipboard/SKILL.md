@@ -1,6 +1,10 @@
 ---
 name: use-image-clipboard
-description: Use when needing to read an image from the Windows clipboard and save it to a temporary PNG file on disk, returning its path for downstream use in scripts or pipelines. Required workaround for Antigravity CLI, which does not support direct image paste (Alt+V) the way Claude Code and Codex CLI do.
+description: Use when needing to read an image from the Windows clipboard and save
+  it to a temporary PNG file on disk, returning its path for downstream use in scripts
+  or pipelines. Required workaround for Antigravity CLI, which does not support direct
+  image paste (Alt+V) the way Claude Code and Codex CLI do.
+permalink: dqverify-repo-20261013/skills/use-image-clipboard/skill
 ---
 
 # Use Image from Clipboard

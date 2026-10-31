@@ -1,3 +1,9 @@
+---
+title: slop-tools
+type: note
+permalink: dqverify-repo-20261013/skills/slop-check/references/slop-tools
+---
+
 # Slop or Not tool surface (CLI + MCP)
 
 `SKILL.md` reads this file to look up exact tool names, parameters, flags,

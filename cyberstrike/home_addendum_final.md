@@ -1,3 +1,8 @@
+---
+title: home_addendum_final
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/home-addendum-final
+---
 
 ### CyberStrike estate addendum — attested credentials, secret pursuit, research surfaces (2026-09-20; owner-approved grill round-2, A-2=b with edge-4 merge)
 

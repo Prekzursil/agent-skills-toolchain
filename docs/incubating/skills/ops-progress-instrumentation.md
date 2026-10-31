@@ -1,3 +1,9 @@
+---
+title: ops-progress-instrumentation
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/ops-progress-instrumentation
+---
+
 # ops-progress-instrumentation
 
 ## Purpose

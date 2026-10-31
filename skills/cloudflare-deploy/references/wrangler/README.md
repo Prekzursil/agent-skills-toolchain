@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/wrangler/readme
+---
+
 # Cloudflare Wrangler
 
 Official CLI for Cloudflare Workers - develop, manage, and deploy Workers from the command line.

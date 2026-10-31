@@ -1,3 +1,9 @@
+---
+title: selection
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/selection
+---
+
 # Template Selection Guide
 
 Map user intent to MCP template `resource` filter.

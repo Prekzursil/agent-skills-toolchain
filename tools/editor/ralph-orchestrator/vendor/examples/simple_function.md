@@ -1,3 +1,9 @@
+---
+title: simple_function
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/examples/simple-function
+---
+
 # Simple Function Example
 
 Write a Python function that:

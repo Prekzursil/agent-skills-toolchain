@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/scripts/agentic-perfection/readme
+---
+
 # scripts/agentic-perfection/
 
 Canonical copies of the host-side scripts in the *agentic-perfection* program's

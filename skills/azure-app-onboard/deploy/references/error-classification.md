@@ -1,3 +1,9 @@
+---
+title: error-classification
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/error-classification
+---
+
 # Error Classification
 
 Three error categories for deploy-time failures.

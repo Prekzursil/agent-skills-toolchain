@@ -1,3 +1,9 @@
+---
+title: 02-stream-handler-architecture
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/research/02-stream-handler-architecture
+---
+
 # Research: Ralph's Stream Handler Architecture
 
 ## Summary

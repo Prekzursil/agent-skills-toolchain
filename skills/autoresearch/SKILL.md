@@ -1,7 +1,13 @@
 ---
 name: autoresearch
-description: Use when the user wants to push a measurable metric PAST its baseline through many small autonomous variants - raise coverage, a pass rate, or a benchmark score, tune a config, or iterate until a number hits a target. Each variant is committed BEFORE measuring and auto-reverted if any tracked axis regresses, so the tree only keeps wins. Skip for a one-shot bug with a known fix.
-license: Skill MIT (this file). Optimization-loop concept adapted from ResearcherSkill by Krzysztof Dudek (MIT) — github.com/krzysztofdudek/ResearcherSkill. No upstream code is vendored; only the keep/discard-with-git-revert pattern is reused.
+description: Use when the user wants to push a measurable metric PAST its baseline
+  through many small autonomous variants - raise coverage, a pass rate, or a benchmark
+  score, tune a config, or iterate until a number hits a target. Each variant is committed
+  BEFORE measuring and auto-reverted if any tracked axis regresses, so the tree only
+  keeps wins. Skip for a one-shot bug with a known fix.
+license: Skill MIT (this file). Optimization-loop concept adapted from ResearcherSkill
+  by Krzysztof Dudek (MIT) — github.com/krzysztofdudek/ResearcherSkill. No upstream
+  code is vendored; only the keep/discard-with-git-revert pattern is reused.
 allowed-tools:
 - Read
 - Bash
@@ -12,6 +18,7 @@ metadata:
   compatibility: claude-code codex cursor gemini-cli opencode
   source: https://github.com/krzysztofdudek/ResearcherSkill
   upstream_author: Krzysztof Dudek
+permalink: dqverify-repo-20261013/skills/autoresearch/skill
 ---
 
 # Autoresearch — metric-maximizing optimization loop

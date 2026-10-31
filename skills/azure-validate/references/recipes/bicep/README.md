@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/bicep/readme
+---
+
 # Bicep Validation
 
 Validation steps for standalone Bicep deployments.

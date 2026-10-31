@@ -1,7 +1,9 @@
 ---
 name: python-testing
-description: pytest strategies -- fixtures, mocking, parametrization, coverage. NOT the TDD process (use test-driven-development).
+description: pytest strategies -- fixtures, mocking, parametrization, coverage. NOT
+  the TDD process (use test-driven-development).
 origin: ECC
+permalink: dqverify-repo-20261013/skills/python-testing/skill
 ---
 
 # Python Testing Patterns

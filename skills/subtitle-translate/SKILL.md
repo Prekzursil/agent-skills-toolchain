@@ -1,6 +1,10 @@
 ---
 name: subtitle-translate
-description: "Use when translating subtitles/captions to another language and/or generating + exporting SRT/VTT/ASS for a media-studio video — including bilingual (stacked) subs and the audio-dub (TTS) path. Covers the tiered local→hosted MT engine (TranslateGemma GGUF via llama.cpp, language-aware routing +."
+description: Use when translating subtitles/captions to another language and/or generating
+  + exporting SRT/VTT/ASS for a media-studio video — including bilingual (stacked)
+  subs and the audio-dub (TTS) path. Covers the tiered local→hosted MT engine (TranslateGemma
+  GGUF via llama.cpp, language-aware routing +.
+permalink: dqverify-repo-20261013/skills/subtitle-translate/skill
 ---
 
 # Subtitle translate / generate / export (+ dub)

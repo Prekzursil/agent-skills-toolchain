@@ -1,3 +1,9 @@
+---
+title: policies
+type: note
+permalink: dqverify-repo-20261013/skills/azure-aigateway/references/policies
+---
+
 # AI Gateway Policies
 
 Complete reference for Azure API Management AI governance policies.

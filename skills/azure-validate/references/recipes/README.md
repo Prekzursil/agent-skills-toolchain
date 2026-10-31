@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/readme
+---
+
 # Recipes
 
 Validation recipes for different infrastructure approaches.

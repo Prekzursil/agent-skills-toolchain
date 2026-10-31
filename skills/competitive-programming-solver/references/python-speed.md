@@ -1,3 +1,9 @@
+---
+title: python-speed
+type: note
+permalink: dqverify-repo-20261013/skills/competitive-programming-solver/references/python-speed
+---
+
 # Python Speed Techniques
 
 Acest document e o colectie de trucuri pentru a face Python sa ruleze mai repede in competitive programming, **fara** sa apeleze la C extern.

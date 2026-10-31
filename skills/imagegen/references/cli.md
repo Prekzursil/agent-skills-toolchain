@@ -1,3 +1,9 @@
+---
+title: cli
+type: note
+permalink: dqverify-repo-20261013/skills/imagegen/references/cli
+---
+
 # CLI reference (`scripts/image_gen.py`)
 
 This file contains the “command catalog” for the bundled image generation CLI. Keep `SKILL.md` as overview-first; put verbose CLI details here.

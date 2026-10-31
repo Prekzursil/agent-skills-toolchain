@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.lock"
-  - "**/composer.json"
+- '**/*.php'
+- '**/composer.lock'
+- '**/composer.json'
+permalink: dqverify-repo-20261013/rules/php/security
 ---
+
 # PHP Security
 
 > This file extends [common/security.md](../common/security.md) with PHP specific content.

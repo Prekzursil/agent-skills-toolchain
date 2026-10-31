@@ -1,3 +1,9 @@
+---
+title: pr-shepherd-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/pr-shepherd-agent
+---
+
 # PR Shepherd Agent
 
 **Type**: `pr-shepherd-agent`

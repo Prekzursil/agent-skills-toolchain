@@ -1,3 +1,9 @@
+---
+title: CONSULTATION_WORKFLOW
+type: note
+permalink: dqverify-repo-20261013/release/platforms/windows/consultation-workflow
+---
+
 <!-- promptbridge-managed -->
 # PromptBridge Desktop Codex Workflow
 

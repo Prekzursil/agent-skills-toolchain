@@ -1,3 +1,9 @@
+---
+title: tool-fabric-iq
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools/prompt-agent/tool-fabric-iq
+---
+
 # Tool — Fabric IQ (preview)
 
 Connect an agent to Microsoft Fabric data — Ontology, Fabric data agents, and Power BI semantic models — through **Fabric IQ**. The agent delegates natural-language questions; Fabric IQ runs them against the enterprise ontology (NL2Ontology) and returns synthesized answers under the signed-in user's Fabric permissions.

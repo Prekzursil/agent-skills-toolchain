@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.t'
+- '**/*.psgi'
+- '**/*.cgi'
+permalink: dqverify-repo-20261013/rules/perl/patterns
 ---
+
 # Perl Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Perl-specific content.

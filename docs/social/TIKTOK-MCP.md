@@ -1,3 +1,9 @@
+---
+title: TIKTOK-MCP
+type: note
+permalink: dqverify-repo-20261013/docs/social/tiktok-mcp
+---
+
 # TikTok MCP — Research & Build Decision
 
 **Status:** ✅ **BUILT, TESTED & REGISTERED** (2026-06-06) — see the "BUILT" section below.

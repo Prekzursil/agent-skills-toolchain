@@ -1,3 +1,9 @@
+---
+title: code-deployment-swa
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/code-deployment-swa
+---
+
 # Code Deployment — Static Web Apps
 
 ## Static Web Apps — Content Deployment (Step 6c)

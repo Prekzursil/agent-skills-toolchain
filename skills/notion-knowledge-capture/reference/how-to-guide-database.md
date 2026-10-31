@@ -1,3 +1,9 @@
+---
+title: how-to-guide-database
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/reference/how-to-guide-database
+---
+
 # How-To Guide Database
 
 **Purpose**: Procedural documentation for common tasks.
@@ -35,4 +41,3 @@ Create how-to guides with properties:
 3. **Include time estimates**: Help users plan their time
 4. **Link prerequisites**: Make dependencies clear
 5. **Update regularly**: Re-test procedures when tools/systems change
-

@@ -1,3 +1,9 @@
+---
+title: azure-identity-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azure-identity-py
+---
+
 # Authentication — Python SDK Quick Reference
 
 > Condensed from **azure-identity-py**. Full patterns (async,

@@ -1,3 +1,8 @@
+---
+title: inventory-1
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/inventory-1
+---
 
 # MCP Config Divergence Map — READ-ONLY audit (2026-07-13)
 
@@ -116,4 +121,3 @@ Also note per-project `disabledMcpServers` curation under `D:/Research/projects/
 **Delete:** `D:/Research/.mcp.json` (stale mirror).
 
 Confidence on the divergence counts and membership: **high (~95%)** — read directly from the four config files this session. Confidence on the "keep vs prune" split of the 13 legit drift-ins: **medium** — these need an owner decision (EVPI-gated), not a silent bet.
-

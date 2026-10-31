@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/agents
+---
+
 # Repository Guidelines
 
 ## Project Structure & Module Organization

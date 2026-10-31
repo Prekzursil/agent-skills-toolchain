@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/readme
+---
+
 # Agentic Humanizer for Claude, Codex, Hermes Agent, and OpenClaw
 
 Agentic Humanizer rewrites AI-generated text with a full 5-pass workflow,

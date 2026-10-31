@@ -1,3 +1,9 @@
+---
+title: plan
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/plan
+---
+
 # Agent Waves: Implementation Plan
 
 ## Checklist

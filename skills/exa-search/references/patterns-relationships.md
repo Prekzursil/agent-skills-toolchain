@@ -1,3 +1,9 @@
+---
+title: patterns-relationships
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-relationships
+---
+
 # Query Patterns: Hidden Relationships
 
 Finding connections that aren't explicitly listed anywhere. Direct queries ("X clients") return articles about them, not actual connections. Use indirect signals instead.

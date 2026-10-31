@@ -1,3 +1,9 @@
+---
+title: owner-ops-authorization
+type: note
+permalink: dqverify-repo-20261013/guides/owner-ops-authorization
+---
+
 # Owner-ops — general maximum cooperation
 
 ## Problem

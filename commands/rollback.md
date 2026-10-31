@@ -1,3 +1,9 @@
+---
+title: rollback
+type: note
+permalink: dqverify-repo-20261013/commands/rollback
+---
+
 # Rollback
 
 Restore files from an **edit-checkpoint** taken automatically before edits this

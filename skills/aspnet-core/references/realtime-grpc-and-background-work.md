@@ -1,3 +1,9 @@
+---
+title: realtime-grpc-and-background-work
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/realtime-grpc-and-background-work
+---
+
 # Realtime, gRPC, And Background Work
 
 Primary docs:

@@ -1,7 +1,13 @@
 ---
 name: packaged-artifact-smoke
-description: Use when you need to prove a BUILT deliverable actually works end-to-end, not just that its source tree is CI-green. Runs 3-5 golden journeys against the PACKAGED artifact (the built Electron binary via `_electron.launch`, or `pip install dist/*.whl` in a fresh venv then invoke the installed CLI), each ending in a DETERMINISTIC on-disk postcondition probe (ffprobe, or file existence + size).
+description: Use when you need to prove a BUILT deliverable actually works end-to-end,
+  not just that its source tree is CI-green. Runs 3-5 golden journeys against the
+  PACKAGED artifact (the built Electron binary via `_electron.launch`, or `pip install
+  dist/*.whl` in a fresh venv then invoke the installed CLI), each ending in a DETERMINISTIC
+  on-disk postcondition probe (ffprobe, or file existence + size).
+permalink: dqverify-repo-20261013/skills/packaged-artifact-smoke/skill
 ---
+
 # Packaged-Artifact / Effect-Assertion Smoke Runner
 
 Prove the **built deliverable** does its job — by driving it and then asserting a

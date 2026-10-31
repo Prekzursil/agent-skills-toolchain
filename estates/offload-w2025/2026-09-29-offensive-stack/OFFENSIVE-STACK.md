@@ -1,3 +1,9 @@
+---
+title: OFFENSIVE-STACK
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/offensive-stack
+---
+
 # OFFENSIVE-STACK — Estate AI Security Tooling (installed 2026-09-29)
 
 State-of-the-art layered stack per the 2026 landscape analysis: one gateway, one

@@ -3,10 +3,11 @@ title: Sample and Source Map
 priority: MEDIUM
 tags: sources, mapping, lookup, gallery, docs, toolkit
 sources:
-  - https://learn.microsoft.com/windows/apps/get-started/samples
-  - https://github.com/microsoft/WinUI-Gallery
-  - https://github.com/microsoft/WindowsAppSDK-Samples
-  - https://github.com/CommunityToolkit/Windows
+- https://learn.microsoft.com/windows/apps/get-started/samples
+- https://github.com/microsoft/WinUI-Gallery
+- https://github.com/microsoft/WindowsAppSDK-Samples
+- https://github.com/CommunityToolkit/Windows
+permalink: dqverify-repo-20261013/skills/winui-app/references/sample-source-map
 ---
 
 ## What This Reference Is For

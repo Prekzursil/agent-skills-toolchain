@@ -1,5 +1,6 @@
 ---
 description: Load relevant knowledge base facts into context before starting work
+permalink: dqverify-repo-20261013/agent-self/config/commands/prime
 ---
 
 # BEADS Prime

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/knowledge/readme
+---
+
 # BEADS Knowledge Base
 
 This directory contains curated learnings from the agent swarm. Knowledge is extracted from:

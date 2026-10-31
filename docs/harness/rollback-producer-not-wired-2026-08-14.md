@@ -1,3 +1,9 @@
+---
+title: rollback-producer-not-wired-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/docs/harness/rollback-producer-not-wired-2026-08-14
+---
+
 # `/rollback` cannot work on this box — its producer is deployed but not wired
 
 `commands/rollback.md` promises to list edit-checkpoints for the session. On this machine it

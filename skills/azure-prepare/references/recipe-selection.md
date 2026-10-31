@@ -1,3 +1,9 @@
+---
+title: recipe-selection
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipe-selection
+---
+
 # Recipe Selection
 
 Choose the deployment recipe based on project needs and existing tooling.

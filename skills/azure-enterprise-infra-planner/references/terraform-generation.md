@@ -1,3 +1,9 @@
+---
+title: terraform-generation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/terraform-generation
+---
+
 # Terraform Generation
 
 Generate Terraform IaC files from the approved infrastructure plan.

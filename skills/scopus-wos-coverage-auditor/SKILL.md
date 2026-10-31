@@ -1,6 +1,8 @@
 ---
 name: scopus-wos-coverage-auditor
-description: Use when comparing Scopus, Web of Science, Dimensions, or related indexing outputs and the user needs a disciplined explanation of differences.
+description: Use when comparing Scopus, Web of Science, Dimensions, or related indexing
+  outputs and the user needs a disciplined explanation of differences.
+permalink: dqverify-repo-20261013/skills/scopus-wos-coverage-auditor/skill
 ---
 
 # scopus-wos-coverage-auditor

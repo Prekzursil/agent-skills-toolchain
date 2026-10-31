@@ -1,3 +1,9 @@
+---
+title: evidence-refresh
+type: note
+permalink: dqverify-repo-20261013/skills/quality-gate-automation-architect/references/evidence-refresh
+---
+
 # Evidence Refresh
 
 Use this reference when the user wants the skill or its references to learn from recurring sessions, repos, and conversations over time.

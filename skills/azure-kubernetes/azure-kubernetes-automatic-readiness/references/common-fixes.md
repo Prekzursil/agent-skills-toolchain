@@ -1,3 +1,9 @@
+---
+title: common-fixes
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-automatic-readiness/references/common-fixes
+---
+
 # Common Fix Patterns for AKS Automatic Compatibility
 
 Loaded on demand when generating YAML fixes during assessment.

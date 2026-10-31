@@ -1,3 +1,9 @@
+---
+title: orchestrator-clone-probe
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/orchestrator-clone-probe
+---
+
 # Clone existence + write-activity probe — orchestrator hand-off to the SSOT lane
 
 Measured 2026-08-12 by the orchestrator. This is ONE narrow data point, not the lane's job.

@@ -1,3 +1,9 @@
+---
+title: session-forensics
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/session-forensics
+---
+
 # session-forensics
 
 ## Purpose

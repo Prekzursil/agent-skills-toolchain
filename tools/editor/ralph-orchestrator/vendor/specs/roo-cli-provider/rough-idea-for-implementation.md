@@ -1,3 +1,9 @@
+---
+title: rough-idea-for-implementation
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/rough-idea-for-implementation
+---
+
 # Rough Idea: Add roo-cli as a Provider to Ralph Orchestrator
 
 ## What

@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
+- '**/*.kt'
+- '**/*.kts'
+permalink: dqverify-repo-20261013/rules/kotlin/testing
 ---
+
 # Kotlin Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Kotlin and Android/KMP-specific content.

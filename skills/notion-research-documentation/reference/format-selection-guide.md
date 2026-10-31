@@ -1,3 +1,9 @@
+---
+title: format-selection-guide
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/format-selection-guide
+---
+
 # Format Selection Guide
 
 Choose the right output format for your research needs.
@@ -92,4 +98,3 @@ Example code or configuration here
 - Note if information is outdated (check last-edited dates)
 - Credit specific sections when quoting
 - Group related sources together
-

@@ -1,3 +1,9 @@
+---
+title: dataset-formats
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/dataset-formats
+---
+
 # Dataset Formats
 
 ## SFT Format (Supervised Fine-Tuning)

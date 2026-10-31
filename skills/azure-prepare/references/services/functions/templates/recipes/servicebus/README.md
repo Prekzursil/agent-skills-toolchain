@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/servicebus/readme
+---
+
 # Service Bus Recipe
 
 Service Bus queue/topic trigger with managed identity authentication.

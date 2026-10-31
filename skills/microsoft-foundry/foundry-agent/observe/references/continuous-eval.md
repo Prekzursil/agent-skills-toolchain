@@ -1,3 +1,9 @@
+---
+title: continuous-eval
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/references/continuous-eval
+---
+
 # Continuous Evaluation
 
 Enable, configure, disable, or remove continuous evaluation for a Foundry agent. Continuous evaluation automatically assesses agent responses on an ongoing basis using configured evaluators (e.g., groundedness, coherence, violence detection). This is typically the final step in the [observe loop](../observe.md) after deploying and batch-evaluating an agent — it keeps production quality visible without manual intervention.

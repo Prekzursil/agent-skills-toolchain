@@ -1,3 +1,9 @@
+---
+title: metrics
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/api/metrics
+---
+
 # Metrics API Reference
 
 ## Overview

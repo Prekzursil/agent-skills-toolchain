@@ -1,3 +1,9 @@
+---
+title: search-traces
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/trace/references/search-traces
+---
+
 # Search Traces — Conversation-Level Search
 
 Search agent traces at the conversation level. Returns summaries grouped by conversation or operation, not individual spans.

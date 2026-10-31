@@ -1,3 +1,9 @@
+---
+title: CHECKLIST
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/optimize-descriptions/checklist
+---
+
 # Tool Description Quick Reference Checklist
 
 Use this checklist when reviewing or creating tool descriptions.

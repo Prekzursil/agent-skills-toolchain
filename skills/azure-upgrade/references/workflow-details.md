@@ -1,3 +1,9 @@
+---
+title: workflow-details
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/workflow-details
+---
+
 # Workflow Details
 
 ## Upgrade Workflow Phases

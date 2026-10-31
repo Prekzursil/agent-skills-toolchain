@@ -1,3 +1,9 @@
+---
+title: cross-host-path-performance-benchmark
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/cross-host-path-performance-benchmark
+---
+
 # cross-host-path-performance-benchmark
 
 ## Purpose

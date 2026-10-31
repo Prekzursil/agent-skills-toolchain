@@ -1,8 +1,10 @@
 ---
 title: Prevent Race Conditions
 impact: MEDIUM
-impactDescription: Time-of-check Time-of-use (TOCTOU) vulnerabilities, insecure temporary files, data corruption
+impactDescription: Time-of-check Time-of-use (TOCTOU) vulnerabilities, insecure temporary
+  files, data corruption
 tags: security, race-condition, toctou, cwe-367, cwe-377, tempfile
+permalink: dqverify-repo-20261013/skills/code-security/rules/race-condition
 ---
 
 ## Prevent Race Conditions

@@ -1,8 +1,11 @@
 ---
-name: "imagegen"
-description: Use when asked to generate or edit images via the OpenAI Image API (generate, edit/inpaint/mask, background removal/replacement, transparent background, product shots, concept art, covers, batch variants); run `scripts/image_gen.py`, needs `OPENAI_API_KEY`. NOT for video (use sora) or Grok Imagine (use accurate-grok-imagine).
+name: imagegen
+description: Use when asked to generate or edit images via the OpenAI Image API (generate,
+  edit/inpaint/mask, background removal/replacement, transparent background, product
+  shots, concept art, covers, batch variants); run `scripts/image_gen.py`, needs `OPENAI_API_KEY`.
+  NOT for video (use sora) or Grok Imagine (use accurate-grok-imagine).
+permalink: dqverify-repo-20261013/skills/imagegen/skill
 ---
-
 
 # Image Generation Skill
 

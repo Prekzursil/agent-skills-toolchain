@@ -1,3 +1,9 @@
+---
+title: invoke
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/invoke/invoke
+---
+
 # Invoke Foundry Agent
 
 Invoke Prompt Agents with Foundry MCP. Invoke Hosted Agents and manage their sessions, files, and logs with azd.

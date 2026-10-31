@@ -1,3 +1,9 @@
+---
+title: group-sync
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/group-sync
+---
+
 # Azure PostgreSQL Group Sync Configuration
 
 This guide explains how group-based access control works with Microsoft Entra ID authentication in Azure Database for PostgreSQL.

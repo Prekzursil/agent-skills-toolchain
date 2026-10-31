@@ -1,3 +1,9 @@
+---
+title: designer-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/designer-agent
+---
+
 # Designer Agent
 
 **Type**: `designer-agent`

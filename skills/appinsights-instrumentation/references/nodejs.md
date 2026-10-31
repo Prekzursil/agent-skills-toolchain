@@ -1,3 +1,9 @@
+---
+title: nodejs
+type: note
+permalink: dqverify-repo-20261013/skills/appinsights-instrumentation/references/nodejs
+---
+
 ## Modify code
 
 Make these necessary changes to the app.

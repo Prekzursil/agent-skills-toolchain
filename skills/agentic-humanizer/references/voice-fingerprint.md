@@ -1,3 +1,9 @@
+---
+title: voice-fingerprint
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/references/voice-fingerprint
+---
+
 # Voice Fingerprint Reference
 
 `SKILL.md` reads this file from Step 4 when voice matching is enabled.

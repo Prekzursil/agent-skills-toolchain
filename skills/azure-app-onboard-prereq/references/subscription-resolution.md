@@ -1,3 +1,9 @@
+---
+title: subscription-resolution
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/subscription-resolution
+---
+
 # Subscription Resolution — Defensive Fallback
 
 The `azure-app-onboard` orchestrator resolves the subscription at Step 1 (login hard gate) and writes `subscriptionId`, `subscriptionName`, `tenantId` to `context.json.azure` before any sub-skill runs. In normal operation, `context.json.azure.subscriptionId` is always set by the time prepare runs.

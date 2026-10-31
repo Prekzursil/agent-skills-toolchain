@@ -1,3 +1,9 @@
+---
+title: assumption-validation
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/research/assumption-validation
+---
+
 # Research: Assumption Validation Tests
 
 All assumptions tested with live roo CLI invocations.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/release/platforms/windows/readme
+---
+
 # Windows Platform MCP Config Snapshots
 
 Snapshot date: 2026-04-04

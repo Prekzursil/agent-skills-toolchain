@@ -1,3 +1,9 @@
+---
+title: P10-REREVIEW-AND-C11-REFUTATION
+type: note
+permalink: dqverify-repo-20261013/command-center/p10-rereview-and-c11-refutation
+---
+
 # P10 — Condition-11 refutation attempt + re-review of the five applied fixes
 
 **Reviewer of record** · `independent: true` · **`fresh_context: false`** — same agent as this

@@ -1,3 +1,9 @@
+---
+title: azure-identity-java
+type: note
+permalink: dqverify-repo-20261013/skills/entra-app-registration/references/sdk/azure-identity-java
+---
+
 # Authentication — Java SDK Quick Reference
 
 > Condensed from **azure-identity-java**. Full patterns (workload identity,

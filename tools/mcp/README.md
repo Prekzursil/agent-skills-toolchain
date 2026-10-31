@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/readme
+---
+
 # MCP Tools
 
 `tools/mcp/` is the live home for MCP-native tools and adapters.

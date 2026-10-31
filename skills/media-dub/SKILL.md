@@ -1,7 +1,13 @@
 ---
 name: media-dub
-description: Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it same-language) while KEEPING the original speaker's voice, fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI, MIT, 23-lang zero-shot clone); rides media_studio (ASR, CTC word-alignment, ffmpeg atempo duration-fit, ducking, mux). NOT for pure TTS (use speech).
+description: Use when producing a local DUB of a video - re-voicing speech into another
+  language (or restyling it same-language) while KEEPING the original speaker's voice,
+  fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI, MIT, 23-lang
+  zero-shot clone); rides media_studio (ASR, CTC word-alignment, ffmpeg atempo duration-fit,
+  ducking, mux). NOT for pure TTS (use speech).
+permalink: dqverify-repo-20261013/skills/media-dub/skill
 ---
+
 # media-dub — local voice-clone dubbing (Chatterbox safe ship)
 
 Distilled from the REAL implementation. Cite these when in doubt:

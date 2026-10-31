@@ -1,3 +1,9 @@
+---
+title: networking-connectivity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/networking-connectivity
+---
+
 # Networking (Connectivity) Pairing Constraints
 
 ### Azure Bastion

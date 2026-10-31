@@ -1,3 +1,9 @@
+---
+title: EXAMPLES
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/fix-tool/examples
+---
+
 # ToolUniverse Tool Fix Examples
 
 Real-world examples of fixing ToolUniverse tools, including the complete ChEMBL image endpoint fix.

@@ -3,6 +3,7 @@ title: Secure Docker Configurations
 impact: HIGH
 impactDescription: Container escapes and privilege escalation
 tags: security, docker, containers, infrastructure, cwe-250
+permalink: dqverify-repo-20261013/skills/code-security/rules/docker
 ---
 
 ## Secure Docker Configurations

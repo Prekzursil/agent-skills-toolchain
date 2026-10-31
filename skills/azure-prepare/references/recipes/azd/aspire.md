@@ -1,3 +1,9 @@
+---
+title: aspire
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azd/aspire
+---
+
 # .NET Aspire Projects with AZD
 
 **⛔ MANDATORY: For .NET Aspire projects, NEVER manually create azure.yaml. Use `azd init --from-code` instead.**

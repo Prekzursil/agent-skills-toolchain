@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+- '**/*.swift'
+- '**/Package.swift'
+permalink: dqverify-repo-20261013/rules/swift/testing
 ---
+
 # Swift Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Swift specific content.

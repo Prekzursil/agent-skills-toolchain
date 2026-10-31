@@ -1,3 +1,9 @@
+---
+title: taskwatch_monitor
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/taskwatch-monitor
+---
+
 Launch taskwatch_monitor — a general-purpose long-task progress monitor (the FEP dashboard, generalized).
 
 Usage: /taskwatch_monitor [--inline] [--registry PATH]

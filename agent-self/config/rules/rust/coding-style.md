@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.rs"
+- '**/*.rs'
+permalink: dqverify-repo-20261013/agent-self/config/rules/rust/coding-style
 ---
+
 # Rust Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Rust-specific content.

@@ -1,3 +1,9 @@
+---
+title: bicep-patterns-security
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/bicep-patterns-security
+---
+
 # Bicep Patterns — Security Defaults
 
 Mandatory security configuration for all AppOnboard-generated Bicep. Read during IaC generation before writing resource definitions. Apply during scaffold — never defer to deploy.

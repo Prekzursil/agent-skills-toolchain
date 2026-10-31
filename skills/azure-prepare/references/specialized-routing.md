@@ -1,3 +1,9 @@
+---
+title: specialized-routing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/specialized-routing
+---
+
 # Specialized Technology Routing
 
 **MANDATORY**: Before starting any planning, check the user's prompt for specialized technology keywords. If matched, invoke the corresponding skill FIRST — it has tested templates and optimized workflows for that technology.

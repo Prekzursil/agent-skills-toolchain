@@ -1,3 +1,9 @@
+---
+title: create-prompt
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/create-prompt
+---
+
 # Create Prompt Agent
 
 Create and manage prompt agents in Azure Foundry Agent Service using MCP tools or Python SDK. For hosted agents (container-based), see [create.md](create.md).

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/plugin-cache-reaper/readme
+---
+
 # plugin-cache-reaper — sweep abandoned plugin-install staging clones
 
 **This is a MITIGATION, not a fix.** The writer is Claude Code itself, and it ships as a

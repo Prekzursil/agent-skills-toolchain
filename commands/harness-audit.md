@@ -1,3 +1,9 @@
+---
+title: harness-audit
+type: note
+permalink: dqverify-repo-20261013/commands/harness-audit
+---
+
 # Harness Audit Command
 
 Run a deterministic repository harness audit and return a prioritized scorecard.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/cache-reserve/readme
+---
+
 # Cloudflare Cache Reserve
 
 **Persistent cache storage built on R2 for long-term content retention**

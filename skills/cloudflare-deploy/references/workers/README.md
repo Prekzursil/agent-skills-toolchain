@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers/readme
+---
+
 # Cloudflare Workers
 
 Expert guidance for building, deploying, and optimizing Cloudflare Workers applications.

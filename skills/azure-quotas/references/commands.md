@@ -1,3 +1,9 @@
+---
+title: commands
+type: note
+permalink: dqverify-repo-20261013/skills/azure-quotas/references/commands
+---
+
 # Azure Quota CLI Commands Reference
 
 Comprehensive reference for Azure CLI quota commands.

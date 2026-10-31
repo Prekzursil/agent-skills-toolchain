@@ -1,3 +1,9 @@
+---
+title: azd-setup
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/references/azd-setup
+---
+
 # azd Setup
 
 Use this before running Agent Optimizer operations. This skill targets agent code repos that use azd and hosted agents.

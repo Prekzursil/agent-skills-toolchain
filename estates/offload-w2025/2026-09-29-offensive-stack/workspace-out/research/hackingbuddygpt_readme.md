@@ -1,3 +1,9 @@
+---
+title: hackingbuddygpt_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/hackingbuddygpt-readme
+---
+
 <div align="center">
   <img src="https://github.com/ipa-lab/hackingBuddyGPT/blob/main/docs/hackingbuddy-rounded.png?raw=true" width="96" alt="hackingBuddyGPT logo">
   <h1>hackingBuddyGPT</h1>

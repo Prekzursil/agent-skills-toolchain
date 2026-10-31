@@ -1,3 +1,8 @@
+---
+title: CLAUDE-append
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-setup/templates/claude-append
+---
 
 ## metaswarm
 

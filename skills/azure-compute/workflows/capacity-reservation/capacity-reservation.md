@@ -1,3 +1,9 @@
+---
+title: capacity-reservation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/capacity-reservation/capacity-reservation
+---
+
 # Azure Capacity Reservation
 
 Helps users create and configure Azure Capacity Reservation Groups (CRGs) to guarantee VM compute capacity in a specific region without deploying VMs.

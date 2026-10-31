@@ -1,3 +1,9 @@
+---
+title: naming-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/naming-patterns
+---
+
 # Naming Patterns
 
 Per-resource naming rules for AppOnboard-generated Azure resources. Apply in Step 7 (Generate naming).

@@ -1,3 +1,9 @@
+---
+title: schrod-gpu-pool-README
+type: note
+permalink: dqverify-repo-20261013/scripts/schrod-gpu-pool-readme
+---
+
 # schrod-gpu-pool.sh — one Schrödinger jobserverd per GPU (real single-node multi-GPU)
 
 Run Desmond / BPMD / any JobDJ-based Schrödinger GPU work **across all GPUs on one

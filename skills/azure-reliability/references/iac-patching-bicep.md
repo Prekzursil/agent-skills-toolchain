@@ -1,3 +1,9 @@
+---
+title: iac-patching-bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/iac-patching-bicep
+---
+
 # IaC Patching — Bicep
 
 ## When to Use
@@ -196,4 +202,3 @@ Do NOT bundle the storage SKU change with the safe patches — a failed storage 
 
 Ready for Deploy 1? (yes / no)
 ```
-

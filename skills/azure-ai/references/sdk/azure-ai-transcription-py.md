@@ -1,3 +1,9 @@
+---
+title: azure-ai-transcription-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-transcription-py
+---
+
 # Azure AI Transcription — Python SDK Quick Reference
 
 > Condensed from **azure-ai-transcription-py**. Full patterns (real-time streaming, diarization, timestamps)

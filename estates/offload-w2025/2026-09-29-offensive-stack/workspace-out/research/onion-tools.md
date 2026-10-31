@@ -1,3 +1,9 @@
+---
+title: onion-tools
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/onion-tools
+---
+
 # Onion lane: offensive-security tooling on onion services
 
 Run: 2026-09-29, VM C:\Users\prekzursil\.zcode\workspace\default, Tor expert bundle D:\opt\tor (v0.4.9.13) already running.

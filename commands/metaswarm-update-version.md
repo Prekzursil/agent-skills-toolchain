@@ -1,3 +1,9 @@
+---
+title: metaswarm-update-version
+type: note
+permalink: dqverify-repo-20261013/commands/metaswarm-update-version
+---
+
 # Update Metaswarm
 
 Update metaswarm to the latest version, refresh component files, and re-detect project context.

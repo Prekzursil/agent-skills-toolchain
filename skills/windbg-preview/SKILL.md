@@ -1,6 +1,9 @@
 ---
 name: windbg-preview
-description: Use when triaging Windows crash dumps, inspecting threads, exceptions, modules, memory, or debugger commands against dump files such as .dmp artifacts before deeper disassembler work.
+description: Use when triaging Windows crash dumps, inspecting threads, exceptions,
+  modules, memory, or debugger commands against dump files such as .dmp artifacts
+  before deeper disassembler work.
+permalink: dqverify-repo-20261013/skills/windbg-preview/skill
 ---
 
 # WinDbg Preview

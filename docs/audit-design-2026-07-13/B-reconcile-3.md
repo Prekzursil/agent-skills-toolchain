@@ -1,3 +1,9 @@
+---
+title: B-reconcile-3
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-3
+---
+
 # B-reconcile slice 3 — doc-cluster reconcile (8 clusters, 6067 docs)
 
 READ-ONLY. Worked at cluster + representative-sample level (member lists pulled from

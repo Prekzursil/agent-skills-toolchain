@@ -1,3 +1,9 @@
+---
+title: auth-D-cli
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/auth-d-cli
+---
+
 # auth-D-cli — CLI wiring for auth subcommands
 
 ## Summary

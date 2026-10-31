@@ -1,3 +1,8 @@
+---
+title: DECISION-QUEUE
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/decision-queue
+---
 
 # PHASE-3 GRILL GROUND TRUTH — Harness / MCP / Doc / Config SSOT Consolidation
 
@@ -156,4 +161,3 @@ Options: (a) SHADOW→burn-in→ADVISE, ENFORCE only per-gate after proven preci
 4. **Enforcement nag-flood across fan-outs** — subagent-aware, per-session dedup, shadow-first, fail-open, ENFORCE only after burn-in.
 5. **Lane-coupling silent-dead gates** — `basic_memory_nudge`↔ledger `canonical_tree` must deploy together.
 6. **config_drift permanently inert** — verify/replace the `ConfigChange` trigger (D1.3); don't trust it as thread-1's only sentinel.
-

@@ -1,3 +1,9 @@
+---
+title: requirements
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/requirements
+---
+
 # Requirements: Pi Agent Support
 
 ## Q&A Record
@@ -103,4 +109,3 @@ Both contain cost data. `turn_end` is more reliable since it's always the last e
 Recommendation: Accumulate from `turn_end.message.usage.cost.total` across all turns. This gives total session cost for `on_complete()`.
 
 **A8:** Sum `turn_end.message.usage.cost.total` across all turns for session total.
-

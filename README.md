@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/readme
+---
+
 # agent-skills-toolchain
 
 Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 370+ skills, 40+ MCP server configs, shared tool libraries, and platform config snapshots - all plug-and-play.
@@ -325,5 +331,3 @@ so verify they are mounted in your session before relying on it.
 - `tools/mcp/`, `tools/editor/`, and `tools/web/` only contain real runnable or clearly bounded tool projects.
 - Future ideas stay under `docs/incubating/skills/` or `docs/incubating/tools/` until they are proven enough to promote.
 - Derived summaries are allowed in references; raw session or chat exports are not.
-
-

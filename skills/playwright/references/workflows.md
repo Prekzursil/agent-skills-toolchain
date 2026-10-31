@@ -1,3 +1,9 @@
+---
+title: workflows
+type: note
+permalink: dqverify-repo-20261013/skills/playwright/references/workflows
+---
+
 # Playwright CLI Workflows
 
 Use the wrapper script and snapshot often.

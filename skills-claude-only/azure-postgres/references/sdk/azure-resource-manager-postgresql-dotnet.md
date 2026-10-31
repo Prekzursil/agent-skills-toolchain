@@ -1,3 +1,9 @@
+---
+title: azure-resource-manager-postgresql-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/sdk/azure-resource-manager-postgresql-dotnet
+---
+
 # PostgreSQL Management — .NET SDK Quick Reference
 
 > Condensed from **azure-resource-manager-postgresql-dotnet**. Full patterns

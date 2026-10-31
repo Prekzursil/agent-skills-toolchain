@@ -1,3 +1,9 @@
+---
+title: role-verification
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/role-verification
+---
+
 # Role Assignment Verification
 
 Verify that all RBAC role assignments in the generated infrastructure are correct and sufficient before deployment. Incorrect or missing roles are a common cause of runtime failures.

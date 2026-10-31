@@ -1,3 +1,9 @@
+---
+title: CONTRIBUTING
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/contributing
+---
+
 # Contributing to metaswarm
 
 Thank you for your interest in contributing to metaswarm.

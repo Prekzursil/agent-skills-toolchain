@@ -1,3 +1,9 @@
+---
+title: sample-ai-text
+type: note
+permalink: dqverify-repo-20261013/skills/agentic-humanizer/examples/sample-ai-text
+---
+
 # Sample AI Text: Smoke Test Fixture
 
 Paste the prose below into the skill via:

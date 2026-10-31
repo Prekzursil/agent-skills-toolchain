@@ -1,3 +1,9 @@
+---
+title: code-migration
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/code-migration
+---
+
 # Code Migration Phase
 
 Migrate AWS Lambda function code to Azure Functions.

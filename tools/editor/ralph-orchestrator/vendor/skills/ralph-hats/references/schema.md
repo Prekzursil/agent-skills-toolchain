@@ -1,3 +1,9 @@
+---
+title: schema
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/ralph-hats/references/schema
+---
+
 # Ralph Hats Schema Notes
 
 This reference is for user-authored hats files used with:

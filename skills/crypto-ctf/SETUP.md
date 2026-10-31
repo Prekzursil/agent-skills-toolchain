@@ -1,3 +1,9 @@
+---
+title: SETUP
+type: note
+permalink: dqverify-repo-20261013/skills/crypto-ctf/setup
+---
+
 # crypto-ctf — SETUP (external, NOT vendored)
 
 This skill is vendored **stripped**: only `SKILL.md` is under version control. The runtime

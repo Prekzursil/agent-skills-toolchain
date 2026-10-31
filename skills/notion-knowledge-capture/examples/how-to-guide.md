@@ -1,3 +1,9 @@
+---
+title: how-to-guide
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/examples/how-to-guide
+---
+
 # Example: How-To Guide from Discussion
 
 **User Request**: "Save our discussion about deploying to production as a how-to guide"

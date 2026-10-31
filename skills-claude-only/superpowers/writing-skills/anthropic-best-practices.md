@@ -1,3 +1,9 @@
+---
+title: anthropic-best-practices
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/writing-skills/anthropic-best-practices
+---
+
 # Skill authoring best practices
 
 > Learn how to write effective Skills that Claude can discover and use successfully.

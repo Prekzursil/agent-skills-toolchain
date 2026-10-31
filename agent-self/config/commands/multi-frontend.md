@@ -1,3 +1,9 @@
+---
+title: multi-frontend
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/multi-frontend
+---
+
 # Frontend - Frontend-Focused Development
 
 Frontend-focused workflow (Research → Ideation → Plan → Execute → Optimize → Review), Gemini-led.

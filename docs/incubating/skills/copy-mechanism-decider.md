@@ -1,3 +1,9 @@
+---
+title: copy-mechanism-decider
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/copy-mechanism-decider
+---
+
 # copy-mechanism-decider
 
 ## Purpose

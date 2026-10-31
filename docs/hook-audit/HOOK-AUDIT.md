@@ -1,3 +1,9 @@
+---
+title: HOOK-AUDIT
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/hook-audit
+---
+
 # Hook fleet audit — BUILD lane (HOOKRESEARCH), round 1
 
 STATUS: SUPERSEDED IN PART. Read **`ROUND2-CORRECTIONS.md`** alongside this file: an

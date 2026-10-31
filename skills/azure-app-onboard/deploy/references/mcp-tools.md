@@ -1,3 +1,9 @@
+---
+title: mcp-tools
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/mcp-tools
+---
+
 # Deploy Phase — MCP Tools
 
 Phase-exclusive tool parameters for the deploy phase. For shared tools (`subscription_list`, `group_list`, `extension_cli_install`, `get_azure_bestpractices`), see [mcp-tool-reference.md](../../references/mcp-tool-reference.md).

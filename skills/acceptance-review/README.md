@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/acceptance-review/readme
+---
+
 # acceptance-review
 
 The **cross-model acceptance reviewer** gem (the C2 next-gem from the

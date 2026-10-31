@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/auth/source/python
+---
+
 # Auth Recipe — Python (FastAPI) — REFERENCE ONLY
 
 ## JWT Validation with PyJWT

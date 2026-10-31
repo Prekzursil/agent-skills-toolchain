@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/wrangler/api
+---
+
 # Wrangler Programmatic API
 
 Node.js APIs for testing and development.

@@ -1,3 +1,9 @@
+---
+title: database-migration
+type: note
+permalink: dqverify-repo-20261013/skills/notion-spec-to-implementation/examples/database-migration
+---
+
 # Example: Database Migration Implementation
 
 **User Request**: "Plan and implement the database migration for user preferences schema"

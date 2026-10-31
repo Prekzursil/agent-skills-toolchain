@@ -1,3 +1,9 @@
+---
+title: vm-agent-not-responding
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/compute/references/vm-agent-not-responding
+---
+
 # VM Agent Not Responding
 
 Run Command and password reset depend on the VM agent. If the agent is unhealthy, alternative methods are needed.

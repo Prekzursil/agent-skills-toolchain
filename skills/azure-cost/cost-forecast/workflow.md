@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-forecast/workflow
+---
+
 # Cost Forecast Workflow
 
 Use this workflow when the user wants to **project future costs**.

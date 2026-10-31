@@ -1,3 +1,9 @@
+---
+title: automation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/services/functions/automation
+---
+
 # Automation: Consumption to Flex Consumption Upgrade
 
 > These are the Azure CLI scripts to automate the upgrade from Linux Consumption plan to Flex Consumption plan.

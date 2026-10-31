@@ -1,3 +1,9 @@
+---
+title: spring-apps-to-aca
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/spring-apps-to-aca
+---
+
 # Spring Boot to Azure Container Apps Migration
 
 > Migrate Spring Boot applications from Azure Spring Apps, VMs, or other platforms to Azure Container Apps with containerization, deployment, and Spring Cloud integration.

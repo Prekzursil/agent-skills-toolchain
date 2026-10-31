@@ -1,11 +1,13 @@
 ---
 name: orchestrated-execution
-description: 4-phase execution loop for work units - IMPLEMENT, VALIDATE, ADVERSARIAL REVIEW, COMMIT
+description: 4-phase execution loop for work units - IMPLEMENT, VALIDATE, ADVERSARIAL
+  REVIEW, COMMIT
 auto_activate: false
 triggers:
-  - "orchestrated execution"
-  - "4-phase loop"
-  - "adversarial review"
+- orchestrated execution
+- 4-phase loop
+- adversarial review
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-orchestrated-execution/skill
 ---
 
 # Orchestrated Execution Skill

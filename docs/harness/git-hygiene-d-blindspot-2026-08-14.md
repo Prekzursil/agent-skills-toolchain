@@ -1,3 +1,9 @@
+---
+title: git-hygiene-d-blindspot-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/docs/harness/git-hygiene-d-blindspot-2026-08-14
+---
+
 # The unpushed-work safety net never looks at D: — 44 at-risk checkouts live there
 
 `hooks/git-hygiene/check.py` is the estate's guard against work that exists only on this disk.

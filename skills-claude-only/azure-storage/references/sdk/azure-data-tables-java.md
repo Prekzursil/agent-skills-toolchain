@@ -1,3 +1,9 @@
+---
+title: azure-data-tables-java
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-storage/references/sdk/azure-data-tables-java
+---
+
 # Tables — Java SDK Quick Reference
 
 > Condensed from **azure-data-tables-java**. Full patterns (typed entities,

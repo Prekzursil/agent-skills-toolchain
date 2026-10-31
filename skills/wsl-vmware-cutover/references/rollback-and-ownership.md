@@ -1,3 +1,9 @@
+---
+title: rollback-and-ownership
+type: note
+permalink: dqverify-repo-20261013/skills/wsl-vmware-cutover/references/rollback-and-ownership
+---
+
 # Rollback And Ownership
 
 ## Rollback assets

@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
+- '**/.claude/**'
+- '**/.agents/**'
+permalink: dqverify-repo-20261013/rules/common/stale-megapr-reconcile
 ---
 
 # Stale mega-PR reconcile — measure the conflict surface before you rebase

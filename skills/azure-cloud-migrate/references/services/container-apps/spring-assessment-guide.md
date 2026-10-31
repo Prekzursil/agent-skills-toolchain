@@ -1,3 +1,9 @@
+---
+title: spring-assessment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/spring-assessment-guide
+---
+
 # Pre-Migration Assessment for Spring Boot to Azure Container Apps
 
 ## Local State Assessment

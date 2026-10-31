@@ -1,3 +1,9 @@
+---
+title: python
+type: note
+permalink: dqverify-repo-20261013/skills/appinsights-instrumentation/references/python
+---
+
 ## Modify code
 
 Make these necessary changes to the app.

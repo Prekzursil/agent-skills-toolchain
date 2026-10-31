@@ -1,3 +1,9 @@
+---
+title: clearwing_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/clearwing-readme
+---
+
 # Clearwing
 
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/c0444f24-32d8-4d62-af66-f1b7d8a123ba" />

@@ -1,3 +1,9 @@
+---
+title: 2026-09-02-process-hygiene-decision-queue
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-09-02-process-hygiene-decision-queue
+---
+
 # Process-hygiene: decision queue and rejected options (2026-09-02)
 
 Everything here came out of a fan-out review of the shipped supervisor (fifteen

@@ -1,3 +1,9 @@
+---
+title: prereq-artifacts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/prereq-artifacts
+---
+
 Artifact write procedures for the prereq phase exit. Read at Step 4 of the [readiness gate](readiness-gate.md).
 
 ## Write Artifacts

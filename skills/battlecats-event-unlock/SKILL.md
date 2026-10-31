@@ -1,9 +1,14 @@
 ---
 name: battlecats-event-unlock
-description: Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower stage visibility or on-demand unlock RE - gives the proven dual-dependency model (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner tool, the full event atlas cross-links, and the approaches already proven DEAD. Earlier-version offsets in a changelog.
+description: Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower
+  stage visibility or on-demand unlock RE - gives the proven dual-dependency model
+  (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner
+  tool, the full event atlas cross-links, and the approaches already proven DEAD.
+  Earlier-version offsets in a changelog.
 metadata:
   status: active
-  valid_as_of: 2026-08-27  # tbcml pointer re-verified (Codeberg canonical; GitHub archived, PyPI stale)
+  valid_as_of: 2026-08-27
+permalink: dqverify-repo-20261013/skills/battlecats-event-unlock/skill
 ---
 
 # Battle Cats — Special / Event Stage Unlock

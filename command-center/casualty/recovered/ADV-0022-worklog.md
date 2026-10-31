@@ -1,3 +1,9 @@
+---
+title: ADV-0022-worklog
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/recovered/adv-0022-worklog
+---
+
 # ADV-0022 worklog (recovered from agent-ab0075824d478040c.jsonl)
 
 records=123 tool_calls=35 assistant_texts=24

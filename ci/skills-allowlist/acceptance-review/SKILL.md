@@ -1,6 +1,8 @@
 ---
 name: acceptance-review
-description: "Use at the done boundary of an app change, before claiming a feature works, opening a PR, or accepting a repair as complete."
+description: Use at the done boundary of an app change, before claiming a feature
+  works, opening a PR, or accepting a repair as complete.
+permalink: dqverify-repo-20261013/ci/skills-allowlist/acceptance-review/skill
 ---
 
 # Acceptance Review — the cross-model "does it actually work?" verdict

@@ -1,3 +1,9 @@
+---
+title: cli-tools
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/agent-waves/research/cli-tools
+---
+
 # CLI Tools System Research
 
 ## Command Structure

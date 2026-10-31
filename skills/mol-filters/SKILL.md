@@ -1,7 +1,11 @@
 ---
 name: mol-filters
-description: "Use when mol filters is needed. Synthetic-accessibility SA_Score plus PAINS/BRENK/NIH structural-alert filtering (RDKit FilterCatalog) for a SMILES or SDF. Use when triaging docking or virtual-screening hits, flagging pan-assay-interference / problematic scaffolds, or scoring how hard a molecule."
+description: Use when mol filters is needed. Synthetic-accessibility SA_Score plus
+  PAINS/BRENK/NIH structural-alert filtering (RDKit FilterCatalog) for a SMILES or
+  SDF. Use when triaging docking or virtual-screening hits, flagging pan-assay-interference
+  / problematic scaffolds, or scoring how hard a molecule.
 license: MIT
+permalink: dqverify-repo-20261013/skills/mol-filters/skill
 ---
 
 # mol-filters — SA_Score + medicinal-chemistry structural alerts

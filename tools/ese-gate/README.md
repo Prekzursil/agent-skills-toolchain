@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/ese-gate/readme
+---
+
 # ESE Gate — Ensemble Semantic Entropy Escalation Gate
 
 A standalone Python CLI that quantifies cross-model disagreement in a

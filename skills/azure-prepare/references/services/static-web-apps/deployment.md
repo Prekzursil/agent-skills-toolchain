@@ -1,3 +1,9 @@
+---
+title: deployment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/static-web-apps/deployment
+---
+
 # Static Web Apps - Deployment
 
 ## azd Deploy (Default)

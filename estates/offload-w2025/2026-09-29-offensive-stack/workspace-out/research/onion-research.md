@@ -1,3 +1,9 @@
+---
+title: onion-research
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/onion-research
+---
+
 # onion-research — round-3 onion lane notes (2026-09-29)
 
 Lane: "Deep-web research relevant to agentic offensive security: private red-team playbooks,

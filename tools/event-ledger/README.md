@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/event-ledger/readme
+---
+
 # event-ledger — the N2 keystone (anti-echo-chamber memory)
 
 **Deployed at:** `~/.claude/hooks/event-ledger/` (this is the versioned copy — keep in sync).

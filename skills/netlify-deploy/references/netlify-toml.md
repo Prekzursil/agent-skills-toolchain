@@ -1,3 +1,9 @@
+---
+title: netlify-toml
+type: note
+permalink: dqverify-repo-20261013/skills/netlify-deploy/references/netlify-toml
+---
+
 # netlify.toml Configuration Reference
 
 Configuration file for Netlify builds and deployments.

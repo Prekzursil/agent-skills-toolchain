@@ -1,3 +1,9 @@
+---
+title: brainstorming-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/brainstorming-template
+---
+
 # Brainstorming Meeting Template
 
 Use this template for creative ideation and brainstorming sessions.
@@ -78,4 +84,3 @@ Use this template for creative ideation and brainstorming sessions.
 
 **Next meeting**: [Date to reconvene]
 ```
-

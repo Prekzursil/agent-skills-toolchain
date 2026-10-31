@@ -1,3 +1,9 @@
+---
+title: diagnostics
+type: note
+permalink: dqverify-repo-20261013/skills/ralph-loop/references/diagnostics
+---
+
 # Ralph Loop Diagnostics
 
 ## Current Diagnostics Files

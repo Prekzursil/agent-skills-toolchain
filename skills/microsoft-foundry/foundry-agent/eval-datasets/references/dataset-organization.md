@@ -1,3 +1,9 @@
+---
+title: dataset-organization
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/eval-datasets/references/dataset-organization
+---
+
 # Dataset Organization — Metadata, Splits, and Filtered Evaluation
 
 Organize datasets using metadata fields, create train/validation/test splits, and run targeted evaluations on dataset subsets. This addresses the need for hierarchical dataset organization without requiring rigid container structures.

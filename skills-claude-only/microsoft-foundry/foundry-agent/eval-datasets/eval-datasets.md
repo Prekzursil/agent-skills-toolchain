@@ -1,3 +1,9 @@
+---
+title: eval-datasets
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/eval-datasets/eval-datasets
+---
+
 # Evaluation Datasets — Trace-to-Dataset Pipeline & Lifecycle Management
 
 Manage the full lifecycle of evaluation datasets for Foundry agents: harvesting production traces into local `.foundry` cache, curating versioned test datasets, tracking evaluation quality over time, and syncing approved updates back to Foundry when needed.

@@ -1,3 +1,9 @@
+---
+title: database-post-deploy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/database-post-deploy
+---
+
 # Database Post-Deploy Verification
 
 Run schema migrations on AppOnboard-created databases (listed in `prepare-plan.json.services[]`) before health checks. The app must be running first — if it's crashing, fix that before attempting migrations.

@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/r2-sql/gotchas
+---
+
 # R2 SQL Gotchas
 
 Limitations, troubleshooting, and common pitfalls for R2 SQL.

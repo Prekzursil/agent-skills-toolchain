@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/terraform/readme
+---
+
 # Terraform Deploy Recipe
 
 Deploy to Azure using Terraform.

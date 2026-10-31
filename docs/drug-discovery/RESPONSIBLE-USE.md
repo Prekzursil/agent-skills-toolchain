@@ -1,3 +1,9 @@
+---
+title: RESPONSIBLE-USE
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/responsible-use
+---
+
 # Responsible API & Tool Use — drug-discovery MCP stack
 
 These MCPs reach **public, shared, often free-tier** services. Use them within reason: query specifically, cache, and never loop. The goal is maximum signal per call, not exhausting a quota or tripping abuse limits.

@@ -1,3 +1,9 @@
+---
+title: service-types
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/service-types
+---
+
 # Render Service Types
 
 Detailed explanation of each service type available on Render. Choose the right service type based on your application's needs.

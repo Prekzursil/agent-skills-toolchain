@@ -3,11 +3,12 @@ title: Accessibility, Input, and Localization
 priority: HIGH
 tags: accessibility, keyboard, narrator, automation, localization, high-contrast
 sources:
-  - https://learn.microsoft.com/windows/apps/design/accessibility/accessibility
-  - https://learn.microsoft.com/windows/apps/design/accessibility/keyboard-accessibility
-  - https://learn.microsoft.com/windows/apps/design/accessibility/high-contrast-themes
-  - https://learn.microsoft.com/windows/apps/design/globalizing/globalizing-portal
-  - https://github.com/microsoft/WinUI-Gallery
+- https://learn.microsoft.com/windows/apps/design/accessibility/accessibility
+- https://learn.microsoft.com/windows/apps/design/accessibility/keyboard-accessibility
+- https://learn.microsoft.com/windows/apps/design/accessibility/high-contrast-themes
+- https://learn.microsoft.com/windows/apps/design/globalizing/globalizing-portal
+- https://github.com/microsoft/WinUI-Gallery
+permalink: dqverify-repo-20261013/skills/winui-app/references/accessibility-input-and-localization
 ---
 
 ## What This Reference Is For

@@ -1,3 +1,9 @@
+---
+title: sre-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/sre-agent
+---
+
 # SRE Agent
 
 **Type**: `sre-agent`

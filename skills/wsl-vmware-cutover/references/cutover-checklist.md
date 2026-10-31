@@ -1,3 +1,9 @@
+---
+title: cutover-checklist
+type: note
+permalink: dqverify-repo-20261013/skills/wsl-vmware-cutover/references/cutover-checklist
+---
+
 # Cutover Checklist
 
 1. Inventory source VM, source WSL distro, destination VMware VM, and staging volumes.

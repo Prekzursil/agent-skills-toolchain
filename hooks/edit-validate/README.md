@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/edit-validate/readme
+---
+
 # edit-validate — Stop-time file validator (loop-proof successor to async-validate)
 
 Replaces the old `async-validate` hook (deep-research #4), whose per-Edit

@@ -1,3 +1,9 @@
+---
+title: 2026-06-10-unified-cross-ai-mcp-implementation-plan
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-06-10-unified-cross-ai-mcp-implementation-plan
+---
+
 # Unified Cross-AI MCP Architecture — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement task-by-task. Steps use checkbox (`- [ ]`) syntax. **For this run the main agent executes directly (autonomous), reserving subagent adversarial review for checkpoints and the full TDD loop for the Spec-2 TUI.**

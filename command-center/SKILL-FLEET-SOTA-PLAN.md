@@ -1,3 +1,9 @@
+---
+title: SKILL-FLEET-SOTA-PLAN
+type: note
+permalink: dqverify-repo-20261013/command-center/skill-fleet-sota-plan
+---
+
 # SKILL-FLEET SOTA PLAN
 
 **Lane:** PLAN (synthesis of OVERLAP + DRIFT + QUALITY lenses, plus this lane's own re-probes)

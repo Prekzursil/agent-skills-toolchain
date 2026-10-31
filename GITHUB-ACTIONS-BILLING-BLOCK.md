@@ -1,3 +1,9 @@
+---
+title: GITHUB-ACTIONS-BILLING-BLOCK
+type: note
+permalink: dqverify-repo-20261013/github-actions-billing-block
+---
+
 # GitHub Actions Billing Block — Confirmed 2026-09-24 04:25Z
 
 ## Status: BLOCKER PERSISTS

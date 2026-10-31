@@ -1,3 +1,9 @@
+---
+title: day2-operations
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/day2-operations
+---
+
 # Container Apps Day-2 Operations
 
 Operational tasks for running Container Apps in production: restart, exec, logs, environment updates, and secret rotation.

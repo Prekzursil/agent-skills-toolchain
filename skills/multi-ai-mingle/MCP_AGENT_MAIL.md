@@ -1,3 +1,9 @@
+---
+title: MCP_AGENT_MAIL
+type: note
+permalink: dqverify-repo-20261013/skills/multi-ai-mingle/mcp-agent-mail
+---
+
 # MCP Agent Mail — research + Windows install/registration
 
 Purpose (Wave A #2): adopt `mcp_agent_mail` as the **live symmetric Claude ↔ Codex chat channel**

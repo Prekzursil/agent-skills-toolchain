@@ -1,3 +1,9 @@
+---
+title: dive-SquidC5
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-squid-c5
+---
+
 # Deep-dive: SquidC5 (SquidSec/SquidC5) — "c2-agentic" lane
 
 Date: 2026-09-29. All checks below were run during this ask. Repo cloned at commit

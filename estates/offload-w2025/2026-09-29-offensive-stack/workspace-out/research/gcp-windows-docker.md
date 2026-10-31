@@ -1,3 +1,9 @@
+---
+title: gcp-windows-docker
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/gcp-windows-docker
+---
+
 # GCP Windows + Docker: definitive research (firecrawl, 2026-09-29)
 
 Lane: gcp-windows-docker (owner-side, firecrawl search + GCP docs scrape)

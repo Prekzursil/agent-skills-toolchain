@@ -1,6 +1,9 @@
 ---
 name: codex-session-reunion
-description: Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors and need to be inventoried, deduped, and promoted into one canonical store safely.
+description: Use when Codex sessions or rollout JSONL files are spread across Windows,
+  WSL, backups, or VS Code mirrors and need to be inventoried, deduped, and promoted
+  into one canonical store safely.
+permalink: dqverify-repo-20261013/skills/codex-session-reunion/skill
 ---
 
 # Codex Session Reunion

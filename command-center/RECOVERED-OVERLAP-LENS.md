@@ -1,3 +1,9 @@
+---
+title: RECOVERED-OVERLAP-LENS
+type: note
+permalink: dqverify-repo-20261013/command-center/recovered-overlap-lens
+---
+
 # Recovered overlap lens -- are the 328 skills actually duplicates?
 
 RECOVERED, not re-run. The sixth lens of the fleet audit was stopped before it journalled a
@@ -101,4 +107,3 @@ fleet is functionally redundant, since low token overlap is strong but indirect 
   `vercel-deploy` is 2,024; they share 2.8%. A merge would be a rewrite, not a dedup.
 * `playwright` / `webapp-testing` and `source-command-plan` / `writing-plans` both measure
   **0.000** body overlap while reading as near-siblings in the index.
-

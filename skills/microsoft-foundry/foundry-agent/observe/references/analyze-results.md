@@ -1,3 +1,9 @@
+---
+title: analyze-results
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/observe/references/analyze-results
+---
+
 # Steps 3–5 — Download Results, Cluster Failures, Dive Into Category
 
 ## Step 3 — Download Results

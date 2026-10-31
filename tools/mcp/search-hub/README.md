@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/search-hub/readme
+---
+
 # search-hub — rotating keyed search with a keyless SearXNG fallback
 
 `search-hub` fronts Exa, Tavily, Firecrawl, and SearXNG **stdio** search MCP

@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/bicep/patterns
+---
+
 # Bicep Patterns
 
 Common patterns for Bicep infrastructure templates.
@@ -135,4 +141,3 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 ```
-

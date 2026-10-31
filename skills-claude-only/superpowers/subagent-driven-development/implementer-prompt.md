@@ -1,3 +1,9 @@
+---
+title: implementer-prompt
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/subagent-driven-development/implementer-prompt
+---
+
 # Implementer Subagent Prompt Template
 
 Use this template when dispatching an implementer subagent.

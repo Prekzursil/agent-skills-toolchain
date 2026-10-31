@@ -1,3 +1,9 @@
+---
+title: testing-guide
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/references/testing-guide
+---
+
 # Testing Guide for New Tools
 
 ## Three-Level Testing (MANDATORY)

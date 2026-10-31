@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/phpunit.xml"
-  - "**/phpunit.xml.dist"
-  - "**/composer.json"
+- '**/*.php'
+- '**/phpunit.xml'
+- '**/phpunit.xml.dist'
+- '**/composer.json'
+permalink: dqverify-repo-20261013/rules/php/testing
 ---
+
 # PHP Testing
 
 > This file extends [common/testing.md](../common/testing.md) with PHP specific content.

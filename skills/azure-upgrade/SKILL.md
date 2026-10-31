@@ -1,11 +1,16 @@
 ---
 name: azure-upgrade
-description: "Assess and upgrade Azure workloads between plans, tiers, or SKUs, or modernize Azure SDK dependencies in source code. WHEN: upgrade Consumption to Flex Consumption, upgrade Azure Functions plan, change hosting plan, function app SKU, migrate App Service to Container Apps, modernize legacy Azure Java SDKs (com.microsoft.azure to com.azure), migrate Azure Cache for Redis (ACR/ACRE) to Azure Managed Redis (AMR)."
+description: 'Assess and upgrade Azure workloads between plans, tiers, or SKUs, or
+  modernize Azure SDK dependencies in source code. WHEN: upgrade Consumption to Flex
+  Consumption, upgrade Azure Functions plan, change hosting plan, function app SKU,
+  migrate App Service to Container Apps, modernize legacy Azure Java SDKs (com.microsoft.azure
+  to com.azure), migrate Azure Cache for Redis (ACR/ACRE) to Azure Managed Redis (AMR).'
 license: MIT
 compatibility: python3.10+
 metadata:
   author: Microsoft
-  version: "1.2.1"
+  version: 1.2.1
+permalink: dqverify-repo-20261013/skills/azure-upgrade/skill
 ---
 
 # Azure Upgrade

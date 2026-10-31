@@ -1,3 +1,9 @@
+---
+title: DATABRICKS-ACCESS
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/databricks-mcp/databricks-access
+---
+
 # Databricks Access (MCP + CLI)
 
 _How to reach Databricks from the toolchain. Verified 2026-07 against `bolt-datascience` as `costin.ionescu@bolt.eu`. Contains **no secrets** — tokens live in `~/.databrickscfg`, a password manager, or the git-crypt-encrypted `tools/mcp/cloud-hub/accounts.json`._

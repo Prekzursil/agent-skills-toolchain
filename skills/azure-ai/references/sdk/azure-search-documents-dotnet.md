@@ -1,3 +1,9 @@
+---
+title: azure-search-documents-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-search-documents-dotnet
+---
+
 # Azure AI Search — .NET SDK Quick Reference
 
 > Condensed from **azure-search-documents-dotnet**. Full patterns (FieldBuilder, hybrid search, semantic answers)

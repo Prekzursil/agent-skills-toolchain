@@ -1,3 +1,9 @@
+---
+title: upgrade-strategy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/rules/upgrade-strategy
+---
+
 # Upgrade Strategy
 
 - **Incremental upgrades**: Stepwise dependency upgrades to avoid large jumps breaking builds.

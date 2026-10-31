@@ -1,3 +1,9 @@
+---
+title: _redteam_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/redteam-readme
+---
+
 # RedTeam-Agent
 
 <div align="center">

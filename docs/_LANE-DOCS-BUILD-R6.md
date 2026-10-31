@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-BUILD-R6
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-build-r6
+---
+
 # LANE DOCS — BUILD round 6 (re-entry after a CONFIRMED refutation of round 5)
 
 COVERAGE: every row in §2 is backed by a command I executed this round. NOT measured here, and

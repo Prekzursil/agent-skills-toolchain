@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/evaluations/readme
+---
+
 # Knowledge Capture Skill Evaluations
 
 Evaluation scenarios for testing the Knowledge Capture skill across different Codex models.
@@ -92,4 +98,3 @@ When adding Knowledge Capture evaluations:
 - "Creates good documentation"
 - "Uses appropriate structure"
 - "Saves to the right place"
-

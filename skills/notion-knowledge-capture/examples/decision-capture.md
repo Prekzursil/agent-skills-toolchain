@@ -1,3 +1,9 @@
+---
+title: decision-capture
+type: note
+permalink: dqverify-repo-20261013/skills/notion-knowledge-capture/examples/decision-capture
+---
+
 # Example: Decision Record Capture
 
 **User Request**: "Document our decision to move from REST to GraphQL API"

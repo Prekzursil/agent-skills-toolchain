@@ -1,3 +1,9 @@
+---
+title: sample-prompts
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/sample-prompts
+---
+
 # Sample prompts (copy/paste)
 
 Use these as starting points. Keep user-provided requirements and constraints; do not invent new creative elements.

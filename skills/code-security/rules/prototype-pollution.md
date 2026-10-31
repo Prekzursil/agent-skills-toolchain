@@ -3,6 +3,7 @@ title: Prevent Prototype Pollution
 impact: HIGH
 impactDescription: Attackers can modify object prototypes to inject malicious properties
 tags: security, prototype-pollution, cwe-915
+permalink: dqverify-repo-20261013/skills/code-security/rules/prototype-pollution
 ---
 
 ## Prevent Prototype Pollution

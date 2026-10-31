@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/recover-from-false-positive/scripts/readme
+---
+
 # scripts
 
 Operational scripts for the recover-from-false-positive skill.

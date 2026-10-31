@@ -1,3 +1,9 @@
+---
+title: commands
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azcli/commands
+---
+
 # Azure CLI Commands
 
 Common az commands for deployment workflows.

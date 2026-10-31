@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/workspace-hooks/readme
+---
+
 # workspace-hooks
 
 Optimal Agentic Workspace — Tier 2/3 behavioral-enforcement hooks, supporting skill,

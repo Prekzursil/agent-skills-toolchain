@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/browser-bridge/readme
+---
+
 # Estate native browser automation
 
 Contract: `PROFILE-CHOICE.md` (mandatory a/b/c every run). Audit: `AUDIT.md`. Skill: `SKILL.md`.

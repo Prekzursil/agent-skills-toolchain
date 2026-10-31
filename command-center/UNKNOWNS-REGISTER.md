@@ -1,3 +1,9 @@
+---
+title: UNKNOWNS-REGISTER
+type: note
+permalink: dqverify-repo-20261013/command-center/unknowns-register
+---
+
 # UNKNOWNS-REGISTER
 
 Things this command center does **not** know, each with the experiment that would settle it.

@@ -1,3 +1,9 @@
+---
+title: sprint-planning-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/sprint-planning-template
+---
+
 # Sprint Planning Template
 
 Use this template for agile sprint planning meetings.
@@ -65,4 +71,3 @@ Use this template for agile sprint planning meetings.
 - Daily standups at [Time]
 - Sprint review on [Date]
 ```
-

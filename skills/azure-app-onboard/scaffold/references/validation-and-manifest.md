@@ -1,3 +1,9 @@
+---
+title: validation-and-manifest
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/validation-and-manifest
+---
+
 # Validation, Manifest & Approval — Steps 10–12.5
 
 ## Step 10 — CI/CD

@@ -1,3 +1,9 @@
+---
+title: dbx_p1-auth-snapshot
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-p1-auth-snapshot
+---
+
 # P1 Auth Snapshot
 
 ## Summary

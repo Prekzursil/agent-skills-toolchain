@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/models/deploy-model/preset/references/workflow
+---
+
 # Preset Deployment Workflow — Step-by-Step
 
 Condensed implementation reference for preset (optimal region) model deployment. See [SKILL.md](../SKILL.md) for overview.

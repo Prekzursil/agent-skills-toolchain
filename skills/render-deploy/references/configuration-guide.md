@@ -1,3 +1,9 @@
+---
+title: configuration-guide
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/configuration-guide
+---
+
 # Render Configuration Guide
 
 Common configuration patterns, best practices, and troubleshooting for Render deployments.

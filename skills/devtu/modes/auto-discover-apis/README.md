@@ -1,6 +1,12 @@
 ---
 name: devtu-auto-discover-apis
-description: Automatically discover life science APIs online, create ToolUniverse tools, validate them, and prepare integration PRs. Performs gap analysis to identify missing tool categories, web searches for APIs, automated tool creation using devtu-create-tool patterns, validation with devtu-fix-tool, and git workflow management. Use when expanding ToolUniverse coverage, adding new API integrations, or systematically discovering scientific resources.
+description: Automatically discover life science APIs online, create ToolUniverse
+  tools, validate them, and prepare integration PRs. Performs gap analysis to identify
+  missing tool categories, web searches for APIs, automated tool creation using devtu-create-tool
+  patterns, validation with devtu-fix-tool, and git workflow management. Use when
+  expanding ToolUniverse coverage, adding new API integrations, or systematically
+  discovering scientific resources.
+permalink: dqverify-repo-20261013/skills/devtu/modes/auto-discover-apis/readme
 ---
 
 # Automated Life Science API Discovery & Tool Creation

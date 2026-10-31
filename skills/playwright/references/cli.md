@@ -1,3 +1,9 @@
+---
+title: cli
+type: note
+permalink: dqverify-repo-20261013/skills/playwright/references/cli
+---
+
 # Playwright CLI Reference
 
 Use the wrapper script unless the CLI is already installed globally:

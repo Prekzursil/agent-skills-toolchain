@@ -1,8 +1,10 @@
 ---
 title: Secure GitHub Actions
 impact: HIGH
-impactDescription: Prevents code injection, secrets theft, and supply chain attacks in CI/CD pipelines
+impactDescription: Prevents code injection, secrets theft, and supply chain attacks
+  in CI/CD pipelines
 tags: security, github-actions, ci-cd, cwe-78, cwe-94, cwe-913
+permalink: dqverify-repo-20261013/skills/code-security/rules/github-actions
 ---
 
 ## Secure GitHub Actions

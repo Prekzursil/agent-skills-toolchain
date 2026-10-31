@@ -1,3 +1,9 @@
+---
+title: plan
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/plan
+---
+
 # Implementation Plan: Pi Agent Support
 
 ## Checklist

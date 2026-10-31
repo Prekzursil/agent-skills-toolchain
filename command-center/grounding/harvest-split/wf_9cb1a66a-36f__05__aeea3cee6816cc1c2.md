@@ -1,3 +1,9 @@
+---
+title: wf_9cb1a66a-36f__05__aeea3cee6816cc1c2
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/harvest-split/wf-9cb1a66a-36f-05-aeea3cee6816cc1c2
+---
+
 {
   "unit": "ADV-0006",
   "artifact_written": "C:/Users/Prekzursil/source/ast-integrate/command-center/adversarial/ADV-0006-confirmed-claim-overclaim-audit.json",

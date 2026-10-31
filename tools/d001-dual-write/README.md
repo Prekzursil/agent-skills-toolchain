@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/d001-dual-write/readme
+---
+
 # `d001_apply.py` — filter-safe D-001 dual-write applier
 
 `.agents/skills/` is the authoritative skill root; `skills/` is a compatibility

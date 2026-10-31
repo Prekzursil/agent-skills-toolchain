@@ -1,3 +1,9 @@
+---
+title: AXIS-B-PRESERVE-INDEX
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/axis-b-preserve-index
+---
+
 # Axis-B Preserve-by-Reference Index
 
 *Owner **Decision A**: preserve the prior forgotten work **by reference** as a SEPARATE,

@@ -1,3 +1,9 @@
+---
+title: PACKAGING_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/packaging-template
+---
+
 # Packaging Template
 
 Use this template to create the summary document when a skill is complete.

@@ -1,3 +1,9 @@
+---
+title: devtu_optimize_integration
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/references/devtu-optimize-integration
+---
+
 # Integration with devtu-optimize-skills
 
 This skill builds on principles from `devtu-optimize-skills`. This reference explains how to apply those principles when creating new skills.

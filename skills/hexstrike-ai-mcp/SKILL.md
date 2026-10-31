@@ -1,6 +1,11 @@
 ---
 name: hexstrike-ai-mcp
-description: Use when registering, repairing, or configuring HexStrike AI as an MCP server with a framed stdio bridge for Codex, Claude Code, or Gemini CLI ; do NOT use for runtime installation (use hexstrike-ai-setup) or running engagements (use hexstrike-ai-authorized-engagement) ; returns working MCP server registration for HexStrike.
+description: Use when registering, repairing, or configuring HexStrike AI as an MCP
+  server with a framed stdio bridge for Codex, Claude Code, or Gemini CLI ; do NOT
+  use for runtime installation (use hexstrike-ai-setup) or running engagements (use
+  hexstrike-ai-authorized-engagement) ; returns working MCP server registration for
+  HexStrike.
+permalink: dqverify-repo-20261013/skills/hexstrike-ai-mcp/skill
 ---
 
 # HexStrike AI MCP

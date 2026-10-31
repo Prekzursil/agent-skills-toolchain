@@ -1,3 +1,9 @@
+---
+title: changelog
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/reference/changelog
+---
+
 # Changelog
 
 All notable changes to Ralph Orchestrator will be documented in this file.

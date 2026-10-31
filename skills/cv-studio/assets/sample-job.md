@@ -1,3 +1,9 @@
+---
+title: sample-job
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/assets/sample-job
+---
+
 # Senior Android Security Engineer — Acme Mobile
 
 We are hiring a Senior Android Security Engineer to lead native reverse engineering and

@@ -1,3 +1,9 @@
+---
+title: AUDIT-DESIGN-CONVERGED
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/audit-design-converged
+---
+
 # Converged Audit/Design Gate — Harness Config SSOT (2026-07-13)
 
 Reconciles four independent inputs: our Claude-side discovery (`DECISION-QUEUE.md`) + the

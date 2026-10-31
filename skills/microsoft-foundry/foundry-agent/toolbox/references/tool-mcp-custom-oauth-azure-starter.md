@@ -1,3 +1,9 @@
+---
+title: tool-mcp-custom-oauth-azure-starter
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-custom-oauth-azure-starter
+---
+
 # BYO OAuth2 — Azure-hosted MCP starter (build your own MCP on Functions)
 
 Companion to [tool-mcp-custom-oauth.md](tool-mcp-custom-oauth.md). Use this when you want to **build** the MCP server yourself on Azure Functions (rather than register an OAuth app against a third-party MCP). Deploying the sample template creates the Function App **and** its Entra app registration, so four of the five BYO OAuth2 connection inputs come straight from its outputs — you only add a client secret.

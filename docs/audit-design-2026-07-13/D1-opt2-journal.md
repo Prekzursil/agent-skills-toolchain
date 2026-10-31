@@ -1,3 +1,9 @@
+---
+title: D1-opt2-journal
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/d1-opt2-journal
+---
+
 # D1 — Council Lens: Steelman OPTION 2 (Write-Ahead-Journal / WAL deploy engine)
 
 **Role:** council subagent, LENS = *steelman a fuller write-ahead-journal / transactional-log deploy

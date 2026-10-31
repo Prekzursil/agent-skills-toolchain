@@ -1,3 +1,9 @@
+---
+title: phase4_status_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/phase4-status-2026-07-20
+---
+
 # Phase 4 status — 2026-07-20
 
 ## Decisions

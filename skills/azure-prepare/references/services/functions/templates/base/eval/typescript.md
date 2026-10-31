@@ -1,3 +1,9 @@
+---
+title: typescript
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/base/eval/typescript
+---
+
 # Base HTTP Template - TypeScript Eval
 
 ## MCP Template Validation

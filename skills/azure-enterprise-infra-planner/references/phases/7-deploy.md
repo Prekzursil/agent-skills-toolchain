@@ -1,3 +1,9 @@
+---
+title: 7-deploy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/7-deploy
+---
+
 # Phase 7: Deployment
 
 ## Destructive Action Gate

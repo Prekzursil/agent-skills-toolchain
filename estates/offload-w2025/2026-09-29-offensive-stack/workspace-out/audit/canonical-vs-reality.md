@@ -1,3 +1,9 @@
+---
+title: canonical-vs-reality
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/audit/canonical-vs-reality
+---
+
 # Canonical MCP registry vs machine reality
 
 Date: 2026-09-29. Auditor lane: canonical-vs-reality.

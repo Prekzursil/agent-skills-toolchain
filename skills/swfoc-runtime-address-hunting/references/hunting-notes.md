@@ -1,3 +1,9 @@
+---
+title: hunting-notes
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-runtime-address-hunting/references/hunting-notes
+---
+
 # SWFOC Runtime Address Hunting Notes
 
 ## Local workspaces

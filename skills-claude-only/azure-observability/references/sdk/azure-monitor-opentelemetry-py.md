@@ -1,3 +1,9 @@
+---
+title: azure-monitor-opentelemetry-py
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-opentelemetry-py
+---
+
 # Azure Monitor OpenTelemetry — Python SDK Quick Reference
 
 > Condensed from **azure-monitor-opentelemetry-py**. Full patterns

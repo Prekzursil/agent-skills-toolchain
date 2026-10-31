@@ -1,6 +1,11 @@
 ---
 name: triage-dispatch
-description: Use when repairing an app with MULTIPLE bugs or broken user-journeys at once (not a single fix) - instead of edit-one-file / rerun-the-whole-suite / hope, first map the broken journeys with evidence, capture each REAL error, build a defect graph, then dispatch parallel bounded-scope fix agents and verify only impacted regions before an outer full+e2e+mutation gate.
+description: Use when repairing an app with MULTIPLE bugs or broken user-journeys
+  at once (not a single fix) - instead of edit-one-file / rerun-the-whole-suite /
+  hope, first map the broken journeys with evidence, capture each REAL error, build
+  a defect graph, then dispatch parallel bounded-scope fix agents and verify only
+  impacted regions before an outer full+e2e+mutation gate.
+permalink: dqverify-repo-20261013/skills/triage-dispatch/skill
 ---
 
 # triage-dispatch — audit → defect-graph → parallel bounded fixes → verify

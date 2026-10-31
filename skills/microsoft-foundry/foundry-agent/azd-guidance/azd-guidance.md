@@ -1,3 +1,9 @@
+---
+title: azd-guidance
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/azd-guidance/azd-guidance
+---
+
 # Foundry azd Guidance
 
 Read this skill before running any Foundry agent workflow that uses azd. Also use it for direct questions about Foundry-specific azd commands.

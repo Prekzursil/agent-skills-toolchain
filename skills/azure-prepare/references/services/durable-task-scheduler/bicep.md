@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/durable-task-scheduler/bicep
+---
+
 # Durable Task Scheduler — Bicep Patterns
 
 Bicep templates for provisioning the Durable Task Scheduler, task hubs, and RBAC role assignments.

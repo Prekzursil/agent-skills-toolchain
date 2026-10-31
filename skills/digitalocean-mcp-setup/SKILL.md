@@ -1,6 +1,9 @@
 ---
 name: digitalocean-mcp-setup
-description: Use when installing, validating, or troubleshooting the archived DigitalOcean MCP server for Codex, Claude, or Gemini, especially when App Platform tools or env-only token wiring need to be set up safely.
+description: Use when installing, validating, or troubleshooting the archived DigitalOcean
+  MCP server for Codex, Claude, or Gemini, especially when App Platform tools or env-only
+  token wiring need to be set up safely.
+permalink: dqverify-repo-20261013/skills/digitalocean-mcp-setup/skill
 ---
 
 # DigitalOcean MCP Setup

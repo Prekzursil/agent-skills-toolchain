@@ -1,3 +1,9 @@
+---
+title: MODAL-DEPLOY-PLAYBOOK
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/modal-gpu/modal-deploy-playbook
+---
+
 # Modal GPU model deployment — estate playbook (no more trial-and-error)
 
 **This document exists because I burned 5 deploy cycles on 2026-10-01 re-learning

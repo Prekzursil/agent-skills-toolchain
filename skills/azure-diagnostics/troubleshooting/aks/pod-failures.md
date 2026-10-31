@@ -1,3 +1,9 @@
+---
+title: pod-failures
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/aks/pod-failures
+---
+
 # Pod Failures & Application Issues
 
 ## Evidence Bundle Script

@@ -1,3 +1,9 @@
+---
+title: corpora
+type: note
+permalink: dqverify-repo-20261013/skills/secsearch/references/corpora
+---
+
 # secsearch corpora reference
 
 Catalogue of what `secsearch` indexes. Authoritative manifest + licenses: `D:\knowledge\CORPORA.md`.

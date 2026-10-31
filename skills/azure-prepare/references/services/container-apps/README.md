@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/readme
+---
+
 # Azure Container Apps
 
 Serverless container hosting for microservices, APIs, and background workers.

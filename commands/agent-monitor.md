@@ -1,3 +1,9 @@
+---
+title: agent-monitor
+type: note
+permalink: dqverify-repo-20261013/commands/agent-monitor
+---
+
 Launch the agent-monitor — a live dashboard of Claude Code subagents, including agents running inside Workflows.
 
 Usage: /agent-monitor [--inline] [--spawn]

@@ -1,3 +1,9 @@
+---
+title: WAVE0-recon
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/wave0-recon
+---
+
 # Wave-0 Recon — WU-3 back-port list & WU-5 Stop-hook inventory
 
 - **Date:** 2026-07-13

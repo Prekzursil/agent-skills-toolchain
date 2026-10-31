@@ -1,6 +1,8 @@
 ---
 name: tooluniverse
-description: Use when routing ToolUniverse life-science questions to the right specialized skill or verifying scientific facts against real databases.
+description: Use when routing ToolUniverse life-science questions to the right specialized
+  skill or verifying scientific facts against real databases.
+permalink: dqverify-repo-20261013/skills/tooluniverse/skill
 ---
 
 # ToolUniverse Router

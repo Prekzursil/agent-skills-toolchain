@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/taskwatch-monitor/readme
+---
+
 # taskwatch_monitor
 
 A general-purpose long-task progress monitor — the FEP dashboard, generalized.

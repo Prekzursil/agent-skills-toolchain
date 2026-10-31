@@ -1,3 +1,9 @@
+---
+title: SETUP-FACEBOOK
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/social-hub/setup-facebook
+---
+
 # Facebook setup — one screen
 
 Two things you do once; everything after is automatic and self-healing. **You** log into

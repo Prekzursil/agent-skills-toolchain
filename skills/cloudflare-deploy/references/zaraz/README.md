@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/zaraz/readme
+---
+
 # Cloudflare Zaraz
 
 Expert guidance for Cloudflare Zaraz - server-side tag manager for loading third-party tools at the edge.

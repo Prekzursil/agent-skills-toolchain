@@ -1,3 +1,9 @@
+---
+title: P2-BUILD-ROUND3
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-build-round3
+---
+
 # P2 BUILD — ROUND 3 (re-entry after a confirmed refutation)
 
 STATUS: COMPLETE for this round. Every section carries a measurement, a control, or an

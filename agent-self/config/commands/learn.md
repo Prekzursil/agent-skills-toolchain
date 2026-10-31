@@ -1,3 +1,9 @@
+---
+title: learn
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/learn
+---
+
 # /learn - Extract Reusable Patterns
 
 Analyze the current session and extract any patterns worth saving as skills.

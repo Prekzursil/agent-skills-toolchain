@@ -1,3 +1,9 @@
+---
+title: _VERIFY-docs-r3
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/verify-docs-r3
+---
+
 # VERIFY lane DOCS r3 — independent audit — COMPLETE
 
 Every row below was EXECUTED by me at HEAD `bfec0543` in `C:/Users/Prekzursil/source/ast-integrate`.

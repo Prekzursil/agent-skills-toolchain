@@ -1,6 +1,9 @@
 ---
 name: codex-vscode-host-routing
-description: Use when VS Code launches Codex from the wrong host, WSL becomes the default unexpectedly, or you need Windows to remain the canonical Codex host while still allowing explicit Linux-side tools.
+description: Use when VS Code launches Codex from the wrong host, WSL becomes the
+  default unexpectedly, or you need Windows to remain the canonical Codex host while
+  still allowing explicit Linux-side tools.
+permalink: dqverify-repo-20261013/skills/codex-vscode-host-routing/skill
 ---
 
 # Codex VS Code Host Routing

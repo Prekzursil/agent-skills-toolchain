@@ -1,12 +1,14 @@
 ---
 name: external-tools
-description: Delegate implementation and review tasks to external AI CLI tools (Codex, Gemini) with cross-model adversarial review
+description: Delegate implementation and review tasks to external AI CLI tools (Codex,
+  Gemini) with cross-model adversarial review
 auto_activate: false
 triggers:
-  - "use external tools"
-  - "delegate to codex"
-  - "delegate to gemini"
-  - "cross-model review"
+- use external tools
+- delegate to codex
+- delegate to gemini
+- cross-model review
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/external-tools/skill
 ---
 
 # External Tools Skill

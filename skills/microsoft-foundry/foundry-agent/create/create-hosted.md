@@ -1,3 +1,9 @@
+---
+title: create-hosted
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/create-hosted
+---
+
 # Create Hosted Agent (azd ai)
 
 Scaffold a hosted Foundry agent project with the Azure Developer CLI (`azd`) and the `azure.ai.agents` extension. The same flow covers greenfield (from a curated sample) and brownfield (lift existing code), then drops you into a local inner-loop so you can iterate before deploying.

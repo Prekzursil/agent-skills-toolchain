@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-keyvault-py
+---
+
 # Key Vault — Python SDK Quick Reference
 
 > Condensed from **azure-keyvault-py**. Full patterns (async clients,

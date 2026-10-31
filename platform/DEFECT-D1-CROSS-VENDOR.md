@@ -1,3 +1,9 @@
+---
+title: DEFECT-D1-CROSS-VENDOR
+type: note
+permalink: dqverify-repo-20261013/platform/defect-d1-cross-vendor
+---
+
 # DEFECT D1 — false green in completion-predicate condition 9 (cross-vendor reviewer)
 
 Unit: `defect/d1-cross-vendor`. Baseline pinned by the program: platform suite 2,767 passed /

@@ -1,3 +1,9 @@
+---
+title: tool-function-calling
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tool-function-calling
+---
+
 # Tool — Function Calling (client-side)
 
 Define custom functions the agent can invoke. Your app executes the function and returns results. Runs expire 10 minutes after creation — return tool outputs promptly.

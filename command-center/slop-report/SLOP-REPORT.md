@@ -1,3 +1,9 @@
+---
+title: SLOP-REPORT
+type: note
+permalink: dqverify-repo-20261013/command-center/slop-report/slop-report
+---
+
 # SLOP REPORT -- dead scratch, orphaned artifacts, parallel non-SSOT folders
 
 LANE: SLOP (grounding -- measure only, no production code, no destructive execution)

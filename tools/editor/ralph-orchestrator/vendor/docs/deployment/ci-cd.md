@@ -1,3 +1,9 @@
+---
+title: ci-cd
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/deployment/ci-cd
+---
+
 # CI/CD Pipeline Guide
 
 Automate Ralph Orchestrator deployment with continuous integration and delivery pipelines.

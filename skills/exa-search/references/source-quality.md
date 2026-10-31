@@ -1,3 +1,9 @@
+---
+title: source-quality
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/source-quality
+---
+
 # Evaluating Source Quality
 
 When assessing sources during search and extraction, tag quality signals in your output so results can be weighted and ranked downstream.

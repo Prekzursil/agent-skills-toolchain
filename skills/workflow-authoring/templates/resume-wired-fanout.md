@@ -1,3 +1,9 @@
+---
+title: resume-wired-fanout
+type: note
+permalink: dqverify-repo-20261013/skills/workflow-authoring/templates/resume-wired-fanout
+---
+
 # TEMPLATE — resume-wired fan-out Workflow
 
 Copy the fenced block below to `~/.claude/workflows/<name>.mjs`, replace `UNITS`,

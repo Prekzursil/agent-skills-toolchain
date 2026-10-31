@@ -1,3 +1,9 @@
+---
+title: 3-research-resources
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/3-research-resources
+---
+
 # Phase 3: Research Resources
 
 > The goal of this phase is to research Azure resources before generating the plan.

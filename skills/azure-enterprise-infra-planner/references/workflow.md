@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/workflow
+---
+
 # Workflow
 
 ## Mandatory Rules
@@ -57,6 +63,3 @@ Before writing any `.bicep` or `.tf` files in Phase 6:
 1. Create the `infra/` directory at `<project-root>/infra/`.
 2. Create `infra/modules/` for child modules.
 3. Write `main.bicep` (or `main.tf`) inside `infra/`, not in the project root or `.azure/`.
-
-
-

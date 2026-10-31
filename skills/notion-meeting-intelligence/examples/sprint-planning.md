@@ -1,3 +1,9 @@
+---
+title: sprint-planning
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/examples/sprint-planning
+---
+
 # Example: Sprint Planning Meeting Prep
 
 **User Request**: "Prepare for tomorrow's sprint planning meeting"

@@ -1,3 +1,9 @@
+---
+title: access
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/storage/access
+---
+
 # Storage - Access Patterns
 
 ## Prerequisites for Granting Storage Access

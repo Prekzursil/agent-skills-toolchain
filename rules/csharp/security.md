@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.cs"
-  - "**/*.csx"
-  - "**/*.csproj"
-  - "**/appsettings*.json"
+- '**/*.cs'
+- '**/*.csx'
+- '**/*.csproj'
+- '**/appsettings*.json'
+permalink: dqverify-repo-20261013/rules/csharp/security
 ---
+
 # C# Security
 
 > This file extends [common/security.md](../common/security.md) with C#-specific content.

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/test-tamper-guard/readme
+---
+
 # test-tamper-guard — EvilGenie diff-guard
 
 A **PreToolUse** hook that intercepts `git commit` Bash calls and scans staged

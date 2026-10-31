@@ -1,13 +1,15 @@
 ---
 paths:
-  - "**/*.cpp"
-  - "**/*.hpp"
-  - "**/*.cc"
-  - "**/*.hh"
-  - "**/*.cxx"
-  - "**/*.h"
-  - "**/CMakeLists.txt"
+- '**/*.cpp'
+- '**/*.hpp'
+- '**/*.cc'
+- '**/*.hh'
+- '**/*.cxx'
+- '**/*.h'
+- '**/CMakeLists.txt'
+permalink: dqverify-repo-20261013/rules/cpp/hooks
 ---
+
 # C++ Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with C++ specific content.

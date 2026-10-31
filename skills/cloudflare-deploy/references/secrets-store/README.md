@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/secrets-store/readme
+---
+
 # Cloudflare Secrets Store
 
 Account-level encrypted secret management for Workers and AI Gateway.

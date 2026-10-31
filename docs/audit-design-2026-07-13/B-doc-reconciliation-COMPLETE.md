@@ -1,3 +1,9 @@
+---
+title: B-doc-reconciliation-COMPLETE
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-doc-reconciliation-complete
+---
+
 # B — Whole-Drive Harness/Agentic Doc Reconciliation (FINAL)
 
 **Deliverable:** Workflow B FINAL — consolidated whole-drive doc reconciliation.

@@ -1,3 +1,9 @@
+---
+title: CLOSE-PROPOSALS-A2
+type: note
+permalink: dqverify-repo-20261013/command-center/close-proposals-a2
+---
+
 # CLOSE-PROPOSALS-A2 — Lane A2 (A-toolchain register, items R-A12..R-A22)
 
 Investigation + proposal only. No fixes implemented, no catalog edits, no commits, no branches.

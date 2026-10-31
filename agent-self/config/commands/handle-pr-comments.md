@@ -1,3 +1,9 @@
+---
+title: handle-pr-comments
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/handle-pr-comments
+---
+
 # /handle-pr-comments
 
 Handle review comments on pull requests with appropriate responses and resolutions.

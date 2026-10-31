@@ -1,3 +1,9 @@
+---
+title: telegram
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/telegram
+---
+
 # Telegram Integration
 
 Ralph supports human-in-the-loop communication via Telegram. Agents can ask questions during orchestration, and humans can send proactive guidance at any time — all through a Telegram bot.

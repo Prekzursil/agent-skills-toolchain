@@ -1,3 +1,9 @@
+---
+title: terraform
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/static-web-apps/terraform
+---
+
 # Static Web Apps — Terraform Patterns — REFERENCE ONLY
 
 > ⛔ **DO NOT COPY THIS CODE DIRECTLY**

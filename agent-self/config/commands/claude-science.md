@@ -1,5 +1,7 @@
 ---
-description: One-command control for the local Claude Science WSL2 workbench (127.0.0.1:8000). Shells to the cs dispatcher - open, status, fix, doctor, ensure, stop, backup, restore.
+description: One-command control for the local Claude Science WSL2 workbench (127.0.0.1:8000).
+  Shells to the cs dispatcher - open, status, fix, doctor, ensure, stop, backup, restore.
+permalink: dqverify-repo-20261013/agent-self/config/commands/claude-science
 ---
 
 # claude-science — Claude Science (local) control

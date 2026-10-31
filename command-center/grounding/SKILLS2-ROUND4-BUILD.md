@@ -1,3 +1,9 @@
+---
+title: SKILLS2-ROUND4-BUILD
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills2-round4-build
+---
+
 # SKILLS2 — BUILD round 4
 
 Two commits, both in the lane's file scope, both with the gate that could have refused them

@@ -1,3 +1,9 @@
+---
+title: quick-reference
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/references/quick-reference
+---
+
 # Quick Reference Guide
 
 Fast lookup for common ToolUniverse tool development tasks.

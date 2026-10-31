@@ -1,3 +1,9 @@
+---
+title: cli-tool
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/cli-tool
+---
+
 # Building a CLI Tool with Ralph
 
 This example shows how to use Ralph Orchestrator to create a command-line tool with argparse, subcommands, and proper packaging.

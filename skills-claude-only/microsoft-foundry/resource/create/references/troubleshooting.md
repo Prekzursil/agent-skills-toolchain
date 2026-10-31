@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/resource/create/references/troubleshooting
+---
+
 # Troubleshooting: Create Foundry Resource
 
 ## Resource Creation Failures

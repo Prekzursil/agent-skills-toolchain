@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/ida-decompiler-cleanup/references/patterns
+---
+
 # IDA Decompiler Cleanup Patterns
 
 ## Best local helpers

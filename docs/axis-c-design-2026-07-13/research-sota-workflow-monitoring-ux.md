@@ -1,3 +1,9 @@
+---
+title: research-sota-workflow-monitoring-ux
+type: note
+permalink: dqverify-repo-20261013/docs/axis-c-design-2026-07-13/research-sota-workflow-monitoring-ux
+---
+
 # Research: SOTA Workflow-Monitoring UX (2026) — for an improved wfmon
 
 **Task:** survey the 2026 state of the art for MONITORING multi-agent / multi-step LLM

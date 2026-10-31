@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD-R2
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build-r2
+---
+
 # P2NEXT — BUILD round 2: fix what the auditor confirmed, and the same defect where it wasn't looked for
 
 **Measured 2026-08-13** against `ast-integrate` (worktree of `agent-skills-toolchain`, `main`).

@@ -1,3 +1,9 @@
+---
+title: adversarial-review-rubric
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/rubrics/adversarial-review-rubric
+---
+
 # Adversarial Review Rubric
 
 **Used By**: Code Review Agent (adversarial mode)

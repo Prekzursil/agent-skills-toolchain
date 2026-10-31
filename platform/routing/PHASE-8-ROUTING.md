@@ -1,3 +1,9 @@
+---
+title: PHASE-8-ROUTING
+type: note
+permalink: dqverify-repo-20261013/platform/routing/phase-8-routing
+---
+
 # Phase 8 — Skill and Capability Routing
 
 **Unit:** `build/phase8-routing` · **Spec:** `_USER-PROMPTS.md:10948-10963` · **Root:** `platform/routing/`

@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/resource/create/references/patterns
+---
+
 # Common Patterns: Create Foundry Resource
 
 **Table of Contents:** [Pattern A: Quick Setup](#pattern-a-quick-setup) · [Pattern B: Multi-Region Setup](#pattern-b-multi-region-setup) · [Quick Commands Reference](#quick-commands-reference)

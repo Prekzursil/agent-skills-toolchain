@@ -1,6 +1,9 @@
 ---
 name: research-integrity-forensics
-description: Use when checking a paper, corpus, or draft for integrity risks such as citation abuse, duplication, image problems, implausible claims, or unsupported certainty.
+description: Use when checking a paper, corpus, or draft for integrity risks such
+  as citation abuse, duplication, image problems, implausible claims, or unsupported
+  certainty.
+permalink: dqverify-repo-20261013/skills/research-integrity-forensics/skill
 ---
 
 # research-integrity-forensics

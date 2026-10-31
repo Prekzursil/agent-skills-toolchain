@@ -1,3 +1,9 @@
+---
+title: code-deployment-appservice
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/deploy/references/code-deployment-appservice
+---
+
 # Code Deployment — App Service & Functions
 
 After IaC deployment creates the Azure resources, deploy application code.

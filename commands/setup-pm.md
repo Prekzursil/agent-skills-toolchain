@@ -1,6 +1,7 @@
 ---
 description: Configure your preferred package manager (npm/pnpm/yarn/bun)
 disable-model-invocation: true
+permalink: dqverify-repo-20261013/commands/setup-pm
 ---
 
 # Package Manager Setup

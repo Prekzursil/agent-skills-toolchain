@@ -1,3 +1,9 @@
+---
+title: configure-multi-region
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/configure-multi-region
+---
+
 # Configure Multi-Region — Active-Passive with Azure Front Door
 
 ## When to Use

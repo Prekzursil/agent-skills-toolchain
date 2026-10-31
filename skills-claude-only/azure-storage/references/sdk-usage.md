@@ -1,3 +1,9 @@
+---
+title: sdk-usage
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-storage/references/sdk-usage
+---
+
 # Azure Storage SDK Usage
 
 SDK packages and quick start examples for Azure Storage services.

@@ -1,3 +1,9 @@
+---
+title: deploy-phase3
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/deploy-phase3
+---
+
 # deploy-phase3.md — Phase-3 switch plan (owner-triggered; run nothing before owner GO)
 
 Phase-3 artifacts (this change set) are DRAFTS: `AGENTS.new.md`, `CONTEXT.new.md` (generated),

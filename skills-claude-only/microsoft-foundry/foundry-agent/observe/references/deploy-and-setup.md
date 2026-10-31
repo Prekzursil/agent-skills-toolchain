@@ -1,3 +1,9 @@
+---
+title: deploy-and-setup
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/observe/references/deploy-and-setup
+---
+
 # Step 1 — Auto-Setup Evaluators & Dataset
 
 > **This step runs automatically after deployment.** If the agent was deployed via the [deploy skill](../../deploy/deploy.md), `.foundry` cache and metadata may already be configured. Check `.foundry/evaluators/`, `.foundry/datasets/`, and `.foundry/agent-metadata.yaml` for existing artifacts before re-creating them.

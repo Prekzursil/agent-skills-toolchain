@@ -1,3 +1,9 @@
+---
+title: troubleshoot
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/troubleshoot/troubleshoot
+---
+
 # Foundry Agent Troubleshoot
 
 Troubleshoot and debug Foundry agents by collecting Hosted Agent logs with azd, discovering observability connections, and querying Application Insights telemetry.

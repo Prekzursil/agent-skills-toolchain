@@ -1,6 +1,10 @@
 ---
 name: prototype
-description: Use when the user wants to prototype, sanity-check a data model or state machine, mock up a UI, explore design options before committing, or says "prototype this", "let me play with it", "try a few designs". Routes to a runnable terminal app for state/logic questions or several toggleable UI variations for design questions.
+description: Use when the user wants to prototype, sanity-check a data model or state
+  machine, mock up a UI, explore design options before committing, or says "prototype
+  this", "let me play with it", "try a few designs". Routes to a runnable terminal
+  app for state/logic questions or several toggleable UI variations for design questions.
+permalink: dqverify-repo-20261013/skills/prototype/skill
 ---
 
 # Prototype

@@ -1,7 +1,9 @@
 ---
 name: plankton-code-quality
-description: "Write-time code quality enforcement using Plankton — auto-formatting, linting, and Claude-powered fixes on every file edit via hooks."
+description: Write-time code quality enforcement using Plankton — auto-formatting,
+  linting, and Claude-powered fixes on every file edit via hooks.
 origin: community
+permalink: dqverify-repo-20261013/skills/plankton-code-quality/skill
 ---
 
 # Plankton Code Quality Skill

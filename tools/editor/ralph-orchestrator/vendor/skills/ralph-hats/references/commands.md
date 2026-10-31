@@ -1,3 +1,9 @@
+---
+title: commands
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/ralph-hats/references/commands
+---
+
 # Ralph Hats Commands
 
 ## Create or Edit a Hats File

@@ -1,3 +1,9 @@
+---
+title: experiment-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/jupyter-notebook/references/experiment-patterns
+---
+
 # Experiment Patterns
 
 Use this structure for exploratory and experimental work:

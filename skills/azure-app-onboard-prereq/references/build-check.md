@@ -1,3 +1,9 @@
+---
+title: build-check
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/build-check
+---
+
 # Build Check
 
 > ⛔ **No build/install/test commands during this check.** Use static analysis only.

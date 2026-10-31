@@ -1,3 +1,9 @@
+---
+title: examples
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/ralph-hats/references/examples
+---
+
 # Ralph Hats Examples
 
 ## Pipeline Example

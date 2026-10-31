@@ -1,3 +1,9 @@
+---
+title: B-reconcile-0
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b-reconcile-0
+---
+
 # B-reconcile slice 0 — 8 clusters (19,579 docs)
 
 Read-only reconcile of the whole-drive doc scan (`B-doc-index-complete.json`, 59,250 docs).

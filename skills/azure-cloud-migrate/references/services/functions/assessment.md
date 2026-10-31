@@ -1,3 +1,9 @@
+---
+title: assessment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/assessment
+---
+
 # Assessment Phase
 
 Generate a migration assessment report before any code changes.

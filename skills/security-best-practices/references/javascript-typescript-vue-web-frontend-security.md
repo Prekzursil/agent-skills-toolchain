@@ -1,3 +1,9 @@
+---
+title: javascript-typescript-vue-web-frontend-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-typescript-vue-web-frontend-security
+---
+
 # Vue.js Web Security Spec (Vue 3.x, TypeScript/JavaScript, common tooling: Vite)
 
 This document is designed as a **security spec** that supports:

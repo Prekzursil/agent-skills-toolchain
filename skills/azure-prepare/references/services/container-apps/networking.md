@@ -1,3 +1,9 @@
+---
+title: networking
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/networking
+---
+
 # Container Apps Networking
 
 VNet integration, ingress configuration, custom domains, and TLS for Container Apps.

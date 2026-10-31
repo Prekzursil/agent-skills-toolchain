@@ -1,6 +1,8 @@
 ---
 name: migrate
-description: Migrate from npm-installed metaswarm to the marketplace plugin — removes redundant files with safety checks
+description: Migrate from npm-installed metaswarm to the marketplace plugin — removes
+  redundant files with safety checks
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/migrate/skill
 ---
 
 # Migration Skill

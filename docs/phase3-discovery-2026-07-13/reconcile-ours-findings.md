@@ -1,3 +1,9 @@
+---
+title: reconcile-ours-findings
+type: note
+permalink: dqverify-repo-20261013/docs/phase3-discovery-2026-07-13/reconcile-ours-findings
+---
+
 # Reconcile — OUR (Claude-side) Findings, folded with PRIOR forgotten work
 
 *Read-only consolidation for the 2026-07-13 audit/design GATE. Reconciles our phase-3 config-SSOT

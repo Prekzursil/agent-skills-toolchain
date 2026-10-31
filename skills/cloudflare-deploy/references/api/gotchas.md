@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api/gotchas
+---
+
 # Gotchas & Troubleshooting
 
 ## Rate Limits & 429 Errors

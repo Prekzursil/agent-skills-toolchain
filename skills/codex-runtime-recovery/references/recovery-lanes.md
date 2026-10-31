@@ -1,3 +1,9 @@
+---
+title: recovery-lanes
+type: note
+permalink: dqverify-repo-20261013/skills/codex-runtime-recovery/references/recovery-lanes
+---
+
 # Recovery Lanes
 
 ## Lightweight recovery

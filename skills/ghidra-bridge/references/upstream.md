@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/ghidra-bridge/references/upstream
+---
+
 # Ghidra Bridge Notes
 
 ## Upstream

@@ -1,3 +1,9 @@
+---
+title: azure-cache-for-redis
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/services/redis/azure-cache-for-redis
+---
+
 ## Azure Redis Cost Optimization
 
 Reference guide for identifying cost savings opportunities in Azure Redis deployments through analysis and targeted scans.

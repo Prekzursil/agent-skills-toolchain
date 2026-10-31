@@ -1,3 +1,9 @@
+---
+title: python-django-web-server-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/python-django-web-server-security
+---
+
 # Django (Python) Web Security Spec (Django 6.0.x, Python 3.x)
 
 This document is designed as a **security spec** that supports:

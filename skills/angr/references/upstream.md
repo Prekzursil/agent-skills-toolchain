@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/angr/references/upstream
+---
+
 # Upstream Notes
 
 - Official docs: `https://docs.angr.io/`

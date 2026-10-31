@@ -1,3 +1,9 @@
+---
+title: azure-ai-translation-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-translation-ts
+---
+
 # Azure Translation — TypeScript SDK Quick Reference
 
 > Condensed from **azure-ai-translation-ts**. Full patterns (document translation, batch SAS, transliterate)

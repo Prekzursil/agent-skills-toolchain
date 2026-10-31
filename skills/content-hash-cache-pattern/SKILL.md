@@ -1,7 +1,9 @@
 ---
 name: content-hash-cache-pattern
-description: Cache expensive file processing results using SHA-256 content hashes — path-independent, auto-invalidating, with service layer separation.
+description: Cache expensive file processing results using SHA-256 content hashes
+  — path-independent, auto-invalidating, with service layer separation.
 origin: ECC
+permalink: dqverify-repo-20261013/skills/content-hash-cache-pattern/skill
 ---
 
 # Content-Hash File Cache Pattern

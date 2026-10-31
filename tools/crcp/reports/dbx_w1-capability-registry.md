@@ -1,3 +1,9 @@
+---
+title: dbx_w1-capability-registry
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-w1-capability-registry
+---
+
 # W1 capability registry
 
 ## Summary

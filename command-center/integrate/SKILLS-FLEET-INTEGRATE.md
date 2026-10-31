@@ -1,3 +1,9 @@
+---
+title: SKILLS-FLEET-INTEGRATE
+type: note
+permalink: dqverify-repo-20261013/command-center/integrate/skills-fleet-integrate
+---
+
 # SKILLS lane — INTEGRATE (last stage; the loop is over)
 
 STATUS: **MEASURED AND LANDED** as commit `e9b65d60` (9 files, +937/-3, zero deletions, zero

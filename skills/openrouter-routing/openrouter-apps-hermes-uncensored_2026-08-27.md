@@ -1,3 +1,9 @@
+---
+title: openrouter-apps-hermes-uncensored_2026-08-27
+type: note
+permalink: dqverify-repo-20261013/skills/openrouter-routing/openrouter-apps-hermes-uncensored-2026-08-27
+---
+
 # OpenRouter apps ecosystem · the "Hermes" at #1 · uncensored-local update
 
 *Generated: 27.08.2026 | Extends: `openrouter-complete-surface_2026-08-27.md` (apps gap) and `~/.agents/local-models-audit_2026-08-27.md` (uncensored lane) | Providers: firecrawl (live, some cache-hits ~7h old), WebSearch, live OpenRouter `/api/v1/models` + `/endpoints` probes (env key named only, never printed) | Confidence graded per claim.*

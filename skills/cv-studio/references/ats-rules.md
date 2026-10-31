@@ -1,3 +1,9 @@
+---
+title: ats-rules
+type: note
+permalink: dqverify-repo-20261013/skills/cv-studio/references/ats-rules
+---
+
 # ATS rules (2026) — for the SUBMITTED CV
 
 Applicant Tracking Systems (Workday, Greenhouse, Lever, Ashby, iCIMS, Taleo, SuccessFactors)

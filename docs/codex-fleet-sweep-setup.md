@@ -1,3 +1,9 @@
+---
+title: codex-fleet-sweep-setup
+type: note
+permalink: dqverify-repo-20261013/docs/codex-fleet-sweep-setup
+---
+
 # Codex Fleet Sweep — setup & token model
 
 The **fleet sweep** lets the PUBLIC control plane (QZT, `Prekzursil/quality-zero-platform`)

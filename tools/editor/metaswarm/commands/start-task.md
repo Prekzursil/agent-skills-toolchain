@@ -1,3 +1,9 @@
+---
+title: start-task
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/commands/start-task
+---
+
 # Start Task
 
 Determine task complexity and use appropriate workflow for efficient development.

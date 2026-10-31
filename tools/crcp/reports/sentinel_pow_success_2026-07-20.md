@@ -1,3 +1,9 @@
+---
+title: sentinel_pow_success_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/sentinel-pow-success-2026-07-20
+---
+
 # Sentinel PoW write-path — SUCCESS (2026-07-20)
 
 ## Proof

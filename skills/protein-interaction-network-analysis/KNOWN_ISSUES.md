@@ -1,3 +1,9 @@
+---
+title: KNOWN_ISSUES
+type: note
+permalink: dqverify-repo-20261013/skills/protein-interaction-network-analysis/known-issues
+---
+
 # Known Issues and Workarounds
 
 ## Issue #1: Verbose ToolUniverse Loading Messages ⚠️

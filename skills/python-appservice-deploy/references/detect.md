@@ -1,3 +1,9 @@
+---
+title: detect
+type: note
+permalink: dqverify-repo-20261013/skills/python-appservice-deploy/references/detect
+---
+
 # Framework Detection (Advisory)
 
 Framework detection is **advisory only**. The deployment never blocks because of an unknown framework.

@@ -1,3 +1,9 @@
+---
+title: azure-aks-spot
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/references/azure-aks-spot
+---
+
 # AKS Spot Node Pools
 
 Recommend and create Spot VM node pools for batch, dev/test, or fault-tolerant workloads (60-90% cost reduction vs regular nodes).

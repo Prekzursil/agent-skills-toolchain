@@ -1,3 +1,9 @@
+---
+title: model-route
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/model-route
+---
+
 # Model Route Command
 
 Route a file-backed implementation work unit through the checked-in model policy.

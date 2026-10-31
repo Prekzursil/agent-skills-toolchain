@@ -1,3 +1,9 @@
+---
+title: ORCHESTRATION
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/orchestration
+---
+
 # ORCHESTRATION.md has moved
 
 This file is now at `skills/start/SKILL.md` (the main metaswarm orchestration skill).

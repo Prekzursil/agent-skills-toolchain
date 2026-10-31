@@ -1,3 +1,9 @@
+---
+title: azure-resource-manager-redis-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/cost-optimization/sdk/azure-resource-manager-redis-dotnet
+---
+
 # Redis Management — .NET SDK Quick Reference
 
 > Condensed from **azure-resource-manager-redis-dotnet**. Full patterns

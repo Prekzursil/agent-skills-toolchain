@@ -1,3 +1,9 @@
+---
+title: global-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/global-rules
+---
+
 # Global Rules
 
 > **MANDATORY** — These rules apply to ALL skills. Violations are unacceptable.

@@ -1,3 +1,9 @@
+---
+title: bom-migration
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/bom-migration/bom-migration
+---
+
 # BOM Migration Guide
 
 How to add or upgrade `azure-sdk-bom` and clean up redundant versions across all supported build configurations.

@@ -1,3 +1,9 @@
+---
+title: azure-security-keyvault-keys-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-security-keyvault-keys-dotnet
+---
+
 # Key Vault Keys — .NET SDK Quick Reference
 
 > Condensed from **azure-security-keyvault-keys-dotnet**. Full patterns

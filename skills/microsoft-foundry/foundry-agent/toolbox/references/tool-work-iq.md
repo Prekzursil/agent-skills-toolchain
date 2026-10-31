@@ -1,3 +1,9 @@
+---
+title: tool-work-iq
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-work-iq
+---
+
 # Tool — Work IQ (`type: mcp`, preview) — Microsoft 365 work context
 
 Give the agent Microsoft 365 work context (mail, meetings, files, chats, and M365 agents) via the **Work IQ MCP server** at `https://workiq.svc.cloud.microsoft/mcp`. It attaches as a **remote MCP connection** and calls Work IQ as the **signed-in user**, so each user needs an **M365 Copilot license**. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/evaluations/readme
+---
+
 # Research & Documentation Skill Evaluations
 
 Evaluation scenarios for testing the Research & Documentation skill across different Codex models.
@@ -106,4 +112,3 @@ When adding Research & Documentation evaluations:
 - "Creates comprehensive research"
 - "Uses sources appropriately"
 - "Good documentation"
-

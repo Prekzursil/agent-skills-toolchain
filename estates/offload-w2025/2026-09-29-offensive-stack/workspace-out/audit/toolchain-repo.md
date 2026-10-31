@@ -1,3 +1,9 @@
+---
+title: toolchain-repo
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/audit/toolchain-repo
+---
+
 # Audit — `C:\Users\prekzursil\source\agent-skills-toolchain` (lane: toolchain-repo)
 
 Date: 2026-09-29. All findings below were produced in this session against this checkout.

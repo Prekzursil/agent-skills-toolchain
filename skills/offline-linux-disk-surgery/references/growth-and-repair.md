@@ -1,3 +1,9 @@
+---
+title: growth-and-repair
+type: note
+permalink: dqverify-repo-20261013/skills/offline-linux-disk-surgery/references/growth-and-repair
+---
+
 # Growth And Repair
 
 Typical ext4 growth sequence:

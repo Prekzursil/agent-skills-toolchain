@@ -1,3 +1,9 @@
+---
+title: post-deployment
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/post-deployment
+---
+
 # Post-Deployment Steps
 
 Execute critical post-deployment configuration after infrastructure provisioning completes.

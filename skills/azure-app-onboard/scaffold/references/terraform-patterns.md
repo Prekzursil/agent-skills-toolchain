@@ -1,3 +1,9 @@
+---
+title: terraform-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/terraform-patterns
+---
+
 # Terraform Patterns
 
 Alternative-path patterns for AppOnboard scaffold. Used when `.tf` files detected or user overrides `iacFormat`. Per-resource config comes from `mcp_azure_mcp_azureterraformbestpractices` at runtime — this file covers layout, provider, naming, state, tagging, and wiring.

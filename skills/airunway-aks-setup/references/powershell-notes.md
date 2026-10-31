@@ -1,3 +1,9 @@
+---
+title: powershell-notes
+type: note
+permalink: dqverify-repo-20261013/skills/airunway-aks-setup/references/powershell-notes
+---
+
 # PowerShell Command Variants
 
 This reference provides PowerShell equivalents for commands in steps 1, 4, 5, and 6 that use Bash-specific syntax.

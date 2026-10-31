@@ -1,6 +1,10 @@
 ---
 name: netlify-deploy
-description: Use when deploying a web project to Netlify via npx netlify, linking a repo, or creating preview or production Netlify deploys ; do NOT use for Vercel (use vercel-deploy), Render (use render-deploy), or Cloudflare (use cloudflare-deploy) ; returns Netlify deploy URL.
+description: Use when deploying a web project to Netlify via npx netlify, linking
+  a repo, or creating preview or production Netlify deploys ; do NOT use for Vercel
+  (use vercel-deploy), Render (use render-deploy), or Cloudflare (use cloudflare-deploy)
+  ; returns Netlify deploy URL.
+permalink: dqverify-repo-20261013/skills/netlify-deploy/skill
 ---
 
 # Netlify Deployment Skill

@@ -1,7 +1,13 @@
 ---
 name: refactor-equivalence
-description: Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an input where old_fn(x) != new_fn(x); a Hypothesis differential test is the fallback. Scoped to PURE, DETERMINISTIC functions; not for non-Python. Advisory only.
+description: Use when a change CLAIMS to be a pure/deterministic refactor - extract-method,
+  inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof
+  that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an input
+  where old_fn(x) != new_fn(x); a Hypothesis differential test is the fallback. Scoped
+  to PURE, DETERMINISTIC functions; not for non-Python. Advisory only.
+permalink: dqverify-repo-20261013/skills/refactor-equivalence/skill
 ---
+
 # Refactor-Equivalence (CrossHair diffbehavior + Hypothesis fallback)
 
 An agent asserting "this refactor is behavior-preserving" is the weakest kind of verifier — it is grading its own work. This skill replaces the assertion with an **external, symbolic proof**: CrossHair's `diffbehavior` drives Z3 to hunt for a concrete input where the old and new implementations diverge. Find one → the "pure refactor" is a silent behavior change; find none across all explored paths → high confidence the refactor is sound.

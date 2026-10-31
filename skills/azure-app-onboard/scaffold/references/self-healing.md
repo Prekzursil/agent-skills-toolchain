@@ -1,3 +1,9 @@
+---
+title: self-healing
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/scaffold/references/self-healing
+---
+
 # Self-Healing Loop — Error Classification & Auto-Fix
 
 Step 11 runs validation against the generated IaC via CLI commands (`az bicep build` + `az deployment sub what-if`). On failure, classify each error and apply the strategy below. Max 3 attempts before pausing to present a diagnosis (explain pattern → propose fix → ask user). After user approves, 5 more attempts before asking again — then every 5 thereafter. See scaffold SKILL.md § Self-Healing Loop for the full escalation protocol.

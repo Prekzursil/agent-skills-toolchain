@@ -1,3 +1,9 @@
+---
+title: worked-example
+type: note
+permalink: dqverify-repo-20261013/skills/pbinfo-python-jit/references/worked-example
+---
+
 # Worked Example: bunrau (pbinfo #5016)
 
 This document walks through a complete shellcode JIT solution end-to-end. The problem `bunrau` asks three different things based on a query type `C`:

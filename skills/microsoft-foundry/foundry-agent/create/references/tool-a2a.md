@@ -1,3 +1,9 @@
+---
+title: tool-a2a
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tool-a2a
+---
+
 # Tool — Agent-to-Agent (A2A) connection
 
 Create the `remote-a2a` connection that lets your agent call another A2A-compatible agent as a tool. The peer can be another Foundry agent or any external service that implements the A2A protocol.

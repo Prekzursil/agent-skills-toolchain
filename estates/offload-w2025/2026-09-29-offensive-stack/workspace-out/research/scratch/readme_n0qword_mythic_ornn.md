@@ -1,3 +1,9 @@
+---
+title: readme_n0qword_mythic_ornn
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-n0qword-mythic-ornn
+---
+
 # Mythic Ornn
 
 <p align="center">

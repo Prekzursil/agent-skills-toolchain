@@ -1,6 +1,14 @@
 ---
 name: hacktricks
-description: Retrieve and synthesize HackTricks and HackTricks Cloud guidance for authorized security research, pentests, CTFs, hardening, incident response, reverse engineering, and web, network, Active Directory, mobile, cloud, OS, and protocol techniques. Use when the user names HackTricks or needs a concrete security technique, checklist, command, payload, prerequisite, or defensive reference. Route between the connected hacktricks MCP, the offline corpus, and the quota-limited official HackTricks AI API. Do not use it as current CVE or vendor truth, as authorization to act, or as a substitute for generic library documentation.
+description: Retrieve and synthesize HackTricks and HackTricks Cloud guidance for
+  authorized security research, pentests, CTFs, hardening, incident response, reverse
+  engineering, and web, network, Active Directory, mobile, cloud, OS, and protocol
+  techniques. Use when the user names HackTricks or needs a concrete security technique,
+  checklist, command, payload, prerequisite, or defensive reference. Route between
+  the connected hacktricks MCP, the offline corpus, and the quota-limited official
+  HackTricks AI API. Do not use it as current CVE or vendor truth, as authorization
+  to act, or as a substitute for generic library documentation.
+permalink: dqverify-repo-20261013/skills/hacktricks/skill
 ---
 
 # HackTricks

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/redis/readme
+---
+
 # Azure Cache for Redis Recipe — REFERENCE ONLY
 
 Adds Azure Cache for Redis integration to an App Service base template.

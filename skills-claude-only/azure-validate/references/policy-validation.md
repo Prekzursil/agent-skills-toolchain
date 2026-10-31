@@ -1,3 +1,9 @@
+---
+title: policy-validation
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-validate/references/policy-validation
+---
+
 # Azure Policy Validation
 
 ## How to Validate Policies

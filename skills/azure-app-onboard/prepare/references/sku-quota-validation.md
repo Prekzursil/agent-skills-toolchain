@@ -1,3 +1,9 @@
+---
+title: sku-quota-validation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/sku-quota-validation
+---
+
 # SKU Quota Validation Procedure
 
 Pre-deploy quota and offer restriction checks. Read during prepare Step 5 before deploying.

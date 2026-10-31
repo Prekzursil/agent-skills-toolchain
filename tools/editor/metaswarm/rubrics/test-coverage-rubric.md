@@ -1,3 +1,9 @@
+---
+title: test-coverage-rubric
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/rubrics/test-coverage-rubric
+---
+
 # Test Coverage Rubric
 
 **Used By**: Test Automator Agent

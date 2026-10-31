@@ -1,3 +1,9 @@
+---
+title: vmware-disk-expander
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/vmware-disk-expander
+---
+
 # vmware-disk-expander
 
 ## Purpose

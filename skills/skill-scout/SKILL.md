@@ -1,7 +1,10 @@
 ---
 name: skill-scout
-description: Search local, marketplace, GitHub and web sources before creating a new skill. Use when the user wants to find, fork or build one. NOT for authoring it (use writing-skills).
+description: Search local, marketplace, GitHub and web sources before creating a new
+  skill. Use when the user wants to find, fork or build one. NOT for authoring it
+  (use writing-skills).
 origin: community
+permalink: dqverify-repo-20261013/skills/skill-scout/skill
 ---
 
 # Skill Scout

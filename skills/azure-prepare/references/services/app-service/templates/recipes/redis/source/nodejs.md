@@ -1,3 +1,9 @@
+---
+title: nodejs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/redis/source/nodejs
+---
+
 # Redis Recipe — Node.js — REFERENCE ONLY
 
 ## ioredis with Token Refresh

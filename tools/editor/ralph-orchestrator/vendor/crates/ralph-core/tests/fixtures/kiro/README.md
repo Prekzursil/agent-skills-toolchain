@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-core/tests/fixtures/kiro/readme
+---
+
 # Kiro CLI Test Fixtures
 
 This directory contains JSONL session fixtures for smoke testing the Ralph orchestrator with the Kiro CLI adapter (AWS Kiro, formerly Amazon Q Developer CLI).

@@ -1,3 +1,9 @@
+---
+title: voiceover
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/voiceover
+---
+
 # Product demo / voiceover defaults
 
 ## Suggested defaults

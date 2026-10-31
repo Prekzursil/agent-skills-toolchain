@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/workers-vpc/api
+---
+
 # TCP Sockets API Reference
 
 Complete API reference for the Cloudflare Workers TCP Sockets API (`cloudflare:sockets`).

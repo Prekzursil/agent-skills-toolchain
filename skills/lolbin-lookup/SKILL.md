@@ -1,7 +1,13 @@
 ---
 name: lolbin-lookup
-description: Structured living-off-the-land binary lookup against the local GTFOBins (Unix) and LOLBAS (Windows) corpora under D:\knowledge. Answers "what can binary X do" - name to technique/category to ready command - by parsing GTFOBins YAML (file-read, file-write, shell, suid, sudo) and LOLBAS yml Commands. Use when you have a specific binary (nmap, certutil, tar, msbuild) and want its abuse techniques.
-license: Skill MIT. Indexed content is GTFOBins and LOLBAS (both GPL-3.0) — personal local reference only, no redistribution. See D:\knowledge\CORPORA.md.
+description: Structured living-off-the-land binary lookup against the local GTFOBins
+  (Unix) and LOLBAS (Windows) corpora under D:\knowledge. Answers "what can binary
+  X do" - name to technique/category to ready command - by parsing GTFOBins YAML (file-read,
+  file-write, shell, suid, sudo) and LOLBAS yml Commands. Use when you have a specific
+  binary (nmap, certutil, tar, msbuild) and want its abuse techniques.
+license: Skill MIT. Indexed content is GTFOBins and LOLBAS (both GPL-3.0) — personal
+  local reference only, no redistribution. See D:\knowledge\CORPORA.md.
+permalink: dqverify-repo-20261013/skills/lolbin-lookup/skill
 ---
 
 # lolbin-lookup — GTFOBins + LOLBAS structured quick-lookup

@@ -1,3 +1,9 @@
+---
+title: handoff
+type: note
+permalink: dqverify-repo-20261013/skills/cheat-engine-x64dbg-ida-handoff/references/handoff
+---
+
 # Cheat Engine -> x64dbg -> IDA Handoff
 
 ## Preserve this at each step

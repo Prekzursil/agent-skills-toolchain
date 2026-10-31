@@ -1,3 +1,9 @@
+---
+title: functions-deploy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/azd/functions-deploy
+---
+
 # Azure Functions Deployment
 
 Deployment workflows for Azure Functions using AZD.

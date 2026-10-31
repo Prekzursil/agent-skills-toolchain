@@ -1,3 +1,9 @@
+---
+title: persona-template
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/self-evolve/references/persona-template
+---
+
 # Researcher Persona Agent Template
 
 ## Agent Prompt Structure

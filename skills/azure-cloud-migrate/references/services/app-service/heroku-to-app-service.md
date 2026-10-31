@@ -1,3 +1,9 @@
+---
+title: heroku-to-app-service
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/app-service/heroku-to-app-service
+---
+
 # Heroku to Azure App Service Migration
 
 Detailed guidance for migrating Heroku applications to Azure App Service.

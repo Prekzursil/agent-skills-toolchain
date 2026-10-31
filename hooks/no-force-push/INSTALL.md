@@ -1,3 +1,9 @@
+---
+title: INSTALL
+type: note
+permalink: dqverify-repo-20261013/hooks/no-force-push/install
+---
+
 # Install: no-force-push  (PreToolUse discipline)
 
 **STATUS: STAGED FOR REVIEW - NOT WIRED IN.** `forge-discipline` never edits your

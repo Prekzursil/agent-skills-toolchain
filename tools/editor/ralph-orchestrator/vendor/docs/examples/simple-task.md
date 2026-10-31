@@ -1,3 +1,9 @@
+---
+title: simple-task
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/examples/simple-task
+---
+
 # Simple Task Example: Todo List CLI
 
 This example demonstrates building a simple command-line todo list application using Ralph Orchestrator.

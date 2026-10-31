@@ -1,3 +1,9 @@
+---
+title: vmware-guest-access-recovery
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/vmware-guest-access-recovery
+---
+
 # vmware-guest-access-recovery
 
 ## Purpose

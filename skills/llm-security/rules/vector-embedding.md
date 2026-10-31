@@ -3,6 +3,7 @@ title: LLM08 - Secure Vector and Embedding Systems
 impact: HIGH
 impactDescription: Data leakage, poisoned retrieval, cross-tenant information exposure
 tags: security, llm, rag, embeddings, vector-database, owasp-llm08
+permalink: dqverify-repo-20261013/skills/llm-security/rules/vector-embedding
 ---
 
 ## LLM08: Secure Vector and Embedding Systems

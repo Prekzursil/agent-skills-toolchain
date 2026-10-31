@@ -1,3 +1,9 @@
+---
+title: iac-rules
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azd/iac-rules
+---
+
 # AZD IAC Rules
 
 IaC rules for AZD projects. **Additive** — for Bicep, apply `mcp_bicep_get_bicep_best_practices`, `mcp_bicep_list_avm_metadata`, and `mcp_bicep_get_az_resource_type_schema` first; for Terraform, apply `mcp_azure_mcp_azureterraformbestpractices` first; then apply these azd-specific rules.

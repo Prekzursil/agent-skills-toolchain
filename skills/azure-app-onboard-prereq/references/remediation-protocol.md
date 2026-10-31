@@ -1,3 +1,9 @@
+---
+title: remediation-protocol
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/remediation-protocol
+---
+
 # Remediation Protocol — Step 6
 
 ## Pre-check

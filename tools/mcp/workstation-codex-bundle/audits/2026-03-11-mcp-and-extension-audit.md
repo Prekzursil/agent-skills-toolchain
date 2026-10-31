@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-mcp-and-extension-audit
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/audits/2026-03-11-mcp-and-extension-audit
+---
+
 # 2026-03-11 MCP and VS Code extension audit
 
 This is the current reliable workstation audit after the Windows-first stabilization pass. It reflects the live canonical Codex profile, the secondary VS Code settings, the extension inventory, and the no-kill parentage audit of noisy helper processes.

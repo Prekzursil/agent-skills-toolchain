@@ -1,3 +1,9 @@
+---
+title: resources-limits-quotas
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/resources-limits-quotas
+---
+
 # Azure Resource Limits and Quotas
 
 Check Azure resource availability during azure-prepare workflow. Validate after customer selects region.

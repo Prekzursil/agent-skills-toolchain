@@ -1,3 +1,9 @@
+---
+title: azure-servicebus-dotnet
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-servicebus-dotnet
+---
+
 # Azure Service Bus SDK — .NET (C#)
 
 Package: `Azure.Messaging.ServiceBus` | [README](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/TROUBLESHOOTING.md)

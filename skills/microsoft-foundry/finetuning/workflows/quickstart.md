@@ -1,3 +1,9 @@
+---
+title: quickstart
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/workflows/quickstart
+---
+
 # Quickstart: Fine-Tune Your First Model
 
 6 steps from zero to a fine-tuned model using SFT with synthetic data.

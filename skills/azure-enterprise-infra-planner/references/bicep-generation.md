@@ -1,3 +1,9 @@
+---
+title: bicep-generation
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/bicep-generation
+---
+
 # Bicep Generation
 
 Generate Bicep IaC files from the approved infrastructure plan.

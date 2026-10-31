@@ -1,7 +1,15 @@
 ---
 name: biomni-local
-description: Use to bring up, diagnose, or run Stanford Biomni locally - the agentic bio toolchain (A1 agent on the GLM coding plan, 41-package R stack, 181 CLI bioinformatics tools, 14GB data lake) as a WSL2 gradio daemon on 127.0.0.1:7860. Triggers - biomni, bm verbs, agent bio task, plink2/bwa/homer/genomics/DESeq2/xcms work, :7860 down, biomni crash, data lake questions. Teaches the bm verbs (open, ensure, status, fix, doctor, task, tool, r), the canonical A1 construction (bare A1() asserts), the two version pins (gradio<6, langgraph 1.2.x), and that the lake lives at ~/Biomni/data with ~/biomni-data as a symlink.
+description: Use to bring up, diagnose, or run Stanford Biomni locally - the agentic
+  bio toolchain (A1 agent on the GLM coding plan, 41-package R stack, 181 CLI bioinformatics
+  tools, 14GB data lake) as a WSL2 gradio daemon on 127.0.0.1:7860. Triggers - biomni,
+  bm verbs, agent bio task, plink2/bwa/homer/genomics/DESeq2/xcms work, :7860 down,
+  biomni crash, data lake questions. Teaches the bm verbs (open, ensure, status, fix,
+  doctor, task, tool, r), the canonical A1 construction (bare A1() asserts), the two
+  version pins (gradio<6, langgraph 1.2.x), and that the lake lives at ~/Biomni/data
+  with ~/biomni-data as a symlink.
 license: MIT
+permalink: dqverify-repo-20261013/skills/biomni-local/skill
 ---
 
 # Biomni (local) — one-command control via `bm`

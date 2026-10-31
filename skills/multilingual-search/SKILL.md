@@ -1,6 +1,14 @@
 ---
 name: multilingual-search
-description: Reach non-English sources deliberately - query in the target language against a native-index engine (Yandex for RU, Quark/360search for CN, Naver for KR, Seznam for CZ), fuse several engines with Reciprocal Rank Fusion, and cite the original while translating only on output. Use when a research question has regional, non-English, or non-Western coverage that an English-only search will miss, when results feel thin or one-sided, when a topic is primarily discussed in Russian/Chinese/Korean/Japanese/Arabic sources, or when a claim needs corroboration from an index Google and Bing do not dominate. Also use when merging results from several search providers into one ranking.
+description: Reach non-English sources deliberately - query in the target language
+  against a native-index engine (Yandex for RU, Quark/360search for CN, Naver for
+  KR, Seznam for CZ), fuse several engines with Reciprocal Rank Fusion, and cite the
+  original while translating only on output. Use when a research question has regional,
+  non-English, or non-Western coverage that an English-only search will miss, when
+  results feel thin or one-sided, when a topic is primarily discussed in Russian/Chinese/Korean/Japanese/Arabic
+  sources, or when a claim needs corroboration from an index Google and Bing do not
+  dominate. Also use when merging results from several search providers into one ranking.
+permalink: dqverify-repo-20261013/skills/multilingual-search/skill
 ---
 
 # Multilingual search

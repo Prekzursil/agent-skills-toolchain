@@ -1,3 +1,9 @@
+---
+title: cloudrun-to-container-apps
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/cloudrun-to-container-apps
+---
+
 # Google Cloud Run → Azure Container Apps
 
 Detailed guidance for migrating Cloud Run serverless containers to Azure Container Apps.

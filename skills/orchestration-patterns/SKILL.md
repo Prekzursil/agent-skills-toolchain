@@ -1,7 +1,20 @@
 ---
 name: orchestration-patterns
-description: "Use when orchestrating a multi-agent or multi-step coding workflow and you need the proven cross-vendor patterns for THIS Windows workspace: the Architect-to-Editor split (an Opus architect emits a typed change-spec, Codex applies it via the mounted codex mcp-server rail); the sandbox ladder (route risky or untrusted exec to WSL2 native, the docker MCP, or a modal_sandbox, because Windows has no native OS-level process sandbox); a Serena-seeded PageRank repo-map (rank central symbols over Serena LSP reference edges, no tree-sitter pipeline and no vector store); Goose-style lead/worker failure-threshold escalation; and a per-edit lint ladder capped at max_reflections=3. Triggers include split architect and editor across models, route risky exec to a sandbox, build a repo map without embeddings, cap agent retries, escalate a stuck work-unit. NOT for wiring the Codex fan-out channel itself (use multi-ai-mingle) or picking among finished candidate patches (use execution-grounded-bon)."
+description: 'Use when orchestrating a multi-agent or multi-step coding workflow and
+  you need the proven cross-vendor patterns for THIS Windows workspace: the Architect-to-Editor
+  split (an Opus architect emits a typed change-spec, Codex applies it via the mounted
+  codex mcp-server rail); the sandbox ladder (route risky or untrusted exec to WSL2
+  native, the docker MCP, or a modal_sandbox, because Windows has no native OS-level
+  process sandbox); a Serena-seeded PageRank repo-map (rank central symbols over Serena
+  LSP reference edges, no tree-sitter pipeline and no vector store); Goose-style lead/worker
+  failure-threshold escalation; and a per-edit lint ladder capped at max_reflections=3.
+  Triggers include split architect and editor across models, route risky exec to a
+  sandbox, build a repo map without embeddings, cap agent retries, escalate a stuck
+  work-unit. NOT for wiring the Codex fan-out channel itself (use multi-ai-mingle)
+  or picking among finished candidate patches (use execution-grounded-bon).'
+permalink: dqverify-repo-20261013/skills/orchestration-patterns/skill
 ---
+
 # orchestration-patterns
 
 Five orchestration patterns that ride the **already-mounted bus** on this Windows 11 machine

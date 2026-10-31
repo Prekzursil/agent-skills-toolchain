@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-keys-rust
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-keyvault-keys-rust
+---
+
 # Key Vault Keys — Rust SDK Quick Reference
 
 > Condensed from **azure-keyvault-keys-rust**. Full patterns (EC keys,

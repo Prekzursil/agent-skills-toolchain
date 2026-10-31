@@ -1,3 +1,9 @@
+---
+title: tool-mcp-user-entra-token
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-user-entra-token
+---
+
 # Tool — Remote MCP server, user Entra token (`type: mcp`, auth `UserEntraToken`)
 
 Attach a remote MCP server that authenticates with the **caller's own Entra identity** — the platform forwards the signed-in user's Entra token to the MCP server (auth type `UserEntraToken`), so the server sees the **end user**, not a shared credential. No BYO app registration, client secret, or OAuth consent flow. Needs a **connection** (`--kind remote-tool --auth-type user-entra-token`) scoped to the upstream resource via `--audience`; the toolbox references it by name and the created tool carries a populated `project_connection_id`.

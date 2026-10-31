@@ -1,3 +1,9 @@
+---
+title: dbx_merge-B-write-sse
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/dbx-merge-b-write-sse
+---
+
 # CRCP merge report: write path / SSE
 
 ## Result

@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+- '**/*.swift'
+- '**/Package.swift'
+permalink: dqverify-repo-20261013/agent-self/config/rules/swift/coding-style
 ---
+
 # Swift Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Swift specific content.

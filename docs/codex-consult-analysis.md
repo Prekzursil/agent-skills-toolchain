@@ -1,3 +1,9 @@
+---
+title: codex-consult-analysis
+type: note
+permalink: dqverify-repo-20261013/docs/codex-consult-analysis
+---
+
 # codex_consult MCP Server & PromptBridge Consultation System -- Analysis Report
 
 > **SUPERSEDED 2026-08-09 — the system analysed below no longer exists.** Every tree this

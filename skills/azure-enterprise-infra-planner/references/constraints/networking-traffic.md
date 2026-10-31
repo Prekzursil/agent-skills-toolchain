@@ -1,3 +1,9 @@
+---
+title: networking-traffic
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/networking-traffic
+---
+
 # Networking (Traffic) Pairing Constraints
 
 ### Application Gateway

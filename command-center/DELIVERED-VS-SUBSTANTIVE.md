@@ -1,3 +1,9 @@
+---
+title: DELIVERED-VS-SUBSTANTIVE
+type: note
+permalink: dqverify-repo-20261013/command-center/delivered-vs-substantive
+---
+
 # "38 delivered" is "38 substantive" — Prompt Two has 2 delivered units, not 38
 
 **Written 2026-08-12 to stop a false number propagating.** The 13.3-hour build wave

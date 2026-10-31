@@ -1,3 +1,9 @@
+---
+title: codex-config-canonicalizer
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/codex-config-canonicalizer
+---
+
 # codex-config-canonicalizer
 
 ## Purpose

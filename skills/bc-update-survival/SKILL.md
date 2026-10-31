@@ -1,6 +1,16 @@
 ---
 name: bc-update-survival
-description: Use when a Battle Cats (EN, jp.co.ponos.battlecatsen) update relinks lib/x86_64/libnative-lib.so and your pinned RVAs go stale — the toolpack that RETIRES hardcoded offsets. AOB wildcard-signature resolver (author a byte pattern that wildcards only the reloc-sensitive bytes, then re-locate the function by pattern via offline .so scan or live `frida search_memory`/Memory.scan — survives relink where a fixed RVA does not); ghidriff one-command cross-version .so diff that AUTO-PORTS the whole offset table old→new; and a per-version-bump update-triage (extract + sha-compare + diff APK/DAT/.so). Ships a SHADOW-mode drift gate (observe + log only, never blocks). Use before trusting any bc-drive / battlecats-event-unlock offset after a version bump. NOT for save-file edits (bcsfe-save-roundtrip) or live UI driving (bc-drive).
+description: Use when a Battle Cats (EN, jp.co.ponos.battlecatsen) update relinks
+  lib/x86_64/libnative-lib.so and your pinned RVAs go stale — the toolpack that RETIRES
+  hardcoded offsets. AOB wildcard-signature resolver (author a byte pattern that wildcards
+  only the reloc-sensitive bytes, then re-locate the function by pattern via offline
+  .so scan or live `frida search_memory`/Memory.scan — survives relink where a fixed
+  RVA does not); ghidriff one-command cross-version .so diff that AUTO-PORTS the whole
+  offset table old→new; and a per-version-bump update-triage (extract + sha-compare
+  + diff APK/DAT/.so). Ships a SHADOW-mode drift gate (observe + log only, never blocks).
+  Use before trusting any bc-drive / battlecats-event-unlock offset after a version
+  bump. NOT for save-file edits (bcsfe-save-roundtrip) or live UI driving (bc-drive).
+permalink: dqverify-repo-20261013/skills/bc-update-survival/skill
 ---
 
 # bc-update-survival — survive BC updates automatically

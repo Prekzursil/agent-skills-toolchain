@@ -1,3 +1,9 @@
+---
+title: QUICK_START
+type: note
+permalink: dqverify-repo-20261013/skills/protein-interaction-network-analysis/quick-start
+---
+
 # Protein Interaction Network Analysis - Quick Start
 
 **One-minute guide** to analyzing protein networks with ToolUniverse.

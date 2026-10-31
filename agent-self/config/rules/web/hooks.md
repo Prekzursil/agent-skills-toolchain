@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "**/*.ts"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.html"
-  - "**/*.vue"
-  - "**/*.svelte"
+- '**/*.tsx'
+- '**/*.jsx'
+- '**/*.ts'
+- '**/*.js'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.html'
+- '**/*.vue'
+- '**/*.svelte'
+permalink: dqverify-repo-20261013/agent-self/config/rules/web/hooks
 ---
+
 > This file extends [common/hooks.md](../common/hooks.md) with web-specific hook recommendations.
 
 # Web Hooks

@@ -2,6 +2,7 @@
 name: instinct-status
 description: Show learned instincts (project + global) with confidence
 command: true
+permalink: dqverify-repo-20261013/agent-self/config/commands/instinct-status
 ---
 
 # Instinct Status Command

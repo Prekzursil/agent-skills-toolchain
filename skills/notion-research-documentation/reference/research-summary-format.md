@@ -1,3 +1,9 @@
+---
+title: research-summary-format
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/research-summary-format
+---
+
 # Research Summary Format
 
 **When to use**: General research requests, most common format
@@ -30,4 +36,3 @@ See [research-summary-template.md](research-summary-template.md) for the full te
 - "What does our project documentation say about the API redesign?"
 - "Summarize the team's discussion about mobile strategy"
 - "Compile information about our deployment process"
-

@@ -1,3 +1,9 @@
+---
+title: azure-data-tables-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-storage/references/sdk/azure-data-tables-py
+---
+
 # Tables — Python SDK Quick Reference
 
 > Condensed from **azure-data-tables-py**. Full patterns (batch operations,

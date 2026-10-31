@@ -1,3 +1,9 @@
+---
+title: CONTRIBUTING
+type: note
+permalink: dqverify-repo-20261013/tools/omniaudit-mcp/contributing
+---
+
 # Contributing to OmniAudit MCP
 
 ## Development Setup

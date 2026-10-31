@@ -1,3 +1,9 @@
+---
+title: community-knowledge
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/community-knowledge
+---
+
 # Community Knowledge and Caveats
 
 Use this file for practical patterns when official docs are silent. Validate critical claims against current build behavior.

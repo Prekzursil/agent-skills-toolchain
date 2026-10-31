@@ -1,3 +1,9 @@
+---
+title: assessment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/assessment-guide
+---
+
 # Kubernetes to Azure Container Apps - Assessment Guide
 
 ## Compatibility Matrix

@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
+- '**/*.py'
+- '**/*.pyi'
+permalink: dqverify-repo-20261013/agent-self/config/rules/python/coding-style
 ---
+
 # Python Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Python specific content.

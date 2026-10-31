@@ -1,3 +1,9 @@
+---
+title: readme_r74tech_virga
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/readme-r74tech-virga
+---
+
 # Virga
 
 A modern Command & Control (C2) framework with local LLM embedded in beacon implants for autonomous post-exploitation. By running AI entirely on the compromised host, Virga minimizes C2 connections and enables agents to complete complex tasks independently with natural language instructions.

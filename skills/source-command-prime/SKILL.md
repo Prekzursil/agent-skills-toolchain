@@ -1,6 +1,7 @@
 ---
-name: "source-command-prime"
-description: "Load relevant knowledge base facts into context before starting work"
+name: source-command-prime
+description: Load relevant knowledge base facts into context before starting work
+permalink: dqverify-repo-20261013/skills/source-command-prime/skill
 ---
 
 # source-command-prime

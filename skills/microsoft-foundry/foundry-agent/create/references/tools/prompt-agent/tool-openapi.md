@@ -1,3 +1,9 @@
+---
+title: tool-openapi
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/tools/prompt-agent/tool-openapi
+---
+
 # Tool — OpenAPI
 
 Expose a REST API to the agent by attaching its OpenAPI 3.x spec. The platform parses the spec and synthesizes one tool per operation.

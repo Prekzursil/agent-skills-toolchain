@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/.claude/**"
-  - "**/.agents/**"
-  - "**/.codex/**"
+- '**/.claude/**'
+- '**/.agents/**'
+- '**/.codex/**'
+permalink: dqverify-repo-20261013/rules/common/cross-vendor-dispatch
 ---
 
 # Cross-Vendor Dispatch (Claude → Codex, and any agent that shells to another agent runtime)

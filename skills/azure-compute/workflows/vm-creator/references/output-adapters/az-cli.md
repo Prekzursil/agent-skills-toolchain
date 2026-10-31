@@ -1,3 +1,9 @@
+---
+title: az-cli
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/output-adapters/az-cli
+---
+
 # az CLI adapter
 
 Fast, portable, scriptable. Works anywhere `az` is installed and logged in.

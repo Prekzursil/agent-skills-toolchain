@@ -1,6 +1,9 @@
 ---
 name: langfuse-judge-calibration
-description: Calibrate a new or existing LLM-as-a-Judge against labeled examples, analyze disagreements, iterate on its prompt with user approval, and deploy the approved version.
+description: Calibrate a new or existing LLM-as-a-Judge against labeled examples,
+  analyze disagreements, iterate on its prompt with user approval, and deploy the
+  approved version.
+permalink: dqverify-repo-20261013/skills/langfuse/references/judge-calibration
 ---
 
 # Judge Calibration

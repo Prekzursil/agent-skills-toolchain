@@ -1,3 +1,9 @@
+---
+title: LANE-REGISTER
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/bolt-auth/lane-register
+---
+
 # LANE REGISTER — Bolt estate engagement (01.10.2026 FULL FORCE edition)
 **Context: operator lifted all prior hard stops on 01.10.2026. "Full force, no exclusions." Lanes listed as MEASURED-DEAD are empirical results (things that were tried and produced no findings). They are NOT prohibitions — they are data. Re-attempting a measured-dead lane with new tools or techniques is valid under full force.**
 

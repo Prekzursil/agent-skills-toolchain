@@ -1,6 +1,10 @@
 ---
 name: video-join-concat
-description: Use when joining/concatenating multiple clips into ONE output, or assembling approved clips into an editable NLE timeline (CMX3600 EDL / CSV for Premiere/Resolve). Covers both media_studio ffmpeg paths, concat demuxer and filter. NOT for re-encoding one clip (use video-convert).
+description: Use when joining/concatenating multiple clips into ONE output, or assembling
+  approved clips into an editable NLE timeline (CMX3600 EDL / CSV for Premiere/Resolve).
+  Covers both media_studio ffmpeg paths, concat demuxer and filter. NOT for re-encoding
+  one clip (use video-convert).
+permalink: dqverify-repo-20261013/skills/video-join-concat/skill
 ---
 
 # video-join-concat

@@ -1,3 +1,9 @@
+---
+title: backpressure
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/concepts/backpressure
+---
+
 # Backpressure
 
 Backpressure is Ralph's mechanism for enforcing quality gates. Instead of prescribing how to do something, you define gates that reject incomplete work.

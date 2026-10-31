@@ -1,3 +1,9 @@
+---
+title: terraform
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/azd/terraform
+---
+
 # AZD with Terraform
 
 Use Azure Developer CLI (azd) with Terraform as the infrastructure provider.

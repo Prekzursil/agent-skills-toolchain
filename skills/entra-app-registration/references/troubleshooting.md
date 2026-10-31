@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/entra-app-registration/references/troubleshooting
+---
+
 # Troubleshooting Microsoft Entra App Registration
 
 This guide helps you diagnose and fix common issues with app registrations and authentication.

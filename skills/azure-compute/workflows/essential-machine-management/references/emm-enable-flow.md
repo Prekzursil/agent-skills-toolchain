@@ -1,3 +1,9 @@
+---
+title: emm-enable-flow
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/essential-machine-management/references/emm-enable-flow
+---
+
 # EMM Enable Flow
 
 Copilot-guided step-by-step workflow for enabling Essential Machine Management on a subscription. Copilot orchestrates each step, triggering the necessary CLI commands or API calls on behalf of the user.

@@ -1,3 +1,9 @@
+---
+title: typescript
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/templates/recipes/cosmosdb/eval/typescript
+---
+
 # Cosmos DB Recipe - TypeScript Eval
 
 ## MCP Template Validation

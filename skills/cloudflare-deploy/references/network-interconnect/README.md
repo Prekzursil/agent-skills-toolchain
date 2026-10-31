@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/network-interconnect/readme
+---
+
 # Cloudflare Network Interconnect (CNI)
 
 Private, high-performance connectivity to Cloudflare's network. **Enterprise-only**.

@@ -1,3 +1,9 @@
+---
+title: plugin-bridge
+type: note
+permalink: dqverify-repo-20261013/skills/cyberstrike/references/plugin-bridge
+---
+
 # CyberStrike harness bridge, plugin, and companion-MCP reference
 
 Durable operator reference for the license-isolated integration boundary. Not a

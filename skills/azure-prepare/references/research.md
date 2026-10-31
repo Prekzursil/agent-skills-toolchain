@@ -1,3 +1,9 @@
+---
+title: research
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/research
+---
+
 # Research Components
 
 After architecture planning, research each selected component to gather best practices before generating artifacts.

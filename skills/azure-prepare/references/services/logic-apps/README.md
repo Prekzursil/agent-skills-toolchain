@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/logic-apps/readme
+---
+
 # Azure Logic Apps
 
 Low-code workflow automation and integration platform.

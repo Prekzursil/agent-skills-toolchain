@@ -1,6 +1,9 @@
 ---
 name: imhex
-description: Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed. ImHex provides a powerful CLI and pattern language for structured binary data inspection.
+description: Use when hex editing, binary analysis, pattern language parsing, file
+  identification, hash computation, or hex dump generation is needed. ImHex provides
+  a powerful CLI and pattern language for structured binary data inspection.
+permalink: dqverify-repo-20261013/skills/imhex/skill
 ---
 
 # ImHex

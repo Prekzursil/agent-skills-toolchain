@@ -1,3 +1,9 @@
+---
+title: CODEX-STUB-RETIREMENT-LANE
+type: note
+permalink: dqverify-repo-20261013/command-center/codex-stub-retirement-lane
+---
+
 # CODEX STUB RETIREMENT LANE
 
 **Status:** REVIEWED PLAN — NOT EXECUTED. Nothing in this document has been applied to the

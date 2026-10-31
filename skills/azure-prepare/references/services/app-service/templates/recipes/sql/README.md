@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/sql/readme
+---
+
 # SQL Database Recipe — REFERENCE ONLY
 
 Adds Azure SQL Database integration to an App Service base template.

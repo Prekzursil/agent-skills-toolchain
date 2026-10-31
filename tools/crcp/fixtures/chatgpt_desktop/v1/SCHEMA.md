@@ -1,3 +1,9 @@
+---
+title: SCHEMA
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/fixtures/chatgpt-desktop/v1/schema
+---
+
 # ChatGPT Desktop Fixture Schema v1
 
 Generated: 2026-07-20T00:08:58.920701+00:00

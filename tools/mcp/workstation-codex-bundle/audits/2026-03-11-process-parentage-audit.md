@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-process-parentage-audit
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/audits/2026-03-11-process-parentage-audit
+---
+
 # 2026-03-11 process parentage audit
 
 This is a no-Codex-kill audit of the current helper-process storm. The goal is to separate expected child MCP helpers from true orphan noise.

@@ -1,3 +1,9 @@
+---
+title: 2026-06-11-fanout-council
+type: note
+permalink: dqverify-repo-20261013/docs/research/2026-06-11-fanout-council
+---
+
 ### ctx-eng
 (none)
 

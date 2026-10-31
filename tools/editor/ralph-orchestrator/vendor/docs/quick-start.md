@@ -1,3 +1,9 @@
+---
+title: quick-start
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/quick-start
+---
+
 # Quick Start Guide
 
 Get Ralph Orchestrator up and running in 5 minutes!

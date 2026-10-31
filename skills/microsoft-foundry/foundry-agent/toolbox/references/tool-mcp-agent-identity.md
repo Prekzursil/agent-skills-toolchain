@@ -1,3 +1,9 @@
+---
+title: tool-mcp-agent-identity
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-mcp-agent-identity
+---
+
 # Tool — Remote MCP server, agent identity / project MI (`type: mcp`)
 
 Attach a remote MCP server that accepts an **Entra ID token minted for a Foundry-managed identity** — no user in the loop, no stored secret. Foundry acquires the token and presents it to the server; you authorize the identity on the target server before the agent invokes it. Needs a **connection** (`--kind remote-tool --auth-type agentic-identity` or `project-managed-identity`) scoped to the upstream resource via `--audience`; the toolbox references it by name and the created tool carries a populated `project_connection_id`.

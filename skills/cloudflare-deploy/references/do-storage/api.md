@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/do-storage/api
+---
+
 # DO Storage API Reference
 
 ## SQL API

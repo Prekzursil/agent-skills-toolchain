@@ -1,5 +1,7 @@
 ---
-description: Save current session state to a dated file in ~/.claude/sessions/ so work can be resumed in a future session with full context.
+description: Save current session state to a dated file in ~/.claude/sessions/ so
+  work can be resumed in a future session with full context.
+permalink: dqverify-repo-20261013/agent-self/config/commands/save-session
 ---
 
 # Save Session Command

@@ -1,3 +1,9 @@
+---
+title: GRILL-LOG
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/grill-log
+---
+
 # Grill Log — Unified Harness Control-Plane Program (2026-07-13)
 
 Owner-steered decisions from `/grill-me-extensive` (UNLIMITED per owner). Append-only. These SHAPE

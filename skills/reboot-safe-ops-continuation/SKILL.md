@@ -1,6 +1,9 @@
 ---
 name: reboot-safe-ops-continuation
-description: Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture, staged-artifact inventory, and a resumable checklist for the next session.
+description: Use when a reboot is required in the middle of migration or repair work
+  and you need exact pre-reboot state capture, staged-artifact inventory, and a resumable
+  checklist for the next session.
+permalink: dqverify-repo-20261013/skills/reboot-safe-ops-continuation/skill
 ---
 
 # Reboot Safe Ops Continuation

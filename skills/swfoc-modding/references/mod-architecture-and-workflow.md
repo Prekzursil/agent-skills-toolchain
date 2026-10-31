@@ -1,3 +1,9 @@
+---
+title: mod-architecture-and-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/swfoc-modding/references/mod-architecture-and-workflow
+---
+
 # Mod Architecture and Workflow
 
 ## Canonical Mod Folder Shape

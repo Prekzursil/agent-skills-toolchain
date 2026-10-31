@@ -1,3 +1,9 @@
+---
+title: openrouter-complete-surface_2026-08-27
+type: note
+permalink: dqverify-repo-20261013/skills/openrouter-routing/openrouter-complete-surface-2026-08-27
+---
+
 # OpenRouter complete product surface vs this harness
 *Generated: 27.08.2026 | Sources: 38 | Providers: firecrawl, webfetch, live OpenRouter API, Context7-timeout | Confidence: High*
 *Cache: 0 hits / 18 misses (no research-harness cache this run) | Stale-allowed: no*

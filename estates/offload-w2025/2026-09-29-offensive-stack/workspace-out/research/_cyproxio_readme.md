@@ -1,3 +1,9 @@
+---
+title: _cyproxio_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/cyproxio-readme
+---
+
 # MCP for Security
 
 > [!WARNING]
@@ -149,4 +155,3 @@ WordPress vulnerability scanner for detecting outdated plugins, themes, and comm
 ---
 > **Note:** The MCP servers in this repository have been integrated into [Bolt](https://github.com/cyberstrikeus/bolt).
 > For new tool development and contributions, please visit: [cyberstrikeus/bolt](https://github.com/cyberstrikeus/bolt)
-

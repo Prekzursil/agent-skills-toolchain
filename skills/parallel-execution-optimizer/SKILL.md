@@ -1,8 +1,11 @@
 ---
 name: parallel-execution-optimizer
-description: Use when the user wants a task done much faster through parallel work, concurrent agents, batched tool calls, isolated worktrees, or many independent verification lanes without losing correctness.
+description: Use when the user wants a task done much faster through parallel work,
+  concurrent agents, batched tool calls, isolated worktrees, or many independent verification
+  lanes without losing correctness.
 origin: ECC
 tools: Read, Write, Edit, Bash, Grep, Glob
+permalink: dqverify-repo-20261013/skills/parallel-execution-optimizer/skill
 ---
 
 # Parallel Execution Optimizer

@@ -1,3 +1,9 @@
+---
+title: azure-yaml
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/routine/references/azure-yaml
+---
+
 # Declarative Routines
 
 The routines extension registers a service target so routines can live in source control and be upserted by `azd up` / `azd deploy`. Declare each routine as a service with `host: azure.ai.routine`: the **service key is the routine name**, and the keys under it bind directly to the routine model.

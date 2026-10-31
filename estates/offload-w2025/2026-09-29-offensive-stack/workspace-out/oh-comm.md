@@ -1,3 +1,9 @@
+---
+title: oh-comm
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/oh-comm
+---
+
 > ## Documentation Index
 > Fetch the complete documentation index at: https://bloodhound.specterops.io/llms.txt
 > Use this file to discover all available pages before exploring further.

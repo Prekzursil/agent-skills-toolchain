@@ -1,3 +1,9 @@
+---
+title: known-limitations
+type: note
+permalink: dqverify-repo-20261013/skills/entra-agent-id/references/known-limitations
+---
+
 # Known Limitations
 
 Source: [Microsoft Entra Agent ID — known issues and gaps](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/preview-known-issues)

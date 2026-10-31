@@ -1,3 +1,9 @@
+---
+title: windows-incident-blackbox
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/windows-incident-blackbox
+---
+
 # windows-incident-blackbox
 
 ## Purpose

@@ -1,3 +1,9 @@
+---
+title: AGENTIC-WORKSPACE-ARCHITECTURE
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/docs/agentic-workspace-architecture
+---
+
 # The Final Agentic-Workspace Architecture (2026-06-11)
 
 Capstone of a 15-agent research pass (`wf_cb61a221-d6a`) + adversarial review. Builds on `SELF-CALIBRATION-PLAN.md`, `WORKSPACE-CURATION.md`, `MEMORY.md`. **Verdict: GO** (critic-approved with the edits below baked in).

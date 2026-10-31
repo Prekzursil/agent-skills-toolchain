@@ -1,3 +1,9 @@
+---
+title: comparison-matrix
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/06-analysis/comparison-matrix
+---
+
 # AI Agent Comparison Matrix
 
 ## Overview

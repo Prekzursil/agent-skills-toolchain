@@ -1,3 +1,9 @@
+---
+title: azure-resource-graph
+type: note
+permalink: dqverify-repo-20261013/skills/azure-resource-lookup/references/azure-resource-graph
+---
+
 # Azure Resource Graph Query Patterns
 
 Azure Resource Graph (ARG) queries use a KQL subset against indexed Azure resource metadata. Results are near real-time across all subscriptions.

@@ -1,6 +1,8 @@
 ---
 name: langfuse-ci-cd
-description: Set up or extend agent regression checks / gating in GitHub Actions CI/CD using `langfuse/experiment-action`.
+description: Set up or extend agent regression checks / gating in GitHub Actions CI/CD
+  using `langfuse/experiment-action`.
+permalink: dqverify-repo-20261013/skills/langfuse/references/ci-cd
 ---
 
 # Langfuse CI/CD

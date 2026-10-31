@@ -1,3 +1,9 @@
+---
+title: THIRD_PARTY_NOTICES
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/hacktricks-mcp-server/third-party-notices
+---
+
 # Third-party notices
 
 This hardened derivative bundles / derives from third-party components. Each

@@ -1,3 +1,9 @@
+---
+title: PAPER-RETRIEVAL-KEYS
+type: note
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/references/paper-retrieval-keys
+---
+
 # Paper-Retrieval API Keys — what to add, what it unlocks, where it goes
 
 **Problem this solves:** the first harvest auto-downloaded **125 / 345 open-access PDFs**; **220 were

@@ -1,6 +1,9 @@
 ---
 name: cheat-engine-x64dbg-ida-handoff
-description: Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro, especially for converting value scans or breakpoints into typed static analysis and durable module-relative anchors.
+description: Use when moving runtime findings between Cheat Engine, x64dbg, and IDA
+  Pro, especially for converting value scans or breakpoints into typed static analysis
+  and durable module-relative anchors.
+permalink: dqverify-repo-20261013/skills/cheat-engine-x64dbg-ida-handoff/skill
 ---
 
 # Cheat Engine x64dbg IDA Handoff

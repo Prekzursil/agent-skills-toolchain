@@ -1,6 +1,7 @@
 ---
-name: "source-command-instinct-export"
-description: "Export instincts from project/global scope to a file"
+name: source-command-instinct-export
+description: Export instincts from project/global scope to a file
+permalink: dqverify-repo-20261013/skills/source-command-instinct-export/skill
 ---
 
 # source-command-instinct-export

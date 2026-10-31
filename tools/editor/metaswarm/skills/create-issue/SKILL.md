@@ -1,6 +1,8 @@
 ---
 name: create-issue
-description: Create comprehensive GitHub issues with TDD plans, acceptance criteria, and agent instructions for autonomous PR lifecycle management
+description: Create comprehensive GitHub issues with TDD plans, acceptance criteria,
+  and agent instructions for autonomous PR lifecycle management
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/create-issue/skill
 ---
 
 # Create GitHub Issue Skill

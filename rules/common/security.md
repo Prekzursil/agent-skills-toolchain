@@ -1,43 +1,45 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
-  - "**/*.go"
-  - "**/*.rs"
-  - "**/*.java"
-  - "**/*.rb"
-  - "**/*.php"
-  - "**/*.c"
-  - "**/*.cpp"
-  - "**/*.h"
-  - "**/*.cs"
-  - "**/*.swift"
-  - "**/*.kt"
-  - "**/*.sh"
-  - "**/*.cc"
-  - "**/*.cgi"
-  - "**/*.csproj"
-  - "**/*.css"
-  - "**/*.csx"
-  - "**/*.cxx"
-  - "**/*.dart"
-  - "**/*.hh"
-  - "**/*.hpp"
-  - "**/*.html"
-  - "**/*.kts"
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.psgi"
-  - "**/*.pyi"
-  - "**/*.scss"
-  - "**/*.sln"
-  - "**/*.svelte"
-  - "**/*.t"
-  - "**/*.vue"
+- '**/*.py'
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+- '**/*.go'
+- '**/*.rs'
+- '**/*.java'
+- '**/*.rb'
+- '**/*.php'
+- '**/*.c'
+- '**/*.cpp'
+- '**/*.h'
+- '**/*.cs'
+- '**/*.swift'
+- '**/*.kt'
+- '**/*.sh'
+- '**/*.cc'
+- '**/*.cgi'
+- '**/*.csproj'
+- '**/*.css'
+- '**/*.csx'
+- '**/*.cxx'
+- '**/*.dart'
+- '**/*.hh'
+- '**/*.hpp'
+- '**/*.html'
+- '**/*.kts'
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.psgi'
+- '**/*.pyi'
+- '**/*.scss'
+- '**/*.sln'
+- '**/*.svelte'
+- '**/*.t'
+- '**/*.vue'
+permalink: dqverify-repo-20261013/rules/common/security
 ---
+
 # Security Guidelines
 
 > AGENTS.md §9 is the always-on security floor (no secrets, no `--no-verify`, no

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-insights/readme
+---
+
 # App Insights
 
 Azure Application Insights for telemetry, monitoring, and APM.

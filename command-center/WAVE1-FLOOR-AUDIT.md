@@ -1,3 +1,9 @@
+---
+title: WAVE1-FLOOR-AUDIT
+type: note
+permalink: dqverify-repo-20261013/command-center/wave1-floor-audit
+---
+
 # WAVE 1 FLOOR AUDIT — mechanical measurement of what is actually on disk
 
 Unit: `verify/wave1-floors` · audited root `C:/Users/Prekzursil/source/ast-integrate/platform`

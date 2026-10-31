@@ -1,6 +1,9 @@
 ---
 name: binary-ninja-mcp
-description: Use when installing or configuring Binary Ninja MCP, especially when a Binary Ninja plugin or npm-based MCP bridge must be wired into Codex, Claude Code, or Gemini CLI.
+description: Use when installing or configuring Binary Ninja MCP, especially when
+  a Binary Ninja plugin or npm-based MCP bridge must be wired into Codex, Claude Code,
+  or Gemini CLI.
+permalink: dqverify-repo-20261013/skills/binary-ninja-mcp/skill
 ---
 
 # Binary Ninja MCP

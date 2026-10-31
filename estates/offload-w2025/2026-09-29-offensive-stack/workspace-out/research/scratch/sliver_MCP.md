@@ -1,3 +1,9 @@
+---
+title: sliver_MCP
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/scratch/sliver-mcp
+---
+
 __IMPORTANT:__ MCP (Model Context Protocol) support is _experimental_ and NOT ALL FUNCTIONALITY IS SUPPORTED YET. Pull requests and testing feedback are welcome!
 
 There are two main ways to connect an AI model to sliver using MCP: locally over stdio, or over a network using HTTP/SSE transports. The `sliver-client` supports both stdio and http/sse, but the `sliver-server` binary only supports HTTP/SSE. We recommend using the `sliver-client` and [Multiplayer Mode](/docs?name=Multi-player+Mode) to connect to a remote server with the stdio transport.

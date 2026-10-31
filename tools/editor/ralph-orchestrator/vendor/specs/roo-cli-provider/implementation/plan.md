@@ -1,3 +1,9 @@
+---
+title: plan
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/implementation/plan
+---
+
 # Implementation Plan: Add roo-cli as a Provider
 
 ## Checklist

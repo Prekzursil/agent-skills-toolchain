@@ -1,6 +1,9 @@
 ---
 name: langfuse-prompt-migration
-description: Migrate hardcoded prompts to Langfuse for version control and deployment-free iteration. Use when user wants to externalize prompts, move prompts to Langfuse, or set up prompt management.
+description: Migrate hardcoded prompts to Langfuse for version control and deployment-free
+  iteration. Use when user wants to externalize prompts, move prompts to Langfuse,
+  or set up prompt management.
+permalink: dqverify-repo-20261013/skills/langfuse/references/prompt-migration
 ---
 
 # Langfuse Prompt Migration

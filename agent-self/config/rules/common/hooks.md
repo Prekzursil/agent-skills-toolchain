@@ -1,3 +1,9 @@
+---
+title: hooks
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/rules/common/hooks
+---
+
 # Hooks System
 
 ## Hook Types

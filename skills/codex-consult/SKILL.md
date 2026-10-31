@@ -1,7 +1,13 @@
 ---
 name: codex-consult
-description: RETIRED 2026-08-09 - redirect tombstone. The PromptBridge/Agentify Codex-side consultation lane this skill drove was deleted from the repo; its codex_local_consult / codex_local_curate / codex_local_review and codex_orchestrator_* tools do not exist and cannot be mounted. Kept only so in-flight invocations of the old name resolve. For a Codex consult / curate / review pass use codex-orchestrate (MCP rail) or codex-invoke (exec rail, per-call scoping); both ride mcp__codex__codex / mcp__codex__codex-reply.
+description: RETIRED 2026-08-09 - redirect tombstone. The PromptBridge/Agentify Codex-side
+  consultation lane this skill drove was deleted from the repo; its codex_local_consult
+  / codex_local_curate / codex_local_review and codex_orchestrator_* tools do not
+  exist and cannot be mounted. Kept only so in-flight invocations of the old name
+  resolve. For a Codex consult / curate / review pass use codex-orchestrate (MCP rail)
+  or codex-invoke (exec rail, per-call scoping); both ride mcp__codex__codex / mcp__codex__codex-reply.
 license: MIT
+permalink: dqverify-repo-20261013/skills/codex-consult/skill
 ---
 
 # Codex Consult - RETIRED (redirect tombstone)

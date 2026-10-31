@@ -1,3 +1,9 @@
+---
+title: architect-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/agents/architect-agent
+---
+
 # Architect Agent
 
 **Type**: `architect-agent`

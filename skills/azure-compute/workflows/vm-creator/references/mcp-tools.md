@@ -1,3 +1,9 @@
+---
+title: mcp-tools
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/mcp-tools
+---
+
 # MCP tools used by vm-creator
 
 The Azure MCP server exposes the `compute` area as a single namespace proxy: `mcp__azure__compute({intent, command, parameters})`. The commands below are what the workflow dispatches against it.

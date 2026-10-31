@@ -1,3 +1,9 @@
+---
+title: kql-queries
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/references/kql-queries
+---
+
 # KQL Query Reference
 
 Essential Kusto Query Language (KQL) queries for diagnosing Azure application issues.

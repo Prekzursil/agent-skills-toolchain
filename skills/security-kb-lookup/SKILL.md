@@ -1,7 +1,12 @@
 ---
 name: security-kb-lookup
-description: "Use when security kb lookup is needed. Curated authorized-engagement security reference and fast RAG-lookup over the local security-kb (17 distilled HackTricks domains plus blue-team gem files). Given a security question, locates and cites the relevant KB section(s) and returns the key techniques."
-license: Skill MIT. Indexed content distills HackTricks (CC BY-NC-SA 4.0) plus standard blue-team practice -- personal/authorized-use reference only; do not redistribute.
+description: Use when security kb lookup is needed. Curated authorized-engagement
+  security reference and fast RAG-lookup over the local security-kb (17 distilled
+  HackTricks domains plus blue-team gem files). Given a security question, locates
+  and cites the relevant KB section(s) and returns the key techniques.
+license: Skill MIT. Indexed content distills HackTricks (CC BY-NC-SA 4.0) plus standard
+  blue-team practice -- personal/authorized-use reference only; do not redistribute.
+permalink: dqverify-repo-20261013/skills/security-kb-lookup/skill
 ---
 
 # security-kb-lookup -- curated security reference (offense paired with defense)

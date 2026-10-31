@@ -1,6 +1,8 @@
 ---
 name: angr
-description: Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed beyond manual reversing.
+description: Use when symbolic execution, path exploration, constraint solving, or
+  programmatic reasoning about binary behavior is needed beyond manual reversing.
+permalink: dqverify-repo-20261013/skills/angr/skill
 ---
 
 # angr

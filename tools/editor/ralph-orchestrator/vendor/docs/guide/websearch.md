@@ -1,3 +1,9 @@
+---
+title: websearch
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/guide/websearch
+---
+
 # WebSearch Integration Guide
 
 ## Overview

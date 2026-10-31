@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/hooks/stopfailure-notify/readme
+---
+
 # stopfailure-notify
 
 A Claude Code `StopFailure` hook that **logs API errors to a file and fires a

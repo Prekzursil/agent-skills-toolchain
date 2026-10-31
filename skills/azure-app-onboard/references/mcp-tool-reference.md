@@ -1,3 +1,9 @@
+---
+title: mcp-tool-reference
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/mcp-tool-reference
+---
+
 # MCP Tool Reference — Shared Index
 
 Shared tools used across multiple AppOnboard phases, plus the cross-cutting Phase→Tool Map. For phase-specific tools with full parameter tables, see the per-phase references linked below.

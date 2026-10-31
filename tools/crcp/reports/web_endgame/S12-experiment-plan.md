@@ -1,3 +1,9 @@
+---
+title: S12-experiment-plan
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/s12-experiment-plan
+---
+
 # S12 — Next 10 experiments for durable ChatGPT WEB access
 
 ## Decision digest (≤500 words)

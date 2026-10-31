@@ -1,3 +1,9 @@
+---
+title: security-review-rubric
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/start/rubrics/security-review-rubric
+---
+
 # Security Review Rubric
 
 **Used By**: Security Auditor Agent

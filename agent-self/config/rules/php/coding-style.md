@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.json"
+- '**/*.php'
+- '**/composer.json'
+permalink: dqverify-repo-20261013/agent-self/config/rules/php/coding-style
 ---
+
 # PHP Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with PHP specific content.

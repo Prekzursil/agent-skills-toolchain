@@ -1,3 +1,9 @@
+---
+title: errors
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/azd/errors
+---
+
 # AZD Validation Errors
 
 ## Pre-Deployment Errors

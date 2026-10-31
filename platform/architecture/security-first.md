@@ -1,3 +1,9 @@
+---
+title: security-first
+type: note
+permalink: dqverify-repo-20261013/platform/architecture/security-first
+---
+
 # Architecture Candidate: SECURITY-FIRST
 
 **Phase 3 — Architecture Tournament.** Advocate's brief, argued honestly.

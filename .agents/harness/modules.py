@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 import math
 import os
 import re
 import stat
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional, cast
@@ -2268,6 +2270,11 @@ _RECALL_INDEX_SCHEMA_VERSION = 2
 _RECALL_INDEX_MAX_AGE_DAYS = 30.0
 _DIGEST_FILENAME = "recall-digest.json"
 _SLIM_DIGEST_MAX_BYTES = 262144
+_RECALL_SCAN_BUDGET_MS = 3000.0
+_RECALL_SCAN_CHUNK = 65536
+_RECALL_SCAN_KEEP = 8
+_RECALL_HEADER_SCHEMA_RE = re.compile(r'"schema_version"\s*:\s*(\d+)(?![.\d])')
+_RECALL_HEADER_BUILT_AT_RE = re.compile(r'"built_at"\s*:\s*"([^"]+)"')
 _DIGEST_INJECT_LIMIT = 8
 _DIGEST_EXCLUDED_PARTS = frozenset(
     {".git", ".hf", ".models", "compaction-checkpoints", "node_modules"}
@@ -2304,6 +2311,37 @@ def _recall_index_is_servable(data: dict[str, Any]) -> bool:
         stamp = stamp.replace(tzinfo=timezone.utc)
     age_days = (datetime.now(timezone.utc) - stamp).total_seconds() / 86400.0
     return age_days <= limit
+
+
+def _recall_scan_budget_sec() -> float:
+    raw = os.environ.get("AGENT_HARNESS_RECALL_SCAN_BUDGET_MS", "").strip()
+    if not raw:
+        return _RECALL_SCAN_BUDGET_MS / 1000.0
+    try:
+        return max(0.0, float(raw)) / 1000.0
+    except ValueError:
+        return _RECALL_SCAN_BUDGET_MS / 1000.0
+
+
+def _peek_index_servable(path: Path) -> bool:
+    """4096-byte header peek -> the existing P1C22 servability contract, without
+    parsing the document."""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            head = handle.read(4096)
+    except (OSError, UnicodeDecodeError):
+        return False
+    partial: dict[str, Any] = {}
+    m = _RECALL_HEADER_SCHEMA_RE.search(head)
+    if m:
+        try:
+            partial["schema_version"] = int(m.group(1))
+        except ValueError:
+            return False
+    m = _RECALL_HEADER_BUILT_AT_RE.search(head)
+    if m:
+        partial["built_at"] = m.group(1)
+    return bool(partial) and _recall_index_is_servable(partial)
 
 
 def _digest_path_excluded(value: str) -> bool:
@@ -2398,18 +2436,63 @@ class RecallModule:
             Path(digest_env) if digest_env else (self.state_root / _DIGEST_FILENAME)
         )
 
-    def _notes(self) -> list[dict[str, Any]]:
-        for path in self.index_paths:
-            data = read_json(path, {})
-            notes = data.get("notes") if isinstance(data, dict) else None
-            if not isinstance(notes, list):
-                continue
-            if not _recall_index_is_servable(cast(dict[str, Any], data)):
-                # P1C22 · undatable or expired artifact: skip it instead of
-                # silently injecting obsolete notes, and try the next candidate.
-                continue
-            return [item for item in notes if isinstance(item, dict)]
-        return []
+    def _iter_notes(self, path: Path) -> Iterable[dict[str, Any]]:
+        """Stream notes[] objects one at a time, KEEPING keywords (peak RAM = one
+        note + one 64KB buffer, never the 2MB document + ~10MB object tree).
+        Streaming analogue of the old full-parse _notes(): the same candidate
+        gate (reports True via StopIteration.value when a `notes` array was
+        located, mirroring the old isinstance(notes, list) check) and the same
+        chunked raw_decode contract as recall_index.iter_index_notes minus its
+        keyword drop. Fail-open: a corrupt tail just ends iteration."""
+        decoder = json.JSONDecoder()
+        try:
+            handle = path.open("r", encoding="utf-8")
+        except OSError:
+            return
+        with handle:
+            buf = ""
+            in_array = False
+            while True:
+                try:
+                    chunk = handle.read(_RECALL_SCAN_CHUNK)
+                except (OSError, UnicodeDecodeError):
+                    return
+                if chunk:
+                    buf += chunk
+                elif not buf:
+                    return
+                if not in_array:
+                    m = re.search(r'"notes"\s*:\s*\[', buf)
+                    if not m:
+                        if not chunk:
+                            return
+                        buf = buf[-128:]
+                        continue
+                    buf = buf[m.end():]
+                    in_array = True
+                progressed = False
+                while True:
+                    buf = buf.lstrip()
+                    if buf.startswith("]"):
+                        return True
+                    if buf.startswith(","):
+                        buf = buf[1:]
+                        progressed = True
+                        continue
+                    if not buf.startswith("{"):
+                        break
+                    try:
+                        obj, end = decoder.raw_decode(buf)
+                    except json.JSONDecodeError:
+                        break
+                    buf = buf[end:]
+                    progressed = True
+                    if isinstance(obj, dict):
+                        yield obj
+                if not chunk and not progressed:
+                    return True
+                if len(buf) > 12_000_000:
+                    return True
 
     def run(self, event: HookEvent) -> HookResult:
         # Hard READ gate (cross-AI): inject a slim digest on SessionStart AND on
@@ -2421,6 +2504,12 @@ class RecallModule:
             self._retry_spool_flush(event)
         except Exception:
             pass
+        if _ownerops_suppressed():
+            # cyber-clean 'claude' profile (cc-cc): skip estate vault-digest/recall
+            # injection; recall-index carries offensive-estate notes that trip the
+            # Anthropic [cyber] classifier on benign work. Spool flush above still runs.
+            # glm/grok/cyberstrike/zcode never resolve to 'claude' -> full recall kept.
+            return HookResult.success()
         try:
             digest = self._session_vault_digest(event)
         except Exception:
@@ -2518,30 +2607,61 @@ class RecallModule:
         self, event: HookEvent, prompt_tokens: set[str]
     ) -> HookResult:
         injected = self._injected_set(event)
-        scored: list[tuple[float, int, dict[str, Any]]] = []
-        for note in self._notes():
-            permalink = str(note.get("permalink") or "")
-            if permalink and permalink in injected:
-                continue  # B1 · session-suppress already-injected permalinks
-            path = str(note.get("path") or "").lower()
-            if any(
-                part in path
-                for part in (
-                    "\\.hf\\",
-                    "/.hf/",
-                    "\\.models\\",
-                    "/.models/",
-                    "compaction-checkpoints",
-                )
-            ):
-                continue
-            if note.get("poisoned") is True:  # B1 · skip index-time poisoned notes
-                continue
-            relevance = self._relevance(note, prompt_tokens)
-            if relevance < 16:  # unchanged high-precision prefilter (candidate gate)
-                continue
-            composite = relevance * self._quality_factor(note)
-            scored.append((composite, relevance, note))
+        budget_sec = _recall_scan_budget_sec()
+        deadline = time.monotonic() + budget_sec if budget_sec > 0 else 0.0
+        kept: list[tuple[float, int, str, int, dict[str, Any]]] = []
+        seq = 0
+        hit_deadline = False
+        for index_path in self.index_paths:
+            if not _peek_index_servable(index_path):
+                continue  # P1C22: undatable/expired artifact, try next candidate
+            notes_iter = self._iter_notes(index_path)
+            had_array = False
+            try:
+                while True:
+                    try:
+                        note = next(notes_iter)
+                    except StopIteration as stop:
+                        had_array = bool(stop.value)
+                        break
+                    if deadline > 0 and time.monotonic() > deadline:
+                        hit_deadline = True
+                        break  # bounded scan: serve best-so-far, never hang
+                    permalink = str(note.get("permalink") or "")
+                    if permalink and permalink in injected:
+                        continue  # B1 · session-suppress already-injected permalinks
+                    note_path = str(note.get("path") or "").lower()
+                    if any(
+                        part in note_path
+                        for part in (
+                            "\\.hf\\",
+                            "/.hf/",
+                            "\\.models\\",
+                            "/.models/",
+                            "compaction-checkpoints",
+                        )
+                    ):
+                        continue
+                    if note.get("poisoned") is True:  # B1 · skip index-time poisoned notes
+                        continue
+                    relevance = self._relevance(note, prompt_tokens)
+                    if relevance < 16:  # unchanged high-precision prefilter (candidate gate)
+                        continue
+                    composite = relevance * self._quality_factor(note)
+                    entry = (-composite, -relevance, permalink, seq, note)
+                    seq += 1
+                    if len(kept) < _RECALL_SCAN_KEEP:
+                        heapq.heappush(kept, entry)
+                    else:
+                        heapq.heappushpop(kept, entry)
+            finally:
+                notes_iter.close()
+            if hit_deadline or had_array:
+                break  # first servable candidate index wins (same as old _notes())
+        kept.sort()  # ascending on (-composite, -relevance, permalink, seq) = best first
+        scored: list[tuple[float, int, dict[str, Any]]] = [
+            (-neg_c, -neg_r, note) for (neg_c, neg_r, _pl, _seq, note) in kept
+        ]
         if not scored:
             return HookResult.success()
         scored.sort(
@@ -3854,6 +3974,37 @@ class EnforcementScaffoldModule:
             self._write_state(event, state)
 
 
+# --- Profile-aware doctrine gate (added 2026-10-24) ---------------------------
+# The owner-ops/estate doctrine injected by OwnerOpsAuthorizationModule trips
+# Anthropic's [cyber] classifier when it lands in-context on otherwise-benign
+# work. The cyber-CLEAN 'claude' profile (launched by ~/.local/bin/cc-cc.ps1,
+# which exports CC_ACTIVE_PROFILE=claude) suppresses it. EVERY OTHER profile keeps
+# it -- the full-power / offensive lanes: glm, grok, cyberstrike, zcode, unified,
+# plus the unset/default fail-open case. To move a profile between clean and
+# offensive, edit _CLEAN_PROFILES only. Signal mirrors
+# ~/.agents/scripts/zai_key_failover.py: the CC_ACTIVE_PROFILE env var first, then
+# the ~/.claude/profiles/state/cc-active-profile sentinel. These helpers NEVER
+# raise -- the fail direction is "inject as today", so no offensive lane can lose
+# its doctrine through a bug here.
+_CLEAN_PROFILES = frozenset({"claude"})
+
+
+def _cc_active_profile() -> str:
+    try:
+        prof = os.environ.get("CC_ACTIVE_PROFILE", "").strip().lower()
+        if not prof:
+            sentinel = Path.home() / ".claude" / "profiles" / "state" / "cc-active-profile"
+            prof = sentinel.read_text(encoding="utf-8", errors="ignore").strip().lower()
+        return prof
+    except Exception:
+        return ""
+
+
+def _ownerops_suppressed() -> bool:
+    """True only for the cyber-clean profile(s); never raises."""
+    return _cc_active_profile() in _CLEAN_PROFILES
+
+
 class OwnerOpsAuthorizationModule:
     """Inject-only GENERAL anti-over-refusal (all domains on this estate).
 
@@ -3930,6 +4081,11 @@ class OwnerOpsAuthorizationModule:
         if event.event not in {"UserPromptSubmit", "SessionStart"}:
             return HookResult.success()
         if _is_subagent(event):
+            return HookResult.success()
+        if _ownerops_suppressed():
+            # cc-cc (cyber-clean 'claude' profile): drop the owner-ops/estate
+            # doctrine so the Anthropic [cyber] classifier doesn't fire on benign
+            # work. glm/grok/cyberstrike/zcode never resolve to 'claude' -> keep it.
             return HookResult.success()
         prompt = str(getattr(event, "prompt", "") or "")
         cwd = str(getattr(event, "cwd", "") or "")

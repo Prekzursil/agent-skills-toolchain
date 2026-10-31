@@ -1,3 +1,9 @@
+---
+title: source-map
+type: note
+permalink: dqverify-repo-20261013/skills/aspnet-core/references/source-map
+---
+
 # ASP.NET Core Source Map
 
 This skill is synthesized from the official ASP.NET Core documentation tree and overview pages. Use this file to map a task to the corresponding Microsoft Learn area before opening deeper docs.

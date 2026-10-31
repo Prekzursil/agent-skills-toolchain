@@ -1,6 +1,9 @@
 ---
 name: swfoc-runtime-address-hunting
-description: Use when hunting SWFOC-specific runtime addresses, function anchors, structures, or memory regions in the SWFOC editor or swfoc_memory workspaces, especially when correlating dump evidence, debugger traces, and static analysis.
+description: Use when hunting SWFOC-specific runtime addresses, function anchors,
+  structures, or memory regions in the SWFOC editor or swfoc_memory workspaces, especially
+  when correlating dump evidence, debugger traces, and static analysis.
+permalink: dqverify-repo-20261013/skills/swfoc-runtime-address-hunting/skill
 ---
 
 # SWFOC Runtime Address Hunting

@@ -1,3 +1,9 @@
+---
+title: ROUND2-DEFECT-CLOSURE
+type: note
+permalink: dqverify-repo-20261013/docs/mcp-audit/round2-defect-closure
+---
+
 # MCPRESEARCH round 2 — defect closure ledger
 
 Measured 2026-08-13, worktree `C:/Users/Prekzursil/source/ast-integrate`.

@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.rs"
-  - "**/Cargo.toml"
+- '**/*.rs'
+- '**/Cargo.toml'
+permalink: dqverify-repo-20261013/rules/rust/hooks
 ---
+
 # Rust Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Rust-specific content.

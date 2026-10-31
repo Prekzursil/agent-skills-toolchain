@@ -1,8 +1,15 @@
 ---
 name: reader
-description: Read-only reconnaissance and code/context gathering leaf. Use for locating code, config, or facts, summarizing files or subtrees, and extracting exact excerpts with file:line evidence. NEVER for mutation — it holds no write, edit, shell, or MCP tools; dispatch writer (or the parent session) for any change.
-tools: ["Read", "Grep", "Glob"]
+description: Read-only reconnaissance and code/context gathering leaf. Use for locating
+  code, config, or facts, summarizing files or subtrees, and extracting exact excerpts
+  with file:line evidence. NEVER for mutation — it holds no write, edit, shell, or
+  MCP tools; dispatch writer (or the parent session) for any change.
+tools:
+- Read
+- Grep
+- Glob
 model: haiku
+permalink: dqverify-repo-20261013/agents/reader
 ---
 
 # reader — read-only reconnaissance leaf (G-8b)

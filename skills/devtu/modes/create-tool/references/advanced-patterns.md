@@ -1,3 +1,9 @@
+---
+title: advanced-patterns
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/references/advanced-patterns
+---
+
 # Advanced Tool Implementation Patterns
 
 This reference covers advanced patterns and techniques for ToolUniverse tool development.

@@ -1,3 +1,9 @@
+---
+title: PLAN_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/templates/plan-template
+---
+
 <!--
   This is the upgrade plan template for Azure SDK migration.
   RUN_ID should be replaced with the actual run identifier.

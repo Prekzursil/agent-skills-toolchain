@@ -1,3 +1,9 @@
+---
+title: api
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/terraform/api
+---
+
 # Terraform Data Sources Reference
 
 Query existing Cloudflare resources to reference in your configurations.

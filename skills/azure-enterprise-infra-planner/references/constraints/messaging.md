@@ -1,3 +1,9 @@
+---
+title: messaging
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/constraints/messaging
+---
+
 # Messaging Pairing Constraints
 
 ### Event Grid Topic

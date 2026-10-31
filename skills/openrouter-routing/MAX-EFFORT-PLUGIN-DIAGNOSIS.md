@@ -1,3 +1,9 @@
+---
+title: MAX-EFFORT-PLUGIN-DIAGNOSIS
+type: note
+permalink: dqverify-repo-20261013/skills/openrouter-routing/max-effort-plugin-diagnosis
+---
+
 # Max Effort plugin diagnosis (Wave 0)
 
 Date: 27.08.2026  
@@ -295,4 +301,3 @@ If you want one reversible Cursor-only flag that cannot log you out:
 Wave 0 above is still the read-only inventory. The follow-up **did** pin cache-only plugins false and left the catalog on disk.
 
 See: [`MAX-EFFORT-PLUGIN-CLEANUP_2026-08-27.md`](MAX-EFFORT-PLUGIN-CLEANUP_2026-08-27.md)
-

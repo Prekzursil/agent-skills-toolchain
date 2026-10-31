@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/smart-placement/readme
+---
+
 # Cloudflare Workers Smart Placement
 
 Automatic workload placement optimization to minimize latency by running Workers closer to backend infrastructure rather than end users.

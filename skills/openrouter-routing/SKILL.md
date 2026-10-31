@@ -1,6 +1,9 @@
 ---
 name: openrouter-routing
-description: Route cheap grunt work through OpenRouter as a spend-capped CLI/Codex sidecar. Use for T0/T1 model choice, :floor/:nitro/:exacto, spend caps, and generation ids. NEVER Cursor BYOK or Claude ANTHROPIC_BASE_URL.
+description: Route cheap grunt work through OpenRouter as a spend-capped CLI/Codex
+  sidecar. Use for T0/T1 model choice, :floor/:nitro/:exacto, spend caps, and generation
+  ids. NEVER Cursor BYOK or Claude ANTHROPIC_BASE_URL.
+permalink: dqverify-repo-20261013/skills/openrouter-routing/skill
 ---
 
 # OpenRouter routing (sidecar only)
@@ -164,4 +167,3 @@ Do not run verbose HTTP clients against these endpoints; they can echo auth head
 - `cost-tracking` — OpenRouter generation ids plus the Claude SQLite tracker (label the source).
 - `cost-aware-llm-pipeline` — generic routing patterns (not OpenRouter SSOT).
 - Evidence: [openrouter-complete-surface_2026-08-27.md](openrouter-complete-surface_2026-08-27.md) (38-source full-surface audit) and [openrouter-free-models_2026-08-27.md](openrouter-free-models_2026-08-27.md) (free-slug catalog snapshot).
-

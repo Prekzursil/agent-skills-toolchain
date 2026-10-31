@@ -1,3 +1,9 @@
+---
+title: RULE-AUDIT-R2
+type: note
+permalink: dqverify-repo-20261013/docs/rule-audit/rule-audit-r2
+---
+
 # RULERESEARCH — BUILD lane, round 2: corrections to the round-1 artifact
 
 Round 1 shipped `RULE-AUDIT.md` (classification of 254 rule files, token totals, 9 contradictions).

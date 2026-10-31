@@ -1,3 +1,9 @@
+---
+title: visual-companion
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/brainstorming/visual-companion
+---
+
 # Visual Companion Guide
 
 Browser-based visual brainstorming companion for showing mockups, diagrams, and options.

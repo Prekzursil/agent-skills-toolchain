@@ -2,6 +2,7 @@
 name: instinct-export
 description: Export instincts from project/global scope to a file
 command: /instinct-export
+permalink: dqverify-repo-20261013/commands/instinct-export
 ---
 
 # Instinct Export Command

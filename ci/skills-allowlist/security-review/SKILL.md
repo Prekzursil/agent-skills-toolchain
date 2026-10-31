@@ -1,7 +1,10 @@
 ---
 name: security-review
-description: Use this skill when adding authentication, handling user input, working with secrets, creating API endpoints, or implementing payment/sensitive features. Provides comprehensive security checklist and patterns.
+description: Use this skill when adding authentication, handling user input, working
+  with secrets, creating API endpoints, or implementing payment/sensitive features.
+  Provides comprehensive security checklist and patterns.
 origin: ECC
+permalink: dqverify-repo-20261013/ci/skills-allowlist/security-review/skill
 ---
 
 # Security Review Skill

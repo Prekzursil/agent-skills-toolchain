@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/recipes/terraform/patterns
+---
+
 # Terraform Patterns
 
 Common patterns for Terraform Azure deployments.

@@ -1,6 +1,8 @@
 ---
-name: "yeet"
-description: "Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`)."
+name: yeet
+description: Use only when the user explicitly asks to stage, commit, push, and open
+  a GitHub pull request in one flow using the GitHub CLI (`gh`).
+permalink: dqverify-repo-20261013/skills/yeet/skill
 ---
 
 ## Prerequisites

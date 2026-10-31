@@ -1,3 +1,9 @@
+---
+title: _LANE-DOCS-VERIFY
+type: note
+permalink: dqverify-repo-20261013/docs/lane-docs-verify
+---
+
 # LANE DOCS — independent verification of the BUILD round-1 report
 
 STATUS: COMPLETE. Every verdict below came from a command I ran in this session.

@@ -1,3 +1,9 @@
+---
+title: deployment
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/deployment
+---
+
 # Deployment Formats
 
 ## Model Format and SKU Mapping

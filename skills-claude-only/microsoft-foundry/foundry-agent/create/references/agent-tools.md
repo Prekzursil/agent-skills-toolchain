@@ -1,3 +1,9 @@
+---
+title: agent-tools
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/create/references/agent-tools
+---
+
 # Agent Tools — Simple Tools
 
 Add tools to agents to extend capabilities. This file covers tools that work without external connections. For tools requiring connections/RBAC setup, see:

@@ -1,8 +1,10 @@
 ---
 title: LLM01 - Prevent Prompt Injection
 impact: CRITICAL
-impactDescription: Attackers can bypass safety controls, exfiltrate data, or execute unauthorized actions
+impactDescription: Attackers can bypass safety controls, exfiltrate data, or execute
+  unauthorized actions
 tags: security, llm, prompt-injection, owasp-llm01, mitre-atlas-t0051
+permalink: dqverify-repo-20261013/skills/llm-security/rules/prompt-injection
 ---
 
 ## LLM01: Prevent Prompt Injection

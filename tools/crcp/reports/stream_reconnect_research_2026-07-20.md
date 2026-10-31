@@ -1,3 +1,9 @@
+---
+title: stream_reconnect_research_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/stream-reconnect-research-2026-07-20
+---
+
 # Stream reconnect research — 20.07.2026
 
 ## Goal

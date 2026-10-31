@@ -1,3 +1,9 @@
+---
+title: P2NEXT-BUILD
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-next/p2-next-build
+---
+
 # P2NEXT — BUILD lane round 1: review the satisfiable subset, count the rail-blocked remainder
 
 **Measured 2026-08-12** against `ast-integrate` (worktree of `agent-skills-toolchain`, `main`).

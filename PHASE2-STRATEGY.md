@@ -1,3 +1,9 @@
+---
+title: PHASE2-STRATEGY
+type: note
+permalink: dqverify-repo-20261013/phase2-strategy
+---
+
 # Phase 2 Strategy — Dependabot PR Merge & Dependency Hardening
 
 **Timeline:** Execute once Phase 1 achieves 3 consecutive green quality.yml runs  

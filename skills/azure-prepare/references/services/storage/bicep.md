@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/storage/bicep
+---
+
 # Storage - Bicep Patterns
 
 ## Storage Account

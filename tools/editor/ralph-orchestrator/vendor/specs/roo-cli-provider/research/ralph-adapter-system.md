@@ -1,3 +1,9 @@
+---
+title: ralph-adapter-system
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/roo-cli-provider/research/ralph-adapter-system
+---
+
 # Research: Ralph Adapter System (Existing Codebase)
 
 ## Architecture Overview

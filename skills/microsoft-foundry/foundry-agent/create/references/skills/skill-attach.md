@@ -1,3 +1,9 @@
+---
+title: skill-attach
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/skills/skill-attach
+---
+
 # Use Skills in a Hosted Agent
 
 How to consume Foundry **skills** (reusable behavioral guidelines) from hosted agent code. Two approaches:

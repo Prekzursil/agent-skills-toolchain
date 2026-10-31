@@ -1,6 +1,7 @@
 ---
-name: "source-command-docs"
-description: "Look up current documentation for a library or topic via Context7."
+name: source-command-docs
+description: Look up current documentation for a library or topic via Context7.
+permalink: dqverify-repo-20261013/skills/source-command-docs/skill
 ---
 
 # source-command-docs

@@ -1,5 +1,7 @@
 ---
-description: Answer a quick side question without interrupting or losing context from the current task. Resume work automatically after answering.
+description: Answer a quick side question without interrupting or losing context from
+  the current task. Resume work automatically after answering.
+permalink: dqverify-repo-20261013/agent-self/config/commands/aside
 ---
 
 # Aside Command

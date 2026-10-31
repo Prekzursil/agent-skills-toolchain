@@ -1,3 +1,9 @@
+---
+title: sql-functions
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/sql-functions
+---
+
 -- =============================================================================
 -- SQL Functions for Azure PostgreSQL Entra ID Authentication
 -- Run these commands after connecting as an Entra admin

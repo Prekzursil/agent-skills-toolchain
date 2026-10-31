@@ -1,3 +1,9 @@
+---
+title: example-diagram
+type: note
+permalink: dqverify-repo-20261013/skills/azure-resource-visualizer/assets/example-diagram
+---
+
 # Example Architecture Diagram
 
 This example shows a typical Azure resource group with resources organized into logical layers.

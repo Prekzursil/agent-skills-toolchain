@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/cloud-hub/readme
+---
+
 # cloud-hub — lazy, name-preserving MCP multiplexer for the cloud-infra stack
 
 Fronts the user's cloud-infrastructure MCP servers behind **one** MCP registration

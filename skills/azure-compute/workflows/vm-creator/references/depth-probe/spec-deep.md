@@ -1,3 +1,9 @@
+---
+title: spec-deep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/depth-probe/spec-deep
+---
+
 # Spec-deep branch
 
 Goal: nail the SKU. Lean on `compute_vm_list-skus` (with filters) instead of asking the user to memorize SKU names.

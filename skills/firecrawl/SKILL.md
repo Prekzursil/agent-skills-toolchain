@@ -1,8 +1,13 @@
 ---
 name: firecrawl
-description: Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn URLs into clean markdown or schema-structured JSON, extract brand identity (colors, fonts, spacing), crawl or map sites, parse local PDFs/Office files, search the web with operators, or monitor pages for changes. Pairs with the Exa MCP (Exa finds by meaning, Firecrawl fetches).
+description: Web scraping, crawling, structured extraction, site mapping, and change
+  monitoring via the Firecrawl MCP. Use to turn URLs into clean markdown or schema-structured
+  JSON, extract brand identity (colors, fonts, spacing), crawl or map sites, parse
+  local PDFs/Office files, search the web with operators, or monitor pages for changes.
+  Pairs with the Exa MCP (Exa finds by meaning, Firecrawl fetches).
 metadata:
   origin: custom
+permalink: dqverify-repo-20261013/skills/firecrawl/skill
 ---
 
 # Firecrawl

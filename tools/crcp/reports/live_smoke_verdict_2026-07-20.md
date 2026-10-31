@@ -1,3 +1,9 @@
+---
+title: live_smoke_verdict_2026-07-20
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/live-smoke-verdict-2026-07-20
+---
+
 # CRCP live smoke verdict — 2026-07-20
 
 ## Proven working

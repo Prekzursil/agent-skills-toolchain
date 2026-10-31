@@ -1,3 +1,9 @@
+---
+title: event-system
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/advanced/event-system
+---
+
 # Event System Design
 
 !!! note "Documentation In Progress"

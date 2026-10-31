@@ -1,3 +1,9 @@
+---
+title: LANE-CASUALTY-REPORT
+type: note
+permalink: dqverify-repo-20261013/command-center/casualty/lane-casualty-report
+---
+
 # LANE CASUALTY — build round 1
 
 Ran 2026-08-12T08:34 → 09:45 local. All five definition-of-done items are measured.

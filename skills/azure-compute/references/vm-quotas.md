@@ -1,3 +1,9 @@
+---
+title: vm-quotas
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/references/vm-quotas
+---
+
 # VM Quota Validation Guide
 
 Check Azure VM/VMSS quota availability before recommending or deploying. Ensures the subscription and region have sufficient vCPU capacity.

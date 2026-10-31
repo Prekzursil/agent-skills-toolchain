@@ -1,6 +1,8 @@
 ---
-description: Attempt/pass ElevenLabs Professional Voice Cloning verification on the agent Chrome (attempt-conserving runbook)
+description: Attempt/pass ElevenLabs Professional Voice Cloning verification on the
+  agent Chrome (attempt-conserving runbook)
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+permalink: dqverify-repo-20261013/commands/pvc-verify
 ---
 
 # /pvc-verify — PVC verification attempt (attempt-conserving)

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/lib/readme
+---
+
 # `tools/lib` — shared generic utilities for `tools/`
 
 ## Why this tree exists

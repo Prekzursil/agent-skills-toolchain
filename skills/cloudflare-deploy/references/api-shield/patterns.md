@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/api-shield/patterns
+---
+
 # Patterns & Use Cases
 
 ## Protect API with Schema + JWT

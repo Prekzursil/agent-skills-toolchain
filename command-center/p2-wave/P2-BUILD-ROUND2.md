@@ -1,3 +1,9 @@
+---
+title: P2-BUILD-ROUND2
+type: note
+permalink: dqverify-repo-20261013/command-center/p2-wave/p2-build-round2
+---
+
 # P2 BUILD — ROUND 2 (re-entry after a confirmed adversarial refutation)
 
 > ## REFUTED IN ROUND 3 — read this before citing anything below

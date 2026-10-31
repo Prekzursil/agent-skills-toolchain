@@ -1,3 +1,9 @@
+---
+title: mcp-tools
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/prepare/references/mcp-tools
+---
+
 # Prepare Phase — MCP Tools
 
 Phase-exclusive tool parameters for the prepare phase. For shared tools (`subscription_list`, `group_list`, `get_azure_bestpractices`, `extension_cli_install`), see [mcp-tool-reference.md](../../references/mcp-tool-reference.md).

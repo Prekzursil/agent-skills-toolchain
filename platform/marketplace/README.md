@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/readme
+---
+
 # `platform/marketplace/` — the Phase 6 marketplace
 
 Spec: `_USER-PROMPTS.md:10844-10871`. Governance: [`GOVERNANCE.md`](GOVERNANCE.md) +

@@ -1,6 +1,9 @@
 ---
 name: ralph-hats
-description: Create, inspect, validate, explain, and improve Ralph hat collections. Use this skill whenever the user asks to make or refine a `.ralph/hats/*.yml` workflow, debug hat routing, explain event topology, or tune a multi-hat Ralph run.
+description: Create, inspect, validate, explain, and improve Ralph hat collections.
+  Use this skill whenever the user asks to make or refine a `.ralph/hats/*.yml` workflow,
+  debug hat routing, explain event topology, or tune a multi-hat Ralph run.
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/skills/ralph-hats/skill
 ---
 
 # Ralph Hats

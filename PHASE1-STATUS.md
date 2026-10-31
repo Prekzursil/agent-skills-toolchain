@@ -1,3 +1,9 @@
+---
+title: PHASE1-STATUS
+type: note
+permalink: dqverify-repo-20261013/phase1-status
+---
+
 # Phase 1 Settle & Harden — Status Report (2026-09-24)
 
 ## Executive Summary

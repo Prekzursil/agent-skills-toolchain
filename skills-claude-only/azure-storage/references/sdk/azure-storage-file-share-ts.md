@@ -1,3 +1,9 @@
+---
+title: azure-storage-file-share-ts
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-storage/references/sdk/azure-storage-file-share-ts
+---
+
 # File Shares — TypeScript SDK Quick Reference
 
 > Condensed from **azure-storage-file-share-ts**. Full patterns (SAS generation,

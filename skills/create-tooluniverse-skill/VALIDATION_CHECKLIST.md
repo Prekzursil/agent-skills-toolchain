@@ -1,3 +1,9 @@
+---
+title: VALIDATION_CHECKLIST
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/validation-checklist
+---
+
 # Validation Checklist
 
 Complete this checklist before marking a skill as production-ready.

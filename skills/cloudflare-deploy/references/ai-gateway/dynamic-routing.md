@@ -1,3 +1,9 @@
+---
+title: dynamic-routing
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/ai-gateway/dynamic-routing
+---
+
 # Dynamic Routing
 
 Configure complex routing in dashboard without code changes. Use route names instead of model names.

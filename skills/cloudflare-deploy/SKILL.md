@@ -1,6 +1,10 @@
 ---
 name: cloudflare-deploy
-description: Use when deploying an application or infrastructure to Cloudflare Workers, Pages, or related platform services ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Cloudflare deployment URL or configuration.
+description: Use when deploying an application or infrastructure to Cloudflare Workers,
+  Pages, or related platform services ; do NOT use for Vercel (use vercel-deploy),
+  Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Cloudflare
+  deployment URL or configuration.
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/skill
 ---
 
 # Cloudflare Deploy

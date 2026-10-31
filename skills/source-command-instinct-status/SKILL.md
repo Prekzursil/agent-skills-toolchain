@@ -1,6 +1,7 @@
 ---
-name: "source-command-instinct-status"
-description: "Show learned instincts (project + global) with confidence"
+name: source-command-instinct-status
+description: Show learned instincts (project + global) with confidence
+permalink: dqverify-repo-20261013/skills/source-command-instinct-status/skill
 ---
 
 # source-command-instinct-status

@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+- '**/*.go'
+- '**/go.mod'
+- '**/go.sum'
+permalink: dqverify-repo-20261013/agent-self/config/rules/golang/testing
 ---
+
 # Go Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Go specific content.

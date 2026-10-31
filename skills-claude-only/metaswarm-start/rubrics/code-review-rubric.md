@@ -1,3 +1,9 @@
+---
+title: code-review-rubric
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/rubrics/code-review-rubric
+---
+
 # Code Review Rubric
 
 **Used By**: Code Review Agent

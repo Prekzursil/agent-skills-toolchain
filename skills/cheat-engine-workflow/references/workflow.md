@@ -1,3 +1,9 @@
+---
+title: workflow
+type: note
+permalink: dqverify-repo-20261013/skills/cheat-engine-workflow/references/workflow
+---
+
 # Cheat Engine Workflow Notes
 
 ## Local support

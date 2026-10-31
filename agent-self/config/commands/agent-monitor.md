@@ -1,3 +1,9 @@
+---
+title: agent-monitor
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/agent-monitor
+---
+
 Launch a live view of Claude Code subagents. The former standalone Tkinter app has been
 consolidated into the shared **`monitorcore`** package (stdlib-only, vendored inside the
 `workflow-monitor` skill), split across two surviving surfaces:

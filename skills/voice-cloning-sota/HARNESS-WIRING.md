@@ -1,3 +1,9 @@
+---
+title: HARNESS-WIRING
+type: note
+permalink: dqverify-repo-20261013/skills/voice-cloning-sota/harness-wiring
+---
+
 # Harness wiring: pvc-verify
 
 - 1. Create the normalized layout (guarded New-Item; -Force never used on files per windows-shell rule 4): if (-not (Test-Path -LiteralPath 'D:\Research\tools\rvc-realtime-voice-changer\scripts\pvc')) { New-Item -ItemType Directory 'D:\Research\tools\rvc-realtime-voice-changer\scripts\pvc' | Out-Null }

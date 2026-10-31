@@ -1,3 +1,9 @@
+---
+title: testing
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/do-storage/testing
+---
+
 # DO Storage Testing
 
 Testing Durable Objects with storage using `vitest-pool-workers`.

@@ -1,3 +1,9 @@
+---
+title: cli-session-convergence
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/cli-session-convergence
+---
+
 # cli-session-convergence
 
 ## Purpose

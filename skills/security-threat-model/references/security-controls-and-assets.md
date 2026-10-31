@@ -1,3 +1,9 @@
+---
+title: security-controls-and-assets
+type: note
+permalink: dqverify-repo-20261013/skills/security-threat-model/references/security-controls-and-assets
+---
+
 # Security Controls and Asset Categories
 
 Use this as a lightweight checklist to keep outputs consistent across teams. Prefer concrete, system-specific items over generic text.

@@ -1,6 +1,11 @@
 ---
 name: cli-anything
-description: Use when you want to make a command-line tool reliably callable and parseable by an AI agent — introspect its --help, define a structured-output (--json) contract and a stable error contract, then generate a SKILL.md wrapper with verified examples. Triggers on "wrap this CLI", "make X agent-usable", "generate a skill for this command", "turn a tool into an agent skill".
+description: Use when you want to make a command-line tool reliably callable and parseable
+  by an AI agent — introspect its --help, define a structured-output (--json) contract
+  and a stable error contract, then generate a SKILL.md wrapper with verified examples.
+  Triggers on "wrap this CLI", "make X agent-usable", "generate a skill for this command",
+  "turn a tool into an agent skill".
+permalink: dqverify-repo-20261013/skills/cli-anything/skill
 ---
 
 <!-- Source: cherry-picked from https://github.com/coco-research/coco (skills/cli-anything) on 27.08.2026 per grill decision G-11/11B. Adapted to house format. -->

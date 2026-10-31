@@ -1,3 +1,9 @@
+---
+title: optimize-workflow
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/agent-optimizer/references/optimize-workflow
+---
+
 # Optimize Workflow
 
 Use this after azd setup and scaffold review are complete.

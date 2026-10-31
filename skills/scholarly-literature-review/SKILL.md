@@ -1,6 +1,11 @@
 ---
 name: scholarly-literature-review
-description: Use when given DOIs, PMIDs, arXiv ids, or paper titles and needing canonical metadata, access-status tables, citation/reference expansion, or structured summaries from legally available abstracts via Scholarly Access MCP ; do NOT use for biomedical evidence ranking (use biomedical-paper-triage) or PDF downloading (use oa-pdf-retrieval) ; returns metadata, access classification, and citation graph.
+description: Use when given DOIs, PMIDs, arXiv ids, or paper titles and needing canonical
+  metadata, access-status tables, citation/reference expansion, or structured summaries
+  from legally available abstracts via Scholarly Access MCP ; do NOT use for biomedical
+  evidence ranking (use biomedical-paper-triage) or PDF downloading (use oa-pdf-retrieval)
+  ; returns metadata, access classification, and citation graph.
+permalink: dqverify-repo-20261013/skills/scholarly-literature-review/skill
 ---
 
 # Scholarly Literature Review

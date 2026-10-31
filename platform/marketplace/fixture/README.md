@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/platform/marketplace/fixture/readme
+---
+
 # The test fixture marketplace
 
 This directory holds the **committed sources**. The live registry is **built**, never committed —

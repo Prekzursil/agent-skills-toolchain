@@ -1,3 +1,9 @@
+---
+title: quick-reference
+type: note
+permalink: dqverify-repo-20261013/skills/semgrep/references/quick-reference
+---
+
 # Semgrep Quick Reference
 
 > **Official Documentation:**

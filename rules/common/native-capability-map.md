@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/*"
+- '**/*'
+permalink: dqverify-repo-20261013/rules/common/native-capability-map
 ---
 
 # Native Capability Map (always-on)

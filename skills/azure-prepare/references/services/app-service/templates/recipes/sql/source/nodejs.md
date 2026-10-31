@@ -1,3 +1,9 @@
+---
+title: nodejs
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/templates/recipes/sql/source/nodejs
+---
+
 # SQL Database — Node.js — REFERENCE ONLY
 
 ## Prisma + Azure SQL Setup

@@ -1,3 +1,9 @@
+---
+title: C10-endgame-scorecard
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/c10-endgame-scorecard
+---
+
 # C10 — Endgame scorecard: durable ChatGPT web-account access
 
 Date: 2026-07-20 UTC  

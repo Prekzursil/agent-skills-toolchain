@@ -1,3 +1,9 @@
+---
+title: mcp-tool-hubs
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/mcp-tool-hubs
+---
+
 # Research: mcp-tool-hubs (MCP security tool hubs + nmap/nuclei/sqlmap/ffuf/BloodHound bundlers)
 
 Date: 2026-09-29. VM: Windows Server (no Docker engine, GCP no VT-x). Estate: CyberStrike 1.1.16 + MCP gateway 127.0.0.1:31100 (43 backends, 17 live: exa/tavily/firecrawl, nuclei, nmap, hexstrike :8888, hacktricks, decepticon, cheatengine/binary-ninja/chrome-devtools, zai-keys, frida/mitmproxy/caldera rpc), Decepticon local+upstream, PentAGI staged docker-pending, Ollama qwen3:4b.

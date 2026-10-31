@@ -1,3 +1,9 @@
+---
+title: runtimes
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/runtimes
+---
+
 # Render Runtime Options
 
 Complete guide to available runtimes on Render, including versions, configuration, and best practices for each language.

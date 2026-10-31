@@ -1,3 +1,9 @@
+---
+title: revisions
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/revisions
+---
+
 # Container Apps Revision Management
 
 Revisions are immutable snapshots of a Container App version. Use them for blue/green deployments, canary releases, and instant rollback.

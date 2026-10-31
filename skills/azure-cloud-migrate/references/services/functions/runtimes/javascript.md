@@ -1,3 +1,9 @@
+---
+title: javascript
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/functions/runtimes/javascript
+---
+
 # JavaScript (Node.js) — Azure Functions v4 Triggers & Bindings
 
 > **Model**: JavaScript v4 programming model. **NO** `function.json` files.

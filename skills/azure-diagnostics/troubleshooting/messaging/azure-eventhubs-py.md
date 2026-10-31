@@ -1,3 +1,9 @@
+---
+title: azure-eventhubs-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/troubleshooting/messaging/azure-eventhubs-py
+---
+
 # Azure Event Hubs SDK — Python
 
 Package: `azure-eventhub` | [README](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/eventhub/azure-eventhub) | [Full Troubleshooting Guide](https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/eventhub/azure-eventhub/TROUBLESHOOTING.md)

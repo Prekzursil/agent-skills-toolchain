@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/repomix/references/upstream
+---
+
 # Upstream Notes
 
 - Upstream repo: `https://github.com/yamadashy/repomix`

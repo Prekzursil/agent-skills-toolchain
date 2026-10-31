@@ -1,3 +1,9 @@
+---
+title: S08-hybrid-architecture
+type: note
+permalink: dqverify-repo-20261013/tools/crcp/reports/web-endgame/s08-hybrid-architecture
+---
+
 # S08 — CRCP hybrid: web-session primary, Codex AT secondary
 
 ## Digest (≤500 words)

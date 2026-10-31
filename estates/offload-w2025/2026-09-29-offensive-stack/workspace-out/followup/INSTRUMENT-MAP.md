@@ -1,3 +1,9 @@
+---
+title: INSTRUMENT-MAP
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/instrument-map
+---
+
 # INSTRUMENT-MAP — standing bench instruments, registered 2026-09-30
 
 **What this registers.** The clean bench lane of the follow-up workflow declared three

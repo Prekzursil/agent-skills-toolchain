@@ -1,3 +1,9 @@
+---
+title: task-system
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/advanced/task-system
+---
+
 # Task System
 
 !!! note "Documentation In Progress"

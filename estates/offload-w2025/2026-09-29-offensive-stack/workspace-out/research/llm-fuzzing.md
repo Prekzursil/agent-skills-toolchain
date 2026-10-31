@@ -1,3 +1,9 @@
+---
+title: llm-fuzzing
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/llm-fuzzing
+---
+
 # Research: llm-fuzzing — LLM-guided fuzzers (input generation quality, harness generation)
 
 Date: 2026-09-29. Researcher lane: "llm-fuzzing". Estate context (from ask): Windows Server VM, **no Docker engine** (GCP no VT-x), CyberStrike 1.1.16, MCP gateway 127.0.0.1:31100 (43 backends), Ollama qwen3:4b local, Python C:\Python314\python.exe.

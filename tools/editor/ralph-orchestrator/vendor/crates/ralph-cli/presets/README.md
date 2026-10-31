@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/presets/readme
+---
+
 # Ralph Hat Collections
 
 This directory contains the embedded hat collection files packaged into the `ralph` binary.

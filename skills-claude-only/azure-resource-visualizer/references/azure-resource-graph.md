@@ -1,3 +1,9 @@
+---
+title: azure-resource-graph
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-resource-visualizer/references/azure-resource-graph
+---
+
 # Azure Resource Graph Queries for Resource Discovery
 
 Azure Resource Graph (ARG) enables fast, cross-subscription resource querying using KQL via `az graph query`. Use it for bulk resource discovery and relationship mapping.

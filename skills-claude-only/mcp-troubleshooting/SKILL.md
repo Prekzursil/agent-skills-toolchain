@@ -1,6 +1,8 @@
 ---
 name: mcp-troubleshooting
-description: Diagnose and fix MCP configuration/runtime issues across supported integrations using agents CLI checks.
+description: Diagnose and fix MCP configuration/runtime issues across supported integrations
+  using agents CLI checks.
+permalink: dqverify-repo-20261013/skills-claude-only/mcp-troubleshooting/skill
 ---
 
 When MCP servers are failing or not visible:

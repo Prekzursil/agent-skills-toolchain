@@ -1,3 +1,9 @@
+---
+title: completeness-check
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard-prereq/references/completeness-check
+---
+
 # Completeness Check
 
 > ⛔ **No build/install/test commands during this check.** Use static analysis only.

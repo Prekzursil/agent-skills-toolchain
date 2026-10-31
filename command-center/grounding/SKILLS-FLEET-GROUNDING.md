@@ -1,3 +1,9 @@
+---
+title: SKILLS-FLEET-GROUNDING
+type: note
+permalink: dqverify-repo-20261013/command-center/grounding/skills-fleet-grounding
+---
+
 # SKILLS FLEET — GROUNDING LANE ARTIFACT
 
 STATUS: COMPLETE for the grounding mandate.

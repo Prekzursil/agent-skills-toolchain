@@ -1,3 +1,9 @@
+---
+title: 4-generate-plan
+type: note
+permalink: dqverify-repo-20261013/skills/azure-enterprise-infra-planner/references/phases/4-generate-plan
+---
+
 # Phase 4: Generate Plan
 
 Build `<project-root>/.azure/infrastructure-plan.json` using the schema in [schema.md](../schema.md). Set `meta.status` to `draft`.

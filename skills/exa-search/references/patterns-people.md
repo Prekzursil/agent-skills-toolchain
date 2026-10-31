@@ -1,3 +1,9 @@
+---
+title: patterns-people
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-people
+---
+
 # Query Patterns: People
 
 Use `category:people` for LinkedIn-weighted results. For discovery queries, be specific -- vague queries like `"category:people researcher founder CEO startup"` will match many irrelevant LinkedIn profiles. Include specific companies, timeframes, or roles to narrow results.

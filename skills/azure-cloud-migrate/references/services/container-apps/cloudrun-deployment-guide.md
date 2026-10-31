@@ -1,3 +1,9 @@
+---
+title: cloudrun-deployment-guide
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cloud-migrate/references/services/container-apps/cloudrun-deployment-guide
+---
+
 # Deployment: Cloud Run to Container Apps
 
 ## Prerequisites

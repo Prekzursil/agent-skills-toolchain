@@ -1,3 +1,9 @@
+---
+title: prompting
+type: note
+permalink: dqverify-repo-20261013/skills/sora/references/prompting
+---
+
 # Prompting best practices (Sora)
 
 ## Contents

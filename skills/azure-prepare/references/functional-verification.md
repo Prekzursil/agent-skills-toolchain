@@ -1,3 +1,9 @@
+---
+title: functional-verification
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/functional-verification
+---
+
 # Functional Verification
 
 Verify that the application works correctly — both UI and backend — before proceeding to validation and deployment. This step prevents deploying broken or incomplete functionality to Azure.

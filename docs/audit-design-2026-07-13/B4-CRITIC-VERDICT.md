@@ -1,3 +1,9 @@
+---
+title: B4-CRITIC-VERDICT
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/b4-critic-verdict
+---
+
 # B4 — Independent Fresh-Context Critic Verdict (RFC gate)
 
 **Role:** independent critic of the Workflow-B RFC (B1-RFC-core · B1-interfaces · B2-RFC-operational ·

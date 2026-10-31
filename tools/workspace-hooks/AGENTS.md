@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/tools/workspace-hooks/agents
+---
+
 # Cross-Tool Behavior Contract
 
 **Applies to:** Claude Code · Codex CLI · Antigravity (agy)  

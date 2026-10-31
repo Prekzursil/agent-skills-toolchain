@@ -1,3 +1,9 @@
+---
+title: iterative-training
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/workflows/iterative-training
+---
+
 # Iterative Training Workflow
 
 Systematically improve a fine-tuned model through successive experiments.

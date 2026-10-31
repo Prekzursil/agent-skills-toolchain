@@ -1,15 +1,17 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "**/*.ts"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/*.html"
-  - "**/*.vue"
-  - "**/*.svelte"
+- '**/*.tsx'
+- '**/*.jsx'
+- '**/*.ts'
+- '**/*.js'
+- '**/*.css'
+- '**/*.scss'
+- '**/*.html'
+- '**/*.vue'
+- '**/*.svelte'
+permalink: dqverify-repo-20261013/agent-self/config/rules/web/performance
 ---
+
 > This file extends [common/performance.md](../common/performance.md) with web-specific performance content.
 
 # Web Performance Rules

@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-validate/references/recipes/terraform/readme
+---
+
 # Terraform Validation
 
 Validation steps for Terraform deployments.

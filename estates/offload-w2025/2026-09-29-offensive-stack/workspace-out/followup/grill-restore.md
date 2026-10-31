@@ -1,3 +1,9 @@
+---
+title: grill-restore
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/followup/grill-restore
+---
+
 # Lane report: grill-restore (2026-09-30)
 
 Three closures from the completed fleet run. All commands below were executed in this

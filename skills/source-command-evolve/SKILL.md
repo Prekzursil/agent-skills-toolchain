@@ -1,6 +1,7 @@
 ---
-name: "source-command-evolve"
-description: "Analyze instincts and suggest or generate evolved structures"
+name: source-command-evolve
+description: Analyze instincts and suggest or generate evolved structures
+permalink: dqverify-repo-20261013/skills/source-command-evolve/skill
 ---
 
 # source-command-evolve

@@ -1,3 +1,9 @@
+---
+title: redis-to-amr
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/services/redis/redis-to-amr
+---
+
 # Azure Cache for Redis → Azure Managed Redis (AMR) Migration
 
 > **Target for both paths**: Azure Managed Redis (AMR) — M, B, X (Flash), A series

@@ -1,10 +1,21 @@
 ---
 name: azure-prepare
-description: "Produce the deployment plan and files for azd-based Azure projects: generates .azure/deployment-plan.md, azure.yaml, infrastructure (Bicep/Terraform), and Dockerfiles — preparation only, never execution (azure-deploy runs azd up / azd deploy / terraform apply). USE ONLY when the user explicitly wants to use azd as the deployment tool, or the project already has an azure.yaml file. DO NOT USE FOR: non-azd deployments, Python App Service code-only deploys (use python-appservice-deploy), cross-cloud migration (use azure-cloud-migrate), or executing an already-prepared deployment (use azure-deploy). WHEN: prepare app for azd, create azure.yaml, set up azd infrastructure, modernize app for Azure with azd, plan an azd deployment, function app, timer trigger, service bus trigger, event-driven function, managed identity, generate Bicep, generate Terraform, create Azure deployment files."
+description: 'Produce the deployment plan and files for azd-based Azure projects:
+  generates .azure/deployment-plan.md, azure.yaml, infrastructure (Bicep/Terraform),
+  and Dockerfiles — preparation only, never execution (azure-deploy runs azd up /
+  azd deploy / terraform apply). USE ONLY when the user explicitly wants to use azd
+  as the deployment tool, or the project already has an azure.yaml file. DO NOT USE
+  FOR: non-azd deployments, Python App Service code-only deploys (use python-appservice-deploy),
+  cross-cloud migration (use azure-cloud-migrate), or executing an already-prepared
+  deployment (use azure-deploy). WHEN: prepare app for azd, create azure.yaml, set
+  up azd infrastructure, modernize app for Azure with azd, plan an azd deployment,
+  function app, timer trigger, service bus trigger, event-driven function, managed
+  identity, generate Bicep, generate Terraform, create Azure deployment files.'
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.3.3"
+  version: 1.3.3
+permalink: dqverify-repo-20261013/skills/azure-prepare/skill
 ---
 
 # Azure Prepare

@@ -1,3 +1,9 @@
+---
+title: DESIGN-SKILLS-BUILT
+type: note
+permalink: dqverify-repo-20261013/docs/design/design-skills-built
+---
+
 # DESIGN-SKILLS-BUILT — the 5 TCR design-review skills, wired
 
 **Built / validated:** 2026-06-30 · **Origin:** design-SOTA research (this `design-research/` corpus).

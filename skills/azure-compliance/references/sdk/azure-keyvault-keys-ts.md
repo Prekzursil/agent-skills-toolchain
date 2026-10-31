@@ -1,3 +1,9 @@
+---
+title: azure-keyvault-keys-ts
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compliance/references/sdk/azure-keyvault-keys-ts
+---
+
 # Key Vault Keys — TypeScript SDK Quick Reference
 
 > Condensed from **azure-keyvault-keys-ts**. Full patterns (crypto operations,

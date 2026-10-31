@@ -1,3 +1,9 @@
+---
+title: emm-overview
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/essential-machine-management/references/emm-overview
+---
+
 # EMM Overview
 
 Essential Machine Management (EMM) simplifies onboarding and configuration of management for Azure VMs and Arc-enabled servers at the subscription level.

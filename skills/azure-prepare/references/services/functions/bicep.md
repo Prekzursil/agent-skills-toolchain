@@ -1,3 +1,9 @@
+---
+title: bicep
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/functions/bicep
+---
+
 # Functions Bicep Patterns — REFERENCE ONLY
 
 > ⛔ **DO NOT COPY THIS CODE DIRECTLY**

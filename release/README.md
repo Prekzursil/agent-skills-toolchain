@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/release/readme
+---
+
 # Release workspace
 
 Packaging-only workspace for future Windows, Linux, and macOS deliverables.

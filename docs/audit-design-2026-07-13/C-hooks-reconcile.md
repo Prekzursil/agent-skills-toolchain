@@ -1,3 +1,9 @@
+---
+title: C-hooks-reconcile
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/c-hooks-reconcile
+---
+
 # C — Hooks Whole-Drive Reconcile + Disposition Matrix
 
 **Domain:** hooks · **Date:** 2026-07-13 · **Author:** C-hooks-reconcile subagent (session 3cd9445a)

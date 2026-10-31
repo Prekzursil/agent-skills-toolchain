@@ -1,3 +1,9 @@
+---
+title: dive-CloudFox
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-cloud-fox
+---
+
 # Deep-dive: CloudFox (BishopFox/cloudfox)
 
 Candidate (from "ad-entra-paths" lane): "2583-star situational-awareness for cloud pentests incl. IAM privesc analysis; prebuilt Windows exe."

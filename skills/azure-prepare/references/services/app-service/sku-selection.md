@@ -1,3 +1,9 @@
+---
+title: sku-selection
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/app-service/sku-selection
+---
+
 # App Service SKU Selection
 
 ## SKU Comparison Matrix

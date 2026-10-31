@@ -1,3 +1,9 @@
+---
+title: scaling
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/container-apps/scaling
+---
+
 # Container Apps Scaling Patterns
 
 ## HTTP-based Scaling

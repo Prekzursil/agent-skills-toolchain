@@ -1,3 +1,9 @@
+---
+title: multi-region-checks
+type: note
+permalink: dqverify-repo-20261013/skills/azure-reliability/references/multi-region-checks
+---
+
 # Multi-Region & Failover Checks
 
 ## Overview

@@ -1,3 +1,9 @@
+---
+title: use-toolbox-in-hosted-agent
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/create/references/use-toolbox-in-hosted-agent
+---
+
 # Use Toolbox in a Hosted Agent
 
 Hosted agents access Foundry-managed tools through a **Toolbox MCP endpoint**. Unlike prompt agents that wire tools directly, hosted agents connect to a single MCP-compatible endpoint that exposes all configured tools. The platform handles credential injection, token refresh, and policy enforcement.

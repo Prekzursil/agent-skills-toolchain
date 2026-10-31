@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/pages/gotchas
+---
+
 # Gotchas
 
 ## Functions Not Running

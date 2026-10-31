@@ -1,3 +1,9 @@
+---
+title: agent-metadata-contract
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/references/agent-metadata-contract
+---
+
 # Agent Metadata Contract
 
 Use this contract for every agent source folder that participates in Microsoft Foundry workflows.

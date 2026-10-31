@@ -1,3 +1,9 @@
+---
+title: 2026-06-11-workspace-knowledge-base
+type: note
+permalink: dqverify-repo-20261013/docs/plans/2026-06-11-workspace-knowledge-base
+---
+
 # Optimal Agentic Workspace — Solution-Mapped Synthesis (canonical)
 
 **Date:** 2026-06-11 · Evidence base for the design. **Raw research is now archived as docs** (read for depth):

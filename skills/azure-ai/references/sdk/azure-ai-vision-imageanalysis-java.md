@@ -1,3 +1,9 @@
+---
+title: azure-ai-vision-imageanalysis-java
+type: note
+permalink: dqverify-repo-20261013/skills/azure-ai/references/sdk/azure-ai-vision-imageanalysis-java
+---
+
 # Azure AI Vision Image Analysis — Java SDK Quick Reference
 
 > Condensed from **azure-ai-vision-imageanalysis-java**. Full patterns (dense captions, smart crops, people detection)

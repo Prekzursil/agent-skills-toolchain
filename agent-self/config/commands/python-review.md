@@ -1,5 +1,7 @@
 ---
-description: Comprehensive Python code review for PEP 8 compliance, type hints, security, and Pythonic idioms. Invokes the python-reviewer agent.
+description: Comprehensive Python code review for PEP 8 compliance, type hints, security,
+  and Pythonic idioms. Invokes the python-reviewer agent.
+permalink: dqverify-repo-20261013/agent-self/config/commands/python-review
 ---
 
 # Python Code Review

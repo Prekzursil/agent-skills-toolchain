@@ -1,6 +1,11 @@
 ---
 name: cloud-infra-toolchain
-description: Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, Lightning AI, and OVHcloud behind one lazy MCP slot. Covers which platform does what, per-platform auth + the account-switch/cycle multi-account layer, the workflows (train, rent a GPU, deploy, move data), and GPU cost/read-before-destroy rules.
+description: Use when working with the user's cloud-infrastructure MCP stack fronted
+  by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal,
+  Lightning AI, and OVHcloud behind one lazy MCP slot. Covers which platform does
+  what, per-platform auth + the account-switch/cycle multi-account layer, the workflows
+  (train, rent a GPU, deploy, move data), and GPU cost/read-before-destroy rules.
+permalink: dqverify-repo-20261013/skills/cloud-infra-toolchain/skill
 ---
 
 # Cloud Infrastructure MCP Toolchain

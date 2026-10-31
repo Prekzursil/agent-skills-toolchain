@@ -1,3 +1,9 @@
+---
+title: javascript-jquery-web-frontend-security
+type: note
+permalink: dqverify-repo-20261013/skills/security-best-practices/references/javascript-jquery-web-frontend-security
+---
+
 # jQuery Frontend Security Spec (jQuery 4.0.x, modern browsers)
 
 This document is designed as a **security spec** that supports:

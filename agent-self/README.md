@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/agent-self/readme
+---
+
 # agent-self — portable 1:1 snapshot of this agent
 
 A **self-contained, duplicated** bundle that reproduces this exact Claude Code agent on any machine,

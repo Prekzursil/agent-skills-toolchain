@@ -1,3 +1,9 @@
+---
+title: setup
+type: note
+permalink: dqverify-repo-20261013/agent-self/config/commands/setup
+---
+
 # Setup
 
 Interactive project setup for metaswarm. Detects your project, configures metaswarm, and writes project-local files.

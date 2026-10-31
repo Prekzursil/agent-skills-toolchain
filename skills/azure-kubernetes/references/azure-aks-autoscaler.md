@@ -1,3 +1,9 @@
+---
+title: azure-aks-autoscaler
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/references/azure-aks-autoscaler
+---
+
 # AKS Cluster Autoscaler (CAS)
 
 Enable and tune the Cluster Autoscaler to automatically scale down idle nodes.
@@ -86,5 +92,3 @@ az aks update \
 > ```bash
 > kubectl get pdb --all-namespaces
 > ```
-
-

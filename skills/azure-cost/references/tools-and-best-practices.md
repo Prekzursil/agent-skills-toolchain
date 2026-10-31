@@ -1,3 +1,9 @@
+---
+title: tools-and-best-practices
+type: note
+permalink: dqverify-repo-20261013/skills/azure-cost/references/tools-and-best-practices
+---
+
 # Azure Cost Skill Reference
 
 ## MCP Tools

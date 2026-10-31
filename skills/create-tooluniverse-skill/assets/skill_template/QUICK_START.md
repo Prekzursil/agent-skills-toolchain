@@ -1,3 +1,9 @@
+---
+title: QUICK_START
+type: note
+permalink: dqverify-repo-20261013/skills/create-tooluniverse-skill/assets/skill-template/quick-start
+---
+
 ## Quick Start: [Domain] Analysis
 
 [One paragraph overview of what this skill does and what outputs it provides.]

@@ -1,3 +1,9 @@
+---
+title: EXAMPLES
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/models/deploy-model/customize/examples
+---
+
 # customize Examples
 
 ## Example 1: Basic Deployment with Defaults

@@ -1,3 +1,9 @@
+---
+title: D1-redteam
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/d1-redteam
+---
+
 # D1 — Red-Team + Leanness Gate on the Deployment-Mechanism Decision
 
 **Role:** adversarial red-team + hard leanness gate over the G-2 deploy-mechanism choice

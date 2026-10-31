@@ -1,7 +1,11 @@
 ---
 name: blueprint
-description: "Use when blueprint is needed. Turn a one-line objective into a step-by-step construction plan for multi-session, multi-agent engineering projects. Each step has a self-contained context brief so a fresh agent can execute it cold. Includes adversarial review gate, dependency graph, parallel step."
+description: Use when blueprint is needed. Turn a one-line objective into a step-by-step
+  construction plan for multi-session, multi-agent engineering projects. Each step
+  has a self-contained context brief so a fresh agent can execute it cold. Includes
+  adversarial review gate, dependency graph, parallel step.
 origin: community
+permalink: dqverify-repo-20261013/skills/blueprint/skill
 ---
 
 # Blueprint — Construction Plan Generator

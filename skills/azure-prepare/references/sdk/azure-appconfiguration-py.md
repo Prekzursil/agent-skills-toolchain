@@ -1,3 +1,9 @@
+---
+title: azure-appconfiguration-py
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/sdk/azure-appconfiguration-py
+---
+
 # App Configuration — Python SDK Quick Reference
 
 > Condensed from **azure-appconfiguration-py**. Full patterns (feature flags,

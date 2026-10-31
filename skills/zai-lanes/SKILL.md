@@ -1,6 +1,9 @@
 ---
 name: zai-lanes
-description: Free GLM web lane (MCP glm_chat) and official plan-entitled ASR/TTS (zai-asr) — usage, modes, refresh, limits. Use when the task needs free GLM chat, or transcription/synthesis without wallet billing.
+description: Free GLM web lane (MCP glm_chat) and official plan-entitled ASR/TTS (zai-asr)
+  — usage, modes, refresh, limits. Use when the task needs free GLM chat, or transcription/synthesis
+  without wallet billing.
+permalink: dqverify-repo-20261013/skills/zai-lanes/skill
 ---
 
 # zai-lanes — free GLM + unmetered-cash ASR/TTS

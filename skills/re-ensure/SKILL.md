@@ -1,6 +1,11 @@
 ---
 name: re-ensure
-description: Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand so mcp__ida-pro-mcp / mcp__ghidra-mcp calls "just work" without manually opening the GUI apps. Use when asked to start/ensure the RE stack, or before a batch of RE tool calls. Cold-starts ONLY the requested backend, prefers an already-running GUI IDA on :13337, and reports that Binary Ninja (Personal) cannot run headless.
+description: Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand
+  so mcp__ida-pro-mcp / mcp__ghidra-mcp calls "just work" without manually opening
+  the GUI apps. Use when asked to start/ensure the RE stack, or before a batch of
+  RE tool calls. Cold-starts ONLY the requested backend, prefers an already-running
+  GUI IDA on :13337, and reports that Binary Ninja (Personal) cannot run headless.
+permalink: dqverify-repo-20261013/skills/re-ensure/skill
 ---
 
 # re-ensure Skill

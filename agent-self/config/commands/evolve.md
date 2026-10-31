@@ -2,6 +2,7 @@
 name: evolve
 description: Analyze instincts and suggest or generate evolved structures
 command: true
+permalink: dqverify-repo-20261013/agent-self/config/commands/evolve
 ---
 
 # Evolve Command

@@ -1,3 +1,9 @@
+---
+title: capacity-planning
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/quota/references/capacity-planning
+---
+
 # Capacity Planning Guide
 
 Comprehensive guide for planning Azure AI Foundry capacity, including cost analysis, model selection, and workload calculations.

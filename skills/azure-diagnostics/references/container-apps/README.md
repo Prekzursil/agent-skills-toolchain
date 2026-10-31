@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-diagnostics/references/container-apps/readme
+---
+
 # Container Apps Troubleshooting
 
 ### Common Issues Matrix

@@ -1,3 +1,9 @@
+---
+title: P11-CONFIRMATION
+type: note
+permalink: dqverify-repo-20261013/command-center/p11-confirmation
+---
+
 # PHASE 11 — INDEPENDENT CONFIRMATION (`depth/p11-confirmation`)
 
 Spec `_USER-PROMPTS.md:11140-11153`. Fresh agent; wrote none of Waves 1-3. Every number below is

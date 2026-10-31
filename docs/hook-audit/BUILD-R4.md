@@ -1,3 +1,9 @@
+---
+title: BUILD-R4
+type: note
+permalink: dqverify-repo-20261013/docs/hook-audit/build-r4
+---
+
 # HOOKRESEARCH — BUILD round 4
 
 Round 3 fixed one CONFIRMED defect and four overclaims and closed the verifier's residual. This

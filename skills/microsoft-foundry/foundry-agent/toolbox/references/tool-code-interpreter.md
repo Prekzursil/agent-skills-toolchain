@@ -1,3 +1,9 @@
+---
+title: tool-code-interpreter
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-code-interpreter
+---
+
 # Tool — Code Interpreter (`type: code_interpreter`)
 
 Sandboxed Python execution — a **connectionless built-in** declared under a `tools:` block; **no project connection required**. Fully toolbox-compatible: the toolbox MCP endpoint (and a hosted agent) can invoke it directly. For the toolbox concept, versions, and endpoint, see [toolbox.md](../toolbox.md).

@@ -1,8 +1,10 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.pyi"
+- '**/*.py'
+- '**/*.pyi'
+permalink: dqverify-repo-20261013/rules/python/patterns
 ---
+
 # Python Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Python specific content.

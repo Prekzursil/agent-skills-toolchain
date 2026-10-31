@@ -1,6 +1,11 @@
 ---
 name: browser-automation
-description: "Use as the DEFAULT before any browser-automation run on this box. Mandatory three-way profile choice (live / agent-persistent / agent-ephemeral), dedicated persistent agent profiles, chrome-bridge extension (chrome.debugger CDP) for Chrome/Edge, Playwright BiDi for Firefox, on-demand Tor. No OS keystroke injection, no window-focus requirement, never kill the owner's browsers."
+description: Use as the DEFAULT before any browser-automation run on this box. Mandatory
+  three-way profile choice (live / agent-persistent / agent-ephemeral), dedicated
+  persistent agent profiles, chrome-bridge extension (chrome.debugger CDP) for Chrome/Edge,
+  Playwright BiDi for Firefox, on-demand Tor. No OS keystroke injection, no window-focus
+  requirement, never kill the owner's browsers.
+permalink: dqverify-repo-20261013/browser-bridge/skill
 ---
 
 # Browser automation (estate)

@@ -1,3 +1,9 @@
+---
+title: PROGRESS_TEMPLATE
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/templates/progress-template
+---
+
 <!--
   This is the upgrade progress tracker for Azure SDK migration.
   Each step from plan.md should be tracked here with status, changes, verification results, and TODOs.

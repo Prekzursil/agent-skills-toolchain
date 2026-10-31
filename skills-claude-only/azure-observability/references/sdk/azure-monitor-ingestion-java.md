@@ -1,3 +1,9 @@
+---
+title: azure-monitor-ingestion-java
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-observability/references/sdk/azure-monitor-ingestion-java
+---
+
 # Azure Monitor Ingestion — Java SDK Quick Reference
 
 > Condensed from **azure-monitor-ingestion-java**. Full patterns (async

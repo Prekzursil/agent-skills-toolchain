@@ -1,6 +1,9 @@
 ---
 name: langfuse-cli
-description: Langfuse CLI usage reference — install, resource/action discovery, credentials, and common usage tips for `langfuse-cli`. Use for further tips on using the Langfuse CLI.
+description: Langfuse CLI usage reference — install, resource/action discovery, credentials,
+  and common usage tips for `langfuse-cli`. Use for further tips on using the Langfuse
+  CLI.
+permalink: dqverify-repo-20261013/skills/langfuse/references/cli
 ---
 
 # Langfuse CLI Reference

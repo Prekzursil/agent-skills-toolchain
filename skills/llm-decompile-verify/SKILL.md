@@ -1,7 +1,16 @@
 ---
 name: llm-decompile-verify
-description: Use when recovering readable, COMPILABLE C from a stripped binary or a decompiler's pseudo-C and you refuse to trust the model's own claim that the decompilation is correct. The decompilation is only "done" when the regenerated source RECOMPILES and RE-EXECUTES identically to the original on the same inputs (the recompile-verify round-trip). The model runs on HF Inference or cloud-hub GPU; the compile-and-run oracle runs in a cloud-hub Modal sandbox or locally. NOT for the table-stakes "LLM reads Ghidra/IDA pseudo-C" flow (Claude+ghidra-mcp already do that) and NOT for pure static mapping (use game-re-binary) - the gem here is the anti-faking round-trip gate, not the reading. Cite SK2Decompile (arXiv 2509.22114) and LLM4Decompile.
+description: Use when recovering readable, COMPILABLE C from a stripped binary or
+  a decompiler's pseudo-C and you refuse to trust the model's own claim that the decompilation
+  is correct. The decompilation is only "done" when the regenerated source RECOMPILES
+  and RE-EXECUTES identically to the original on the same inputs (the recompile-verify
+  round-trip). The model runs on HF Inference or cloud-hub GPU; the compile-and-run
+  oracle runs in a cloud-hub Modal sandbox or locally. NOT for the table-stakes "LLM
+  reads Ghidra/IDA pseudo-C" flow (Claude+ghidra-mcp already do that) and NOT for
+  pure static mapping (use game-re-binary) - the gem here is the anti-faking round-trip
+  gate, not the reading. Cite SK2Decompile (arXiv 2509.22114) and LLM4Decompile.
 origin: user
+permalink: dqverify-repo-20261013/skills/llm-decompile-verify/skill
 ---
 
 # LLM-Decompile + Recompile-Verify Loop

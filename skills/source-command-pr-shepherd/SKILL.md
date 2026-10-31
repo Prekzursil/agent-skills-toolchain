@@ -1,6 +1,8 @@
 ---
-name: "source-command-pr-shepherd"
-description: "Monitor a PR through to merge - handles CI failures, reviews, and thread resolution"
+name: source-command-pr-shepherd
+description: Monitor a PR through to merge - handles CI failures, reviews, and thread
+  resolution
+permalink: dqverify-repo-20261013/skills/source-command-pr-shepherd/skill
 ---
 
 # source-command-pr-shepherd

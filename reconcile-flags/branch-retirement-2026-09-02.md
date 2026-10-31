@@ -1,3 +1,9 @@
+---
+title: branch-retirement-2026-09-02
+type: note
+permalink: dqverify-repo-20261013/reconcile-flags/branch-retirement-2026-09-02
+---
+
 # Branch retirement: the 2026-07 block — 74 tags created, 0 branches deleted
 
 Filed 2026-09-02. Closes measurement on item 5 of `RECONCILE-STATE_2026-09-01.md` §6b
@@ -1201,4 +1207,3 @@ git ls-remote --tags origin 'refs/tags/archive/2026-07/*' | grep -c '\^{}'   # -
 - Every tag created is additive; the 20 pre-existing `rescue/*` tags were left exactly as they were.
 - Every figure in this document came out of a command in §2 run in this checkout, and the two
   places where a first measurement was wrong (§2a) say so rather than quietly showing the second.
-

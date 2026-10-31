@@ -1,3 +1,9 @@
+---
+title: dive-RustHound-CE
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/dive-rust-hound-ce
+---
+
 # Deep-dive: RustHound-CE (ad-entra-paths lane)
 
 Date: 2026-09-29. Verifier: subagent on the estate VM. All checks below were executed in this session unless marked "not run".

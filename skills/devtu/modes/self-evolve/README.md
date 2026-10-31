@@ -1,10 +1,13 @@
 ---
 name: devtu-self-evolve
-description: >
-  Orchestrate the full ToolUniverse self-improvement cycle: discover APIs, create tools,
-  test with researcher personas, fix issues, optimize skills, and push via git. References
-  and dispatches to all other devtu skills. Use when asked to: run the self-improvement loop,
-  do a debug/test round, expand tool coverage, improve tool quality, or evolve ToolUniverse.
+description: 'Orchestrate the full ToolUniverse self-improvement cycle: discover APIs,
+  create tools, test with researcher personas, fix issues, optimize skills, and push
+  via git. References and dispatches to all other devtu skills. Use when asked to:
+  run the self-improvement loop, do a debug/test round, expand tool coverage, improve
+  tool quality, or evolve ToolUniverse.
+
+  '
+permalink: dqverify-repo-20261013/skills/devtu/modes/self-evolve/readme
 ---
 
 # ToolUniverse Self-Evolution Orchestrator

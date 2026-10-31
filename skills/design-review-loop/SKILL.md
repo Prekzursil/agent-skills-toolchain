@@ -1,8 +1,13 @@
 ---
 name: design-review-loop
-description: MOVED - renamed to design-studio. Redirect tombstone kept so old invocations still resolve. Use design-studio instead; it is the SAME TCR design-review loop (G0 PRIME to G7 VERIFY, revert-gate) plus a mode router (direct, audit, mirror, critique, iterate, implement, verify, loop, drive, session). Old triggers - design review, TCR loop, mirror to Figma - route to design-studio.
+description: MOVED - renamed to design-studio. Redirect tombstone kept so old invocations
+  still resolve. Use design-studio instead; it is the SAME TCR design-review loop
+  (G0 PRIME to G7 VERIFY, revert-gate) plus a mode router (direct, audit, mirror,
+  critique, iterate, implement, verify, loop, drive, session). Old triggers - design
+  review, TCR loop, mirror to Figma - route to design-studio.
 metadata:
   origin: user
+permalink: dqverify-repo-20261013/skills/design-review-loop/skill
 ---
 
 # design-review-loop — MOVED to `design-studio` (tombstone redirect)

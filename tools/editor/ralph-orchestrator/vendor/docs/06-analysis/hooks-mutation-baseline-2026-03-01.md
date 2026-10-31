@@ -1,3 +1,9 @@
+---
+title: hooks-mutation-baseline-2026-03-01
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/docs/06-analysis/hooks-mutation-baseline-2026-03-01
+---
+
 # Hooks mutation baseline report (2026-03-01)
 
 ## Scope and execution

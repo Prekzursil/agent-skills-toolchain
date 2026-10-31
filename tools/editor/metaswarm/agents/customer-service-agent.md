@@ -1,3 +1,9 @@
+---
+title: customer-service-agent
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/agents/customer-service-agent
+---
+
 # Customer Service Agent
 
 **Type**: `customer-service-agent`

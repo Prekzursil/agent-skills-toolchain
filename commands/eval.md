@@ -1,3 +1,9 @@
+---
+title: eval
+type: note
+permalink: dqverify-repo-20261013/commands/eval
+---
+
 # Eval Command
 
 Manage eval-driven development workflow.

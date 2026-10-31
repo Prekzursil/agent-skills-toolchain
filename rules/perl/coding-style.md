@@ -1,11 +1,13 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+- '**/*.pl'
+- '**/*.pm'
+- '**/*.t'
+- '**/*.psgi'
+- '**/*.cgi'
+permalink: dqverify-repo-20261013/rules/perl/coding-style
 ---
+
 # Perl Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with Perl-specific content.

@@ -1,6 +1,8 @@
 ---
 name: binary-ninja
-description: Use when Binary Ninja UI workflows, intermediate-language reasoning, or Binary Ninja Python API automation are needed for reverse engineering tasks.
+description: Use when Binary Ninja UI workflows, intermediate-language reasoning,
+  or Binary Ninja Python API automation are needed for reverse engineering tasks.
+permalink: dqverify-repo-20261013/skills/binary-ninja/skill
 ---
 
 # Binary Ninja

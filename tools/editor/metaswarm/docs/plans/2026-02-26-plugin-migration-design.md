@@ -1,3 +1,9 @@
+---
+title: 2026-02-26-plugin-migration-design
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/docs/plans/2026-02-26-plugin-migration-design
+---
+
 # Design: Migrate Metaswarm from npm Package to Claude Code Plugin
 
 **Date**: 2026-02-26

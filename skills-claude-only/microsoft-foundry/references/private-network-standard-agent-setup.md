@@ -1,3 +1,9 @@
+---
+title: private-network-standard-agent-setup
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/references/private-network-standard-agent-setup
+---
+
 # Private Network Standard Agent Setup
 
 > **MANDATORY:** Read [Standard Agent Setup with Network Isolation docs](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/configure-private-link?tabs=azure-portal&pivots=fdp-project) before proceeding. It covers RBAC requirements, resource provider registration, and role assignments.

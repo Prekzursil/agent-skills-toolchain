@@ -1,3 +1,9 @@
+---
+title: tool-tool-search
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/toolbox/references/tool-tool-search
+---
+
 # Tool — Tool Search (preview) (`type: toolbox_search_preview`)
 
 For toolboxes containing many tools, replace the full tool list passed to the model with two meta-tools — `tool_search` (natural-language discovery, returns matching tools per query) and `call_tool` (invoke any discovered tool by name) — so context cost stays flat regardless of toolbox size.

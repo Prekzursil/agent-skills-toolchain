@@ -1,6 +1,8 @@
 ---
 name: systematic-review-screening
-description: Use when screening studies for a review, thesis, or evidence map with explicit inclusion and exclusion criteria and borderline-case handling.
+description: Use when screening studies for a review, thesis, or evidence map with
+  explicit inclusion and exclusion criteria and borderline-case handling.
+permalink: dqverify-repo-20261013/skills/systematic-review-screening/skill
 ---
 
 # systematic-review-screening

@@ -1,10 +1,12 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
+- '**/*.ts'
+- '**/*.tsx'
+- '**/*.js'
+- '**/*.jsx'
+permalink: dqverify-repo-20261013/agent-self/config/rules/typescript/coding-style
 ---
+
 # TypeScript/JavaScript Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with TypeScript/JavaScript specific content.

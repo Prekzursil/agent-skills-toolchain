@@ -1,3 +1,9 @@
+---
+title: update-docs
+type: note
+permalink: dqverify-repo-20261013/commands/update-docs
+---
+
 # Update Documentation
 
 Sync documentation with the codebase, generating from source-of-truth files.

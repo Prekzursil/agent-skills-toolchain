@@ -1,3 +1,9 @@
+---
+title: E2E-WORKFLOW
+type: note
+permalink: dqverify-repo-20261013/docs/drug-discovery/e2-e-workflow
+---
+
 # End-to-End Drug-Discovery Research Workflow
 
 A practical guide to the just-built, locally-verified research stack: three MCP

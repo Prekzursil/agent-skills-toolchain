@@ -1,6 +1,11 @@
 ---
 name: devtu
-description: "ToolUniverse (mims-harvard/ToolUniverse) development toolkit - one skill, eight sub-command modes. Use when working on ToolUniverse tools: create a new scientific/API tool, fix a failing tool, optimize tool JSON descriptions, optimize research skills, auto-discover life-science APIs and generate integration PRs, run the debug-test loop, or push and fix CI. Each mode's playbook is under modes/."
+description: 'ToolUniverse (mims-harvard/ToolUniverse) development toolkit - one skill,
+  eight sub-command modes. Use when working on ToolUniverse tools: create a new scientific/API
+  tool, fix a failing tool, optimize tool JSON descriptions, optimize research skills,
+  auto-discover life-science APIs and generate integration PRs, run the debug-test
+  loop, or push and fix CI. Each mode''s playbook is under modes/.'
+permalink: dqverify-repo-20261013/skills/devtu/skill
 ---
 
 # DevTU — ToolUniverse Development Toolkit

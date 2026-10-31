@@ -1,3 +1,9 @@
+---
+title: upstream
+type: note
+permalink: dqverify-repo-20261013/skills/binary-ninja/references/upstream
+---
+
 # Upstream Notes
 
 - Product site: `https://binary.ninja/`

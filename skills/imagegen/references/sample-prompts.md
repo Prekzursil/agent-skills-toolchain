@@ -1,3 +1,9 @@
+---
+title: sample-prompts
+type: note
+permalink: dqverify-repo-20261013/skills/imagegen/references/sample-prompts
+---
+
 # Sample prompts (copy/paste)
 
 Use these as starting points (recipes only). Keep user-provided requirements; do not invent new creative elements.

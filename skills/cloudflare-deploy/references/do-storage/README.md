@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/do-storage/readme
+---
+
 # Cloudflare Durable Objects Storage
 
 Persistent storage API for Durable Objects with SQLite and KV backends, PITR, and automatic concurrency control.

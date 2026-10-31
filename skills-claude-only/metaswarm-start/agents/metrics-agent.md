@@ -1,3 +1,9 @@
+---
+title: metrics-agent
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/metaswarm-start/agents/metrics-agent
+---
+
 # Metrics Agent
 
 **Type**: `metrics-agent`

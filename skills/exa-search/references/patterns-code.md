@@ -1,3 +1,9 @@
+---
+title: patterns-code
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-code
+---
+
 # Query Patterns: Code and Documentation
 
 Always include programming language and framework/library in your query.

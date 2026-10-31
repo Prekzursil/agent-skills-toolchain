@@ -1,3 +1,9 @@
+---
+title: status-update-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-meeting-intelligence/reference/status-update-template
+---
+
 # Status Update Meeting Template
 
 Use this template for regular project status updates and check-ins.
@@ -71,4 +77,3 @@ Use this template for regular project status updates and check-ins.
 **Date**: [Date]
 **Focus**: [What next meeting will cover]
 ```
-

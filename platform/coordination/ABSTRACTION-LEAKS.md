@@ -1,3 +1,9 @@
+---
+title: ABSTRACTION-LEAKS
+type: note
+permalink: dqverify-repo-20261013/platform/coordination/abstraction-leaks
+---
+
 # Abstraction leaks in the cross-vendor coordination layer
 
 **Spec requirement:** `_USER-PROMPTS.md:10981` — *"explicit documentation of abstraction leaks"*, and

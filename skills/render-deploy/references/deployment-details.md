@@ -1,3 +1,9 @@
+---
+title: deployment-details
+type: note
+permalink: dqverify-repo-20261013/skills/render-deploy/references/deployment-details
+---
+
 # Deployment Details
 
 Use this reference for service discovery, configuration patterns, quick commands, and common issues.

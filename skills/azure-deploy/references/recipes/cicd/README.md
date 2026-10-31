@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/azure-deploy/references/recipes/cicd/readme
+---
+
 # CI/CD Deploy Recipe
 
 Deploy to Azure using automated pipelines.

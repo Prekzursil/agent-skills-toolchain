@@ -1,3 +1,9 @@
+---
+title: instructions-cursor-recovery
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/instructions-cursor-recovery
+---
+
 # This session: cursor-auth-recovery — FULL AGGRESSIVE resume
 
 Session `ses_f9c9ab90cffetNo68ohzF6RZAq` (slug cosmic-squid). Read `FINAL-REPORT_2026-09-03.md` and `findings-receipt_2026-09-02.md` first. Do not re-do completed gate review. **Objective: restore a live Cursor web or desktop session for the owner's own account.**

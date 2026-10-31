@@ -1,3 +1,9 @@
+---
+title: plan-card
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/plan-card
+---
+
 # Plan Card
 
 The Plan Card is the single source of truth for the create-flow. It renders **every decision** — explicit user answers and silent defaults — as a markdown table the user can read top-to-bottom and either approve or edit.

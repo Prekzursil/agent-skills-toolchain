@@ -1,3 +1,9 @@
+---
+title: ivr
+type: note
+permalink: dqverify-repo-20261013/skills/speech/references/ivr
+---
+
 # IVR / phone prompt defaults
 
 ## Suggested defaults

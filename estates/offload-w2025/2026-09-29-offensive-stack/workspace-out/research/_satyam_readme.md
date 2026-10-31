@@ -1,3 +1,9 @@
+---
+title: _satyam_readme
+type: note
+permalink: dqverify-repo-20261013/estates/offload-w2025/2026-09-29-offensive-stack/workspace-out/research/satyam-readme
+---
+
 # Pentesting Cyber MCP
 
 <div align="center">
@@ -307,4 +313,3 @@ MIT License - see [LICENSE](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-pentesting--cyber--mcp-black?style=flat&logo=github)](https://github.com/hackersatyamrastogi/pentesting-cyber-mcp)
 
 </div>
-

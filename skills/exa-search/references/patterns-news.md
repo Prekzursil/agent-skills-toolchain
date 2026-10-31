@@ -1,3 +1,9 @@
+---
+title: patterns-news
+type: note
+permalink: dqverify-repo-20261013/skills/exa-search/references/patterns-news
+---
+
 # Query Patterns: News and Recent Events
 
 ```

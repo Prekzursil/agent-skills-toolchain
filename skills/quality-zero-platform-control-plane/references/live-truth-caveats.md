@@ -1,3 +1,9 @@
+---
+title: live-truth-caveats
+type: note
+permalink: dqverify-repo-20261013/skills/quality-zero-platform-control-plane/references/live-truth-caveats
+---
+
 # Live Truth Caveats
 
 These notes are derived from controller and GitHub audits on 2026-03-23. Treat them as drift-prone and refresh them live before making claims.

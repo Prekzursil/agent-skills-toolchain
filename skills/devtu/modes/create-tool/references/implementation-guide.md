@@ -1,3 +1,9 @@
+---
+title: implementation-guide
+type: note
+permalink: dqverify-repo-20261013/skills/devtu/modes/create-tool/references/implementation-guide
+---
+
 # Tool Implementation Guide
 
 Complete guidelines for adding and maintaining tools in ToolUniverse. This is the authoritative reference for tool structure, configuration conventions, and the development checklist.

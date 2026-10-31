@@ -1,3 +1,9 @@
+---
+title: codex-invocation
+type: note
+permalink: dqverify-repo-20261013/guides/codex-invocation
+---
+
 # Codex Invocation — the canonical HOW-TO
 
 > **Definitory rule:** *To invoke Codex with per-call scoping from any session or Workflow, use the

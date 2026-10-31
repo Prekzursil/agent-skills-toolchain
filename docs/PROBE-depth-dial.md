@@ -1,3 +1,9 @@
+---
+title: PROBE-depth-dial
+type: note
+permalink: dqverify-repo-20261013/docs/probe-depth-dial
+---
+
 # PROBE — G-7a: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH functional probe — COMPLETE
 
 - Date: 2026-09-22 (runs 20:15–20:21 local)

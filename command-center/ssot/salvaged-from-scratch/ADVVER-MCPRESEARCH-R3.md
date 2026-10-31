@@ -1,3 +1,9 @@
+---
+title: ADVVER-MCPRESEARCH-R3
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/salvaged-from-scratch/advver-mcpresearch-r3
+---
+
 # ADVERSARIAL VERIFY — MCPRESEARCH round 3 (attacking BOTH build and audit)
 
 All sections below are MEASURED by execution. Detectors controlled in both states.

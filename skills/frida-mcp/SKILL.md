@@ -1,6 +1,8 @@
 ---
 name: frida-mcp
-description: Use when installing or configuring frida-mcp as an MCP server for live Frida instrumentation in Codex, Claude Code, or Gemini CLI.
+description: Use when installing or configuring frida-mcp as an MCP server for live
+  Frida instrumentation in Codex, Claude Code, or Gemini CLI.
+permalink: dqverify-repo-20261013/skills/frida-mcp/skill
 ---
 
 # Frida MCP

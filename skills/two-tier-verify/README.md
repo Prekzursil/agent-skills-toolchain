@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/two-tier-verify/readme
+---
+
 # two-tier-verify
 
 A process skill that encodes the **two-tier verification discipline** — the fix for the

@@ -1,3 +1,9 @@
+---
+title: patterns
+type: note
+permalink: dqverify-repo-20261013/skills/azure-prepare/references/services/service-bus/patterns
+---
+
 # Service Bus - Messaging Patterns
 
 ## Point-to-Point (Queue)

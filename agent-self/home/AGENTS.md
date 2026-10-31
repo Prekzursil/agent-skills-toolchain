@@ -1,3 +1,9 @@
+---
+title: AGENTS
+type: note
+permalink: dqverify-repo-20261013/agent-self/home/agents
+---
+
 # Native Codex and Shared Control Plane Contract
 
 ## Universal harness share (HARD)

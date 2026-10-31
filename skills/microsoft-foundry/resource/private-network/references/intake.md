@@ -1,3 +1,9 @@
+---
+title: intake
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/resource/private-network/references/intake
+---
+
 # Intake
 
 Collect all inputs in one pass, tiered by priority. Extract implicit answers from the user’s message before asking. Use `AskUserQuestion` for unanswered items — batch related questions.

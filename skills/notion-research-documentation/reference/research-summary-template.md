@@ -1,3 +1,9 @@
+---
+title: research-summary-template
+type: note
+permalink: dqverify-repo-20261013/skills/notion-research-documentation/reference/research-summary-template
+---
+
 # Research Summary Template
 
 Use this for most research requests. See [research-summary-format.md](research-summary-format.md) for when to use this format.
@@ -46,4 +52,3 @@ Use this for most research requests. See [research-summary-format.md](research-s
 - <mention-page url="...">Page Title</mention-page>
 - <mention-page url="...">Page Title</mention-page>
 ```
-

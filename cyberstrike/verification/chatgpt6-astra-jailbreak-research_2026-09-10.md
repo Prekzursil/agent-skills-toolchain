@@ -1,3 +1,9 @@
+---
+title: chatgpt6-astra-jailbreak-research_2026-09-10
+type: note
+permalink: dqverify-repo-20261013/cyberstrike/verification/chatgpt6-astra-jailbreak-research-2026-09-10
+---
+
 # Can ChatGPT 6 Astra itself be jailbroken (not remapped)? Research Report
 
 *Generated: 10.09.2026 | Sources: 22 | Providers: OpenAI official docs, Firecrawl, SearXNG+Ahmia index, GitHub, SEW, THE DECODER | Confidence: High on the overlay/TAC facts; Low on any claimed public Astra jailbreak*

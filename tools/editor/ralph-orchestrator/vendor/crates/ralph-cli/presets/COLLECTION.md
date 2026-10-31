@@ -1,3 +1,9 @@
+---
+title: COLLECTION
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/crates/ralph-cli/presets/collection
+---
+
 # Hat Collection Presets
 
 > **The Philosophy**: Each preset embodies a multi-agent architecture pattern optimized for specific workflows. Hats are specialized agents with clear triggers and publications—think of them as team members with defined roles in an event-driven orchestra.

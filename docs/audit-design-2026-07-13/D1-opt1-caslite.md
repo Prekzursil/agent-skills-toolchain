@@ -1,3 +1,9 @@
+---
+title: D1-opt1-caslite
+type: note
+permalink: dqverify-repo-20261013/docs/audit-design-2026-07-13/d1-opt1-caslite
+---
+
 # D1 — Council Steelman: OPTION 1 · CAS-lite-EXTEND (extend the live `install.py::deploy` into the SSOT deploy)
 
 **Council role:** advocate/steelman for Option 1 — extend the SHIPPED, verified-live

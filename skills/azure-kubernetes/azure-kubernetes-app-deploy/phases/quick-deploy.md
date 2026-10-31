@@ -1,3 +1,9 @@
+---
+title: quick-deploy
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/phases/quick-deploy
+---
+
 # Quick Deploy
 
 Deploy an application to an existing AKS cluster with production-grade artifacts.

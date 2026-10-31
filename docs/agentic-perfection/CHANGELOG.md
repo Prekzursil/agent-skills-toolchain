@@ -1,3 +1,9 @@
+---
+title: CHANGELOG
+type: note
+permalink: dqverify-repo-20261013/docs/agentic-perfection/changelog
+---
+
 # Agentic-Perfection — CHANGELOG
 
 Durable, revisit-able record of the *agentic-perfection / proactive-partner*

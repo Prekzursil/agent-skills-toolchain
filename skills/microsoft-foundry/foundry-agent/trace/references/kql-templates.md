@@ -1,3 +1,9 @@
+---
+title: kql-templates
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/trace/references/kql-templates
+---
+
 # KQL Templates — GenAI Trace Query Reference
 
 Ready-to-use KQL templates for querying GenAI OpenTelemetry traces in Application Insights.

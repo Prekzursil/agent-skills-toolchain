@@ -1,3 +1,9 @@
+---
+title: scholarly-skills
+type: note
+permalink: dqverify-repo-20261013/docs/skills/scholarly-skills
+---
+
 # Scholarly Skills
 
 scholarly-retrieval server (code at `tools/scholarly-access-mcp/`, `README.md` canonical).

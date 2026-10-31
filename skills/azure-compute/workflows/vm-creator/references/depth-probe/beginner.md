@@ -1,3 +1,9 @@
+---
+title: beginner
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/workflows/vm-creator/references/depth-probe/beginner
+---
+
 # Beginner / fast-path
 
 Goal: get to a working Plan Card in **≤ 2 questions**, then show defaults and let the user edit.

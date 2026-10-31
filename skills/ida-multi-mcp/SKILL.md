@@ -1,10 +1,20 @@
 ---
 name: ida-multi-mcp
-description: Use when you need to analyze SEVERAL binaries in IDA at once through one MCP endpoint, or when you must re-find a function whose address SHIFTED after a rebuild/game-update. Wires MeroZemory/ida-multi-mcp and its local BCSD engine - similar_functions / compare_functions rank matches by instruction-shingle MinHash plus API/string/constant anchors plus CFG shape, name-independently (survives stripping), within a binary or across instances. The keystone Battle Cats recipe - open the pinned old IDB and the new .so as two instances, then similar_functions to auto-re-locate the moved offset table after a relink. Additive and opt-in - adds NO hook, gate, or blocking behavior. NOT for a single binary on the already-installed server (use ida-pro-mcp); the Reversecore mega-bundle stays PARKED.
+description: Use when you need to analyze SEVERAL binaries in IDA at once through
+  one MCP endpoint, or when you must re-find a function whose address SHIFTED after
+  a rebuild/game-update. Wires MeroZemory/ida-multi-mcp and its local BCSD engine
+  - similar_functions / compare_functions rank matches by instruction-shingle MinHash
+  plus API/string/constant anchors plus CFG shape, name-independently (survives stripping),
+  within a binary or across instances. The keystone Battle Cats recipe - open the
+  pinned old IDB and the new .so as two instances, then similar_functions to auto-re-locate
+  the moved offset table after a relink. Additive and opt-in - adds NO hook, gate,
+  or blocking behavior. NOT for a single binary on the already-installed server (use
+  ida-pro-mcp); the Reversecore mega-bundle stays PARKED.
 origin: user
 metadata:
   gem: E5-ida-multi-mcp
   upstream: https://github.com/MeroZemory/ida-multi-mcp
+permalink: dqverify-repo-20261013/skills/ida-multi-mcp/skill
 ---
 
 # ida-multi-mcp — multi-instance IDA + local BCSD

@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills/azure-upgrade/references/languages/java/rules/troubleshooting
+---
+
 # Troubleshooting & Anti-Excuse Rules
 
 Load this file when encountering build failures, test failures, or any temptation to stop mid-migration.

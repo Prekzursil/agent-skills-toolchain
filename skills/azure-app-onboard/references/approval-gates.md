@@ -1,3 +1,9 @@
+---
+title: approval-gates
+type: note
+permalink: dqverify-repo-20261013/skills/azure-app-onboard/references/approval-gates
+---
+
 # Approval Gates — Steps 6 & 8
 
 > **Gate summary:** AppOnboard has **2 approval gates**: (1) **Scaffold Gate** (orchestrator Step 6) — approve architecture plan before generating IaC, (2) **Deploy Gate** (orchestrator Step 8 / deploy/SKILL.md Step 4) — approve cost + resource summary before `az deployment`. Both are mandatory and SEPARATE — scaffold approval does NOT imply deploy approval.

@@ -1,6 +1,10 @@
 ---
 name: to-prd
-description: Use when the user wants a PRD synthesized from the current conversation and codebase context (not an interview) and fed into the build pipeline as tracked, agent-ready work. Triggers include "turn this into a PRD", "write the PRD", "make issues from this", "spec this out for the team".
+description: Use when the user wants a PRD synthesized from the current conversation
+  and codebase context (not an interview) and fed into the build pipeline as tracked,
+  agent-ready work. Triggers include "turn this into a PRD", "write the PRD", "make
+  issues from this", "spec this out for the team".
+permalink: dqverify-repo-20261013/skills/to-prd/skill
 ---
 
 # To PRD

@@ -1,3 +1,9 @@
+---
+title: AI-SCOPE
+type: note
+permalink: dqverify-repo-20261013/skills/consensus-tooluniverse-research/references/ai-scope
+---
+
 # AI Scope — paste-ready operating instructions for the assistant
 
 > Paste into a *system prompt*, Claude *Project instructions*, a Gemini *Gem*, or a custom GPT.

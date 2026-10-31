@@ -1,3 +1,9 @@
+---
+title: trace-to-dataset
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/microsoft-foundry/foundry-agent/eval-datasets/references/trace-to-dataset
+---
+
 # Trace-to-Dataset Pipeline — Harvest Production Traces as Test Cases
 
 Extract production traces from App Insights using KQL, transform them into evaluation dataset format, and persist as versioned datasets. This is the core workflow for turning real-world agent failures into reproducible test cases.

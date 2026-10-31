@@ -1,6 +1,11 @@
 ---
-name: "accurate-grok-imagine"
-description: Precision prompting for Grok Imagine xAI image generation and editing - photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, iterative refinement. Trigger on accurate picture generation or editing with preservation needs. NOT for the OpenAI Image API (use imagegen).
+name: accurate-grok-imagine
+description: Precision prompting for Grok Imagine xAI image generation and editing
+  - photorealistic composites, identity-preserving edits, reference-based compositing,
+  anatomy and lighting repairs, iterative refinement. Trigger on accurate picture
+  generation or editing with preservation needs. NOT for the OpenAI Image API (use
+  imagegen).
+permalink: dqverify-repo-20261013/skills/accurate-grok-imagine/skill
 ---
 
 # accurate-grok-imagine

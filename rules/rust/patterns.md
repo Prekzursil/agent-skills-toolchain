@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*.rs"
+- '**/*.rs'
+permalink: dqverify-repo-20261013/rules/rust/patterns
 ---
+
 # Rust Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Rust-specific content.

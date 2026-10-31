@@ -1,3 +1,9 @@
+---
+title: codex-as-mcp
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/tools/codex-as-mcp
+---
+
 # codex-as-mcp
 
 > **Closed 2026-08-09 — solved upstream, do not promote.** This note used to point at

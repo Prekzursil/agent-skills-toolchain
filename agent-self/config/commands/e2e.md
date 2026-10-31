@@ -1,5 +1,7 @@
 ---
-description: Generate and run end-to-end tests with Playwright. Creates test journeys, runs tests, captures screenshots/videos/traces, and uploads artifacts.
+description: Generate and run end-to-end tests with Playwright. Creates test journeys,
+  runs tests, captures screenshots/videos/traces, and uploads artifacts.
+permalink: dqverify-repo-20261013/agent-self/config/commands/e2e
 ---
 
 # E2E Command

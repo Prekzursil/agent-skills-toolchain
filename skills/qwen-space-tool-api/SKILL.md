@@ -1,9 +1,11 @@
 ---
 name: qwen-space-tool-api
-description: DEPRECATED. Use hosted-model-agents instead. Old pointer for the private Qwen3.8 HF Space OpenAI /v1 recipe only.
+description: DEPRECATED. Use hosted-model-agents instead. Old pointer for the private
+  Qwen3.8 HF Space OpenAI /v1 recipe only.
 metadata:
   status: deprecated
   valid_as_of: 2026-08-29
+permalink: dqverify-repo-20261013/skills/qwen-space-tool-api/skill
 ---
 
 # Deprecated — use `hosted-model-agents`

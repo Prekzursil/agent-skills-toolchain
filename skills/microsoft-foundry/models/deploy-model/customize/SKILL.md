@@ -1,10 +1,17 @@
 ---
 name: customize
-description: "Interactive guided deployment flow for Azure OpenAI models with full customization control. Step-by-step selection of model version, SKU (GlobalStandard/Standard/ProvisionedManaged), capacity, RAI policy (content filter), and advanced options (dynamic quota, priority processing, spillover). USE FOR: custom deployment, customize model deployment, choose version, select SKU, set capacity, configure content filter, RAI policy, deployment options, detailed deployment, advanced deployment, PTU deployment, provisioned throughput. DO NOT USE FOR: quick deployment to optimal region (use preset)."
+description: 'Interactive guided deployment flow for Azure OpenAI models with full
+  customization control. Step-by-step selection of model version, SKU (GlobalStandard/Standard/ProvisionedManaged),
+  capacity, RAI policy (content filter), and advanced options (dynamic quota, priority
+  processing, spillover). USE FOR: custom deployment, customize model deployment,
+  choose version, select SKU, set capacity, configure content filter, RAI policy,
+  deployment options, detailed deployment, advanced deployment, PTU deployment, provisioned
+  throughput. DO NOT USE FOR: quick deployment to optimal region (use preset).'
 license: MIT
 metadata:
   author: Microsoft
-  version: "1.0.1"
+  version: 1.0.1
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/models/deploy-model/customize/skill
 ---
 
 # Customize Model Deployment

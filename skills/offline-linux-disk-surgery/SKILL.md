@@ -1,6 +1,9 @@
 ---
 name: offline-linux-disk-surgery
-description: Use when a Linux guest disk must be inspected, grown, or repaired offline with qemu-nbd, guestfish, GPT tools, e2fsck, or resize2fs instead of booting a broken or risky guest.
+description: Use when a Linux guest disk must be inspected, grown, or repaired offline
+  with qemu-nbd, guestfish, GPT tools, e2fsck, or resize2fs instead of booting a broken
+  or risky guest.
+permalink: dqverify-repo-20261013/skills/offline-linux-disk-surgery/skill
 ---
 
 # Offline Linux Disk Surgery

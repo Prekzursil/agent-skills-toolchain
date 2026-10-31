@@ -1,3 +1,9 @@
+---
+title: BUILD-ROUND3-2026-08-14
+type: note
+permalink: dqverify-repo-20261013/command-center/ssot/build-round3-2026-08-14
+---
+
 # LANE SSOT — BUILD round 3 (re-entry after a CONFIRMED defect)
 
 STATUS: **all five milestones measured.** Every claim below names the command that produced it.

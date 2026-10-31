@@ -1,3 +1,9 @@
+---
+title: evaluation
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/evaluation
+---
+
 # Evaluation Methodology
 
 ## Principles

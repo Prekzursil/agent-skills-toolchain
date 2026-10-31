@@ -1,3 +1,9 @@
+---
+title: c-compile-recipe
+type: note
+permalink: dqverify-repo-20261013/skills/pbinfo-python-jit/references/c-compile-recipe
+---
+
 # C Compile Recipe — gcc Flags Explained
 
 The exact gcc invocation matters enormously for shellcode generation. This document explains each flag, what goes wrong without it, and how to debug.

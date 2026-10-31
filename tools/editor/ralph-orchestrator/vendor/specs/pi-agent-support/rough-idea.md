@@ -1,3 +1,9 @@
+---
+title: rough-idea
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/specs/pi-agent-support/rough-idea
+---
+
 # Rough Idea: Add Comprehensive Pi Agent Support to Ralph Orchestrator
 
 Add pi-coding-agent (pi) as a first-class backend in ralph-orchestrator, on par with Claude, Kiro, Gemini, Codex, Amp, Copilot, and OpenCode.

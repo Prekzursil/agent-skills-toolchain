@@ -1,3 +1,9 @@
+---
+title: beads-developer-setup
+type: note
+permalink: dqverify-repo-20261013/tools/editor/metaswarm/skills/setup/templates/beads-developer-setup
+---
+
 # BEADS Developer Setup Guide
 
 This guide helps you set up BEADS (Bug/Enhancement Agent Delegation System) on your local machine for multi-agent orchestration with Claude Code.

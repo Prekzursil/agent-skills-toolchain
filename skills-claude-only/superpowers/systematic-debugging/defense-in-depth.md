@@ -1,3 +1,9 @@
+---
+title: defense-in-depth
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/systematic-debugging/defense-in-depth
+---
+
 # Defense-in-Depth Validation
 
 ## Overview

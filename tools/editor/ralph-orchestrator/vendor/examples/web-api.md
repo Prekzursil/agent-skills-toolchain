@@ -1,3 +1,9 @@
+---
+title: web-api
+type: note
+permalink: dqverify-repo-20261013/tools/editor/ralph-orchestrator/vendor/examples/web-api
+---
+
 # Task: Build a REST API
 
 Create a Flask REST API with user management capabilities.

@@ -1,3 +1,9 @@
+---
+title: spec-reviewer-prompt
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/superpowers/subagent-driven-development/spec-reviewer-prompt
+---
+
 # Spec Compliance Reviewer Prompt Template
 
 Use this template when dispatching a spec compliance reviewer subagent.

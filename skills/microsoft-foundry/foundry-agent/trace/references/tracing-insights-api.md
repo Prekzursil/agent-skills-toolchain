@@ -1,3 +1,9 @@
+---
+title: tracing-insights-api
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/foundry-agent/trace/references/tracing-insights-api
+---
+
 # Tracing Insights API
 
 Automatically detect quality regressions and anomalies in agent traces using changepoint detection on evaluation scores stored in App Insights.

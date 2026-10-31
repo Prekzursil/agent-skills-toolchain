@@ -1,7 +1,9 @@
 ---
 name: tdd-workflow
-description: Use when writing features, fixing bugs or refactoring -- enforces TDD at 80%+ coverage (unit, integration, E2E). NOT the bare red-green loop (use test-driven-development).
+description: Use when writing features, fixing bugs or refactoring -- enforces TDD
+  at 80%+ coverage (unit, integration, E2E). NOT the bare red-green loop (use test-driven-development).
 origin: ECC
+permalink: dqverify-repo-20261013/skills/tdd-workflow/skill
 ---
 
 # Test-Driven Development Workflow

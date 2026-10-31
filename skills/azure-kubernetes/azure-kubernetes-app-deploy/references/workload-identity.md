@@ -1,3 +1,9 @@
+---
+title: workload-identity
+type: note
+permalink: dqverify-repo-20261013/skills/azure-kubernetes/azure-kubernetes-app-deploy/references/workload-identity
+---
+
 # Azure Workload Identity for AKS
 
 > **Last updated:** 2026-04-02

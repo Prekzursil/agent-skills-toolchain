@@ -1,3 +1,9 @@
+---
+title: CIGREEN-R2-RETRACTIONS
+type: note
+permalink: dqverify-repo-20261013/command-center/ci/cigreen-r2-retractions
+---
+
 # CIGREEN round 2 — six retractions, and the work order the first one hid
 
 Round 1 of the CIGREEN lane shipped real fixes that survived an independent audit (all three

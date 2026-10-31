@@ -1,3 +1,9 @@
+---
+title: README
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/containers/readme
+---
+
 # Cloudflare Containers Skill Reference
 
 **APPLIES TO: Cloudflare Containers ONLY - NOT general Cloudflare Workers**

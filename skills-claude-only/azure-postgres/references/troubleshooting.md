@@ -1,3 +1,9 @@
+---
+title: troubleshooting
+type: note
+permalink: dqverify-repo-20261013/skills-claude-only/azure-postgres/references/troubleshooting
+---
+
 # Troubleshooting Azure PostgreSQL Entra ID Authentication
 
 This guide helps diagnose and resolve common authentication issues when connecting to Azure Database for PostgreSQL using Microsoft Entra ID.

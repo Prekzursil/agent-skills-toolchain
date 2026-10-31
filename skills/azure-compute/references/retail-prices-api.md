@@ -1,3 +1,9 @@
+---
+title: retail-prices-api
+type: note
+permalink: dqverify-repo-20261013/skills/azure-compute/references/retail-prices-api
+---
+
 # Azure Retail Prices API Guide
 
 The [Azure Retail Prices API](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices) is **unauthenticated** — no Azure account or subscription needed.

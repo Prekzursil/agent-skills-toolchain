@@ -1,3 +1,9 @@
+---
+title: 2026-03-11-local-validation
+type: note
+permalink: dqverify-repo-20261013/tools/mcp/workstation-codex-bundle/validation/2026-03-11-local-validation
+---
+
 # 2026-03-11 local validation
 
 ## Canonical config and settings

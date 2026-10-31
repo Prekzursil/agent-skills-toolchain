@@ -1,3 +1,9 @@
+---
+title: HOOK-MANIFEST-DRIFT
+type: note
+permalink: dqverify-repo-20261013/command-center/hook-manifest-drift
+---
+
 # Hook dispatcher manifest: live vs repo, both directions
 
 live `C:\Users\Prekzursil\.claude\hooks\_dispatch\manifest.json` = 11,219 B
@@ -26,4 +32,3 @@ A one-directional copy in either direction destroys one of those sets. Union-mer
 | Stop | `git-hygiene` | timeout | `90` | `30` |
 
 Comment prose differs on 2 further entries with identical behaviour (claim-guard/ledger-write, edit-validate/record) -- not drift, reported so the byte-size difference is fully accounted for.
-

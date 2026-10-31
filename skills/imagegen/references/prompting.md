@@ -1,3 +1,9 @@
+---
+title: prompting
+type: note
+permalink: dqverify-repo-20261013/skills/imagegen/references/prompting
+---
+
 # Prompting best practices (gpt-image-1.5)
 
 ## Contents

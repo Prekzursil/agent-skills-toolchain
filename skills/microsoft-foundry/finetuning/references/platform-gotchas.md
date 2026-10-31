@@ -1,3 +1,9 @@
+---
+title: platform-gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/platform-gotchas
+---
+
 # Platform Gotchas — Top 10
 
 1. **OSS models require `"trainingType": "globalStandard"`** in the request body — undocumented, and all OSS FT jobs fail without it.

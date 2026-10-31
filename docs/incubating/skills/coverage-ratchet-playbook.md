@@ -1,3 +1,9 @@
+---
+title: coverage-ratchet-playbook
+type: note
+permalink: dqverify-repo-20261013/docs/incubating/skills/coverage-ratchet-playbook
+---
+
 # coverage-ratchet-playbook
 
 ## Purpose

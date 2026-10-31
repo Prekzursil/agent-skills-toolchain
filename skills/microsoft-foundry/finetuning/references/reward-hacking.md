@@ -1,3 +1,9 @@
+---
+title: reward-hacking
+type: note
+permalink: dqverify-repo-20261013/skills/microsoft-foundry/finetuning/references/reward-hacking
+---
+
 # Reward Hacking Prevention in RFT
 
 ## What Is Reward Hacking?

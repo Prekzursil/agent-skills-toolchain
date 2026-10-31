@@ -1,3 +1,9 @@
+---
+title: gotchas
+type: note
+permalink: dqverify-repo-20261013/skills/cloudflare-deploy/references/terraform/gotchas
+---
+
 # Terraform Troubleshooting & Best Practices
 
 Common issues, security considerations, and best practices.

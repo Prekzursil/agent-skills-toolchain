@@ -1,9 +1,11 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
-  - "**/build.gradle.kts"
+- '**/*.kt'
+- '**/*.kts'
+- '**/build.gradle.kts'
+permalink: dqverify-repo-20261013/agent-self/config/rules/kotlin/hooks
 ---
+
 # Kotlin Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Kotlin-specific content.
